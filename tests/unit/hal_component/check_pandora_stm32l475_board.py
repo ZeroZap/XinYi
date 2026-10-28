@@ -79,7 +79,8 @@ def main() -> None:
         BOARD / "CMakeLists.txt",
         "pandora_stm32l475_smoke",
         "pandora_stm32l475_icm20608",
-        "sensor_icm20608.c",
+        "pandora_icm20608_owner.c",
+        "pandora_ap3216c_owner.c",
         "pandora_sys.c",
         "pandora_platform_startup.c",
         "stm32l4xx_hal_iwdg.c",
@@ -381,8 +382,20 @@ def main() -> None:
         "AP3216C_NACK_OBSERVED ADDR=0x7F",
         "PANDORA_AP3216C_NACK_EXPECTED_ERROR",
         "AP3216C_NACK_RECOVERED ADDR=0x1E",
-        "xy_i2c_device_init",
-        "AP3216C_MODE_ALS_PS",
+        "pandora_ap3216c_owner_init",
+        "pandora_ap3216c_owner_sample",
+        "pandora_ap3216c_owner_read_raw",
+        "pandora_ap3216c_owner_read_reg",
+        "XY_AP3216C_MODE_ALS_PS",
+    )
+    require(
+        BOARD / "pandora_ap3216c_owner.c",
+        "pandora_ap3216c_owner_init",
+        "xy_ap3216c_init",
+        "XY_AP3216C_MODE_ALS_PS",
+        "xy_ap3216c_read_light",
+        "xy_ap3216c_read_proximity",
+        "xy_ap3216c_read_ir",
     )
     require(
         BOARD / "sensor_icm20608_main.c",
@@ -391,16 +404,51 @@ def main() -> None:
         "PANDORA_I2C3_INIT_DONE",
         "I2C3_ACK=0x",
         "PANDORA_I2C3_SCAN_DONE count=",
-        "xy_i2c_device_init",
-        "xy_i2c_device_read_reg",
-        "icm20608_create_accel",
-        "xy_icm20608_read_sample",
+        "pandora_icm20608_owner_init",
+        "pandora_icm20608_owner_sample",
+        "pandora_icm20608_owner_read_raw",
+        "pandora_icm20608_owner_read_reg",
         "ICM20608_ADDR=0x68 WHO_AM_I=0xAE",
         "ICM20608 ACCEL_mg=",
         "GYRO_dps=",
         "PANDORA_ICM20608_INIT_ERROR",
         "PANDORA_ICM20608_READ_ERROR",
     )
+    require(
+        BOARD / "pandora_icm20608_owner.c",
+        "pandora_icm20608_owner_init",
+        "xy_icm20608_init_i2c",
+        "xy_icm20608_read_sample",
+        "XY_ICM20608_REG_ACCEL_XOUT_H",
+    )
+    # The validation images own their devices through the canonical drivers in
+    # `components/drivers/sensor/**`, never through the legacy `sensor_*`
+    # compatibility wrappers in `components/sensor/sensors`.
+    for sensor_owner in (
+        "sensor_ap3216c_main.c",
+        "sensor_icm20608_main.c",
+        "pandora_ap3216c_owner.c",
+        "pandora_icm20608_owner.c",
+    ):
+        source = (BOARD / sensor_owner).read_text(encoding="utf-8")
+        for forbidden in (
+            "sensor_core.h",
+            "sensor_device_t",
+            "sensor_data_t",
+            "sensor_err_t",
+            "ap3216c_create_",
+            "icm20608_create_",
+            "icm20608_priv_t",
+            "SENSOR_EOK",
+        ):
+            assert forbidden not in source, (
+                f"{sensor_owner} still depends on the legacy sensor wrapper: {forbidden}"
+            )
+    board_cmake_text = (BOARD / "CMakeLists.txt").read_text(encoding="utf-8")
+    for legacy_wrapper in ("sensor_ap3216c.c", "sensor_icm20608.c"):
+        assert legacy_wrapper not in board_cmake_text, (
+            f"board CMakeLists.txt still links the legacy wrapper {legacy_wrapper}"
+        )
     require(
         BOARD / "main.c",
         "xy_hal_gpio_init",

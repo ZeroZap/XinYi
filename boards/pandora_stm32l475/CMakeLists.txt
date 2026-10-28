@@ -91,13 +91,13 @@ add_custom_command(TARGET pandora_stm32l475_smoke POST_BUILD
 add_executable(pandora_stm32l475_icm20608
     sensor_icm20608_main.c
     pandora_soft_i2c.c
+    pandora_icm20608_owner.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
     ${PANDORA_PLATFORM_STARTUP}
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
-    ${CMAKE_SOURCE_DIR}/components/sensor/sensors/sensor_icm20608.c
     ${CMAKE_SOURCE_DIR}/components/drivers/sensor/motion/icm20608/xy_icm20608.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
@@ -114,11 +114,9 @@ target_include_directories(pandora_stm32l475_icm20608 BEFORE PRIVATE
     ${CMAKE_SOURCE_DIR}/components/device/inc
     ${CMAKE_SOURCE_DIR}/components/device
     ${CMAKE_SOURCE_DIR}/components/hal/inc
-    ${CMAKE_SOURCE_DIR}/components/sensor
-    ${CMAKE_SOURCE_DIR}/components/sensor/sensors
     ${CMAKE_SOURCE_DIR}/components/drivers/sensor/motion/icm20608)
 target_compile_definitions(pandora_stm32l475_icm20608 PRIVATE
-    STM32L475xx USE_HAL_DRIVER SENSOR_USE_FLOAT=0
+    STM32L475xx USE_HAL_DRIVER
     XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
 target_link_options(pandora_stm32l475_icm20608 PRIVATE
     -T${CMAKE_CURRENT_SOURCE_DIR}/STM32L475VETX_FLASH.ld
@@ -134,6 +132,7 @@ add_custom_command(TARGET pandora_stm32l475_icm20608 POST_BUILD
 add_executable(pandora_stm32l475_ap3216c
     sensor_ap3216c_main.c
     pandora_hw_i2c.c
+    pandora_ap3216c_owner.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_i2c.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
@@ -141,7 +140,6 @@ add_executable(pandora_stm32l475_ap3216c
     ${PANDORA_PLATFORM_STARTUP}
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
-    ${CMAKE_SOURCE_DIR}/components/sensor/sensors/sensor_ap3216c.c
     ${CMAKE_SOURCE_DIR}/components/drivers/sensor/light/ap3216c/xy_ap3216c.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
@@ -160,11 +158,9 @@ target_include_directories(pandora_stm32l475_ap3216c BEFORE PRIVATE
     ${CMAKE_SOURCE_DIR}/components/device/inc
     ${CMAKE_SOURCE_DIR}/components/device
     ${CMAKE_SOURCE_DIR}/components/hal/inc
-    ${CMAKE_SOURCE_DIR}/components/sensor
-    ${CMAKE_SOURCE_DIR}/components/sensor/sensors
     ${CMAKE_SOURCE_DIR}/components/drivers/sensor/light/ap3216c)
 target_compile_definitions(pandora_stm32l475_ap3216c PRIVATE
-    STM32L475xx USE_HAL_DRIVER SENSOR_USE_FLOAT=0
+    STM32L475xx USE_HAL_DRIVER
     XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
 target_link_options(pandora_stm32l475_ap3216c PRIVATE
     -T${CMAKE_CURRENT_SOURCE_DIR}/STM32L475VETX_FLASH.ld

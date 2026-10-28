@@ -1,5 +1,54 @@
 # XinYi 组件证据台账
 
+### 2026-10-28 Pandora board-owned canonical sensor owners (host)
+
+- The two Pandora sensor validation images stopped owning their devices through the legacy
+  `sensor_*` compatibility wrappers. `sensor_ap3216c_main.c` no longer calls
+  `ap3216c_create_light/proximity/ir` (which `SENSOR_MALLOC`a three `sensor_device_t` objects and
+  re-maps results to `sensor_err_t`), and `sensor_icm20608_main.c` no longer calls
+  `icm20608_create_accel` nor reaches back into `((icm20608_priv_t *)accel->priv_data)->device` for
+  its sample. Both images now own one canonical Device driver instance through the new board module
+  `boards/pandora_stm32l475/pandora_ap3216c_owner.{h,c}` /
+  `pandora_icm20608_owner.{h,c}`, and the board `CMakeLists.txt` no longer compiles
+  `components/sensor/sensors/sensor_{ap3216c,icm20608}.c` into either image.
+- Owner contract: `init` builds a candidate instance and commits only on success (a failed or
+  re-init leaves the caller's owner byte-identical, not zeroed); `sample` commits only after every
+  channel returns OK (a partial fault preserves the caller's previous sample); `read_reg` /
+  `read_raw` are refused with `XY_DEVICE_INVALID_PARAM` before a successful init, with no bus
+  traffic.
+- New CTest `pandora_sensor_owners` (15 cases) seats two host-side I2C register files on the
+  canonical `xy_hal_i2c_*` seam so one fixture pins both owners through the unmodified
+  `xy_ap3216c` / `xy_icm20608` drivers. AP3216C: reset-then-`ALS_PS` init with both 50 ms settles and
+  the 7-bit `0x1E`/100 ms transfer contract, the 6-byte `IR_DATA_L` block, atomic three-channel
+  sampling (ALS `*350` millilux, 12-bit proximity mask, 10-bit IR mask) mirroring the driver cache,
+  and output-preserving fail-closed paths on the `0x40` out-of-range flag or a NACKing bus.
+  ICM20608: identity read strictly before any write (foreign `WHO_AM_I` -> `XY_DEVICE_NOT_FOUND`
+  with zero writes and zero delay), reset/100 ms settle plus the seven documented
+  write-and-read-back registers landing `0x01/0x00/0x08/0x08/0x09/0x04/0x04`, the 14-byte
+  `ACCEL_XOUT_H` burst decoded at the committed 4 g / 500 dps ranges (500 / -500 / 125 mg,
+  3906 / -3906 / 0 mdps, 3126 centi-degC), and output preservation when the bus dies mid-frame.
+- Reverse proof: four mutations each turn the suite red — non-atomic AP3216C sample commit (2
+  failures), ICM20608 owner committing its candidate before the init result (1), `ADDR_DEFAULT` ->
+  `ADDR_ALT` in the ICM owner (5), AP3216C raw block read starting at `ALS_DATA_L` (1). Mutation
+  sources were restored from byte-identical backups and the suite re-verified green.
+- On-image proof (real cross build): `make HAL_PLATFORM=STM32L4 STM32L4_BOARD=pandora_stm32l475`
+  builds both images; `arm-none-eabi-nm` shows
+  `pandora_ap3216c_owner_{init,read_reg,read_raw,sample}` + `xy_ap3216c_init` in the AP3216C image
+  and `pandora_icm20608_owner_{init,read_reg,read_raw,sample}` + `xy_icm20608_init_i2c` in the
+  ICM20608 image, with **zero** `sensor_*` symbols and no `ap3216c_create_*` /
+  `icm20608_create_*` / `icm20608_priv` symbol in either ELF (`.text` 11316 B and 10380 B).
+- Evidence path: `boards/pandora_stm32l475/pandora_{ap3216c,icm20608}_owner.{h,c}`,
+  `boards/pandora_stm32l475/sensor_{ap3216c,icm20608}_main.c`,
+  `boards/pandora_stm32l475/CMakeLists.txt`,
+  `tests/unit/hal_component/test_pandora_sensor_owners.c`, `tests/unit/CMakeLists.txt`,
+  `tests/unit/hal_component/check_pandora_stm32l475_board.py`,
+  `docs/design/unit-test-inventory.md`; focused CTest `pandora_sensor_owners` 15/15; Host
+  `make test-unit` 291/291; PC, STM32L4 (board images), STM32U5 builds; `git diff --check`.
+- Current status: source/Host/compile `DONE`; nothing was flashed. Does not upgrade I2C timing,
+  clock stretching, bus recovery, real AP3216C/ICM20608 communication, board-runtime behaviour or
+  product qualification. The UART marker streams of both images are unchanged, so the existing
+  capture validators still apply; the on-board owner change itself is still unverified at runtime.
+
 ### 2026-10-28 Pandora hardware I2C3 -> Device -> driver vertical slice (host)
 
 - New CTest `pandora_hw_i2c_stack` (13 cases) closes the same seam as `pandora_device_stack` for the
@@ -28,8 +77,9 @@
   `clang-format --dry-run --Werror`; `git diff --check`.
 - Current status: source/Host/compile `DONE`; no production code changed, nothing was flashed. Does
   not upgrade I2C timing, clock stretching, bus recovery, real AP3216C communication, board-runtime
-  behaviour or product qualification. The Pandora `sensor_ap3216c` image still runs the legacy
-  `sensor_*` framework, so the canonical driver is host-proven but not yet the on-board owner.
+  behaviour or product qualification. The Pandora `sensor_ap3216c` image still ran the legacy
+  `sensor_*` framework at the time of this slice; that on-board ownership gap was closed by the
+  newer 2026-10-28 board-owned canonical sensor owner slice above (source/Host/compile only).
 
 ### 2026-10-28 Pandora I2C -> Device -> driver vertical slice (host)
 
@@ -60,8 +110,9 @@
 - Current status: source/Host/compile `DONE`; no production code changed, nothing was flashed. Does
   not upgrade bit-bang timing/rise time, clock stretching, bus recovery, real AHT10/ICM20608
   communication, board-runtime behaviour or product qualification. The Pandora `sensor_icm20608` /
-  `sensor_ap3216c` images still run the legacy `sensor_*` framework, so the canonical drivers are
-  host-proven but not yet the on-board owners.
+  `sensor_ap3216c` images still ran the legacy `sensor_*` framework at the time of this slice, so
+  the canonical drivers were host-proven but not yet the on-board owners; that gap was closed by
+  the newer 2026-10-28 board-owned canonical sensor owner slice above.
 
 ### 2026-10-27 Pandora SYS reset-request retention across a reset
 

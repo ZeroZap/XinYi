@@ -2198,6 +2198,27 @@ target_include_directories(test_pandora_hw_i2c_stack PRIVATE
     ${DRV}/sensor/light/ap3216c
 )
 
+# --- Test 33i: Pandora board-owned canonical sensor owners ---
+xy_add_unit_test(test_pandora_sensor_owners pandora_sensor_owners UNITY
+    ${UNIT_HAL}/test_pandora_sensor_owners.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_ap3216c_owner.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_icm20608_owner.c
+    ${DEV}/src/xy_device_bus_helpers.c
+    ${DEV}/xy_device_core.c
+    ${DRV}/sensor/light/ap3216c/xy_ap3216c.c
+    ${DRV}/sensor/motion/icm20608/xy_icm20608.c
+)
+target_include_directories(test_pandora_sensor_owners BEFORE PRIVATE
+    ${ROOT}/boards/pandora_stm32l475
+)
+target_include_directories(test_pandora_sensor_owners PRIVATE
+    ${DEV}
+    ${DEV}/inc
+    ${HAL}/inc
+    ${DRV}/sensor/light/ap3216c
+    ${DRV}/sensor/motion/icm20608
+)
+
 # --- Test 34: GUI core drawing and object contracts ---
 xy_add_unit_test(test_gui_core gui_core UNITY
     ${UNIT_GUI}/test_gui_core.c

@@ -1,7 +1,15 @@
-#include "pandora_soft_i2c.h"
-#include "sensor_icm20608.h"
-#include "stm32l4xx_hal.h"
+/**
+ * @file sensor_icm20608_main.c
+ * @brief Pandora ICM20608 validation image on the canonical board-owned driver.
+ *
+ * The board owns one `xy_icm20608` instance through `pandora_sensor_owners`; the
+ * legacy `sensor_*` compatibility wrapper is no longer linked into this image.
+ */
+
+#include "pandora_icm20608_owner.h"
 #include "pandora_platform_startup.h"
+#include "pandora_soft_i2c.h"
+#include "stm32l4xx_hal.h"
 #include "xy_device.h"
 #include "xy_hal_delay.h"
 #include "xy_hal_sys.h"
@@ -12,19 +20,19 @@
 #endif
 
 static UART_HandleTypeDef uart1;
-static xy_i2c_device_t icm_bus;
+static pandora_icm20608_owner_t icm_owner;
 
 void _init(void) {}
 void _fini(void) {}
 void SysTick_Handler(void) { xy_hal_sys_tick_irq_handler(); }
 void delay_ms(uint32_t ms) { xy_hal_delay_ms(ms); }
 uint32_t get_tick_ms(void) { return xy_hal_sys_get_tick_count(); }
-uint32_t xy_os_tick_get(void) { return xy_hal_sys_get_tick_count(); }
 
 static void fail(void)
 {
     __disable_irq();
-    for (;;) {
+    for (;;)
+    {
     }
 }
 
@@ -68,17 +76,18 @@ static void uart_hex8(uint8_t value)
     (void)xy_hal_uart_send(&uart1, (const uint8_t *)encoded, sizeof(encoded), 100U);
 }
 
-static int read_reg(uint8_t reg, uint8_t *data, size_t len)
+static int read_reg(uint8_t reg, uint8_t *data, uint16_t len)
 {
-    return xy_i2c_device_read_reg(&icm_bus, reg, data, len) == XY_DEVICE_OK;
+    return pandora_icm20608_owner_read_reg(&icm_owner, reg, data, len) == XY_DEVICE_OK;
 }
 
 static void log_register_snapshot(void)
 {
     static const uint8_t registers[] = {
-        ICM20608_REG_PWR_MGMT_1, ICM20608_REG_PWR_MGMT_2, ICM20608_REG_ACCEL_CONFIG,
-        ICM20608_REG_GYRO_CONFIG, ICM20608_REG_CONFIG, ICM20608_REG_ACCEL_CONFIG2,
-        ICM20608_REG_INT_STATUS,
+        XY_ICM20608_REG_PWR_MGMT_1, XY_ICM20608_REG_PWR_MGMT_2,
+        XY_ICM20608_REG_ACCEL_CONFIG, XY_ICM20608_REG_GYRO_CONFIG,
+        XY_ICM20608_REG_CONFIG, XY_ICM20608_REG_ACCEL_CONFIG2,
+        XY_ICM20608_REG_INT_STATUS,
     };
     uint8_t value;
 
@@ -98,9 +107,9 @@ static void log_register_snapshot(void)
 
 static void log_raw_burst(void)
 {
-    uint8_t raw[14];
+    uint8_t raw[PANDORA_ICM20608_RAW_LEN];
 
-    if (!read_reg(ICM20608_REG_ACCEL_XOUT_H, raw, sizeof(raw))) {
+    if (pandora_icm20608_owner_read_raw(&icm_owner, raw) != XY_DEVICE_OK) {
         uart_text("PANDORA_ICM20608_BURST_IO_ERROR\r\n");
         fail();
     }
@@ -110,7 +119,6 @@ static void log_raw_burst(void)
     }
     uart_text("\r\n");
 }
-
 
 static void uart_init(void)
 {
@@ -132,45 +140,8 @@ static void uart_init(void)
     }
 }
 
-int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    xy_i2c_device_t *dev = bus;
-    return dev != NULL && dev->dev_addr == addr &&
-                   xy_i2c_device_read_reg(dev, reg, data, len) == XY_DEVICE_OK
-               ? 0
-               : -1;
-}
-
-int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    xy_i2c_device_t *dev = bus;
-    return dev != NULL && dev->dev_addr == addr &&
-                   xy_i2c_device_write_reg(dev, reg, data, len) == XY_DEVICE_OK
-               ? 0
-               : -1;
-}
-
-int hal_spi_read_reg(void *bus, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    (void)reg;
-    (void)data;
-    (void)len;
-    return -1;
-}
-
-int hal_spi_write_reg(void *bus, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    (void)reg;
-    (void)data;
-    (void)len;
-    return -1;
-}
-
 int main(void)
 {
-    sensor_device_t *accel;
     xy_icm20608_sample_t sample;
     uint8_t whoami = 0U;
     void *i2c3;
@@ -186,48 +157,50 @@ int main(void)
               "\r\nI2C3_PINS SCL=PC0 SDA=PC1\r\n");
     i2c3 = pandora_soft_i2c3_init();
     uart_text("PANDORA_I2C3_INIT_DONE\r\n");
-    uint32_t ack_count = 0U;
-    for (uint32_t address = 0x08U; address <= 0x77U; ++address) {
-        if (pandora_soft_i2c_probe(i2c3, (uint8_t)address)) {
-            uart_text("I2C3_ACK=0x");
-            uart_hex8((uint8_t)address);
-            uart_text("\r\n");
-            ++ack_count;
+    {
+        uint32_t ack_count = 0U;
+        for (uint32_t address = 0x08U; address <= 0x77U; ++address) {
+            if (pandora_soft_i2c_probe(i2c3, (uint8_t)address)) {
+                uart_text("I2C3_ACK=0x");
+                uart_hex8((uint8_t)address);
+                uart_text("\r\n");
+                ++ack_count;
+            }
+        }
+        uart_text("PANDORA_I2C3_SCAN_DONE count=");
+        uart_u32(ack_count);
+        uart_text("\r\n");
+    }
+    {
+        /* Identity must be observed on the bus before the driver is trusted. */
+        xy_i2c_device_t probe_bus;
+
+        if (xy_i2c_device_init(&probe_bus, i2c3, XY_ICM20608_ADDR_DEFAULT, 100U) !=
+                XY_DEVICE_OK ||
+            xy_i2c_device_read_reg(&probe_bus, XY_ICM20608_REG_WHO_AM_I, &whoami, 1U) !=
+                XY_DEVICE_OK) {
+            uart_text("PANDORA_ICM20608_WHOAMI_IO_ERROR\r\n");
+            fail();
+        }
+        uart_text("ICM20608_WHO_AM_I_RAW=");
+        uart_u32(whoami);
+        uart_text("\r\n");
+        if (whoami != XY_ICM20608_WHO_AM_I) {
+            uart_text("PANDORA_ICM20608_WHOAMI_MISMATCH\r\n");
+            fail();
         }
     }
-    uart_text("PANDORA_I2C3_SCAN_DONE count=");
-    uart_u32(ack_count);
-    uart_text("\r\n");
-    if (xy_i2c_device_init(&icm_bus, i2c3, ICM20608_ADDR_DEFAULT, 100U) != XY_DEVICE_OK) {
-        uart_text("PANDORA_ICM20608_INIT_ERROR\r\n");
-        fail();
+    {
+        xy_error_t init_result = pandora_icm20608_owner_init(&icm_owner, i2c3);
+
+        if (init_result != XY_DEVICE_OK) {
+            uart_text("PANDORA_ICM20608_DRIVER_INIT_ERROR result=");
+            uart_i32(init_result);
+            uart_text("\r\n");
+            fail();
+        }
     }
-    if (xy_i2c_device_read_reg(&icm_bus, ICM20608_REG_WHOAMI, &whoami, 1U) != XY_DEVICE_OK) {
-        uart_text("PANDORA_ICM20608_WHOAMI_IO_ERROR\r\n");
-        fail();
-    }
-    uart_text("ICM20608_WHO_AM_I_RAW=");
-    uart_u32(whoami);
-    uart_text("\r\n");
-    if (whoami != ICM20608_WHOAMI_VALUE) {
-        uart_text("PANDORA_ICM20608_WHOAMI_MISMATCH\r\n");
-        fail();
-    }
-    accel = icm20608_create_accel("pandora-icm-accel", i2c3, false);
-    if (accel == NULL) {
-        uart_text("PANDORA_ICM20608_CREATE_ERROR\r\n");
-        fail();
-    }
-    sensor_err_t init_result = accel->ops->init(accel);
-    if (init_result != SENSOR_EOK) {
-        uart_text("PANDORA_ICM20608_DRIVER_INIT_ERROR result=");
-        uart_i32(init_result);
-        uart_text("\r\n");
-        fail();
-    }
-    if (
-        xy_i2c_device_read_reg(&icm_bus, ICM20608_REG_WHOAMI, &whoami, 1U) != XY_DEVICE_OK ||
-        whoami != ICM20608_WHOAMI_VALUE) {
+    if (!read_reg(XY_ICM20608_REG_WHO_AM_I, &whoami, 1U) || whoami != XY_ICM20608_WHO_AM_I) {
         uart_text("PANDORA_ICM20608_INIT_ERROR\r\n");
         fail();
     }
@@ -238,8 +211,7 @@ int main(void)
     for (;;) {
         log_raw_burst();
         log_register_snapshot();
-        if (xy_icm20608_read_sample(&((icm20608_priv_t *)accel->priv_data)->device,
-                                     &sample) != XY_DEVICE_OK) {
+        if (pandora_icm20608_owner_sample(&icm_owner, &sample) != XY_DEVICE_OK) {
             uart_text("PANDORA_ICM20608_READ_ERROR\r\n");
             fail();
         }

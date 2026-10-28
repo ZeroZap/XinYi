@@ -1,9 +1,18 @@
+/**
+ * @file sensor_ap3216c_main.c
+ * @brief Pandora AP3216C validation image on the canonical board-owned driver.
+ *
+ * The board owns one `xy_ap3216c` instance through `pandora_sensor_owners`; the
+ * legacy `sensor_*` compatibility wrapper is no longer linked into this image.
+ */
+
+#include "pandora_ap3216c_owner.h"
 #include "pandora_hw_i2c.h"
-#include "sensor_ap3216c.h"
-#include "stm32l4xx_hal.h"
 #include "pandora_platform_startup.h"
+#include "stm32l4xx_hal.h"
 #include "xy_device.h"
 #include "xy_hal_delay.h"
+#include "xy_hal_i2c.h"
 #include "xy_hal_sys.h"
 #include "xy_hal_uart.h"
 
@@ -11,15 +20,20 @@
 #error "XINYI_FIRMWARE_COMMIT must identify the source commit used for this image"
 #endif
 
+/* AP3216C registers the validation image still addresses directly. */
+#define AP_REG_INT_STATUS 0x01U
+#define AP_REG_ALS_CONF 0x10U
+#define AP_REG_PS_CONF 0x20U
+#define AP_REG_PS_LED 0x21U
+
 static UART_HandleTypeDef uart1;
-static xy_i2c_device_t ap_bus;
+static pandora_ap3216c_owner_t ap_owner;
 
 void _init(void) {}
 void _fini(void) {}
 void SysTick_Handler(void) { xy_hal_sys_tick_irq_handler(); }
 void delay_ms(uint32_t ms) { xy_hal_delay_ms(ms); }
 uint32_t get_tick_ms(void) { return xy_hal_sys_get_tick_count(); }
-uint32_t xy_os_tick_get(void) { return xy_hal_sys_get_tick_count(); }
 
 static void fail(void)
 {
@@ -52,7 +66,6 @@ static void uart_hex8(uint8_t value)
     (void)xy_hal_uart_send(&uart1, (const uint8_t *)encoded, sizeof(encoded), 100U);
 }
 
-
 static void uart_init(void)
 {
     const xy_hal_gpio_config_t gpio = {XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_UP,
@@ -73,32 +86,15 @@ static void uart_init(void)
     }
 }
 
-int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    xy_i2c_device_t *dev = bus;
-    return dev != NULL && dev->dev_addr == addr &&
-                   xy_i2c_device_read_reg(dev, reg, data, len) == XY_DEVICE_OK ? 0 : -1;
-}
-
-int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    xy_i2c_device_t *dev = bus;
-    return dev != NULL && dev->dev_addr == addr &&
-                   xy_i2c_device_write_reg(dev, reg, data, len) == XY_DEVICE_OK ? 0 : -1;
-}
-
 int main(void)
 {
-    sensor_device_t *light;
-    sensor_device_t *proximity;
-    sensor_device_t *ir;
-    sensor_data_t als_data, ps_data, ir_data;
     uint8_t config = 0U;
     uint8_t status = 0U;
     uint8_t als_config = 0U;
     uint8_t ps_config = 0U;
     uint8_t ps_led = 0U;
-    uint8_t raw[6];
+    uint8_t raw[PANDORA_AP3216C_RAW_LEN];
+    pandora_ap3216c_sample_t sample;
     void *i2c3;
 
     if (xy_hal_sys_init() != XY_HAL_OK) { fail(); }
@@ -118,25 +114,21 @@ int main(void)
         }
         uart_text("AP3216C_NACK_OBSERVED ADDR=0x7F\r\n");
     }
-    if (xy_i2c_device_init(&ap_bus, i2c3, AP3216C_ADDR_DEFAULT, 100U) != XY_DEVICE_OK) {
-        uart_text("PANDORA_AP3216C_DEVICE_ERROR\r\n"); fail();
-    }
-    light = ap3216c_create_light("pandora-ap-als", &ap_bus);
-    proximity = ap3216c_create_proximity("pandora-ap-ps", &ap_bus);
-    ir = ap3216c_create_ir("pandora-ap-ir", &ap_bus);
-    if (light == NULL || proximity == NULL || ir == NULL || light->ops->init(light) != SENSOR_EOK) {
+    if (pandora_ap3216c_owner_init(&ap_owner, i2c3) != XY_DEVICE_OK) {
         uart_text("PANDORA_AP3216C_INIT_ERROR\r\n"); fail();
     }
-    if (xy_i2c_device_read_reg(&ap_bus, AP3216C_REG_SYS_CONFIG, &config, 1U) != XY_DEVICE_OK ||
-        config != AP3216C_MODE_ALS_PS) {
+    if (pandora_ap3216c_owner_read_reg(&ap_owner, XY_AP3216C_REG_SYSTEM_CONFIG, &config, 1U) !=
+            XY_DEVICE_OK ||
+        config != XY_AP3216C_MODE_ALS_PS) {
         uart_text("PANDORA_AP3216C_CONFIG_ERROR\r\n"); fail();
     }
     uart_text("AP3216C_NACK_RECOVERED ADDR=0x1E\r\n");
     uart_text("AP3216C_CONFIG=0x"); uart_hex8(config); uart_text(" MODE=ALS_PS\r\n");
-    if (xy_i2c_device_read_reg(&ap_bus, AP3216C_REG_INT_STATUS, &status, 1U) != XY_DEVICE_OK ||
-        xy_i2c_device_read_reg(&ap_bus, 0x10U, &als_config, 1U) != XY_DEVICE_OK ||
-        xy_i2c_device_read_reg(&ap_bus, 0x20U, &ps_config, 1U) != XY_DEVICE_OK ||
-        xy_i2c_device_read_reg(&ap_bus, 0x21U, &ps_led, 1U) != XY_DEVICE_OK) {
+    if (pandora_ap3216c_owner_read_reg(&ap_owner, AP_REG_INT_STATUS, &status, 1U) != XY_DEVICE_OK ||
+        pandora_ap3216c_owner_read_reg(&ap_owner, AP_REG_ALS_CONF, &als_config, 1U) !=
+            XY_DEVICE_OK ||
+        pandora_ap3216c_owner_read_reg(&ap_owner, AP_REG_PS_CONF, &ps_config, 1U) != XY_DEVICE_OK ||
+        pandora_ap3216c_owner_read_reg(&ap_owner, AP_REG_PS_LED, &ps_led, 1U) != XY_DEVICE_OK) {
         uart_text("PANDORA_AP3216C_DIAG_IO_ERROR\r\n"); fail();
     }
     uart_text("AP3216C_DIAG INT=0x"); uart_hex8(status);
@@ -145,30 +137,27 @@ int main(void)
     uart_text(" PS_LED=0x"); uart_hex8(ps_led); uart_text("\r\n");
 
     for (;;) {
-        if (xy_i2c_device_read_reg(&ap_bus, AP3216C_REG_INT_STATUS, &status, 1U) !=
+        uint32_t lux;
+
+        if (pandora_ap3216c_owner_read_reg(&ap_owner, AP_REG_INT_STATUS, &status, 1U) !=
             XY_DEVICE_OK) {
             uart_text("PANDORA_AP3216C_STATUS_IO_ERROR\r\n"); fail();
         }
-        for (uint32_t i = 0U; i < sizeof(raw); ++i) {
-            if (xy_i2c_device_read_reg(&ap_bus, (uint8_t)(AP3216C_REG_IR_DATA_L + i),
-                                       &raw[i], 1U) != XY_DEVICE_OK) {
-                uart_text("PANDORA_AP3216C_RAW_IO_ERROR\r\n"); fail();
-            }
+        if (pandora_ap3216c_owner_read_raw(&ap_owner, raw) != XY_DEVICE_OK) {
+            uart_text("PANDORA_AP3216C_RAW_IO_ERROR\r\n"); fail();
         }
-        if (light->ops->read(light, &als_data) != SENSOR_EOK ||
-            proximity->ops->read(proximity, &ps_data) != SENSOR_EOK ||
-            ir->ops->read(ir, &ir_data) != SENSOR_EOK) {
+        if (pandora_ap3216c_owner_sample(&ap_owner, &sample) != XY_DEVICE_OK) {
             uart_text("PANDORA_AP3216C_SAMPLE_ERROR\r\n"); fail();
         }
-        if (als_data.value.val_uint32 > 22937U || ps_data.value.val_int32 < 0 ||
-            ps_data.value.val_int32 > 1023 || ir_data.value.val_uint32 > 1023U) {
+        lux = sample.illuminance_millilux / 1000U;
+        if (lux > 22937U || sample.proximity_raw > 1023U || sample.infrared_raw > 1023U) {
             uart_text("PANDORA_AP3216C_RANGE_ERROR\r\n"); fail();
         }
         uart_text("AP3216C_INT=0x"); uart_hex8(status); uart_text(" RAW_HEX=");
         for (uint32_t i = 0U; i < sizeof(raw); ++i) { uart_hex8(raw[i]); }
-        uart_text(" ALS_lux="); uart_u32(als_data.value.val_uint32);
-        uart_text(" PS_raw="); uart_u32((uint32_t)ps_data.value.val_int32);
-        uart_text(" IR_raw="); uart_u32(ir_data.value.val_uint32); uart_text("\r\n");
+        uart_text(" ALS_lux="); uart_u32(lux);
+        uart_text(" PS_raw="); uart_u32((uint32_t)sample.proximity_raw);
+        uart_text(" IR_raw="); uart_u32((uint32_t)sample.infrared_raw); uart_text("\r\n");
         xy_hal_delay_ms(100U);
     }
 }

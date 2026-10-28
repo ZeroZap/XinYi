@@ -1,6 +1,26 @@
 # XinYi Sprint 跟踪看板
 
-**最新 Pandora hardware I2C3→Device→驱动纵切 Host 契约（2026-10-28）**：S6-114 收口了**位翻转** transport
+**最新 Pandora 传感器镜像 canonical board owner（2026-10-28）**：S6-114/S6-115 已证明两条 transport
+→Device→canonical 驱动的纵切，但两个传感器镜像的**板上 owner 仍是 legacy `sensor_*` wrapper**：
+`sensor_ap3216c_main.c` 走 `ap3216c_create_light/proximity/ir`（`SENSOR_MALLOC` 三个
+`sensor_device_t`、结果映射成 `sensor_err_t`），`sensor_icm20608_main.c` 走 `icm20608_create_accel`
+并回手掏 `((icm20608_priv_t *)accel->priv_data)->device` 取样本。本轮新增 board owner 模块
+`pandora_ap3216c_owner.{h,c}` / `pandora_icm20608_owner.{h,c}`，两个镜像各持**一个 canonical 驱动实例**，
+board `CMakeLists.txt` 不再编译 `sensor_{ap3216c,icm20608}.c`、不再引入 `components/sensor` 与
+`SENSOR_USE_FLOAT=0`。契约：`init` 先建 candidate 成功才提交（失败时调用方 owner 逐字节不变、不清零）；
+`sample` 全通道成功才提交（部分故障保留上一份样本）；未 init 的 `read_reg`/`read_raw` 以
+`XY_DEVICE_INVALID_PARAM` 拒绝且零总线流量。新增 CTest `pandora_sensor_owners`（15 用例）：两个 host
+I2C 寄存器文件（0x1E/0x68）坐在 `xy_hal_i2c_*` 缝上，同一 fixture 同时钉住两个 owner（AP3216C 复位→
+`ALS_PS` 两写各 50 ms、6 字节原始块、三通道原子采样与缓存镜像、`0x40` 越界与 NACK 的输出保持；ICM20608
+身份读先于任何写、复位+7 条写读回 `0x01/0x00/0x08/0x08/0x09/0x04/0x04`、14 字节块 4 g/500 dps 解码
+500/−500/125 mg 与 3906/−3906/0 mdps、总线失效输出保持）。反证：4 种变异（非原子提交、提前提交
+candidate、`ADDR_DEFAULT`→`ADDR_ALT`、原始块改起点）分别 2/1/5/1 项 FAIL；真实交叉编译后两镜像 ELF
+**零** `sensor_*` 符号、无 `*_create_*`/`icm20608_priv`，`.text` 11316 B / 10380 B。实测：focused 15/15；
+Host **291/291**；PC / STM32L4(board) / STM32U5 build rc=0；board policy guard 改为强制 canonical
+owner；`git diff --check`。**边界**：source/Host/compile 级，未烧录；不升级 I2C 时序/时钟拉伸/总线恢复/
+真实器件通信/board runtime；两镜像 UART marker 流保持不变，既有 capture validator 仍适用。
+
+**Pandora hardware I2C3→Device→驱动纵切 Host 契约（2026-10-28）**：S6-114 收口了**位翻转** transport
 风格的三层缝，参考板的另一条 transport 风格 —— handle 式硬件 I2C3（`pandora_hw_i2c.c`，vendor
 `Instance`/AF4/RCC 路径，板上 AP3216C 唯一通道）—— 仍只有 transport 自身与打桩驱动级覆盖。现新增 CTest
 `pandora_hw_i2c_stack`（13 用例）：host 侧 AP3216C 寄存器模型坐在 canonical `xy_hal_i2c_*` 缝上，真实
@@ -635,7 +655,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 || S6-112 | P1 | Pandora board-owned I2C transport Host contract（software I2C + hardware I2C3） | DONE | Zero | S6-110（DONE）收口了同一类"board owner 零 Host 覆盖"；`pandora_soft_i2c.c` 是参考板 AHT10/ICM20608 的唯一传输，`pandora_hw_i2c.c` 是 AP3216C 的唯一传输，二者此前只有 board 镜像编译 | 新增 Host 契约 `pandora_i2c_owners`（35 用例）：以 host-only fake `stm32l4xx_hal.h` + fake `xy_hal_gpio_*`，把两文件实际产生的 GPIO 事件流解码回 I2C 帧，验证 i2c3=SCL PC0/SDA PC1 与 i2c4=SCL PD6/SDA PC1 引脚映射、bus 身份拒绝（外来指针/0x80 地址零 GPIO 副作用）、START/STOP、`dev_addr << 1`、MSB-first、每字节 ACK 采样、地址或数据 NACK→`XY_HAL_ERROR_IO` 且仍发 STOP、失败时不再时钟后续字节、receive 地址 R 位与末字节 NACK、失败时输出保持不变、hw I2C3 的 AF4/OD/上拉/超高速配置与 `Instance` 在 `xy_hal_i2c_init()` 之前赋值、pin/i2c init 失败返回 NULL。同时收口两处真实缺口：(1) 软 I2C 此前不提供 `xy_hal_i2c_mem_write/mem_read/is_device_ready`，任何在软 bus 上使用寄存器访问或就绪探测的驱动在 board target 里是链接错误，现按既有位操作原语实现（写相位含寄存器选择、读相位以 STOP+START 代替 repeated-START、超宽寄存器地址 fail-closed 拒绝而非静默截断，`trials == 0` 拒绝）；(2) `soft_i2c_init()` 此前无条件打开 GPIOC **和** GPIOD 时钟，现只打开本 bus 实际使用的端口。board policy guard 增加软 owner/句柄后端的同一 target 互斥断言（同一 `xy_hal_i2c_*` 符号会冲突）并锁定 fake vendor seam。验证：focused 35/35、Host 287/287、PC/STM32L4/STM32U5 build、Pandora 全镜像重建、`git diff --check` | 仅 Host/compile 契约：不升级软 I2C 时序/上下沿速率/外部上拉、时钟拉伸、真实 AHT10/ICM20608/AP3216C 通信、总线恢复或 hw I2C3 电气证据；未烧录 | 本记录提交 | 2026-10-28 |
 || S6-113 | P1 | Pandora board-owned clock/power startup owner Host contract | DONE | Zero | S6-110 / S6-112（DONE）收口同一类\"board owner 零 Host 覆盖\"；`pandora_platform_startup.c` 是参考板唯一的 board-local vendor clock owner，被 14 个 Pandora 入口（smoke/rtos/crypto/st7789/tf/nrf24/qma/ap3216c/icm20608/motor/buzzer/rgb/fota bootloader/candidate programmer）在 `xy_hal_sys_init()` 之后调用，此前只有 clean board build | 新增 Host 契约 `pandora_platform_startup`（25 用例）：在 host-only fake `stm32l4xx_hal.h` 的 4 个计数钩子（`__HAL_RCC_PWR_CLK_ENABLE`、`HAL_PWREx_ControlVoltageScaling`、`HAL_RCC_OscConfig`、`HAL_RCC_ClockConfig`）下，验证 PWR 时钟→VOS1 电压档→振荡器→时钟切换的**升序**调用链（顺序/次数/可见载荷）、每个阶段的失败传播与短路（VOS 失败不碰振荡器、振荡器失败不切 SYSCLK、时钟失败仍已完成 PLL 配置）、只启用 HSE（HSI/LSE/LSI/MSI/HSI48 与校准/范围字段全 0）、PLL 由 HSE 驱动且 M=1/N=20/P=DIV7/Q=DIV2/R=DIV2、四条总线时钟全选 PLL 且三处分频均为 DIV1、Flash latency = `FLASH_LATENCY_4`；并用 board 自身 `HSE_VALUE=8000000` 推导 datasheet 不变量：VCO 输入 8 MHz（4–16）、VCO 输出 160 MHz（64–344）、SYSCLK 恰为 L475 上限 80 MHz、M/N 落在 vendor 字段范围。fake 常量全部取真实 vendor 数值（含 `RCC_PLLSOURCE_HSE=0x3`、`PWR_REGULATOR_VOLTAGE_SCALE1=0x200`、`FLASH_LATENCY_4=0x4`），不虚构语义。policy guard 新增 `assert_host_clock_contract()`：锁定 fake seam 必须先于 board 头路径、契约必须编译 owner、fake 头必须保留全部 3 个白名单 vendor 函数与 PWR 宏（已用内存变异验证该断言真能拦住\"seam 被删\"与\"seam 顺序被换\"两种违规）。用 4 种变异反证覆盖面：PLLN 20→16（3 项 FAIL）、忽略 VOS 失败（2 项 FAIL）、`FLASH_LATENCY_4`→`FLASH_LATENCY_1`（1 项 FAIL）、VOS 挪到时钟切换之后（3 项 FAIL） | 仅 Host/compile 契约：不升级 HSE 起振时间、PLL 锁定、真实 80 MHz SYSCLK、总线时序、电源/功耗或电压调整时序证据；未烧录。附带记录一个**潜伏约束**而非修复：PLLQ=DIV2 会把 CLK48 域喂到 80 MHz，而 SDMMC1/RNG/USB 要求恰为 48 MHz，当前无任何 Pandora 镜像选择 CLK48 消费者或改动 `CLK48SEL`（默认即 PLLQ），故未来启用其一必须先另配时钟源 | 本记录提交 | 2026-10-28 |
 || S6-114 | P1 | Pandora I2C→Device→canonical 驱动纵切 Host 契约 | DONE | Zero | S6-112（DONE）收口了 transport 自身的帧解码，但 canonical 驱动测试仍把 `xy_i2c_device_*` 打桩，三层之间无契约 | 新增 `pandora_device_stack`（14 用例）：host-only I2C 从机模型（地址 ACK/NACK、寄存器文件、命令/帧模型、逐帧日志）驱动真实 `pandora_soft_i2c.c` + 真实 `xy_i2c_device_*` + 真实 `xy_aht10`/`xy_icm20608`；验证 AHT10 初始化/测量帧与定点解码、busy 缓存保持、ICM20608 身份绑定（0xAE 接受、外来身份零配置写）、8 写 7 读回的配置与校验顺序、读回不一致 FAIL、备用地址 NACK 零副作用、14 字节样本解码与故障缓存保持、双设备同总线无串扰。4 种变异反证（地址移位/NACK 吞掉/身份比较/湿度移位）全部 FAIL。focused 14/14、Host 289/289、PC/L4/U5 build、clang-format、`git diff --check` | 仅 Host/compile 契约：无生产代码改动、未烧录；不升级时序/时钟拉伸/总线恢复/真实器件/board runtime；镜像仍走 legacy `sensor_*` owner | 本记录提交 | 2026-10-28 |
-|| S6-115 | P1 | Pandora hardware I2C3→Device→canonical 驱动纵切 Host 契约 | DONE | Zero | S6-114（DONE）只收口了位翻转 transport 风格；参考板另一条 transport（handle 式硬件 I2C3，AP3216C 唯一通道）的三层缝仍无契约，canonical `xy_ap3216c` 测试把 `xy_i2c_device_*` 全部打桩 | 新增 `pandora_hw_i2c_stack`（13 用例）：host 侧 AP3216C 寄存器模型坐在 canonical `xy_hal_i2c_*` 缝上，真实 `pandora_hw_i2c.c` 句柄经真实 `xy_i2c_device_*` 驱动真实 `xy_ap3216c`；验证驱动拿到 board 自有 I2C3 句柄且 `Instance` 先于 controller init（timing `0x10909CEC`/100 kHz/7-bit/duty2）且不重配控制器、每次传输携带 7-bit `0x1E` 与 100 ms 超时、init 复位→模式两写各带 50 ms 稳定延时、ALS `raw*350`、proximity 12 位掩码与低字节 `0x40` 越界标志→`XY_DEVICE_IO_ERROR`（缓存/输出保持）、IR 10 位掩码、三路寄存器对互不重叠且保持"选寄存器→读"帧序、地址 0 视作板默认、re-init 失败保留 live owner 与缓存、设备停止 ACK 时读/deinit fail-closed 且无额外总线流量、deinit 写 power-down 并清 owner、deinit 失败保留 owner。5 种变异反证全部被拦：去掉 `i2c3.Instance = I2C3`（1 FAIL）、ALS 350→349（2）、PS 掩码 `0x3F`→`0x7F`（1）、删复位延时（1）、helper 预移位 `dev_addr`（6）。focused 13/13、Host 290/290、PC/L4/U5 build、clang-format、`git diff --check` | 仅 Host/compile 契约：无生产代码改动、未烧录；不升级 I2C 时序/时钟拉伸/总线恢复/真实 AP3216C 通信/board runtime；`sensor_ap3216c` 镜像仍走 legacy `sensor_*` owner | 本记录提交 | 2026-10-28 |
+| S6-116 | P1 | Pandora 传感器镜像改用 canonical board owner（AP3216C / ICM20608） | DONE | Zero | S6-114 / S6-115 证明了两条 transport → Device → canonical 驱动的纵切，但两个镜像**仍以 legacy `sensor_*` wrapper 为板上 owner**：`sensor_ap3216c_main.c` 用 `ap3216c_create_light/proximity/ir`（`SENSOR_MALLOC` 三个 `sensor_device_t` 并把结果映射成 `sensor_err_t`），`sensor_icm20608_main.c` 用 `icm20608_create_accel` 且回手掏 `((icm20608_priv_t*)accel->priv_data)->device` 读样本 —— canonical 驱动只是 Host 已证明、不是板上 owner | 新增 board owner 模块 `pandora_ap3216c_owner.{h,c}` / `pandora_icm20608_owner.{h,c}`，两个镜像改为各持一个 canonical 驱动实例；board `CMakeLists.txt` 不再编译 `sensor_{ap3216c,icm20608}.c`、不再引入 `components/sensor` 与 `SENSOR_USE_FLOAT=0`。owner 契约：`init` 先建 candidate 成功才提交（失败/重 init 时调用方 owner 逐字节不变、不清零）；`sample` 全部通道成功才提交（部分故障保留调用方上一份样本）；未 init 时 `read_reg`/`read_raw` 以 `XY_DEVICE_INVALID_PARAM` 拒绝且零总线流量。新增 CTest `pandora_sensor_owners`（15 用例）：两个 host 侧 I2C 寄存器文件（0x1E / 0x68）坐在 canonical `xy_hal_i2c_*` 缝上，同一 fixture 同时钉住两个 owner —— AP3216C 复位→`ALS_PS` 两写各 50 ms 稳定、7-bit `0x1E`/100 ms 传输契约、6 字节 `IR_DATA_L` 块、三通道原子采样（ALS `*350` millilux、PS 12 位掩码、IR 10 位掩码）与驱动缓存镜像、`0x40` 越界标志与 NACK 的 fail-closed 输出保持；ICM20608 读完 `WHO_AM_I` 才允许任何写（外来身份→`XY_DEVICE_NOT_FOUND`、零写零延时）、复位/100 ms 后 7 条写+读回落在 `0x01/0x00/0x08/0x08/0x09/0x04/0x04`、14 字节 `ACCEL_XOUT_H` 在 4 g/500 dps 下解码为 500/−500/125 mg、3906/−3906/0 mdps、3126 centi-℃、总线中途失效时输出保持。4 种变异反证全部被拦：AP3216C sample 非原子提交（2 FAIL）、ICM owner 在判定结果前提交 candidate（1）、`ADDR_DEFAULT`→`ADDR_ALT`（5）、AP3216C 原始块改从 `ALS_DATA_L` 读（1）。真实交叉编译反证：两镜像 ELF 均导出 `pandora_*_owner_{init,read_reg,read_raw,sample}` 与 canonical init，**零** `sensor_*` 符号、无 `*_create_*`/`icm20608_priv`。board policy guard 改为强制 canonical owner、并禁止 4 个 owner/镜像源出现 legacy wrapper token。focused 15/15、Host 291/291、PC/L4(board)/U5 build、`git diff --check` | 仅 source/Host/compile 契约：未烧录，不升级 I2C 时序/时钟拉伸/总线恢复/真实 AP3216C/ICM20608 通信/board runtime；两镜像 UART marker 流保持不变（既有 capture validator 仍适用），但板上 owner 切换本身仍无 runtime 证据 | 本记录提交 | 2026-10-28 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。
@@ -2590,3 +2610,43 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `git diff --check`。无生产代码改动（board 源、Device helper、驱动均未动），板级镜像输入不变，未重建 BIN。
 - 边界：仅 Host/compile 契约，不升级 I2C 时序/时钟拉伸/总线恢复/真实 AP3216C 通信或 board runtime；
   未烧录。`pandora_stm32l475_ap3216c` 镜像仍走 legacy `sensor_*` 框架，canonical 驱动尚未成为板上 owner。
+
+### 2026-10-28 Pandora sensor images owned by the canonical drivers
+
+- 收口：S6-114/S6-115 把两条 transport → Device → canonical 驱动的缝证明了，但两个传感器镜像的
+  **板上 owner 仍是 legacy `sensor_*` wrapper**：`sensor_ap3216c_main.c` 走
+  `ap3216c_create_light/proximity/ir`（`SENSOR_MALLOC` 三个 `sensor_device_t`、结果映射回
+  `sensor_err_t`），`sensor_icm20608_main.c` 走 `icm20608_create_accel` 且回手掏
+  `((icm20608_priv_t *)accel->priv_data)->device` 取样本。现新增 board owner 模块
+  `pandora_ap3216c_owner.{h,c}` / `pandora_icm20608_owner.{h,c}`：每个镜像各持一个 canonical 驱动实例，
+  board `CMakeLists.txt` 不再编译 `sensor_{ap3216c,icm20608}.c`，也不再引入 `components/sensor` 与
+  `SENSOR_USE_FLOAT=0`。
+- 契约：`init` 先构造 candidate、成功才提交（失败时调用方 owner 逐字节不变、不被清零）；`sample`
+  全通道成功才提交（部分故障保留调用方上一份样本）；未 init 的 `read_reg`/`read_raw` 以
+  `XY_DEVICE_INVALID_PARAM` 拒绝且不产生总线流量。
+- 覆盖（`pandora_sensor_owners`，15 用例）：两个 host 侧 I2C 寄存器文件（0x1E / 0x68）坐在 canonical
+  `xy_hal_i2c_*` 缝上，同一 fixture 同时钉住两个 owner。AP3216C：复位→`ALS_PS` 两写各 50 ms、
+  7-bit `0x1E`/100 ms 传输契约、6 字节 `IR_DATA_L` 块、三通道原子采样（ALS `*350` millilux、PS
+  12 位掩码、IR 10 位掩码）与驱动缓存镜像、`0x40` 越界标志与 NACK 时的输出保持。ICM20608：身份读
+  严格先于任何写（外来 `WHO_AM_I` → `XY_DEVICE_NOT_FOUND`、零写零延时）、复位+100 ms 后 7 条写读回
+  落在 `0x01/0x00/0x08/0x08/0x09/0x04/0x04`、14 字节 `ACCEL_XOUT_H` 在 4 g / 500 dps 下解码为
+  500/−500/125 mg、3906/−3906/0 mdps、3126 centi-℃，总线中途失效时输出保持。
+- 反证：AP3216C sample 非原子提交（2 项 FAIL）、ICM owner 在判定 init 结果前提交 candidate（1）、
+  `ADDR_DEFAULT`→`ADDR_ALT`（5）、AP3216C 原始块改从 `ALS_DATA_L` 读（1）。变异源以逐字节备份还原
+  并复测全绿。
+- 镜像侧反证（真实交叉编译）：`make HAL_PLATFORM=STM32L4 STM32L4_BOARD=pandora_stm32l475` 构建两镜像；
+  `arm-none-eabi-nm` 显示 AP3216C 镜像导出 `pandora_ap3216c_owner_{init,read_reg,read_raw,sample}` +
+  `xy_ap3216c_init`，ICM20608 镜像导出 `pandora_icm20608_owner_{init,read_reg,read_raw,sample}` +
+  `xy_icm20608_init_i2c`，两 ELF **零** `sensor_*` 符号、无 `*_create_*`/`icm20608_priv`（`.text`
+  11316 B / 10380 B）。
+- board policy guard：`check_pandora_stm32l475_board.py` 由"强制 legacy wrapper token"翻转为强制
+  canonical owner（`pandora_*_owner.c` + `pandora_*_owner_init/sample/read_raw/read_reg`），并禁止 4 个
+  owner/镜像源出现 `sensor_core.h` / `sensor_device_t` / `sensor_data_t` / `sensor_err_t` /
+  `*_create_*` / `icm20608_priv_t` / `SENSOR_EOK`，且禁止 board CMakeLists 再链接 legacy wrapper。
+- 验证：focused `pandora_sensor_owners` 15/15；Host `make test-unit` 291/291；`make`、
+  `make HAL_PLATFORM=STM32L4`、`make HAL_PLATFORM=STM32L4 STM32L4_BOARD=pandora_stm32l475`、
+  `make HAL_PLATFORM=STM32U5` 均 rc=0；新增测试文件 `clang-format --dry-run --Werror` 通过；
+  `git diff --check` 通过。
+- 边界：仅 source/Host/compile 契约，不升级 I2C 时序/时钟拉伸/总线恢复/真实 AP3216C/ICM20608 通信或
+  board runtime；未烧录。两镜像的 UART marker 流逐字保持，既有 `validate_*_capture.py` 仍适用；板上
+  owner 切换本身仍无 runtime 证据。
