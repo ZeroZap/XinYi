@@ -40,7 +40,15 @@ def run(command: list[str], cwd: Path) -> None:
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--image", type=Path)
+    parser.add_argument(
+        "--image",
+        type=Path,
+        help=(
+            "image to program: .bin, .hex or .elf. Every openCH target sets SUFFIX \".elf\" and "
+            "only some add an objcopy step, so most of the 68 targets ship an ELF and no .bin; "
+            "OpenOCD programs an ELF directly and ignores the load address for it"
+        ),
+    )
     parser.add_argument("--port", help="WCH-Link virtual COM port for runtime check")
     parser.add_argument("--samples", type=int, default=10)
     parser.add_argument("--interval-ms", type=int, default=100)
