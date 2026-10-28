@@ -49,11 +49,27 @@ def main() -> int:
     parser.add_argument("--mrs-root", type=Path, default=DEFAULT_MRS_ROOT)
     parser.add_argument("--config", type=Path)
     parser.add_argument("--log", type=Path, default=Path("opench_uart_runtime.log"))
+    parser.add_argument(
+        "--firmware-commit",
+        help="exact source commit baked into the image; defaults to the repo HEAD",
+    )
+    parser.add_argument(
+        "--adapter-speed",
+        type=int,
+        default=1000,
+        help=(
+            "SDI clock in kHz applied after the config is read (default 1000). The shipped "
+            "wch-riscv.cfg sets 6000, which fails DM examination on this WCH-Link-CH549 "
+            "(dmstatus=0x80000000) and aborts the OpenOCD fork mid-assert"
+        ),
+    )
     parser.add_argument("--yes", action="store_true", help="actually program; default is dry-run")
     args = parser.parse_args()
 
     if args.samples < 1 or args.interval_ms < 0 or args.post_reset_delay_ms < 0:
         parser.error("samples must be positive and delays must be non-negative")
+    if args.adapter_speed <= 0:
+        parser.error("adapter speed must be positive")
     image = args.image or (
         root / "build/opench-uart/boards/opench_ch32v307/opench_ch32v307_uart_smoke.bin"
     )
@@ -88,6 +104,8 @@ def main() -> int:
         "-f",
         str(config),
         "-c",
+        f"adapter speed {args.adapter_speed}",
+        "-c",
         f"program {openocd_tcl_path(image)} 0x{FLASH_ADDRESS:08X} verify reset exit",
     ]
     run(command, root)
@@ -96,19 +114,34 @@ def main() -> int:
         if args.post_reset_delay_ms:
             time.sleep(args.post_reset_delay_ms / 1000.0)
         log_path = args.log if args.log.is_absolute() else root / args.log
+        # The runtime check must speak the board capture helper's own interface:
+        # it takes a positional port plus an explicit firmware commit, and it
+        # writes both the payload log and a metadata sidecar itself.
+        commit = args.firmware_commit or subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        metadata_path = log_path.with_suffix(".meta.json")
         capture = [
             sys.executable,
             str(root / "boards/opench_ch32v307/capture_uart.py"),
             args.port,
-            "--samples",
-            str(args.samples),
-            "--interval-ms",
-            str(args.interval_ms),
+            "--firmware-commit",
+            commit,
+            "--output",
+            str(log_path),
+            "--metadata",
+            str(metadata_path),
+            "--duration-ms",
+            str(max(1, args.samples * max(args.interval_ms, 1))),
         ]
-        with log_path.open("w", encoding="utf-8", newline="\n") as stream:
-            print("$", subprocess.list2cmdline(capture))
-            subprocess.run(capture, cwd=root, stdout=stream, stderr=subprocess.STDOUT, check=True)
+        print("$", subprocess.list2cmdline(capture))
+        subprocess.run(capture, cwd=root, check=True)
         print(f"Runtime log: {log_path}")
+        print(f"Runtime metadata: {metadata_path}")
     return 0
 
 
