@@ -37,6 +37,9 @@ MIGRATED = {
     "xy_hal_rng.c",
     "xy_hal_spi.c",
     "xy_hal_uart.c",
+    # Publishes the registration hook the RTOS points at its own tick, and reads
+    # the helper rather than SysTick so a registered source wins.
+    "xy_hal_time.c",
 }
 
 # xy_hal_sys.c installs SysTick as the HAL's own free-running counter and derives
@@ -68,10 +71,15 @@ def main() -> int:
             )
         if "SystemCoreClock / 8000U" not in helper:
             errors.append("the shared timebase must keep handling the /8 SysTick clock source")
-        if "OPEN ISSUE" not in helper:
+        if "xy_hal_tick_registered_source" not in helper_code:
             errors.append(
-                "the shared timebase must keep the OPEN ISSUE note recording that SysTick "
-                "belongs to the RTOS once FreeRTOS runs"
+                "the shared timebase must consult xy_hal_tick_registered_source, or an RTOS "
+                "build has no way to replace the SysTick derivation"
+            )
+        if "reloads SysTick at the tick rate" not in helper:
+            errors.append(
+                "the shared timebase must keep the note recording that SysTick belongs to the "
+                "RTOS once FreeRTOS runs"
             )
         if "rdcycle" in helper_code or "mcycle" in helper_code:
             errors.append(

@@ -1,5 +1,6 @@
 #include "ch32v30x.h"
 #include "xy_hal_gpio.h"
+#include "xy_hal_time.h"
 #include "xy_hal_uart.h"
 #include "xy_os.h"
 
@@ -110,6 +111,24 @@ static void consumer(void* argument) {
         expected++;
     }
     mark("OPENCH_OSAL_PRIMITIVES_PIPELINE_OK_A\r\n");
+
+    /* The HAL polling loops time their waits with a helper that derived
+       milliseconds from SysTick, which this kernel owns: CNT becomes a
+       saw-tooth, a difference of two readings underflows and every wait fires
+       at once. The kernel installs its own tick as that source, so sample the
+       helper across a known kernel delay rather than assuming the hook is
+       wired. A 20 tick delay at 1 kHz has to read back as tens of ms. */
+    {
+        uint32_t tick_before = xy_hal_time_ms();
+        uint32_t elapsed;
+
+        (void)xy_os_delay(20U);
+        elapsed = xy_hal_time_ms() - tick_before;
+        if (elapsed >= 10U && elapsed <= 200U)
+            mark("OPENCH_OSAL_PRIMITIVES_TIMEBASE_OK_A\r\n");
+        else
+            mark("OPENCH_OSAL_PRIMITIVES_TIMEBASE_ERROR_A\r\n");
+    }
     value = 0;
     if (xy_os_msgqueue_get(queue_id, &value, NULL, 25) == XY_OS_ERROR_TIMEOUT &&
         xy_os_event_flags_wait(event_id, READY_FLAG, XY_OS_FLAGS_WAIT_ALL, 25) == EVENT_FLAGS_ERROR)

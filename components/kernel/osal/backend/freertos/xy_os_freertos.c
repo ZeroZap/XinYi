@@ -13,6 +13,38 @@
 #include "timers.h"
 #include <string.h>
 
+/*
+ * The HAL polling loops time their waits with a millisecond helper that derives
+ * the value from SysTick. Once this kernel owns SysTick the derivation is wrong
+ * (CNT becomes a saw-tooth and a difference of two readings underflows, so every
+ * wait fires at once), and the HAL offers a hook to point it somewhere else.
+ *
+ * Both the include and the symbol are optional: a host or bare-metal build has
+ * no HAL, and a platform whose HAL has no hook yet keeps SysTick. The weak
+ * reference turns "HAL linked without the hook" into a no-op instead of a link
+ * failure for the whole firmware.
+ */
+#if defined(__has_include)
+#if __has_include("xy_hal_time.h")
+#include "xy_hal_time.h"
+#define XY_OS_FREERTOS_HAS_HAL_TIME_HOOK 1
+extern void xy_hal_tick_set_source(xy_hal_tick_source_t source) __attribute__((weak));
+#endif
+#endif
+
+#ifdef XY_OS_FREERTOS_HAS_HAL_TIME_HOOK
+static uint32_t freertos_hal_tick_ms(void)
+{
+    return (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
+}
+
+static void freertos_bind_hal_timebase(void)
+{
+    if (xy_hal_tick_set_source != NULL)
+        xy_hal_tick_set_source(freertos_hal_tick_ms);
+}
+#endif
+
 typedef struct {
     TaskHandle_t handle;
     xy_os_thread_func_t func;
@@ -140,6 +172,9 @@ static int freertos_timeout_to_ticks(uint32_t timeout, TickType_t *ticks)
 /* Kernel Control */
 xy_os_status_t xy_os_kernel_init(void)
 {
+#ifdef XY_OS_FREERTOS_HAS_HAL_TIME_HOOK
+    freertos_bind_hal_timebase();
+#endif
     return XY_OS_OK;
 }
 
