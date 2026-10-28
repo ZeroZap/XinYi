@@ -27,7 +27,7 @@ def valid_payload() -> bytes:
 
 
 class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
-    def run_validator(self, payload: bytes, commit: str = COMMIT):
+    def run_validator(self, payload: bytes, commit: str = COMMIT, *extra: str):
         with tempfile.TemporaryDirectory() as temporary:
             capture = Path(temporary) / "capture.raw"
             record = Path(temporary) / "record.json"
@@ -42,6 +42,7 @@ class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
                     commit,
                     "--record",
                     str(record),
+                    *extra,
                 ],
                 cwd=ROOT,
                 text=True,
@@ -50,8 +51,24 @@ class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
                 check=False,
             )
             parsed = json.loads(record.read_text(encoding="utf-8")) if record.exists() else None
-            self.assertIsNotNone(parsed, result.stderr)
-            return result, parsed
+            if parsed is None:
+                self.fail(result.stderr)
+            written: dict = parsed
+            return result, written
+
+    def test_records_the_stated_evidence_channel(self):
+        result, record = self.run_validator(valid_payload())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # Pandora evidence comes out of the CP2102 UART; the ST-Link/WCH-Link virtual
+        # serial is not an evidence channel on this board.
+        self.assertEqual(record["source_device"], "/dev/ttyUSB0")
+
+    def test_records_an_overridden_evidence_channel(self):
+        result, record = self.run_validator(
+            valid_payload(), COMMIT, "--source-device", "/dev/ttyUSB9"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(record["source_device"], "/dev/ttyUSB9")
 
     def test_accepts_identity_bound_boundary_and_hal_sleep_chain(self):
         result, record = self.run_validator(valid_payload())

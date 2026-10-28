@@ -318,6 +318,9 @@ def main() -> int:
     parser.add_argument("--duration-seconds", type=int, required=True)
     parser.add_argument("--min-pipeline-cycles", type=int, required=True)
     parser.add_argument("--min-isr-wakes", type=int, required=True)
+    # Pandora evidence comes out of the CP2102 UART only; the ST-Link/WCH-Link virtual
+    # serial is not an evidence channel on this board.
+    parser.add_argument("--source-device", default="/dev/ttyUSB0")
     args = parser.parse_args()
 
     try:
@@ -341,7 +344,7 @@ def main() -> int:
         args.min_isr_wakes,
     )
     result["recorded_at_utc"] = datetime.now(timezone.utc).isoformat()
-    result["source_device"] = "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01"
+    result["source_device"] = args.source_device
     args.metadata.parent.mkdir(parents=True, exist_ok=True)
     args.metadata.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(
