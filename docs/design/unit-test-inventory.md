@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 194
-- Unity-style files: 191
+- Total C files under `tests/unit`: 195
+- Unity-style files: 192
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 3
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 285
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 287
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -38,7 +38,7 @@
 | `framework` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `fuel_gauge` | 6 | 6 | 0 | 0 | 0 | 6 |
 | `gui` | 7 | 7 | 0 | 0 | 0 | 1 |
-| `hal_component` | 1 | 1 | 0 | 0 | 0 | 0 |
+| `hal_component` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `ipc` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `kernel` | 4 | 4 | 0 | 0 | 0 | 1 |
 | `mux` | 5 | 5 | 0 | 0 | 0 | 5 |
@@ -54,7 +54,8 @@
 > Note: the summary above is measured from the tree; the per-component breakdown is a legacy
 > snapshot that has not been regenerated in lockstep (several rows, e.g. `sensor`, `gui`, `net`,
 > undercount the current files). Only the `fota` row was resynchronized in the slice that added
-> `test_pandora_fota_flash`. A full table regeneration remains a separate docs-sync slice.
+> `test_pandora_fota_flash` and the `hal_component` row in the slice that added
+> `test_pandora_i2c_owners`. A full table regeneration remains a separate docs-sync slice.
 
 ## Migration Priority
 
@@ -113,6 +114,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/dm/test_dm_tlv.c` | `unity` | 0 |
 | `tests/unit/fota/test_fota_core.c` | `unity` | 15 |
 | `tests/unit/fota/test_pandora_fota_flash.c` | `unity` | 9 | Pandora board-owned internal-Flash adapters (`pandora_fota_flash.c` / `pandora_fota_install_flash.c`) over a fake `xy_hal_flash_*`: range/8-byte-granule/two-slot-erase guards, init-unlock-write-lock ordering, failure propagation, and the real two-slot journal core driven through the board backend. Host contract only — no flash write/erase, power-loss, endurance or bootloader handoff evidence. |
+| `tests/unit/hal_component/test_pandora_i2c_owners.c` | `unity` | 6 | Pandora board-owned I2C transports (`pandora_soft_i2c.c` / `pandora_hw_i2c.c`) over a host-only fake `stm32l4xx_hal.h` and fake `xy_hal_gpio_*`: GPIO event streams decoded back into I2C frames (pin mapping, START/STOP, `dev_addr << 1`, MSB-first bytes, per-byte ACK sampling, NACK propagation, receive read bit and tail NACK), the soft bus `mem_read`/`mem_write`/`is_device_ready` subset, and hw I2C3 AF4 config with `Instance` assigned before init. Host contract only — no timing, clock-stretching, bus-recovery or real-device evidence. |
 | `tests/unit/fota/test_fota_smoke_example.c` | `unity` | 0 | Host-safe public FOTA flow smoke; fake Flash callbacks only, not board/bootloader validation. |
 | `tests/unit/framework/test_fff_smoke.c` | `unity` | 72 |
 | `tests/unit/fuel_gauge/test_fg_bq27z561.c` | `unity` | 42 |

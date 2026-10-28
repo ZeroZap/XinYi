@@ -2131,6 +2131,20 @@ target_include_directories(test_pandora_fota_flash PRIVATE
     ${HAL}/inc
 )
 
+# --- Test 33e: Pandora board-owned I2C transports (software I2C + hardware I2C3) ---
+xy_add_unit_test(test_pandora_i2c_owners pandora_i2c_owners UNITY
+    ${UNIT_HAL}/test_pandora_i2c_owners.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_soft_i2c.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_hw_i2c.c
+)
+target_include_directories(test_pandora_i2c_owners BEFORE PRIVATE
+    ${UNIT_HAL}/fake_vendor
+)
+target_include_directories(test_pandora_i2c_owners PRIVATE
+    ${ROOT}/boards/pandora_stm32l475
+    ${HAL}/inc
+)
+
 # --- Test 34: GUI core drawing and object contracts ---
 xy_add_unit_test(test_gui_core gui_core UNITY
     ${UNIT_GUI}/test_gui_core.c

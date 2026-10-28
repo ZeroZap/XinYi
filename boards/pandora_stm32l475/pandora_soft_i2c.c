@@ -98,6 +98,31 @@ static uint8_t soft_i2c_read_byte(int send_ack)
     return value;
 }
 
+static int soft_i2c_bus_is_owned(const void *i2c)
+{
+    return i2c == &soft_i2c3 || i2c == &soft_i2c4;
+}
+
+/* START + one address frame + STOP. Shared by the probe and the readiness
+ * check so both report the same ACK/NACK convention. */
+static int soft_i2c_address_probe(pandora_soft_i2c_bus_t *bus, uint8_t dev_addr)
+{
+    active_bus = bus;
+    soft_i2c_start();
+    int ack = soft_i2c_write_byte((uint8_t)(dev_addr << 1));
+    soft_i2c_stop();
+    return ack;
+}
+
+static void soft_i2c_enable_port_clock(GPIO_TypeDef *port)
+{
+    if (port == GPIOC) {
+        __HAL_RCC_GPIOC_CLK_ENABLE();
+    } else if (port == GPIOD) {
+        __HAL_RCC_GPIOD_CLK_ENABLE();
+    }
+}
+
 static void *soft_i2c_init(pandora_soft_i2c_bus_t *bus)
 {
     xy_hal_gpio_config_t gpio = {
@@ -107,8 +132,12 @@ static void *soft_i2c_init(pandora_soft_i2c_bus_t *bus)
         .speed = XY_HAL_GPIO_SPEED_HIGH,
     };
 
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOD_CLK_ENABLE();
+    /* Only the ports this bus actually uses are clocked: I2C3 lives entirely on
+     * GPIOC, I2C4 needs GPIOD (SCL=PD6) plus GPIOC (SDA=PC1). */
+    soft_i2c_enable_port_clock(bus->sda_port);
+    if (bus->scl_port != bus->sda_port) {
+        soft_i2c_enable_port_clock(bus->scl_port);
+    }
     active_bus = bus;
     if (xy_hal_gpio_init(bus->sda_port, bus->sda_pin, &gpio) != XY_HAL_OK ||
         xy_hal_gpio_init(bus->scl_port, bus->scl_pin, &gpio) != XY_HAL_OK) {
@@ -136,15 +165,11 @@ void *pandora_soft_i2c_init(void)
 
 int pandora_soft_i2c_probe(void *i2c, uint8_t dev_addr)
 {
-    if ((i2c != &soft_i2c3 && i2c != &soft_i2c4) || dev_addr > 0x7FU) {
+    if (!soft_i2c_bus_is_owned(i2c) || dev_addr > 0x7FU) {
         return 0;
     }
 
-    active_bus = i2c;
-    soft_i2c_start();
-    int ack = soft_i2c_write_byte((uint8_t)(dev_addr << 1));
-    soft_i2c_stop();
-    return ack;
+    return soft_i2c_address_probe(i2c, dev_addr);
 }
 
 xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
@@ -152,8 +177,7 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
                                           uint32_t timeout)
 {
     (void)timeout;
-    if ((i2c != &soft_i2c3 && i2c != &soft_i2c4) || data == NULL || len == 0U ||
-        dev_addr > 0x7FU) {
+    if (!soft_i2c_bus_is_owned(i2c) || data == NULL || len == 0U || dev_addr > 0x7FU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     active_bus = i2c;
@@ -176,8 +200,7 @@ xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr, uint8_t *
                                          size_t len, uint32_t timeout)
 {
     (void)timeout;
-    if ((i2c != &soft_i2c3 && i2c != &soft_i2c4) || data == NULL || len == 0U ||
-        dev_addr > 0x7FU) {
+    if (!soft_i2c_bus_is_owned(i2c) || data == NULL || len == 0U || dev_addr > 0x7FU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     active_bus = i2c;
@@ -191,4 +214,75 @@ xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr, uint8_t *
     }
     soft_i2c_stop();
     return XY_HAL_OK;
+}
+
+/* Write phase: START, address+W, register, payload, STOP. A widened register
+ * address is rejected instead of being truncated the way the handle-based
+ * vendor backends do, because silently touching the wrong register is worse
+ * than failing closed. */
+xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr, uint16_t reg_addr,
+                                    const uint8_t *data, size_t len, uint32_t timeout)
+{
+    (void)timeout;
+    if (!soft_i2c_bus_is_owned(i2c) || data == NULL || len == 0U || dev_addr > 0x7FU ||
+        reg_addr > 0xFFU) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    active_bus = i2c;
+    soft_i2c_start();
+    if (!soft_i2c_write_byte((uint8_t)(dev_addr << 1)) ||
+        !soft_i2c_write_byte((uint8_t)reg_addr)) {
+        soft_i2c_stop();
+        return XY_HAL_ERROR_IO;
+    }
+    for (size_t i = 0; i < len; ++i) {
+        if (!soft_i2c_write_byte(data[i])) {
+            soft_i2c_stop();
+            return XY_HAL_ERROR_IO;
+        }
+    }
+    soft_i2c_stop();
+    return XY_HAL_OK;
+}
+
+/* Read phase: the register select and the data phase are separate transfers so
+ * this bit-bang backend needs no repeated-START primitive. */
+xy_hal_error_t xy_hal_i2c_mem_read(void *i2c, uint16_t dev_addr, uint16_t reg_addr,
+                                   uint8_t *data, size_t len, uint32_t timeout)
+{
+    (void)timeout;
+    if (!soft_i2c_bus_is_owned(i2c) || data == NULL || len == 0U || dev_addr > 0x7FU ||
+        reg_addr > 0xFFU) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    active_bus = i2c;
+    soft_i2c_start();
+    if (!soft_i2c_write_byte((uint8_t)(dev_addr << 1)) ||
+        !soft_i2c_write_byte((uint8_t)reg_addr)) {
+        soft_i2c_stop();
+        return XY_HAL_ERROR_IO;
+    }
+    soft_i2c_stop();
+
+    soft_i2c_start();
+    if (!soft_i2c_write_byte((uint8_t)((dev_addr << 1) | 1U))) {
+        soft_i2c_stop();
+        return XY_HAL_ERROR_IO;
+    }
+    for (size_t i = 0; i < len; ++i) {
+        data[i] = soft_i2c_read_byte(i + 1U < len);
+    }
+    soft_i2c_stop();
+    return XY_HAL_OK;
+}
+
+xy_hal_error_t xy_hal_i2c_is_device_ready(void *i2c, uint16_t dev_addr, uint32_t trials,
+                                          uint32_t timeout)
+{
+    (void)timeout;
+    if (!soft_i2c_bus_is_owned(i2c) || dev_addr > 0x7FU || trials == 0U) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+
+    return soft_i2c_address_probe(i2c, (uint8_t)dev_addr) ? XY_HAL_OK : XY_HAL_ERROR_IO;
 }

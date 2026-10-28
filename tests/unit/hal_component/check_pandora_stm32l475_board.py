@@ -33,6 +33,29 @@ def require(path: Path, *needles: str) -> None:
         assert needle in text, f"{path.relative_to(ROOT)} missing {needle!r}"
 
 
+def board_target_sources(cmake_text: str) -> dict[str, set[str]]:
+    """Map each board `add_executable()` target to the source paths it lists."""
+    targets: dict[str, set[str]] = {}
+    current: str | None = None
+    for line in cmake_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("add_executable("):
+            tokens = stripped[len("add_executable("):].replace(")", " ").split()
+            current = tokens[0] if tokens else None
+            if current is not None:
+                targets[current] = set(tokens[1:])
+            continue
+        if current is None:
+            continue
+        if stripped.startswith(")"):
+            current = None
+            continue
+        for token in stripped.replace(")", " ").split():
+            if token.endswith(".c") or token.endswith(".s"):
+                targets[current].add(token)
+    return targets
+
+
 def require_sha256(path: Path, expected: str, normalized_expected: str | None = None) -> bytes:
     assert path.is_file(), f"missing {path.relative_to(ROOT)}"
     content = path.read_bytes()
@@ -164,10 +187,31 @@ def main() -> None:
         "soft_i2c_start",
         "soft_i2c_write_byte",
         "soft_i2c_read_byte",
+        "soft_i2c_bus_is_owned",
+        "soft_i2c_address_probe",
+        "soft_i2c_enable_port_clock",
         "pandora_soft_i2c_probe",
         "xy_hal_i2c_master_transmit",
         "xy_hal_i2c_master_receive",
+        "xy_hal_i2c_mem_write",
+        "xy_hal_i2c_mem_read",
+        "xy_hal_i2c_is_device_ready",
         "dev_addr << 1",
+    )
+    require(
+        ROOT / "tests" / "unit" / "hal_component" / "fake_vendor" / "stm32l4xx_hal.h",
+        "struct xy_hal_gpio_port",
+        "GPIO_AF4_I2C3",
+        "__HAL_RCC_I2C3_CLK_ENABLE",
+    )
+    require(
+        ROOT / "tests" / "unit" / "hal_component" / "test_pandora_i2c_owners.c",
+        "pandora_soft_i2c3_init",
+        "pandora_soft_i2c4_init",
+        "xy_hal_i2c_mem_write",
+        "xy_hal_i2c_mem_read",
+        "xy_hal_i2c_is_device_ready",
+        "pandora_hw_i2c3_init",
     )
     soft_i2c = (BOARD / "pandora_soft_i2c.c").read_text(encoding="utf-8")
     for forbidden in ("HAL_GPIO_Init(", "HAL_GPIO_WritePin(", "HAL_GPIO_ReadPin("):
@@ -314,6 +358,15 @@ def main() -> None:
     board_cmake = (BOARD / "CMakeLists.txt").read_text(encoding="utf-8")
     assert "components/hal/stm32/stm32f4/xy_hal_wdg.c" not in board_cmake
     assert "components/hal/stm32/stm32l4/xy_hal_wdg.c" in board_cmake
+    # The software-I2C owner now defines the same xy_hal_i2c_* symbols as the
+    # handle-based STM32L4 backend, so a board target must never compile both.
+    for target, sources in board_target_sources(board_cmake).items():
+        soft_owner = any(source.endswith("pandora_soft_i2c.c") for source in sources)
+        handle_backend = any(source.endswith("stm32l4/xy_hal_i2c.c") for source in sources)
+        assert not (soft_owner and handle_backend), (
+            f"{target} compiles both pandora_soft_i2c.c and the STM32L4 handle-based "
+            "I2C backend; the xy_hal_i2c_* definitions would collide"
+        )
     board_i2c = (BOARD / "pandora_hw_i2c.c").read_text(encoding="utf-8")
     assert "HAL_I2C_Master_Transmit" not in board_i2c
     assert "HAL_I2C_Master_Receive" not in board_i2c
