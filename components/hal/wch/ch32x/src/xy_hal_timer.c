@@ -58,6 +58,25 @@ static uint16_t clock_division(xy_hal_timer_ckdiv_t division) {
     return divisions[division];
 }
 
+/* TIM2_IRQn and friends cover the four general-purpose timers this backend
+   accepts; TIM1 shares the same numbering scheme on this part. */
+static IRQn_Type timer_irq_channel(int index) {
+    static const IRQn_Type channels[] = {TIM1_UP_IRQn, TIM2_IRQn, TIM3_IRQn, TIM4_IRQn};
+    return channels[index];
+}
+
+/* Routing the NVIC line here follows xy_hal_exti.c: the wrapper owns the whole
+   first level, so a caller that asks for an interrupt does not have to reach
+   into the vendor NVIC code to make it fire. */
+static void set_nvic(int index, FunctionalState state) {
+    NVIC_InitTypeDef nvic = {0};
+    nvic.NVIC_IRQChannel = timer_irq_channel(index);
+    nvic.NVIC_IRQChannelPreemptionPriority = 1U;
+    nvic.NVIC_IRQChannelSubPriority = 0U;
+    nvic.NVIC_IRQChannelCmd = state;
+    NVIC_Init(&nvic);
+}
+
 static uint16_t interrupt_source(xy_hal_timer_event_t event) {
     static const uint16_t sources[] = {TIM_IT_Update, TIM_IT_CC1, TIM_IT_CC2, TIM_IT_CC3,
                                        TIM_IT_CC4};
@@ -176,6 +195,7 @@ xy_hal_error_t xy_hal_timer_enable_irq(void* timer, xy_hal_timer_event_t event) 
     if (contexts[index].initialized == 0U)
         return XY_HAL_ERROR_NOT_INIT;
     TIM_ITConfig(timer, interrupt_source(event), ENABLE);
+    set_nvic(index, ENABLE);
     return XY_HAL_OK;
 }
 
@@ -186,6 +206,7 @@ xy_hal_error_t xy_hal_timer_disable_irq(void* timer, xy_hal_timer_event_t event)
     if (contexts[index].initialized == 0U)
         return XY_HAL_ERROR_NOT_INIT;
     TIM_ITConfig(timer, interrupt_source(event), DISABLE);
+    set_nvic(index, DISABLE);
     return XY_HAL_OK;
 }
 

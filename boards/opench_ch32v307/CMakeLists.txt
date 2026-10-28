@@ -1311,6 +1311,7 @@ add_executable(opench_ch32v307_osal_freertos_sdk_smoke
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_timer.c
 )
 target_include_directories(opench_ch32v307_osal_freertos_sdk_smoke PRIVATE
         ${CMAKE_SOURCE_DIR}/components/hal/inc
@@ -1402,6 +1403,7 @@ add_executable(opench_ch32v307_osal_freertos_isr_stress_smoke
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_timer.c
 )
 target_include_directories(opench_ch32v307_osal_freertos_isr_stress_smoke PRIVATE
         ${CMAKE_SOURCE_DIR}/components/hal/inc

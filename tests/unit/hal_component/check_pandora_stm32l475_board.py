@@ -358,7 +358,9 @@ def main() -> None:
     assert "xy_image_failed_task = task_name;" in overflow_hook
     assert "xy_image_failed = 1U;" in overflow_hook
     assert overflow_hook.index("xy_image_failed = 1U;") < overflow_hook.index("for (;;)")
-    fail_body = function_body(rtos_entry, "static void fail(")
+    # fail() is a macro over fail_at(__LINE__) now, so the halt state lives in
+    # fail_at(); the line number is what makes a halted image identifiable.
+    fail_body = function_body(rtos_entry, "static void fail_at(")
     assert "xy_image_failed = 2U;" in fail_body
     assert fail_body.index("xy_image_failed = 2U;") < fail_body.index("for (;;)")
     uart_body = function_body(rtos_entry, "static void uart_text(")

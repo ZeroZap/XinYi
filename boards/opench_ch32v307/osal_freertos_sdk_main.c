@@ -1,5 +1,6 @@
 #include "ch32v30x.h"
 #include "xy_hal_gpio.h"
+#include "xy_hal_timer.h"
 #include "xy_hal_uart.h"
 #include "FreeRTOS.h"
 #include "portmacro.h"
@@ -58,34 +59,35 @@ static void mark(const char* text) {
     (void)xy_hal_uart_send(USART1, (const uint8_t*)text, length, UART_TIMEOUT_MS);
 }
 
+/* The timer, its update interrupt and the NVIC line are all the HAL's now: it
+   used to stop at the peripheral, which is why this image had to program TIM2
+   and the NVIC by hand. */
+static void timer_update_callback(void* timer, xy_hal_timer_event_t event, void* argument) {
+    (void)timer;
+    (void)event;
+    (void)argument;
+    irq_count++;
+    if (xy_os_semaphore_release_from_isr(irq_sem) != XY_OS_OK)
+        mark("OPENCH_OSAL_FREERTOS_ISR_RELEASE_ERROR_A\r\n");
+}
+
 static void timer_init(void) {
-    TIM_TimeBaseInitTypeDef timer = {0};
-    NVIC_InitTypeDef irq = {0};
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-    timer.TIM_Period = 9999;
-    timer.TIM_Prescaler = 959;
-    timer.TIM_ClockDivision = TIM_CKD_DIV1;
-    timer.TIM_CounterMode = TIM_CounterMode_Up;
-    TIM_TimeBaseInit(TIM2, &timer);
-    TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-    TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
-    irq.NVIC_IRQChannel = TIM2_IRQn;
-    irq.NVIC_IRQChannelPreemptionPriority = 3;
-    irq.NVIC_IRQChannelSubPriority = 0;
-    irq.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&irq);
-    TIM_Cmd(TIM2, ENABLE);
+    const xy_hal_timer_config_t config = {.prescaler = 959U,
+                                          .period = 9999U,
+                                          .mode = XY_HAL_TIMER_COUNT_UP,
+                                          .clock_div = XY_HAL_TIMER_CKDIV_1,
+                                          .auto_reload_preload = 0U};
+    (void)xy_hal_timer_init(TIM2, &config);
+    (void)xy_hal_timer_register_callback(TIM2, XY_HAL_TIMER_EVENT_UPDATE, timer_update_callback,
+                                        NULL);
+    (void)xy_hal_timer_enable_irq(TIM2, XY_HAL_TIMER_EVENT_UPDATE);
+    (void)xy_hal_timer_start(TIM2);
 }
 
 void TIM2_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void TIM2_IRQHandler(void) {
     GET_INT_SP();
-    if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
-        TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-        irq_count++;
-        if (xy_os_semaphore_release_from_isr(irq_sem) != XY_OS_OK)
-            mark("OPENCH_OSAL_FREERTOS_ISR_RELEASE_ERROR_A\r\n");
-    }
+    xy_hal_timer_irq_handler(TIM2);
     FREE_INT_SP();
 }
 

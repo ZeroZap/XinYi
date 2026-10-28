@@ -52,14 +52,11 @@ VENDOR_PATTERNS = (
 )
 
 # TIM2 plus its NVIC line is the ISR stimulus for the stress images. xy_hal_timer
-# does not expose an ISR wiring path yet, so these two keep vendor setup and are
-# the explicit startup/clock/IRQ boundary the rules allow. Every other image must
-# stay off it, and an entry here has to still show real timer setup so the
-# allowance cannot rot into a stale exception.
-TIMER_BOUNDARY = {
-    "osal_freertos_sdk_main.c": "TIM2 update ISR drives the tick-source stress",
-    "osal_freertos_isr_stress_main.c": "TIM2 update ISR generates the IRQ storm",
-}
+# Empty on purpose: xy_hal_timer_enable_irq() now claims the NVIC line as well as
+# the peripheral interrupt, which was the only reason the sdk and isr_stress
+# images kept vendor TIM2 setup. An entry here has to still show real timer setup
+# so the allowance cannot rot into a stale exception, and nothing needs one now.
+TIMER_BOUNDARY = {}
 TIMER_PATTERNS = (
     r"\bRCC_APB[12]PeriphClockCmd\b",
     r"\bTIM_TimeBaseInit\b",
