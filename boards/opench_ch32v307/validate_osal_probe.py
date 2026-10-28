@@ -27,13 +27,20 @@ import re
 import subprocess
 import sys
 
-# The probe now ends at stage 11: stage 10 runs the UART burst that measures the
-# HAL millisecond helper against wall clock, and 11 means it finished.
-STAGE_DONE = 11
+# The probe now ends at stage 13: stage 10 runs the UART burst that measures the
+# HAL millisecond helper against wall clock, stage 12 makes a receive give up on a
+# silent line, and 13 means both measurements are published.
+STAGE_DONE = 13
 # 256 bytes at 115200 8N1 is 22.2 ms on the wire. The window is wide enough for
 # buffering jitter but narrow enough that a saw-tooth timebase cannot land in it.
 BURST_MS_MIN = 10
 BURST_MS_MAX = 200
+# A one-byte receive on a silent line must spend the timeout it was given and
+# report XY_HAL_ERROR_TIMEOUT (-3, stored as uint32) rather than returning early,
+# hanging, or claiming success.
+RECV_MS_MIN = 5
+RECV_MS_MAX = 200
+RECV_TIMEOUT_CODE = 0xFFFFFFFD
 WHOAMI_EXPECTED = 0x68
 LOOPS_EXPECTED = 3
 EVENT_FLAGS_ERROR = 0x80000000
@@ -51,6 +58,8 @@ SYMBOLS = (
     "xy_probe_i2c_fails",
     "xy_probe_whoami",
     "xy_probe_uart_burst_ms",
+    "xy_probe_uart_recv_ms",
+    "xy_probe_uart_recv_code",
     "xTickCount",
 )
 
@@ -91,34 +100,8 @@ def read_words(openocd: str, config: str, addresses: dict[str, int], resume: boo
     return values
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--openocd", required=True)
-    parser.add_argument("--config", required=True)
-    parser.add_argument("--elf", required=True)
-    parser.add_argument("--nm", required=True)
-    parser.add_argument("--settle-ms", type=int, default=4000)
-    args = parser.parse_args()
-
-    if args.settle_ms < 0:
-        raise SystemExit("settle-ms must be non-negative")
-
-    addresses = symbol_addresses(args.nm, args.elf)
-
-    subprocess.run(
-        [
-            args.openocd, "-f", args.config, "-c", "adapter speed 1000",
-            "-c", "init", "-c", "reset halt", "-c", "resume", "-c", "shutdown",
-        ],
-        capture_output=True,
-        text=True,
-    )
-    subprocess.run(["sleep", str(args.settle_ms / 1000.0)])
-
-    first = read_words(args.openocd, args.config, addresses, resume=True)
-    subprocess.run(["sleep", "2"])
-    second = read_words(args.openocd, args.config, addresses, resume=False)
-
+def judge(first: dict[str, int], second: dict[str, int]) -> list[str]:
+    """Judge two RAM snapshots of one probe run; empty list means the run is good."""
     errors = []
     if first.get("xy_probe_stage") != STAGE_DONE:
         errors.append(f"stage is {first.get('xy_probe_stage')}, expected {STAGE_DONE}")
@@ -127,6 +110,17 @@ def main() -> int:
         errors.append(
             f"xy_probe_uart_burst_ms is {burst_ms}, expected {BURST_MS_MIN}..{BURST_MS_MAX} "
             "(256 bytes at 115200 take about 22 ms)"
+        )
+    recv_ms = first.get("xy_probe_uart_recv_ms")
+    if recv_ms is None or not RECV_MS_MIN <= recv_ms <= RECV_MS_MAX:
+        errors.append(
+            f"xy_probe_uart_recv_ms is {recv_ms}, expected {RECV_MS_MIN}..{RECV_MS_MAX} "
+            "(a 10 ms receive on a silent line has to spend its timeout)"
+        )
+    if first.get("xy_probe_uart_recv_code") != RECV_TIMEOUT_CODE:
+        errors.append(
+            f"xy_probe_uart_recv_code is {first.get('xy_probe_uart_recv_code')}, "
+            f"expected {RECV_TIMEOUT_CODE:#x} (XY_HAL_ERROR_TIMEOUT)"
         )
     if first.get("xy_probe_loops") != LOOPS_EXPECTED:
         errors.append(f"loops is {first.get('xy_probe_loops')}, expected {LOOPS_EXPECTED}")
@@ -166,7 +160,38 @@ def main() -> int:
     ticks_first, ticks_second = first.get("xTickCount"), second.get("xTickCount")
     if ticks_first is None or ticks_second is None or ticks_second <= ticks_first:
         errors.append(f"xTickCount did not advance: {ticks_first} -> {ticks_second}")
+    return errors
 
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--openocd", required=True)
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--elf", required=True)
+    parser.add_argument("--nm", required=True)
+    parser.add_argument("--settle-ms", type=int, default=4000)
+    args = parser.parse_args()
+
+    if args.settle_ms < 0:
+        raise SystemExit("settle-ms must be non-negative")
+
+    addresses = symbol_addresses(args.nm, args.elf)
+
+    subprocess.run(
+        [
+            args.openocd, "-f", args.config, "-c", "adapter speed 1000",
+            "-c", "init", "-c", "reset halt", "-c", "resume", "-c", "shutdown",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(["sleep", str(args.settle_ms / 1000.0)])
+
+    first = read_words(args.openocd, args.config, addresses, resume=True)
+    subprocess.run(["sleep", "2"])
+    second = read_words(args.openocd, args.config, addresses, resume=False)
+
+    errors = judge(first, second)
     if errors:
         print("osal_stall_probe failed:")
         for error in errors:

@@ -48,6 +48,10 @@ volatile uint32_t xy_probe_whoami;
    cannot land in the plausible window - that is the discriminator. */
 volatile uint32_t xy_probe_uart_burst_ms;
 
+/* A receive that has to give up: the code it returned and the wall time it took. */
+volatile uint32_t xy_probe_uart_recv_ms;
+volatile uint32_t xy_probe_uart_recv_code;
+
 static xy_os_event_flags_id_t event_id;
 static xy_os_msgqueue_id_t queue_id;
 
@@ -169,6 +173,27 @@ static void probe_task(void* argument) {
         mark("OPENCH_OSAL_PROBE_TIMEBASE_OK_A\r\n");
     else
         mark("OPENCH_OSAL_PROBE_TIMEBASE_ERROR_A\r\n");
+
+    /* The receive path is the only one that has to give up on its own: nothing
+       arrives on a silent line, so recv() must return TIMEOUT and the wall time it
+       spent has to be the timeout it was given. The old saw-tooth helper made that
+       comparison meaningless - it fired at once or never - so this judgement only
+       became possible once the kernel owned the clock. */
+    xy_probe_stage = 12U;
+    {
+        uint8_t byte = 0U;
+        uint32_t recv_before = xy_hal_time_ms();
+        xy_hal_error_t recv_result = xy_hal_uart_recv(USART1, &byte, 1U, 10U);
+        xy_probe_uart_recv_ms = xy_hal_time_ms() - recv_before;
+        xy_probe_uart_recv_code = (uint32_t)recv_result;
+    }
+    xy_probe_stage = 13U;
+
+    if (xy_probe_uart_recv_code == (uint32_t)(int32_t)XY_HAL_ERROR_TIMEOUT &&
+        xy_probe_uart_recv_ms >= 5U && xy_probe_uart_recv_ms <= 200U)
+        mark("OPENCH_OSAL_PROBE_RECV_TIMEOUT_OK_A\r\n");
+    else
+        mark("OPENCH_OSAL_PROBE_RECV_TIMEOUT_ERROR_A\r\n");
 
     mark("OPENCH_OSAL_PROBE_SEQUENCE_DONE_A\r\n");
     for (;;) {
