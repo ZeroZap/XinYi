@@ -1,0 +1,30 @@
+{
+  "address_7bit": "0x38",
+  "baudrate": 115200,
+  "bus": "SOFT_I2C4 SCL=PD6 SDA=PC1",
+  "bytes_captured": 6164,
+  "capture_status": "CAPTURED",
+  "captured_at_utc": "2026-10-28T14:55:48.803224+00:00",
+  "device": "/dev/ttyUSB0",
+  "error": null,
+  "failures": [
+    "missing or out-of-order marker: PANDORA AHT10 SENSOR READY",
+    "missing or out-of-order marker: FIRMWARE_COMMIT 8deb91735ec221186fb0e49497c5769fa1f4de3c",
+    "missing or out-of-order marker: AHT10_BUS=SOFT_I2C4 SCL=PD6 SDA=PC1 ADDR=0x38",
+    "missing or out-of-order marker: PANDORA_I2C4_INIT_DONE",
+    "missing or out-of-order marker: I2C4_ACK=0x38",
+    "missing or out-of-order marker: PANDORA_I2C4_SCAN_DONE count=",
+    "missing or out-of-order marker: AHT10_DRIVER_READY ADDR=0x38",
+    "sample count 0 < 10"
+  ],
+  "firmware_commit": "8deb91735ec221186fb0e49497c5769fa1f4de3c",
+  "format": "8-N-1",
+  "humidity_centi_range": [],
+  "non_ascii_byte_count": 0,
+  "reset_command": "st-flash reset",
+  "sample_count": 0,
+  "status": "AHT10_SOFT_I2C4_VALIDATION_FAILED",
+  "temperature_centi_range": [],
+  "timeout_seconds": 6.0,
+  "unique_sample_count": 0
+}

@@ -1,5 +1,57 @@
 # XinYi 组件证据台账
 
+### 2026-10-28 Pandora AHT10 canonical owner + board runtime (B1)
+
+- U7 AHT10 was the last onboard sensor without a canonical Device owner. `main.c` drove it inline: an
+  `xy_i2c_device_t` built by hand, the `0xE1 0x08 0x00` calibration command, `0xAC 0x33 0x00` per
+  measurement and a private re-implementation of the 20-bit humidity/temperature decode — code
+  outside `xy_aht10` and outside every host test. New board module
+  `boards/pandora_stm32l475/pandora_aht10_owner.{h,c}` makes `xy_aht10` the owned instance with the
+  same commit-on-success contract as the AP3216C/ICM20608 owners (`init` commits a candidate only on
+  success; `sample` commits only after a complete converted frame; access before init is refused
+  with `XY_DEVICE_INVALID_PARAM` and zero bus traffic).
+- New validation image `sensor_aht10_main.c` (`pandora_stm32l475_aht10`) owns U7 through that module
+  and carries no AHT10 protocol code: soft I2C4 (`SCL=PD6 SDA=PC1`) address scan, driver init, then
+  bounded `AHT10 SAMPLE hum_centi=… temp_centi=…` lines with an AHT10 public-range check
+  (0–10000 centi-%RH, −4000–8500 centi-C). The board policy guard now pins the image to
+  `xy_aht10_*` and rejects `0xE1U`/`0xACU`/`xy_i2c_device_*`/the raw conversion constants in it.
+- Host: `pandora_sensor_owners` grows an AHT10 command model on the same `xy_hal_i2c_*` seam,
+  15 → 23 cases (single calibration write plus the 10 ms settle, `0xAC 0x33 0x00` then one bare
+  6-byte frame decoding to 5000 centi-%RH / 2500 centi-C, busy-status and bus-fault output
+  preservation, owner kept on a rejected re-init, fail-closed `deinit`).
+- New capture judge `boards/pandora_stm32l475/validate_aht10_capture.py` (`capture`/`analyze`) and
+  CTest `pandora_aht10_capture_validator` (9 cases, incl. a real pty window and a zero-byte
+  `NO_DATA_TIMEOUT` reject), CTest suite 298 → 299. `capture` opens and flushes the UART *before*
+  running the reset command so the boot header cannot be lost to a race — `capture_uart.py` is
+  welded to the smoke image's banner and could not judge this image.
+- Board runtime (accepted run): image 9120 B SHA-256 `bf6f70cc…f9b84f`, embedded commit
+  `8deb9173…`, snapshot-gated write to `0x08000000` (`span_identical=true erased_tail=1120
+  unexpected_changes=0`), UART opened before `st-flash reset`. Capture 1629 B → verdict
+  **`AHT10_SOFT_I2C4_B1`**: `READY`→`FIRMWARE_COMMIT`→`AHT10_BUS=SOFT_I2C4`→`PANDORA_I2C4_INIT_DONE`
+  →`I2C4_ACK=0x38`→`SCAN_DONE count=1`→`AHT10_DRIVER_READY`, then 31 samples (21 unique, no
+  malformed lines, no error markers): humidity 54.58–54.65 %RH, temperature 30.53–30.68 °C. Post-run
+  `verify` showed **only** the bootloader region changed (application/journal/board_reserved/RTC
+  identical); `restore` + `verify_ok regions=5` returned the board byte-exactly to the pre-run state
+  (`762c4a75…` bootloader, `d35e2e9a…` application).
+- Real defect found by the failed first attempt: writing this image to `0x08008000` is not durable on
+  a board whose resident bootloader holds a valid W25Q128 candidate — the reset that `st-flash write`
+  performs lets the bootloader install the candidate over it (`application` → `d27a6a26…`, the
+  capture contained only `ICM20608_*` lines from commit `2a596d90…`). These validation images link at
+  `0x08000000` (`STM32L475VETX_FLASH.ld`); `0x08008000` belongs to `STM32L475VETX_FOTA_APP.ld`. The
+  validator failed closed in both attempts; the reproduction is retained as
+  `attempt2-app-slot.log`.
+- Evidence path: `boards/pandora_stm32l475/pandora_aht10_owner.{h,c}`,
+  `sensor_aht10_main.c`, `validate_aht10_capture.py`, board `CMakeLists.txt`,
+  `tests/unit/hal_component/test_pandora_sensor_owners.c`,
+  `tests/unit/sensor/test_pandora_aht10_capture.py`, `tests/unit/CMakeLists.txt`,
+  `tests/unit/hal_component/check_pandora_stm32l475_board.py`, `docs/design/unit-test-inventory.md`,
+  `docs/validation/evidence/pandora-stm32l475/2026-10-28-aht10-owner/`; Host `make test-unit`
+  299/299; PC, STM32L4 (incl. the new board target) and STM32U5 builds; `git diff --check`.
+- Boundaries: one board, one 6 s window, one image. No controlled humidity/temperature stimulus, no
+  response time, accuracy, condensation, long-run or thermal claim; the ranges above are what the
+  part reported in a still room. Soft-I2C timing margins, external pull-ups and bus recovery are not
+  covered. `main.c` still carries its inline AHT10 path for the smoke image (separate decision).
+
 ### 2026-10-28 Pandora board-owned canonical sensor owners (host)
 
 - The two Pandora sensor validation images stopped owning their devices through the legacy

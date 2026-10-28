@@ -1,0 +1,27 @@
+{
+  "address_7bit": "0x38",
+  "baudrate": 115200,
+  "bus": "SOFT_I2C4 SCL=PD6 SDA=PC1",
+  "bytes_captured": 1629,
+  "capture_status": "CAPTURED",
+  "captured_at_utc": "2026-10-28T14:54:05.016241+00:00",
+  "device": "/dev/ttyUSB0",
+  "error": null,
+  "failures": [],
+  "firmware_commit": "8deb91735ec221186fb0e49497c5769fa1f4de3c",
+  "format": "8-N-1",
+  "humidity_centi_range": [
+    5458,
+    5465
+  ],
+  "non_ascii_byte_count": 0,
+  "reset_command": "st-flash reset",
+  "sample_count": 31,
+  "status": "AHT10_SOFT_I2C4_B1",
+  "temperature_centi_range": [
+    3053,
+    3068
+  ],
+  "timeout_seconds": 6.0,
+  "unique_sample_count": 21
+}
