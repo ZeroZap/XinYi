@@ -166,6 +166,11 @@ target_include_directories(xy_osal PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../misc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${OSAL_BACKEND_INCLUDES}
+    # xy_hal_time.h is the platform-neutral HAL tick hook. The FreeRTOS backend
+    # includes it to hand the kernel tick to the HAL; without this root on the
+    # backend's own include path the include fails silently and the binding never
+    # compiles (which is exactly what happened on the STM32 reference board).
+    ${CMAKE_SOURCE_DIR}/components/hal/inc
 )
 
 # Compile definitions

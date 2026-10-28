@@ -75,6 +75,9 @@ def main() -> int:
         f"-I{PORT}",
         f"-I{OSAL}",
         f"-I{OSAL / 'inc'}",
+        # Same include set as the real target, which reaches xy_hal_time.h through
+        # xy_osal's include directories.
+        f"-I{ROOT / 'components' / 'hal' / 'inc'}",
     ]
 
     with tempfile.TemporaryDirectory(prefix="xinyi-freertos-stm32u5-") as tmp:

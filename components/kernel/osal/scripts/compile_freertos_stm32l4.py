@@ -74,6 +74,10 @@ def main() -> int:
         f"-I{PORT}",
         f"-I{OSAL}",
         f"-I{OSAL / 'inc'}",
+        # xy_hal_time.h is the HAL tick hook the adapter hands its tick to; the real
+        # target gets this root from xy_osal's include directories, and the probe has
+        # to compile against the same set or it would not see the hook at all.
+        f"-I{ROOT / 'components' / 'hal' / 'inc'}",
     ]
 
     with tempfile.TemporaryDirectory(prefix="xinyi-freertos-stm32l4-") as tmp:

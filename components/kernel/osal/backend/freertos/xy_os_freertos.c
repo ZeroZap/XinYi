@@ -19,18 +19,17 @@
  * (CNT becomes a saw-tooth and a difference of two readings underflows, so every
  * wait fires at once), and the HAL offers a hook to point it somewhere else.
  *
- * Both the include and the symbol are optional: a host or bare-metal build has
- * no HAL, and a platform whose HAL has no hook yet keeps SysTick. The weak
- * reference turns "HAL linked without the hook" into a no-op instead of a link
- * failure for the whole firmware.
+ * The hook header is platform-neutral and always present, so it is included
+ * unconditionally: gating it on __has_include() made the registration depend on
+ * whether this target's include path happened to carry components/hal/inc, and on
+ * the STM32 reference board it did not - the whole binding compiled to nothing and
+ * nothing said so. The symbol itself stays optional: a platform whose HAL has no
+ * hook keeps SysTick, and the weak reference turns "HAL linked without the hook"
+ * into a no-op instead of a link failure for the whole firmware.
  */
-#if defined(__has_include)
-#if __has_include("xy_hal_time.h")
 #include "xy_hal_time.h"
 #define XY_OS_FREERTOS_HAS_HAL_TIME_HOOK 1
 extern void xy_hal_tick_set_source(xy_hal_tick_source_t source) __attribute__((weak));
-#endif
-#endif
 
 #ifdef XY_OS_FREERTOS_HAS_HAL_TIME_HOOK
 static uint32_t freertos_hal_tick_ms(void)

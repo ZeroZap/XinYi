@@ -20,8 +20,15 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 BACKEND = ROOT / "components/kernel/osal/backend/freertos/xy_os_freertos.c"
+OSAL_CMAKE = ROOT / "components/kernel/osal/CMakeLists.txt"
 
 FUNCTION_PATTERN = r"xy_os_status_t %s\(void\)\s*\{"
+
+
+def code_only(text: str) -> str:
+    """Drop comments so prose that names a banned construct does not trip the guard."""
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    return re.sub(r"//[^\n]*", "", text)
 
 
 def function_body(source: str, name: str, errors: list[str]) -> str:
@@ -42,10 +49,11 @@ def main() -> int:
         return 1
 
     source = BACKEND.read_text(encoding="utf-8")
+    code = code_only(source)
     errors: list[str] = []
 
-    kernel_init = function_body(source, "xy_os_kernel_init", errors)
-    kernel_start = function_body(source, "xy_os_kernel_start", errors)
+    kernel_init = function_body(code, "xy_os_kernel_init", errors)
+    kernel_start = function_body(code, "xy_os_kernel_start", errors)
 
     if "freertos_bind_hal_timebase(" in kernel_init:
         errors.append(
@@ -67,26 +75,44 @@ def main() -> int:
                 "does not return once the scheduler runs"
             )
 
-    bind_calls = len(re.findall(r"^\s*freertos_bind_hal_timebase\(\s*\)\s*;", source, re.MULTILINE))
+    bind_calls = len(re.findall(r"^\s*freertos_bind_hal_timebase\(\s*\)\s*;", code, re.MULTILINE))
     if bind_calls != 1:
         errors.append(
             f"the HAL timebase must be bound from exactly one place, found {bind_calls}"
         )
 
-    if "xy_hal_tick_set_source(freertos_hal_tick_ms)" not in source:
+    if "xy_hal_tick_set_source(freertos_hal_tick_ms)" not in code:
         errors.append(
             "the backend must publish freertos_hal_tick_ms through xy_hal_tick_set_source()"
         )
     if not re.search(
         r"return\s*\(uint32_t\)\s*\(\s*xTaskGetTickCount\(\)\s*\*\s*portTICK_PERIOD_MS\s*\)",
-        source,
+        code,
     ):
         errors.append(
             "freertos_hal_tick_ms must report xTaskGetTickCount() * portTICK_PERIOD_MS"
         )
-    if "xy_hal_tick_set_source != NULL" not in source:
+    if "xy_hal_tick_set_source != NULL" not in code:
         errors.append(
             "the optional HAL hook must be null-checked so a platform without it links"
+        )
+
+    # A guard that can be switched off by the build is not a guard. The hook header
+    # used to be behind __has_include(), so on a target whose include path lacked
+    # components/hal/inc the whole binding compiled to nothing without a warning.
+    if "__has_include" in code:
+        errors.append(
+            "the HAL tick hook must not be gated on __has_include(): a missing include "
+            "root silently removes the binding instead of failing the build"
+        )
+    if not re.search(r'#include\s+"xy_hal_time\.h"', code):
+        errors.append('the backend must include "xy_hal_time.h" so the hook always compiles')
+
+    cmake = OSAL_CMAKE.read_text(encoding="utf-8") if OSAL_CMAKE.is_file() else ""
+    if "components/hal/inc" not in cmake:
+        errors.append(
+            "xy_osal must put components/hal/inc on its own include path, or the backend "
+            "cannot reach xy_hal_time.h"
         )
 
     if errors:
