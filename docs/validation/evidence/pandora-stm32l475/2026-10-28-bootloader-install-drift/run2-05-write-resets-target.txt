@@ -1,0 +1,13 @@
+Question: does `st-flash write` reset the MCU by itself?
+Procedure: read the FOTA journal, write the byte-identical bootloader image to
+0x08000000 with NO reset command (no --reset, no st-flash reset), wait 20 s, read again.
+A journal advance means a boot decision ran, i.e. the write started the image.
+
+before:
+  slot 0: generation=3 state=2 attempts=1 image_version=3 image_size=39424
+  slot 1: generation=2 state=2 attempts=0 image_version=3 image_size=39424
+after :
+  slot 0: generation=3 state=2 attempts=1 image_version=3 image_size=39424
+  slot 1: generation=4 state=2 attempts=2 image_version=3 image_size=39424
+
+Result: generation 3 -> 4, attempts 1 -> 2 => the write path reset and ran the target.

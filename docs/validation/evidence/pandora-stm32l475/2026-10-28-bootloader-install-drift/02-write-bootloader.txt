@@ -1,0 +1,5 @@
+image pandora_stm32l475_fota_bootloader.bin size=15548 sha256=48ad7cafc1b5a196 target=bootloader@0x8000000
+readback span_identical=true observed_sha256=48ad7cafc1b5a196 erased_tail=836 unexpected_changes=0
+restore_command=tools/pandora_hil_state.py restore --snapshot /home/eugene/xinyi-hw-evidence/2026-10-28-bootloader-install-drift/pandora-state-s0 --yes
+log=/home/eugene/xinyi-hw-evidence/2026-10-28-bootloader-install-drift/pandora-state-s0/program.json
+program_ok

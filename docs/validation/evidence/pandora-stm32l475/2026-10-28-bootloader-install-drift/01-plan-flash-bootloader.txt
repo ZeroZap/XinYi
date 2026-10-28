@@ -1,0 +1,4 @@
+would write 15548 B (48ad7cafc1b5a196) to bootloader@0x8000000..0x8003cbc
+erase_pages=0x8000000..0x8004000 (8 page(s))
+snapshot=/home/eugene/xinyi-hw-evidence/2026-10-28-bootloader-install-drift/pandora-state-s0
+plan_ok writes=0

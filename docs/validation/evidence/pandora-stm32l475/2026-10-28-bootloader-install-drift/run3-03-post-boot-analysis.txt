@@ -1,0 +1,16 @@
+retained reads in /home/eugene/xinyi-hw-evidence/2026-10-28-bootloader-install-drift/run3-post
+
+## application
+vs run3 baseline (marker pattern in place): identical=True first_diff=None
+observed sha256=d35e2e9ab2fe7249c20492b0e4b651bc64c947d0e7af4074a55f3dcfe506eca4
+baseline sha256=d35e2e9ab2fe7249c20492b0e4b651bc64c947d0e7af4074a55f3dcfe506eca4
+marker pattern sha256=1ce169fe9b624349d714a2407c1507e0d96b2a6d29d457d412a76b7ded930d01 (4096 B)
+4 KiB prefix == marker pattern : False
+4 KiB prefix == baseline bytes : True
+
+## journal
+slot 0: magic=0x58424a52 state=INSTALLED generation=3 image_version=3 image_size=39424 attempts=1 commit=0x434f4d54434f4d54 record_crc_ok=True
+slot 1: magic=0x58424a52 state=INSTALLED generation=2 image_version=3 image_size=39424 attempts=0 commit=0x434f4d54434f4d54 record_crc_ok=True
+fota_metadata vs baseline: identical=False first_diff=0
+observed sha256=08699957e1a6bc4bd036b3fe11bb5a85cf0caedce1bbc134e1e030d2546fc9c3
+baseline sha256=f47a8ec3e9aff2318d896942282ad4fe37d6391c82914f54a5da8a37de1300c6

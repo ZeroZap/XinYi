@@ -1,0 +1,10 @@
+image pandora_pattern.bin size=4096 sha256=1ce169fe9b624349 target=application@0x8008000
+readback span_identical=true observed_sha256=1ce169fe9b624349 erased_tail=0 unexpected_changes=0
+drift bootloader: unchanged
+drift application: unchanged
+drift fota_metadata: CHANGED first_diff=+0
+drift board_reserved: unchanged
+drift rtc_backup: unchanged
+restore_command=tools/pandora_hil_state.py restore --snapshot /home/eugene/xinyi-hw-evidence/2026-10-28-bootloader-install-drift/pandora-state-s1 --yes
+log=/home/eugene/xinyi-hw-evidence/2026-10-28-bootloader-install-drift/pandora-state-s1/program.json
+program_ok

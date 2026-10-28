@@ -1,0 +1,7 @@
+snapshot label=run2 flow bootloader resident created=2026-10-28T11:42:01+00:00
+  bootloader     0x8000000   32768 B nonzero=  30399 sha256=987569e723914f01dfc6d1c02fbf1ae75cb9ff7b5d169dcd5511a7d502cbdbc6
+  application    0x8008000  483328 B nonzero= 480591 sha256=d35e2e9ab2fe7249c20492b0e4b651bc64c947d0e7af4074a55f3dcfe506eca4
+  fota_metadata  0x807e000    4096 B nonzero=   4080 sha256=97f20d63c87ce2e8707eb2502e28437418968e1a6105ffcb9b4e482e7033974d
+  board_reserved 0x807f000    4096 B nonzero=   4051 sha256=118f9c6f2d3787d97fc8284a0ae95940708f731c2591824dc0f76fc399fc6603
+  rtc_backup     not captured: st-flash read /home/eugene/xinyi-hw-evidence/2026-10-28-bootloader-install-drift/run2-s1/regions/rtc_backup.bin 0x40002850 0x80 failed rc=255: 2026-10-28T19:42:01 INFO common.c: STM32L47x_L48x: 96 KiB SRAM, 44000 KiB flash in at least 2 KiB pages.
+snapshot_ok dir=/home/eugene/xinyi-hw-evidence/2026-10-28-bootloader-install-drift/run2-s1

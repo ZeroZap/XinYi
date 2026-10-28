@@ -20,7 +20,14 @@ So this wrapper makes the missing step a precondition of the write instead of a 
   5. bytes that changed outside the image span are classified: flash page-erase tail is
      expected and reported, anything else is a hard failure;
   6. with --reset the regions are sampled again after the boot decision and every region
-     that drifted from the snapshot is named.
+     that drifted from the snapshot is named;
+  7. that post-reset sample is taken only from a *quiescent* target: `st-flash write`
+     resets the MCU (measured on this part — a write that was not followed by any reset
+     command advanced the FOTA journal by exactly one boot), so a boot decision can be
+     erasing and reprogramming while an operator samples. The sampler re-reads every
+     region until its fingerprint has not changed for `--stable-for` seconds, retries
+     through transient debugger failures (an RTC read failed while the core was
+     mid-boot), and refuses to present a table it could not prove settled.
 
 Fail-closed rules: `program_ok` is printed only when the read-back matches. A refusal
 exit code (2) means nothing was written. A failure exit code (1) means the board was
@@ -233,11 +240,38 @@ class Drift:
     name: str
     identical: bool
     first_diff: int | None
+    captured: bool = True
 
     def render(self) -> str:
+        if not self.captured:
+            return f"{self.name}: not read (debugger failure during the boot window)"
         if self.identical:
             return f"{self.name}: unchanged"
         return f"{self.name}: CHANGED first_diff=+{self.first_diff}"
+
+
+@dataclasses.dataclass(frozen=True)
+class DriftScan:
+    """One settled (or unsettled) post-boot view of every captured region."""
+
+    regions: list[Drift]
+    stable: bool
+    samples: int
+    seconds: float
+
+    @property
+    def changed(self) -> list[str]:
+        return [item.name for item in self.regions if item.captured and not item.identical]
+
+    @property
+    def unreadable(self) -> list[str]:
+        return [item.name for item in self.regions if not item.captured]
+
+    def render(self) -> str:
+        return (
+            f"drift_stable={str(self.stable).lower()} "
+            f"drift_samples={self.samples} drift_seconds={self.seconds:.1f}"
+        )
 
 
 @dataclasses.dataclass
@@ -245,32 +279,105 @@ class Outcome:
     image: ImageView
     snapshot_dir: pathlib.Path
     truth: SpanTruth
-    drift: list[Drift]
+    drift_scan: DriftScan
     reset: bool
     log_path: pathlib.Path
+
+    @property
+    def drift(self) -> list[Drift]:
+        return self.drift_scan.regions
 
     @property
     def ok(self) -> bool:
         return (
             self.truth.span_identical
             and self.truth.unexpected_changes == 0
+            and (not self.reset or self.drift_scan.stable)
         )
 
 
 def _scan_drift(
-    backend: Backend, snapshot_dir: pathlib.Path, scratch: pathlib.Path
-) -> list[Drift]:
+    backend: Backend, snapshot_dir: pathlib.Path, scratch: pathlib.Path, sample: int = 0
+) -> tuple[list[Drift], str]:
+    """Read every captured region once; return the drift table and a fingerprint.
+
+    A region the debugger cannot read (the target is mid-boot) is marked rather than
+    raised on, because the sampler has to be able to retry. A scan that could not read
+    a restorable flash region gets a per-sample nonce, so two such scans never look
+    quiescent and the sampler keeps going.
+    """
+
     manifest = state.load_manifest(snapshot_dir)
     drift: list[Drift] = []
+    digests: list[str] = []
+    nonce: str | None = None
     for entry in manifest["regions"]:
         if not entry.get("captured"):
             continue
         region = state.region_by_name(entry["name"])
         stored = (pathlib.Path(snapshot_dir) / entry["file"]).read_bytes()
-        observed = state._read_bytes(backend, region, scratch / f"{region.name}.bin")
+        try:
+            observed = state._read_bytes(backend, region, scratch / f"{region.name}.bin")
+        except state.BackendError:
+            drift.append(Drift(name=region.name, identical=False, first_diff=None, captured=False))
+            digests.append("-")
+            # An optional region (the RTC handshake block) may be unreadable while the
+            # core is mid-boot without making the rest of the table untrustworthy; a
+            # restorable flash region that cannot be read is not a settled view.
+            if not region.optional:
+                nonce = f"unreadable-{sample}-{region.name}"
+            continue
         identical, first_diff = state.compare_region(stored, observed)
         drift.append(Drift(name=region.name, identical=identical, first_diff=first_diff))
-    return drift
+        digests.append(_sha256(observed))
+    fingerprint = _sha256("|".join(digests).encode("ascii"))
+    return drift, fingerprint if nonce is None else f"{fingerprint}@{nonce}"
+
+
+def _scan_drift_until_stable(
+    backend: Backend,
+    snapshot_dir: pathlib.Path,
+    scratch: pathlib.Path,
+    *,
+    settle: float,
+    stable_for: float,
+    poll: float,
+    max_wait: float,
+    sleep: Callable[[float], None] = time.sleep,
+    clock: Callable[[], float] = time.monotonic,
+) -> DriftScan:
+    """Sample the post-boot state until it stops moving, then report it.
+
+    A fixed sleep cannot tell "the boot decision finished" from "the boot decision has
+    not started erasing yet"; both look identical for a few seconds on this part.
+    Requiring an unchanged fingerprint for `stable_for` seconds is what makes the drift
+    table attributable to a finished boot rather than to the middle of one.
+    """
+
+    if settle > 0:
+        sleep(settle)
+    started = clock()
+    history: list[tuple[str, float]] = []
+    scan: list[Drift] = []
+    samples = 0
+    while True:
+        scan, fingerprint = _scan_drift(
+            backend, snapshot_dir, scratch / f"sample-{samples}", sample=samples
+        )
+        samples += 1
+        now = clock() - started
+        history.append((fingerprint, now))
+        trailing_start = now
+        for earlier, moment in reversed(history):
+            if earlier != fingerprint:
+                break
+            trailing_start = moment
+        stable = now - trailing_start >= stable_for and samples >= 2
+        if stable or now >= max_wait:
+            return DriftScan(
+                regions=scan, stable=stable, samples=samples, seconds=max(now, 0.0)
+            )
+        sleep(poll)
 
 
 def program(
@@ -281,7 +388,11 @@ def program(
     confirm: bool,
     reset: bool = False,
     settle: float = 3.0,
+    stable_for: float = 3.0,
+    poll: float = 0.5,
+    max_wait: float = 20.0,
     sleep: Callable[[float], None] = time.sleep,
+    clock: Callable[[], float] = time.monotonic,
     scratch_dir: pathlib.Path | None = None,
     utc: datetime.datetime | None = None,
 ) -> Outcome:
@@ -329,13 +440,23 @@ def program(
     )
     truth = classify_readback(image, observed, before)
 
-    # 4. Optionally let the board execute one boot decision, then look for runtime
-    #    rewrites (the bootloader installing a candidate is exactly this case).
-    drift: list[Drift] = []
+    # 4. Optionally let the board execute one boot decision, then sample until it is
+    #    quiet. The write itself already reset the MCU, so the boot decision may be
+    #    running before this point; a fixed sleep cannot prove it finished.
+    drift_scan = DriftScan(regions=[], stable=True, samples=0, seconds=0.0)
     if reset:
         backend.reset()
-        sleep(settle)
-        drift = _scan_drift(backend, snapshot_dir, workspace / "post")
+        drift_scan = _scan_drift_until_stable(
+            backend,
+            snapshot_dir,
+            workspace / "post",
+            settle=settle,
+            stable_for=stable_for,
+            poll=poll,
+            max_wait=max_wait,
+            sleep=sleep,
+            clock=clock,
+        )
 
     log_path = snapshot_dir / PROGRAM_LOG_NAME
     log = {
@@ -354,7 +475,16 @@ def program(
         },
         "readback": dataclasses.asdict(truth),
         "reset": reset,
-        "drift": [dataclasses.asdict(item) for item in drift],
+        "drift": [dataclasses.asdict(item) for item in drift_scan.regions],
+        "drift_stable": drift_scan.stable,
+        "drift_samples": drift_scan.samples,
+        "drift_seconds": round(drift_scan.seconds, 3),
+        "drift_window": {
+            "settle": settle,
+            "stable_for": stable_for,
+            "poll": poll,
+            "max_wait": max_wait,
+        },
         "restore_command": restore_command(snapshot_dir),
     }
     temporary = log_path.with_suffix(".json.tmp")
@@ -365,7 +495,7 @@ def program(
         image=image,
         snapshot_dir=snapshot_dir,
         truth=truth,
-        drift=drift,
+        drift_scan=drift_scan,
         reset=reset,
         log_path=log_path,
     )
@@ -378,6 +508,8 @@ def _print_outcome(outcome: Outcome) -> None:
         f"target={image.region.name}@{hex(image.address)}"
     )
     print(f"readback {outcome.truth.render()}")
+    if outcome.reset:
+        print(outcome.drift_scan.render())
     for item in outcome.drift:
         print(f"drift {item.render()}")
     print(f"restore_command={restore_command(outcome.snapshot_dir)}")
@@ -399,7 +531,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         if name == "run":
             sub.add_argument("--yes", action="store_true", help="confirm the write")
             sub.add_argument("--reset", action="store_true", help="reset after writing")
-            sub.add_argument("--settle", type=float, default=3.0)
+            sub.add_argument(
+                "--settle", type=float, default=3.0, help="wait before the first post-reset sample"
+            )
+            sub.add_argument(
+                "--stable-for",
+                type=float,
+                default=3.0,
+                help="seconds the post-reset fingerprint must stay unchanged to count as settled",
+            )
+            sub.add_argument("--poll", type=float, default=0.5, help="gap between drift samples")
+            sub.add_argument(
+                "--max-wait",
+                type=float,
+                default=20.0,
+                help="give up on a settled post-reset view after this many seconds",
+            )
 
     arguments = parser.parse_args(argv)
 
@@ -430,11 +577,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             confirm=arguments.yes,
             reset=arguments.reset,
             settle=arguments.settle,
+            stable_for=arguments.stable_for,
+            poll=arguments.poll,
+            max_wait=arguments.max_wait,
         )
         _print_outcome(outcome)
         if outcome.ok:
             print("program_ok")
             return 0
+        if outcome.reset and not outcome.drift_scan.stable:
+            print(
+                "drift_unstable: the post-boot state never stopped changing, so this drift "
+                "table is not evidence; re-run with a larger --max-wait",
+                file=sys.stderr,
+            )
         print("program_failed")
         return 1
     except WriteRefused as error:

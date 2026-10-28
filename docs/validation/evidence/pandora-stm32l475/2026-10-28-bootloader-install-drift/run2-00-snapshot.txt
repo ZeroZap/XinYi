@@ -1,0 +1,7 @@
+snapshot label=run2 before bootloader-authored install created=2026-10-28T11:41:49+00:00
+  bootloader     0x8000000   32768 B nonzero=  30432 sha256=762c4a757863f1dab00a7854c736f371358e3a2598c4ae7bd0ff878a21dda142
+  application    0x8008000  483328 B nonzero= 480591 sha256=d35e2e9ab2fe7249c20492b0e4b651bc64c947d0e7af4074a55f3dcfe506eca4
+  fota_metadata  0x807e000    4096 B nonzero=   4096 sha256=f47a8ec3e9aff2318d896942282ad4fe37d6391c82914f54a5da8a37de1300c6
+  board_reserved 0x807f000    4096 B nonzero=   4051 sha256=118f9c6f2d3787d97fc8284a0ae95940708f731c2591824dc0f76fc399fc6603
+  rtc_backup     0x40002850     128 B nonzero=      0 sha256=38723a2e5e8a17aa7950dc008209944e898f69a7bd10a23c839d341e935fd5ca
+snapshot_ok dir=/home/eugene/xinyi-hw-evidence/2026-10-28-bootloader-install-drift/run2-s0

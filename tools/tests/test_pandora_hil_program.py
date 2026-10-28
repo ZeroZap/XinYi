@@ -28,9 +28,18 @@ class FlatMemoryBackend:
         self.bytes: dict[int, int] = {}
         self.ops: list[tuple[str, int]] = []
         self.fail_reads: set[int] = set()
+        self.fail_reads_times: dict[int, int] = {}
+        self.fail_reads_after_reset: dict[int, int] = {}
         self.corrupt_after_write = False
         self.mutate_after_reset: list[tuple[int, int]] = []
         self.resets = 0
+        self.read_counts: dict[int, int] = {}
+        # (watch address, on that read number, address to mutate, value)
+        self.read_triggers: list[tuple[int, int, int, int]] = []
+        # addresses whose every read advances a flicker byte, so no two scans agree
+        self.flicker_addresses: set[int] = set()
+        self.flicker = 0
+        self.mutations_armed = False
 
     def seed(self, address: int, payload: bytes) -> None:
         for offset, value in enumerate(payload):
@@ -38,9 +47,21 @@ class FlatMemoryBackend:
         self.ops.append(("seed", address))
 
     def read(self, address: int, size: int, destination: pathlib.Path) -> None:
+        remaining = self.fail_reads_times.get(address, 0)
+        if remaining > 0:
+            self.fail_reads_times[address] = remaining - 1
+            raise hil.BackendError(f"read at {hex(address)} failed")
         if address in self.fail_reads:
             raise hil.BackendError(f"read at {hex(address)} failed")
         self.ops.append(("read", address))
+        if self.mutations_armed:
+            count = self.read_counts[address] = self.read_counts.get(address, 0) + 1
+            for watch, trigger, target, value in self.read_triggers:
+                if watch == address and count == trigger:
+                    self.bytes[target] = value
+            if address in self.flicker_addresses:
+                self.flicker += 1
+                self.bytes[address + 200] = self.flicker & 0xFF
         payload = bytes(self.bytes.get(address + offset, 0xFF) for offset in range(size))
         destination = pathlib.Path(destination)
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -63,6 +84,13 @@ class FlatMemoryBackend:
         self.ops.append(("reset", 0))
         for address, value in self.mutate_after_reset:
             self.bytes[address] = value
+        # A real reset is what starts the boot decision, so the read-triggered and
+        # flickering mutations below model "the bootloader started writing after the
+        # reset" and must not perturb the pre-check that runs before it.
+        self.mutations_armed = True
+        self.read_counts = {}
+        for address, count in self.fail_reads_after_reset.items():
+            self.fail_reads_times[address] = count
 
     def region_bytes(self, name: str) -> bytes:
         region = hil.region_by_name(name)
@@ -295,11 +323,26 @@ class ProgramTests(unittest.TestCase):
 
         self.assertEqual(self.backend.resets, 0)
 
+    def _stepping(self):
+        """Clock/sleep pair where a stubbed sleep advances the clock by the same amount."""
+
+        now = [0.0]
+
+        def clock():
+            return now[0]
+
+        def sleep(seconds):
+            now[0] += seconds
+
+        return clock, sleep
+
     def test_reset_reports_regions_that_drifted_after_the_boot_decision(self):
         # The bootloader installing a candidate rewrites the application region.
         self.backend.mutate_after_reset = [(APP.address + 100, 0x00)]
 
-        outcome = self.run_program(confirm=True, reset=True, settle=0, sleep=lambda _: None)
+        outcome = self.run_program(
+            confirm=True, reset=True, settle=0, stable_for=0, sleep=lambda _: None
+        )
 
         self.assertEqual(self.backend.resets, 1)
         changed = [item.name for item in outcome.drift if not item.identical]
@@ -307,11 +350,119 @@ class ProgramTests(unittest.TestCase):
         self.assertNotIn("bootloader", changed)
 
     def test_reset_without_drift_reports_every_region_unchanged(self):
-        outcome = self.run_program(confirm=True, reset=True, settle=0, sleep=lambda _: None)
+        outcome = self.run_program(
+            confirm=True, reset=True, settle=0, stable_for=0, sleep=lambda _: None
+        )
 
         # The application was just programmed, so it is the one expected change.
         changed = [item.name for item in outcome.drift if not item.identical]
         self.assertEqual(changed, ["application"])
+
+    def test_drift_scan_waits_for_a_boot_decision_that_is_still_writing(self):
+        # Models the measured board behaviour: the reset starts the boot decision, whose
+        # first writes land several samples later. An early plateau is not the answer.
+        self.backend.read_triggers = [
+            (APP.address, 3, APP.address + 100, 0x00),
+            (APP.address, 4, APP.address + 101, 0x11),
+        ]
+        clock, sleep = self._stepping()
+
+        outcome = self.run_program(
+            confirm=True,
+            reset=True,
+            settle=1.0,
+            stable_for=3.0,
+            poll=1.0,
+            max_wait=30.0,
+            clock=clock,
+            sleep=sleep,
+        )
+
+        self.assertTrue(outcome.drift_scan.stable)
+        self.assertGreaterEqual(outcome.drift_scan.samples, 6)
+        self.assertEqual(outcome.drift_scan.changed, ["application"])
+        self.assertTrue(outcome.ok)
+
+    def test_drift_scan_reports_an_unsettled_target_as_a_failed_run(self):
+        self.backend.flicker_addresses = {APP.address}
+        clock, sleep = self._stepping()
+
+        outcome = self.run_program(
+            confirm=True,
+            reset=True,
+            settle=0.0,
+            stable_for=3.0,
+            poll=1.0,
+            max_wait=5.0,
+            clock=clock,
+            sleep=sleep,
+        )
+
+        self.assertFalse(outcome.drift_scan.stable)
+        self.assertFalse(outcome.ok)
+
+    def test_a_transient_rtc_read_failure_is_retried_not_fatal(self):
+        # An RTC read really did fail while the core was mid-boot (2026-10-28 run 2); a
+        # retry must recover instead of aborting the run or losing the flash regions.
+        self.backend.fail_reads_after_reset = {hil.RTC_BACKUP_BASE: 2}
+        clock, sleep = self._stepping()
+
+        outcome = self.run_program(
+            confirm=True,
+            reset=True,
+            settle=0.0,
+            stable_for=2.0,
+            poll=1.0,
+            max_wait=30.0,
+            clock=clock,
+            sleep=sleep,
+        )
+
+        self.assertTrue(outcome.drift_scan.stable)
+        self.assertGreaterEqual(outcome.drift_scan.samples, 4)
+        self.assertEqual(outcome.drift_scan.unreadable, [])
+        self.assertTrue(outcome.ok)
+
+    def test_a_permanently_unreadable_rtc_does_not_veto_the_post_boot_table(self):
+        # The RTC handshake block is optional: losing it must be reported, not turned
+        # into an endless wait, because the flash regions are what the table is for.
+        self.backend.fail_reads_after_reset = {hil.RTC_BACKUP_BASE: 10_000}
+        clock, sleep = self._stepping()
+
+        outcome = self.run_program(
+            confirm=True,
+            reset=True,
+            settle=0.0,
+            stable_for=1.0,
+            poll=1.0,
+            max_wait=30.0,
+            clock=clock,
+            sleep=sleep,
+        )
+
+        self.assertTrue(outcome.drift_scan.stable)
+        self.assertEqual(outcome.drift_scan.unreadable, ["rtc_backup"])
+        self.assertTrue(outcome.ok)
+
+    def test_a_restorable_region_that_stays_unreadable_keeps_the_sample_unsettled(self):
+        snapshot = snapshot_of(self.backend, self.tmp / "snap-direct")
+        self.backend.fail_reads.add(APP.address)
+        clock, sleep = self._stepping()
+
+        scan = prog._scan_drift_until_stable(
+            self.backend,
+            snapshot,
+            self.tmp / "post",
+            settle=0.0,
+            stable_for=1.0,
+            poll=1.0,
+            max_wait=5.0,
+            sleep=sleep,
+            clock=clock,
+        )
+
+        self.assertFalse(scan.stable)
+        self.assertIn("application", scan.unreadable)
 
     def test_an_image_that_changed_after_hashing_is_not_written(self):
         self.image.path.write_bytes(b"\x00" * self.image.size)
@@ -457,6 +608,34 @@ class CliTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("program_failed", out)
         self.assertIn("restore_command=", out)
+
+    def test_run_exits_one_and_names_an_unsettled_post_boot_state(self):
+        self.backend.flicker_addresses = {APP.address}
+
+        code, out, err = self.main(
+            "run",
+            "--image",
+            str(self.image),
+            "--address",
+            hex(APP.address),
+            "--snapshot",
+            str(self.snapshot),
+            "--yes",
+            "--reset",
+            "--settle",
+            "0",
+            "--stable-for",
+            "0.2",
+            "--poll",
+            "0.02",
+            "--max-wait",
+            "0.4",
+        )
+
+        self.assertEqual(code, 1)
+        self.assertIn("program_failed", out)
+        self.assertIn("drift_stable=false", out)
+        self.assertIn("drift_unstable", err)
 
 
 if __name__ == "__main__":
