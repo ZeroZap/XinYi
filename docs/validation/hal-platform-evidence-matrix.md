@@ -32,7 +32,7 @@
 | Platform | GPIO | UART | I2C | SPI | Timer | I2S | DMA | Host | Compile/QEMU | Board |
 |---|---|---|---|---|---|---|---|---|---|---|
 | STM32U5 | `PARTIAL_SOURCE`（EXTI 依赖 SDK IRQ 定义） | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `UNSUPPORTED`（显式 stub） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC，不是 U5 runtime） | `COMPILE_ONLY` 历史记录；当前 SDK/toolchain 不可用，需重跑 | `BOARD_PENDING` |
-| STM32F4 | `SOURCE_PRESENT`（真实编译进 archive；10/15 wrapper，见下） | `UNSUPPORTED`（wrapper 仍与公开契约漂移，已被显式排除并记录为 deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（无 wrapper） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_dma_*` 符号已导出并引用 `HAL_DMA_*`） | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
+| STM32F4 | `SOURCE_PRESENT`（真实编译进 archive；11/15 wrapper，见下） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_uart_*` 全 11 个公开入口 + 3 个 vendor 完成回调已导出） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（无 wrapper） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_dma_*` 符号已导出并引用 `HAL_DMA_*`） | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
 | STM32L4 | `PARTIAL_SOURCE`（框架 HAL 复用 F4 wrapper；Pandora board smoke 直接使用 CubeL4 HAL） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；runtime 仍仅 Pandora board-local） | `PARTIAL_SOURCE`（框架 wrapper 复用 F4；Pandora AHT10 probe 为 board-local software I2C） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；SPI/DMA B1 为 board-local image 证据） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译） | `UNSUPPORTED` | `SOURCE_PRESENT`（dedicated L4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | PC/L4/U5 compile；Pandora FreeRTOS image link | `B1_BOARD_SMOKE`；framework DMA1 Channel1、8-word SRAM→SRAM polling B1；SPI/peripheral-DMA/IRQ/callback/recovery pending |
 | WCH CH32V30x | `PARTIAL_SOURCE`（IRQ configure unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
 | HC32L021 | `PARTIAL_SOURCE`（IRQ paths unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
@@ -76,8 +76,19 @@ conf 打开了它，所以 board 镜像一直能编）。现组件 conf 启用�
 module 在组件 conf 中既 enable 又 include），删除 enable / 删除 include / 删除 CMake append 三个
 负向变异全部被判 FAIL。
 
-仍**未**迁移（显式记录为 deferred，重加即编译失败）：STM32F4 的 `xy_hal_i2c/rtc/spi/timer/uart.c`，
+仍**未**迁移（显式记录为 deferred，重加即编译失败）：STM32F4 的 `xy_hal_i2c/rtc/spi/timer.c`，
 以及 F4 专属 `xy_hal_adc.c`（`ADC->CCR`/3-cycle sample time 仅 F4 可用）。
+
+`xy_hal_uart.c` 已完成迁移（deferred 集合由 5 项缩到 4 项，F4 分支现真实构建它）。旧实现的缺陷是
+结构性的：全部入口声明 `int` 而非 `xy_hal_error_t`（重加即编译失败）、`send`/`recv` 把传输长度当
+返回值发布（公开契约此处是错误码）、`flush` 无超时地 `while (gState != READY);` 死等、三个 vendor
+完成回调是 `void` 函数却试图返回值、`register_callback` 不记录任何上下文、`available` 恒返回 0，
+且 `xy_hal_uart_error`/`xy_hal_uart_set_error_cb` 完全缺失。现按 L4 dedicated wrapper 的契约重写：
+枚举映射到 vendor `UART_*` 常量、`uart_status()` 把 `HAL_TIMEOUT/HAL_BUSY` 映射为
+`XY_HAL_ERROR_TIMEOUT/BUSY`、`uart_config_check()` 在第一次 `Init` 写入前拒绝越界与不可表示配置
+（F4 无 7-bit 字长与 1.5 停止位 → `XY_HAL_ERROR_NOT_SUPPORTED`，不再静默加宽）、`flush` 改为报告
+busy 而非死等、callback 上下文真实记录并由三个 vendor 回调按 `TX_DONE/RX_DONE/ERROR` 分发、补齐
+`error`/`set_error_cb`。
 
 `xy_hal_dma.c` 已完成迁移（deferred 集合由 6 项缩到 5 项，F4 分支现真实构建它）。重写原因不只是签名
 漂移：旧实现把 `XY_HAL_DMA_*` 枚举值直接当 STM32 HAL 常量返回，宽度三档返回未声明的
@@ -88,7 +99,9 @@ module 在组件 conf 中既 enable 又 include），删除 enable / 删除 incl
 宽度映射到 `DMA_*` 常量，`dma_config_valid()` 在第一次 `hdma->Init` 写入前拒绝越界枚举，
 `register_callback` 真正调用 `HAL_DMA_RegisterCallback` 并保存 callback/arg 上下文，
 `xy_hal_dma_irq_handler` 补实现。回归门：CTest `stm32f4_dma_wrapper_contract`（映射形状、双侧
-helper、域校验顺序、callback 登记、错误域、IRQ hook；对迁移前源为 35 项 RED）。
+helper、域校验顺序、callback 登记、错误域、IRQ hook；对迁移前源为 35 项 RED），以及
+`stm32f4_uart_wrapper_contract`（枚举映射、配置域 fail-closed、错误域、`flush` 不得无界自旋、
+callback 记录与 vendor 事件分发、void 回调不得返回值；对迁移前源为 30+ 项 RED）。
 
 `hal_platform_build_contract` 新增反向断言：F4 分支 filter 掉的 wrapper 必须出现在
 `XY_HAL_F4_DEFERRED_SOURCES` 中，因此已迁移的 wrapper 不能再被静默排除出平台门；branch 缺 guard、
