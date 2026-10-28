@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
-"""Guard the WCH HAL millisecond timebase against SysTick ownership.
+"""Guard the WCH HAL millisecond timebase into a single, documented place.
 
-The WCH HAL derived polling timeouts from SysTick->CNT. That is only valid while
-the HAL owns SysTick: once FreeRTOS runs, the kernel reloads SysTick at the tick
-rate, so CNT becomes a 0..CMP saw-tooth. Dividing it by SystemCoreClock/1000
-returns 0 or 1, and subtracting two readings underflows to 0xFFFFFFFF, so every
-xy_hal_* polling wait reports a timeout immediately and callers that ignore the
-result silently drop data.
+Every HAL module used to repeat its own SysTick->CNT-to-milliseconds expression.
+That duplication hid a real constraint: the expression is only correct while the
+HAL owns SysTick, and a FreeRTOS build reloads SysTick at the tick rate, turning
+CNT into a saw-tooth whose differences underflow and fire every timeout at once.
 
-MIGRATED files must take their timebase from xy_hal_tick_internal.h, which reads
-the machine cycle counter and therefore survives an RTOS owning SysTick. DEFERRED
-files are the remaining backlog and must still read SysTick->CNT, so an entry
-cannot linger after somebody migrates it. A HAL source that appears in neither set
-fails, so new code cannot quietly reintroduce the pattern.
+Consolidating it means the platform fix - whatever replaces SysTick on RTOS
+builds - only has to be made once. This guard keeps that property:
+
+  * migrated sources must call xy_hal_tick_ms_internal() and must not read
+    SysTick->CNT themselves;
+  * the shared helper must keep handling both SysTick clock sources
+    (SystemCoreClock/1000 and /8000) and must keep the OPEN ISSUE note that
+    records the RTOS ownership constraint;
+  * the cycle CSRs are forbidden: rdcycle and mcycle both trap as illegal
+    instructions on the CH32V307 QingKe core, verified on hardware;
+  * xy_hal_sys.c stays deferred because it programs SysTick on purpose;
+  * a HAL source that reads SysTick->CNT without being listed fails.
 """
 
 from pathlib import Path
@@ -23,17 +28,7 @@ ROOT = Path(__file__).resolve().parents[3]
 HAL = ROOT / "components/hal/wch/ch32x/src"
 HELPER = HAL / "xy_hal_tick_internal.h"
 
-
-def code_only(text: str) -> str:
-    """Strip comments so prose about SysTick->CNT never trips the guard."""
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
-    return re.sub(r"//[^\n]*", "", text)
-
 MIGRATED = {
-    "xy_hal_uart.c",
-}
-
-DEFERRED = {
     "xy_hal_adc.c",
     "xy_hal_can.c",
     "xy_hal_dma.c",
@@ -41,8 +36,21 @@ DEFERRED = {
     "xy_hal_i2s.c",
     "xy_hal_rng.c",
     "xy_hal_spi.c",
+    "xy_hal_uart.c",
+}
+
+# xy_hal_sys.c installs SysTick as the HAL's own free-running counter and derives
+# xy_hal_sys_get_tick_count() from it, so it touches SysTick->CNT by design rather
+# than to time a polling loop.
+DEFERRED = {
     "xy_hal_sys.c",
 }
+
+
+def code_only(text: str) -> str:
+    """Strip comments so prose about SysTick->CNT never trips the guard."""
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    return re.sub(r"//[^\n]*", "", text)
 
 
 def main() -> int:
@@ -52,30 +60,40 @@ def main() -> int:
         errors.append("xy_hal_tick_internal.h is missing from the WCH HAL")
     else:
         helper = HELPER.read_text(encoding="utf-8")
-        if "rdcycle" not in helper:
+        helper_code = code_only(helper)
+        if "SysTick->CNT" not in helper_code:
             errors.append(
-                "xy_hal_tick_internal.h must read the cycle counter: SysTick belongs to the "
-                "RTOS once FreeRTOS runs"
+                "the shared timebase must keep deriving milliseconds from SysTick->CNT until a "
+                "source the RTOS does not own replaces it"
             )
-        if "SysTick->CNT" in code_only(helper):
-            errors.append("the shared HAL timebase must not read SysTick->CNT")
+        if "SystemCoreClock / 8000U" not in helper:
+            errors.append("the shared timebase must keep handling the /8 SysTick clock source")
+        if "OPEN ISSUE" not in helper:
+            errors.append(
+                "the shared timebase must keep the OPEN ISSUE note recording that SysTick "
+                "belongs to the RTOS once FreeRTOS runs"
+            )
+        if "rdcycle" in helper_code or "mcycle" in helper_code:
+            errors.append(
+                "the shared timebase must not read the cycle CSRs: both rdcycle and mcycle "
+                "trap as illegal instructions (mcause 2) on the CH32V307 QingKe core"
+            )
 
     sources = sorted(path.name for path in HAL.glob("xy_hal_*.c"))
-    uses_systick = {
-        name
-        for name in sources
-        if re.search(r"SysTick->CNT", code_only((HAL / name).read_text(encoding="utf-8")))
-    }
-
     overlap = MIGRATED & DEFERRED
     if overlap:
         errors.append(f"files listed as both migrated and deferred: {sorted(overlap)}")
 
-    unclassified = uses_systick - MIGRATED - DEFERRED
+    systick_users = {
+        name
+        for name in sources
+        if "SysTick->CNT" in code_only((HAL / name).read_text(encoding="utf-8"))
+    }
+    unclassified = systick_users - MIGRATED - DEFERRED
     for name in sorted(unclassified):
         errors.append(
-            f"{name} reads SysTick->CNT for timing and is neither migrated nor deferred: use "
-            "xy_hal_tick_ms_internal() or add it to DEFERRED with a reason"
+            f"{name} reads SysTick->CNT itself and is neither migrated nor deferred: call "
+            "xy_hal_tick_ms_internal() or list it in DEFERRED with its reason"
         )
 
     for name in sorted(MIGRATED):
@@ -87,16 +105,11 @@ def main() -> int:
         if "xy_hal_tick_internal.h" not in source:
             errors.append(f"{name} must include xy_hal_tick_internal.h")
         if "SysTick->CNT" in code_only(source):
-            errors.append(f"{name} still derives time from SysTick->CNT")
+            errors.append(f"{name} still reads SysTick->CNT instead of the shared timebase")
 
     for name in sorted(DEFERRED):
         if name not in sources:
             errors.append(f"deferred source is missing: {name}")
-            continue
-        if "xy_hal_tick_internal.h" in (HAL / name).read_text(encoding="utf-8"):
-            errors.append(
-                f"{name} already uses the shared timebase: move it from DEFERRED to MIGRATED"
-            )
 
     if errors:
         print("wch_hal_tick_timebase failed:")
@@ -106,7 +119,7 @@ def main() -> int:
 
     print(
         "wch_hal_tick_timebase_ok "
-        f"migrated={len(MIGRATED)} deferred={len(DEFERRED)} systick_users={len(uses_systick)}"
+        f"migrated={len(MIGRATED)} deferred={len(DEFERRED)} systick_users={len(systick_users)}"
     )
     return 0
 

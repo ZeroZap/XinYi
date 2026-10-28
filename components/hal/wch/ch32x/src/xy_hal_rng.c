@@ -8,6 +8,7 @@
 #ifdef MCU_CH32
 
 #include "ch32v30x.h"
+#include "xy_hal_tick_internal.h"
 #include "ch32v30x_rng.h"
 
 static xy_hal_rng_callback_t s_callbacks[2];
@@ -16,9 +17,7 @@ static uint8_t s_initialized;
 static uint8_t s_enabled;
 
 static uint32_t rng_tick_ms(void) {
-    uint32_t divisor =
-        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
-    return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
+    return xy_hal_tick_ms_internal();
 }
 
 static int valid_rng(void* rng) {

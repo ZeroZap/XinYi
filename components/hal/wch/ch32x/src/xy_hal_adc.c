@@ -8,6 +8,7 @@
 #ifdef MCU_CH32
 
 #include "ch32v30x.h"
+#include "xy_hal_tick_internal.h"
 #include <string.h>
 
 #define WCH_ADC_COUNT 2U
@@ -37,9 +38,7 @@ static int adc_index(const void* adc) {
 }
 
 static uint32_t adc_tick_ms(void) {
-    uint32_t divisor =
-        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
-    return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
+    return xy_hal_tick_ms_internal();
 }
 
 static uint8_t sample_time(uint32_t value) {

@@ -5,6 +5,7 @@
 #include "xy_hal_can.h"
 #ifdef MCU_CH32
 #include "ch32v30x.h"
+#include "xy_hal_tick_internal.h"
 #include <string.h>
 typedef struct {
     xy_hal_can_config_t config;
@@ -22,9 +23,7 @@ static int can_index(const void* can) {
     return -1;
 }
 static uint32_t tick_ms(void) {
-    uint32_t divisor =
-        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
-    return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
+    return xy_hal_tick_ms_internal();
 }
 static uint8_t mode_hw(xy_hal_can_mode_t m) {
     static const uint8_t v[] = {CAN_Mode_Normal, CAN_Mode_LoopBack, CAN_Mode_Silent,

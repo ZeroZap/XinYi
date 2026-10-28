@@ -5,6 +5,7 @@
 #include "xy_hal_i2s.h"
 #if defined(MCU_CH32) || defined(CH32V30x)
 #include "ch32v30x_spi.h"
+#include "xy_hal_tick_internal.h"
 #include <string.h>
 
 typedef struct {
@@ -28,9 +29,7 @@ static int instance_index(const void* i2s) {
     return -1;
 }
 static uint32_t tick_ms(void) {
-    uint32_t divisor =
-        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
-    return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
+    return xy_hal_tick_ms_internal();
 }
 static int valid_frequency(uint32_t frequency) {
     static const uint32_t values[] = {8000U,  11025U, 16000U, 22050U, 32000U,

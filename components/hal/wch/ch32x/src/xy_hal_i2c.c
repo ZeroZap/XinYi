@@ -8,15 +8,14 @@
 #ifdef MCU_CH32
 
 #include "ch32v30x.h"
+#include "xy_hal_tick_internal.h"
 
 static xy_hal_i2c_callback_t i2c_callbacks[2];
 static void* i2c_callback_args[2];
 static uint8_t i2c_initialized[2];
 
 static uint32_t i2c_tick_ms(void) {
-    uint32_t divisor =
-        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
-    return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
+    return xy_hal_tick_ms_internal();
 }
 
 static int i2c_index(void* instance) {
