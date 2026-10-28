@@ -29,10 +29,28 @@ static void uart_init(void) {
     (void)xy_hal_uart_init(USART1, &uart);
 }
 
+/* The WCH-Link virtual COM port drops and reorders bytes, so a marker is not
+   evidence once it leaves this function. Publish the same facts in RAM, where
+   the debugger can read them: how many markers were emitted, whether any of them
+   was a failure, and which marker came last. "ERROR" in a marker name is this
+   board's convention for a check that failed; no marker carries both ERROR and
+   OK, so the substring test is unambiguous. */
+volatile uint32_t xy_image_steps;
+volatile uint32_t xy_image_failed;
+volatile const char* xy_image_last;
+
 static void mark(const char* text) {
     size_t length = 0U;
+    size_t index;
     while (text[length] != '\0')
         ++length;
+    xy_image_last = text;
+    ++xy_image_steps;
+    for (index = 0U; index + 5U <= length; ++index) {
+        if (text[index] == 'E' && text[index + 1U] == 'R' && text[index + 2U] == 'R' &&
+            text[index + 3U] == 'O' && text[index + 4U] == 'R')
+            xy_image_failed = 1U;
+    }
     (void)xy_hal_uart_send(USART1, (const uint8_t*)text, length, UART_TIMEOUT_MS);
 }
 
@@ -82,10 +100,35 @@ static void monitor(void* argument) {
         for (;;) {
         }
     }
-    if (xy_os_mempool_free(pool, blocks[0]) != XY_OS_OK ||
-        xy_os_mempool_free(pool, blocks[0]) != XY_OS_ERROR_RESOURCE ||
-        xy_os_mempool_get_count(pool) != 2U || xy_os_mempool_get_space(pool) != 1U) {
-        mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_DOUBLE_FREE_ERROR_A\r\n");
+    /* The delete-race step above already handed blocks[0] back to the pool, so
+       the double-free test has to start from a block it owns; reusing that
+       pointer made this check a second free of an already-free block. */
+    blocks[0] = xy_os_mempool_alloc(pool, 0);
+    if (blocks[0] == NULL) {
+        mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_DOUBLE_FREE_ALLOC_ERROR_A\r\n");
+        for (;;) {
+        }
+    }
+    /* One marker per property: the combined form only said "double free is
+       wrong" and left it ambiguous whether the code, the count or the space
+       disagreed. */
+    if (xy_os_mempool_free(pool, blocks[0]) != XY_OS_OK) {
+        mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_FREE_AGAIN_ERROR_A\r\n");
+        for (;;) {
+        }
+    }
+    if (xy_os_mempool_free(pool, blocks[0]) != XY_OS_ERROR_RESOURCE) {
+        mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_DOUBLE_FREE_CODE_ERROR_A\r\n");
+        for (;;) {
+        }
+    }
+    if (xy_os_mempool_get_count(pool) != 2U) {
+        mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_DOUBLE_FREE_COUNT_ERROR_A\r\n");
+        for (;;) {
+        }
+    }
+    if (xy_os_mempool_get_space(pool) != 1U) {
+        mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_DOUBLE_FREE_SPACE_ERROR_A\r\n");
         for (;;) {
         }
     }

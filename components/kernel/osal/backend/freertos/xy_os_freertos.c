@@ -1047,10 +1047,15 @@ xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id,
 
 xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
 {
-    return (semaphore_id &&
-            freertos_find_semaphore_context((SemaphoreHandle_t)semaphore_id))
-               ? pdstatus_to_xy(xSemaphoreGive((SemaphoreHandle_t)semaphore_id))
-               : XY_OS_ERROR_PARAMETER;
+    /* xSemaphoreGive fails when the count is already at max. Report that as an
+       exhausted resource, which is what the other backends and this file's own
+       _from_isr variant do, rather than collapsing it into a generic error. */
+    if (!semaphore_id ||
+        !freertos_find_semaphore_context((SemaphoreHandle_t)semaphore_id))
+        return XY_OS_ERROR_PARAMETER;
+    if (xSemaphoreGive((SemaphoreHandle_t)semaphore_id) != pdPASS)
+        return XY_OS_ERROR_RESOURCE;
+    return XY_OS_OK;
 }
 
 xy_os_status_t xy_os_semaphore_release_from_isr(xy_os_semaphore_id_t semaphore_id)
