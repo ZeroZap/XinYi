@@ -172,9 +172,6 @@ static int freertos_timeout_to_ticks(uint32_t timeout, TickType_t *ticks)
 /* Kernel Control */
 xy_os_status_t xy_os_kernel_init(void)
 {
-#ifdef XY_OS_FREERTOS_HAS_HAL_TIME_HOOK
-    freertos_bind_hal_timebase();
-#endif
     return XY_OS_OK;
 }
 
@@ -208,6 +205,13 @@ xy_os_kernel_state_t xy_os_kernel_get_state(void)
 
 xy_os_status_t xy_os_kernel_start(void)
 {
+#ifdef XY_OS_FREERTOS_HAS_HAL_TIME_HOOK
+    /* Bound here rather than in xy_os_kernel_init(): the source reports
+       xTaskGetTickCount(), which stays 0 until the scheduler runs. Installing it
+       during pre-scheduler init would hand the HAL a clock that never moves, so a
+       HAL wait that should time out would instead hang. */
+    freertos_bind_hal_timebase();
+#endif
     vTaskStartScheduler();
     return XY_OS_ERROR;
 }

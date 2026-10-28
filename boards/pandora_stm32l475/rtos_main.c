@@ -539,8 +539,16 @@ static void tim6_init(void)
 static void fast_task(void *argument)
 {
     uint32_t sequence = 0U;
+    uint32_t hal_tick_start;
 
     (void)argument;
+    /* Task context, scheduler running: the HAL clock must advance with the kernel it
+       now belongs to. A 20-tick sleep is 20 ms at 1 kHz, so a frozen or saw-tooth
+       HAL clock cannot land in the accepted window. */
+    hal_tick_start = (uint32_t)xy_hal_sys_get_tick_count();
+    (void)xy_os_delay(20U);
+    uart_u32("OSAL_TASK_HAL_TICK_DELTA ",
+             (uint32_t)xy_hal_sys_get_tick_count() - hal_tick_start);
     for (;;) {
         if (xy_os_mutex_acquire(sync_mutex, 100U) != XY_OS_OK) {
             uart_text("OSAL_MUTEX_TIMEOUT\r\n");
@@ -1382,6 +1390,10 @@ int main(void)
     if (xy_hal_timer_enable_irq(&pandora_tim6, XY_HAL_TIMER_EVENT_UPDATE) != XY_HAL_OK) {
         fail();
     }
+    /* Pre-scheduler window: the HAL clock is still the board's own SysTick timebase
+       here. If the kernel tick were bound this early it would read a constant 0, so
+       this reading must be non-zero. */
+    uart_u32("OSAL_PRE_SCHEDULER_HAL_TICK ", (uint32_t)xy_hal_sys_get_tick_count());
     (void)xy_os_kernel_start();
     fail();
 }

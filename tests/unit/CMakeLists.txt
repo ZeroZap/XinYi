@@ -257,6 +257,10 @@ add_test(NAME freertos_osal_thread_flags
     COMMAND python3 ${UNIT_KERNEL}/check_freertos_osal_thread_flags.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME freertos_hal_timebase_binding
+    COMMAND python3 ${UNIT_KERNEL}/check_freertos_hal_timebase_binding.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME rtthread_osal_thread_flags
     COMMAND python3 ${UNIT_KERNEL}/check_rtthread_osal_thread_flags.py
     WORKING_DIRECTORY ${ROOT}

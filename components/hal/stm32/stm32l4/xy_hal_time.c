@@ -3,10 +3,12 @@
  * @brief STM32L4 implementation of the redirectable HAL millisecond timebase
  *
  * Bare-metal, uwTick advances from SysTick_Handler through
- * xy_hal_sys_tick_irq_handler(). Once FreeRTOS owns SysTick the kernel's handler
- * runs instead and nothing calls HAL_IncTick(), so uwTick stops and every ST HAL
- * wait that compares against HAL_GetTick() stops expiring - the opposite failure
- * to the WCH saw-tooth, but the same root cause: the tick belongs to the kernel.
+ * xy_hal_sys_tick_irq_handler(). An RTOS whose SysTick handler does not call
+ * HAL_IncTick() - the usual shape, since the kernel's own handler replaces the
+ * vendor one - leaves uwTick frozen, and every ST HAL wait that compares against
+ * HAL_GetTick() then stops expiring. A board that keeps calling
+ * xy_hal_sys_tick_irq_handler() from its own handler keeps uwTick alive, but the
+ * hook is a contract for every integration rather than a repair of one board.
  *
  * Routing HAL_GetTick() through the registered source fixes both the wrappers
  * and the ST HAL drivers underneath them, because those drivers call HAL_GetTick()
