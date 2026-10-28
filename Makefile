@@ -57,9 +57,10 @@ UNIT_DIR := tests/unit
 UNIT_BUILD_DIR := $(BUILD_ROOT)/tests/unit
 QEMU_DIR := tests/qemu_stm32f4
 QEMU_CH32V_DIR := tests/qemu_ch32v
+TOOLS_TEST_DIR := tools/tests
 
 # ---------- Targets ----------
-.PHONY: all configure clean distclean help test test-unit test-qemu test-qemu-ch32v
+.PHONY: all configure clean distclean help test test-unit test-tools test-qemu test-qemu-ch32v
 
 all: $(BUILD_DIR)/CMakeCache.txt
 	@cmake --build $(BUILD_DIR) -j$(JOBS)
@@ -85,6 +86,13 @@ test-unit:
 	@cmake -B $(UNIT_BUILD_DIR) -S $(UNIT_DIR) >/dev/null
 	@cmake --build $(UNIT_BUILD_DIR) -j$(JOBS) >/dev/null
 	@cd $(UNIT_BUILD_DIR) && ctest --output-on-failure
+
+# Host-side tool tests (z-serial, HIL harnesses); no target toolchain or hardware needed.
+test-tools:
+	@echo "=========================================="
+	@echo "  Host tool tests ($(TOOLS_TEST_DIR))"
+	@echo "=========================================="
+	@python3 -m unittest discover -s $(TOOLS_TEST_DIR) -p 'test_*.py'
 
 test-qemu:
 	@echo ""
@@ -136,6 +144,7 @@ help:
 	@echo "  configure   run cmake without building"
 	@echo "  test        run all PC unit tests + QEMU tests"
 	@echo "  test-unit   run PC unit tests only"
+	@echo "  test-tools  run host-side tool tests (tools/tests)"
 	@echo "  test-qemu   run QEMU STM32F4 tests only"
 	@echo "  test-qemu-ch32v run QEMU CH32V tests only"
 	@echo "  clean       clean current build and root build_* directories"

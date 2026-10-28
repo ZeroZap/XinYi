@@ -1,0 +1,7 @@
+# restore from the snapshot
+bootloader: identical sha256=762c4a757863f1da
+application: identical sha256=d35e2e9ab2fe7249
+fota_metadata: identical sha256=f47a8ec3e9aff231
+board_reserved: identical sha256=118f9c6f2d3787d9
+restore_ok regions=4
+rc=0

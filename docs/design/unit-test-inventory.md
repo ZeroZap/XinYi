@@ -22,6 +22,7 @@
 | `components/crypto/curve25519-cortexm0-20150813/test/*.c` | Upstream/vendor Curve25519 Cortex-M0 test helpers | Keep in place; excluded from the project Unity/CTest unit inventory. |
 | `components/sensor/sensor_self_test.c` | Production Sensor self-test implementation | Keep in component source; covered through `tests/unit/sensor/test_sensor_framework.c`. |
 | `projects/Bank/ontroller-charger-test.c` | Imported project-local patch transcript, not an active CTest source | Leave out of unit conversion; treat as project-specific legacy material unless the Bank project is intentionally rehabilitated. |
+| `tools/tests/*.py` | Host-side Python tool tests (z-serial + HIL harnesses), run by `make test-tools` | Keep separate from the C Unity/CTest inventory; the C counts above stay authoritative for firmware code. |
 
 ## Component Breakdown
 

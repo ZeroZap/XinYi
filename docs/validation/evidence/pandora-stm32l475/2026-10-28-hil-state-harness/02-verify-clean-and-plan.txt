@@ -1,0 +1,16 @@
+# clean verify
+bootloader: identical sha256=762c4a757863f1da
+application: identical sha256=d35e2e9ab2fe7249
+fota_metadata: identical sha256=f47a8ec3e9aff231
+board_reserved: identical sha256=118f9c6f2d3787d9
+rtc_backup: identical sha256=38723a2e5e8a17aa
+verify_ok regions=5
+rc=0
+
+# plan (no writes)
+bootloader: write 32768 B to 0x8000000 from bootloader.bin
+application: write 483328 B to 0x8008000 from application.bin
+fota_metadata: write 4096 B to 0x807e000 from fota_metadata.bin
+board_reserved: write 4096 B to 0x807f000 from board_reserved.bin
+plan_ok steps=4
+rc=0

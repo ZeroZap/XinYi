@@ -1,0 +1,8 @@
+# verify after the injected drift
+bootloader: identical sha256=762c4a757863f1da
+application: identical sha256=d35e2e9ab2fe7249
+fota_metadata: identical sha256=f47a8ec3e9aff231
+board_reserved: DIFFERS first_diff=+1024 expected=118f9c6f2d3787d9 observed=4c73532f6e4944d9
+rtc_backup: identical sha256=38723a2e5e8a17aa
+verify_failed mismatched=1
+rc=1

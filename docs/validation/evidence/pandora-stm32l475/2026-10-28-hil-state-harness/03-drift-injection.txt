@@ -1,0 +1,6 @@
+# inject one differing byte into board_reserved (0xff -> 0x5a at +0x400) and flash it
+original byte at +0x400 = 0xff
+wrote /tmp/br_drift.bin with 0x5a at +0x400
+2026-10-28T17:10:10 INFO flash_loader.c: Clear DFSR
+2026-10-28T17:10:10 INFO common_flash.c: Starting verification of write complete
+2026-10-28T17:10:10 INFO common_flash.c: Flash written and verified! jolly good!
