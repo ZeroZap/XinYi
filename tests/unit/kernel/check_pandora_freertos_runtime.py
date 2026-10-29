@@ -317,11 +317,18 @@ def main() -> int:
         errors.append("dedicated STM32L4 timer wrapper is missing")
     else:
         timer_source = read_code(L4_TIMER)
+        # This check exists so the timer path the runtime image depends on cannot quietly become a
+        # stub.  It used to name HAL_TIM_Base_Start_IT/Stop_IT, which was the arming *mechanism*
+        # and also the defect: arming an interrupt started the counter and masking one stopped
+        # timekeeping, and neither call ever touched the NVIC.  The tokens now name what the
+        # contract requires - the interrupt source is enabled and masked, and the line is armed -
+        # so a wrapper that reverts to start/stop stops satisfying this guard.
         for token in (
             "STM32L4",
             "HAL_TIM_Base_Init",
-            "HAL_TIM_Base_Start_IT",
-            "HAL_TIM_Base_Stop_IT",
+            "__HAL_TIM_ENABLE_IT",
+            "__HAL_TIM_DISABLE_IT",
+            "HAL_NVIC_EnableIRQ",
             "XY_HAL_TIMER_EVENT_UPDATE",
             "XY_HAL_ERROR_INVALID_PARAM",
             "XY_HAL_ERROR_NOT_INIT",

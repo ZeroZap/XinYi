@@ -1527,7 +1527,11 @@ int main(void)
         fail();
     }
 
-    if (xy_hal_timer_enable_irq(&pandora_tim6, XY_HAL_TIMER_EVENT_UPDATE) != XY_HAL_OK) {
+    /* Arming the interrupt no longer starts the counter: enable_irq() used to call
+       HAL_TIM_Base_Start_IT() as its mechanism, so this board never needed a start().
+       Both are now explicit, because an interrupt and a running timer are two decisions. */
+    if (xy_hal_timer_enable_irq(&pandora_tim6, XY_HAL_TIMER_EVENT_UPDATE) != XY_HAL_OK ||
+        xy_hal_timer_start(&pandora_tim6) != XY_HAL_OK) {
         fail();
     }
     /* Pre-scheduler window: the HAL clock is still the board's own SysTick timebase

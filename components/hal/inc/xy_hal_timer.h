@@ -122,18 +122,31 @@ xy_hal_error_t xy_hal_timer_register_callback(void *timer,
                                               void *arg);
 
 /**
- * @brief Enable timer interrupt
+ * @brief Arm one timer interrupt source
  * @param timer Timer instance
- * @param event Event type
+ * @param event Event type; the backend arms that source and no other
  * @return 0 on success, negative on error
+ *
+ * Arming an interrupt does not start the counter - call xy_hal_timer_start() for that. Two
+ * backends used to do both from here (HAL_TIM_Base_Start_IT was the mechanism), so a caller that
+ * only wanted the interrupt started a timer, and one that disarmed an interrupt stopped
+ * timekeeping.
+ *
+ * The backend also enables the NVIC line for the instance. Enabling the peripheral interrupt while
+ * leaving the line masked reports success and never fires, which is what every STM32 backend did
+ * before this contract existed. An instance whose line the backend cannot identify is refused
+ * rather than armed into a vector that would never arrive.
  */
 xy_hal_error_t xy_hal_timer_enable_irq(void *timer, xy_hal_timer_event_t event);
 
 /**
- * @brief Disable timer interrupt
+ * @brief Mask one timer interrupt source
  * @param timer Timer instance
- * @param event Event type
+ * @param event Event type; only that source is masked
  * @return 0 on success, negative on error
+ *
+ * Masking an interrupt does not stop the counter. The NVIC line stays enabled and the counter
+ * keeps running, so re-arming needs no second setup and does not restart anything.
  */
 xy_hal_error_t xy_hal_timer_disable_irq(void *timer,
                                         xy_hal_timer_event_t event);

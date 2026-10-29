@@ -203,6 +203,75 @@ xy_hal_error_t xy_hal_timer_register_callback(void *timer, xy_hal_timer_event_t 
     return XY_HAL_OK;
 }
 
+/* Map a timer instance to the NVIC line that carries its interrupt.
+ *
+ * Only the general-purpose timers whose vector names are identical across the families this
+ * wrapper serves are listed. TIM1 and TIM8 share their update vector with other peripherals and
+ * the names differ per family (TIM1_UP_TIM16_IRQn on L4, TIM1_UP_TIM10_IRQn on F4, TIM1_UP_IRQn on
+ * U5), so they are not claimed here: an instance this function does not recognise is refused
+ * rather than armed into a line that would never fire. The IRQn constants are enum members, not
+ * macros, so they cannot be guarded with #ifdef - the instance macro is what makes this portable.
+ */
+static int timer_irqn(const TIM_HandleTypeDef *handle, IRQn_Type *irqn)
+{
+#ifdef TIM2
+    if (handle->Instance == (void *)TIM2) {
+        *irqn = TIM2_IRQn;
+        return 1;
+    }
+#endif
+#ifdef TIM3
+    if (handle->Instance == (void *)TIM3) {
+        *irqn = TIM3_IRQn;
+        return 1;
+    }
+#endif
+#ifdef TIM4
+    if (handle->Instance == (void *)TIM4) {
+        *irqn = TIM4_IRQn;
+        return 1;
+    }
+#endif
+#ifdef TIM5
+    if (handle->Instance == (void *)TIM5) {
+        *irqn = TIM5_IRQn;
+        return 1;
+    }
+#endif
+#ifdef TIM6
+    if (handle->Instance == (void *)TIM6) {
+        /* F4 shares the TIM6 update vector with the DAC, so the name differs there. */
+#if defined(STM32F4)
+        *irqn = TIM6_DAC_IRQn;
+#else
+        *irqn = TIM6_IRQn;
+#endif
+        return 1;
+    }
+#endif
+#ifdef TIM7
+    if (handle->Instance == (void *)TIM7) {
+        *irqn = TIM7_IRQn;
+        return 1;
+    }
+#endif
+    return 0;
+}
+
+/* Arming an event owns the whole first level: enabling the peripheral interrupt while leaving the
+ * NVIC line alone is the shape that reports XY_HAL_OK and never fires. */
+static int arm_nvic(const TIM_HandleTypeDef *handle)
+{
+    IRQn_Type irqn;
+
+    if (!timer_irqn(handle, &irqn)) {
+        return 0;
+    }
+    HAL_NVIC_SetPriority(irqn, 5U, 0U);
+    HAL_NVIC_EnableIRQ(irqn);
+    return 1;
+}
+
 xy_hal_error_t xy_hal_timer_enable_irq(void *timer, xy_hal_timer_event_t event)
 {
     timer_ctx_t *context;
@@ -217,8 +286,14 @@ xy_hal_error_t xy_hal_timer_enable_irq(void *timer, xy_hal_timer_event_t event)
     if (event != XY_HAL_TIMER_EVENT_UPDATE) {
         return XY_HAL_ERROR_NOT_SUPPORTED;
     }
-    return HAL_TIM_Base_Start_IT((TIM_HandleTypeDef *)timer) == HAL_OK ? XY_HAL_OK
-                                                                      : XY_HAL_ERROR_FAIL;
+    /* Arming an interrupt is not starting the timer: the previous implementation called
+     * HAL_TIM_Base_Start_IT here, so a caller that only wanted the interrupt also started the
+     * counter - and stopping the interrupt stopped timekeeping. */
+    if (!arm_nvic((TIM_HandleTypeDef *)timer)) {
+        return XY_HAL_ERROR_NOT_SUPPORTED;
+    }
+    __HAL_TIM_ENABLE_IT((TIM_HandleTypeDef *)timer, TIM_IT_UPDATE);
+    return XY_HAL_OK;
 }
 
 xy_hal_error_t xy_hal_timer_disable_irq(void *timer, xy_hal_timer_event_t event)
@@ -235,8 +310,10 @@ xy_hal_error_t xy_hal_timer_disable_irq(void *timer, xy_hal_timer_event_t event)
     if (event != XY_HAL_TIMER_EVENT_UPDATE) {
         return XY_HAL_ERROR_NOT_SUPPORTED;
     }
-    return HAL_TIM_Base_Stop_IT((TIM_HandleTypeDef *)timer) == HAL_OK ? XY_HAL_OK
-                                                                     : XY_HAL_ERROR_FAIL;
+    /* Mask the source; the counter keeps running and the NVIC line stays enabled, so a later
+     * enable_irq() needs no second arming and does not restart anything. */
+    __HAL_TIM_DISABLE_IT((TIM_HandleTypeDef *)timer, TIM_IT_UPDATE);
+    return XY_HAL_OK;
 }
 
 void xy_hal_timer_irq_handler(void *timer)
