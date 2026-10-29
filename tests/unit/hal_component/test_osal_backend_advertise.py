@@ -110,6 +110,35 @@ class SetTests(unittest.TestCase):
         self.assertEqual(guard.selectable(ROOT_ONE), {"baremetal"})
 
 
+class DirectoryTests(unittest.TestCase):
+    """A backend directory that nothing dispatches to is an implementation nobody can build."""
+
+    def test_a_dispatched_directory_passes(self):
+        self.assertEqual([], guard.directory_findings({"freertos"}, {}, {}, {"freertos"}))
+
+    def test_an_undeclared_directory_is_reported(self):
+        problems = guard.directory_findings({"freertos"}, {}, {}, {"freertos", "rtx5"})
+        self.assertEqual(1, len(problems))
+        self.assertIn("say which it is", problems[0])
+
+    def test_an_orphaned_declaration_covers_it(self):
+        self.assertEqual([],
+                         guard.directory_findings({"freertos"}, {}, {"rtx5": "why"}, {"freertos", "rtx5"}))
+
+    def test_a_declaration_for_a_missing_directory_is_reported(self):
+        problems = guard.directory_findings(set(), {"gone": "why"}, {}, set())
+        self.assertEqual(1, len(problems))
+        self.assertIn("attached to nothing", problems[0])
+
+    def test_the_real_tree_classifies_every_backend(self):
+        branches = guard.dispatched(guard.OSAL_CMAKE.read_text(encoding="utf-8"))
+        on_disk = guard.backend_directories(guard.OSAL_CMAKE.parent)
+        self.assertTrue(on_disk, "the walk found no backend directories")
+        self.assertEqual([], guard.directory_findings(branches, guard.UNREACHABLE,
+                                                     guard.ORPHANED, on_disk))
+        self.assertIn("rtx5", guard.ORPHANED)
+
+
 class DocumentTests(unittest.TestCase):
     def test_a_fenced_command_naming_an_unavailable_backend_is_reported(self):
         docs = {"docs/design/x.md": "```bash\ncmake .. -DOSAL_BACKEND=rtthread\n```\n"}

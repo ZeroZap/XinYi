@@ -34,6 +34,18 @@ UNREACHABLE = {
     "cmsis_rtx": "same as rtthread: source and dispatch branch only, not selectable",
 }
 
+#: Not even a dispatch branch: a directory with sources that nothing can ever build. Kept separate
+#: from UNREACHABLE because that set means "a branch exists and the build refuses the selection",
+#: which is a weaker claim than "there is no branch at all".
+ORPHANED = {
+    "rtx5": "compiled nowhere and no OSAL_BACKEND branch names it. Kconfig's RTX5 option is live, but "
+            "components/kernel/CMakeLists.txt maps CONFIG_OSAL_BACKEND_RTX5 onto "
+            "backend/cmsis_rtx/xy_os_cmsis_rtx.c - so the option selects a different implementation "
+            "and this directory is not the one anybody means. It is also a generation behind: 67 of "
+            "the 79 entries, fifteen of them previous API names "
+            "(see check_osal_backend_uniqueness.py)",
+}
+
 
 def advertised(osal_cmake: str) -> set[str]:
     match = re.search(r"set_property\(\s*CACHE\s+OSAL_BACKEND\s+PROPERTY\s+STRINGS\s+([^)]*)\)",
@@ -48,6 +60,40 @@ def selectable(root_cmake: str) -> set[str]:
 def dispatched(osal_cmake: str) -> set[str]:
     return set(re.findall(r'(?:else)?if\(\s*OSAL_BACKEND\s+STREQUAL\s+"([A-Za-z0-9_]+)"',
                           osal_cmake))
+
+
+def backend_directories(osal_dir: Path) -> set[str]:
+    """Backend directories that actually hold an implementation."""
+    backend = osal_dir / "backend"
+    if not backend.is_dir():
+        return set()
+    return {child.name for child in backend.iterdir()
+            if child.is_dir() and any(child.glob("*.c"))}
+
+
+def directory_findings(branches: set[str], unreachable: dict[str, str],
+                       orphaned: dict[str, str], on_disk: set[str]) -> list[str]:
+    """A backend directory on disk is a claim that this backend exists here.
+
+    It has to be dispatched by the OSAL component, or declared unreachable / orphaned with a reason.
+    Otherwise it is a third kind of file: one that reads as an implementation and compiles nowhere.
+    Kept as its own pure function because the paired cases damage one item at a time - folding it into
+    findings() judges every fixture against the real tree as well.
+    """
+    problems: list[str] = []
+    for name in sorted(on_disk):
+        if name in branches or name in unreachable or name in orphaned:
+            continue
+        problems.append(
+            f"backend/{name}/ holds an implementation, but no OSAL_BACKEND branch dispatches to it "
+            f"and it is not declared unreachable or orphaned - say which it is")
+    for name in sorted(set(unreachable) - on_disk):
+        problems.append(
+            f"{name} is listed as unreachable but there is no backend/{name}/ with sources - the "
+            f"reason is attached to nothing")
+    for name in sorted(set(orphaned) - on_disk):
+        problems.append(f"{name} is declared orphaned but there is no backend/{name}/ with sources")
+    return problems
 
 
 def findings(root_cmake: str, osal_cmake: str,
@@ -68,13 +114,17 @@ def findings(root_cmake: str, osal_cmake: str,
     for name in sorted(chosen - offered):
         problems.append(f"{name} is selectable but not offered, so nobody would find it")
 
-    for name in sorted(branches - offered - set(unreachable)):
+    for name in sorted(set(ORPHANED) & set(unreachable)):
+        problems.append(f"{name} is declared both unreachable and orphaned; pick one")
+    for name in sorted(set(ORPHANED) & branches):
+        problems.append(f"{name} is declared orphaned but a dispatch branch names it")
+    for name in sorted(branches - offered - set(unreachable) - set(ORPHANED)):
         problems.append(f"there is a dispatch branch for {name}, which is neither offered nor "
                         f"declared unreachable - it is dead code nobody has decided about")
     for name in sorted(set(unreachable) - branches):
         problems.append(f"{name} is declared unreachable but has no dispatch branch; the "
                         f"declaration is stale")
-    for name, reason in sorted(unreachable.items()):
+    for name, reason in sorted({**unreachable, **ORPHANED}.items()):
         if not reason.strip():
             problems.append(f"{name} is declared unreachable without a reason")
     return problems
@@ -113,7 +163,10 @@ def design_docs(root: Path = ROOT) -> dict[str, str]:
 
 def main() -> int:
     root_text = ROOT_CMAKE.read_text(encoding="utf-8")
-    problems = findings(root_text, OSAL_CMAKE.read_text(encoding="utf-8"))
+    osal_text = OSAL_CMAKE.read_text(encoding="utf-8")
+    problems = findings(root_text, osal_text)
+    problems.extend(directory_findings(dispatched(osal_text), UNREACHABLE, ORPHANED,
+                                       backend_directories(OSAL_CMAKE.parent)))
     problems.extend(doc_command_findings(design_docs(), selectable(root_text)))
     if problems:
         print("osal_backend_advertise failed:")
@@ -121,7 +174,7 @@ def main() -> int:
             print(f"- {problem}")
         return 1
     print(f"osal_backend_advertise ok (advertised=selectable={sorted(selectable(ROOT_CMAKE.read_text(encoding='utf-8')))}, "
-          f"unreachable={sorted(UNREACHABLE)})")
+          f"unreachable={sorted(UNREACHABLE)}, orphaned={sorted(ORPHANED)})")
     return 0
 
 
