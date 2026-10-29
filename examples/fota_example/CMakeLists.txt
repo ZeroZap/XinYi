@@ -1,5 +1,8 @@
 # FOTA Examples CMakeLists.txt
 #
+# STATUS: these examples are stale and do not link - they call 17 xy_fota_* symbols and components/fota
+# defines none of them. See README.md in this directory before trusting anything here.
+#
 # This CMake file builds all FOTA example applications
 # Reference: SECURE_FOTA.md, xy_fota.h
 
