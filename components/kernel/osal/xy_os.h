@@ -45,6 +45,22 @@ typedef enum {
 #define XY_OS_NO_WAIT      0x0U        ///< Do not wait timeout value
 
 /**
+ * @brief What `timeout` is measured in, for every call that waits
+ *
+ * **System ticks, not milliseconds.** One tick is 1/XY_OS_TICK_FREQ of a second, so at 1000 Hz a tick
+ * is a millisecond and the two are indistinguishable - which is why the ambiguity survived. At any
+ * other rate they are not: 1000 passed to a 100 Hz kernel waits ten seconds.
+ *
+ * The backends that can actually be built read it this way - bare-metal computes a deadline from
+ * xy_tick_get(), FreeRTOS and RT-Thread hand it to their tick-based waits unchanged. The CMSIS-RTOS2
+ * backend is the exception, and it is not compiled by this build: its waits take milliseconds, so it
+ * would need to convert first (see check_osal_timeout_units.py).
+ *
+ * A caller holding milliseconds converts with xy_os_sys_ms_to_ticks(). Doing it here instead would
+ * mean one multiply per wait on every backend, to serve the minority spelling.
+ */
+
+/**
  * @brief Type for OS handles (opaque pointers)
  */
 typedef void *xy_os_handle_t;
@@ -402,7 +418,7 @@ uint32_t xy_os_thread_flags_get(void);
  * become signaled
  * @param[in] flags Flags to wait for
  * @param[in] options Flags options (or/and, clear)
- * @param[in] timeout Timeout value or 0 (no wait) or XY_OS_WAIT_FOREVER
+ * @param[in] timeout Ticks to wait; XY_OS_NO_WAIT to poll once, XY_OS_WAIT_FOREVER to block
  * @return Flags before clearing or error code
  */
 uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options,
@@ -570,7 +586,7 @@ uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id);
  * @param[in] ef_id Event flags ID
  * @param[in] flags Flags to wait for
  * @param[in] options Flags options (or/and, clear)
- * @param[in] timeout Timeout value or 0 (no wait) or XY_OS_WAIT_FOREVER
+ * @param[in] timeout Ticks to wait; XY_OS_NO_WAIT to poll once, XY_OS_WAIT_FOREVER to block
  * @return Event flags before clearing or error code
  */
 uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
@@ -625,7 +641,7 @@ const char *xy_os_mutex_get_name(xy_os_mutex_id_t mutex_id);
 /**
  * @brief Acquire a Mutex or timeout if it is locked
  * @param[in] mutex_id Mutex ID
- * @param[in] timeout Timeout value or 0 (no wait) or XY_OS_WAIT_FOREVER
+ * @param[in] timeout Ticks to wait; XY_OS_NO_WAIT to poll once, XY_OS_WAIT_FOREVER to block
  * @return Status code
  */
 xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout);
@@ -690,7 +706,7 @@ const char *xy_os_semaphore_get_name(xy_os_semaphore_id_t semaphore_id);
 /**
  * @brief Acquire a Semaphore token or timeout if no tokens are available
  * @param[in] semaphore_id Semaphore ID
- * @param[in] timeout Timeout value or 0 (no wait) or XY_OS_WAIT_FOREVER
+ * @param[in] timeout Ticks to wait; XY_OS_NO_WAIT to poll once, XY_OS_WAIT_FOREVER to block
  * @return Status code
  */
 xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id,
@@ -764,7 +780,7 @@ const char *xy_os_mempool_get_name(xy_os_mempool_id_t mp_id);
 /**
  * @brief Allocate a memory block from a Memory Pool
  * @param[in] mp_id Memory pool ID
- * @param[in] timeout Timeout value or 0 (no wait) or XY_OS_WAIT_FOREVER
+ * @param[in] timeout Ticks to wait; XY_OS_NO_WAIT to poll once, XY_OS_WAIT_FOREVER to block
  * @return Address of allocated memory block or NULL on error
  */
 void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout);
@@ -854,7 +870,7 @@ const char *xy_os_msgqueue_get_name(xy_os_msgqueue_id_t mq_id);
  * @param[in] mq_id Message queue ID
  * @param[in] msg_ptr Message pointer
  * @param[in] msg_prio Message priority
- * @param[in] timeout Timeout value or 0 (no wait) or XY_OS_WAIT_FOREVER
+ * @param[in] timeout Ticks to wait; XY_OS_NO_WAIT to poll once, XY_OS_WAIT_FOREVER to block
  * @return Status code
  */
 xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
@@ -867,7 +883,7 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
  * @param[out] msg_ptr Pointer to buffer for message
  * @param[out] msg_prio Pointer to buffer for message priority (NULL if not
  * needed)
- * @param[in] timeout Timeout value or 0 (no wait) or XY_OS_WAIT_FOREVER
+ * @param[in] timeout Ticks to wait; XY_OS_NO_WAIT to poll once, XY_OS_WAIT_FOREVER to block
  * @return Status code
  */
 xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
