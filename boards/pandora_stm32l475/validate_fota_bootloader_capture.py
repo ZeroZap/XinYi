@@ -187,6 +187,19 @@ def _frames(
             continue
         if frame["decision"] in INSTALL_BEFORE_DECISION and frame["install"] is None:
             failures.append(f"boot frame {index}: {frame['decision']!r} without an install marker")
+        # A request can only have been written by an image that ran, and an image runs
+        # only after its own install. A confirm decision in the same boot frame that
+        # installed the image therefore means the flow honoured a request left behind by
+        # the image the install replaced: the candidate was confirmed before it executed
+        # once, and no boot attempt was charged for it. flow_install()'s cycle-scoping
+        # clear is what makes this unreachable - this rule is what makes a capture that
+        # shows it a rejection instead of a valid confirm. It was observed on the board
+        # with the clear removed: INSTALLED -> CONFIRMED -> JUMP, attempts=0, and the
+        # application then read the acknowledgement for an image that had never run.
+        if frame["decision"] == CONFIRMED and frame["install"] == INSTALLED:
+            failures.append(
+                f"boot frame {index}: candidate confirmed in the same boot that installed it"
+            )
         if frame["decision"] in JUMPING_DECISIONS and not frame["jump"]:
             failures.append(f"boot frame {index}: {frame['decision']!r} without a jump marker")
         if frame["decision"] in HALTING_DECISIONS and frame["jump"]:

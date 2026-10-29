@@ -22,6 +22,17 @@ from source_scan import read_code  # noqa: E402
 
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
 SCRIPT = BOARDS / "validate_fota_bootloader_capture.py"
+# The two board captures that separate "a request the image wrote" from "a request left
+# behind by the image this install replaced" were taken on this commit's bootloader.
+BOARD_COMMIT = "963f2f183b515d469a5743d9ba5e65450c57a322"
+EVIDENCE = (
+    ROOT
+    / "docs"
+    / "validation"
+    / "evidence"
+    / "pandora-stm32l475"
+    / "2026-10-29-stale-request-disproof"
+)
 
 
 def frame(install: str | None, decision: str, jump: bool = True) -> str:
@@ -147,6 +158,55 @@ class AttemptChainTests(unittest.TestCase):
         result = analyze(restaged, "attempt")
         self.assertEqual(result["status"], "BOOTLOADER_CHAIN_REVIEW_CANDIDATE")
         self.assertTrue(result["frames"][0]["restage"])
+
+
+class StaleRequestConfirmationTests(unittest.TestCase):
+    """A candidate cannot confirm itself in the boot that installed it.
+
+    The confirm request is written by a running application, so a request that is in the
+    slot when ``install_once()`` replaces the execution image belongs to the image that
+    just got replaced. ``flow_install()`` clears the slot for exactly that reason; these
+    cases use the two board captures taken on that path - one seeded request, two
+    bootloader builds - so a regression is a red test rather than a reread of the flow.
+    """
+
+    def test_install_and_confirm_in_one_boot_is_rejected(self):
+        result = analyze(encode(frame(boot.INSTALLED, boot.CONFIRMED)), "confirm")
+        self.assertEqual(result["status"], "BOOTLOADER_CHAIN_VALIDATION_FAILED")
+        self.assertEqual(result["chain"], "INVALID")
+        self.assertIn(
+            "boot frame 0: candidate confirmed in the same boot that installed it",
+            result["failures"],
+        )
+
+    def test_already_installed_confirm_remains_accepted(self):
+        # The same decision is legitimate when the install happened in an earlier boot:
+        # that is the shape of a request written by an image that really ran.
+        result = analyze(encode(frame(boot.ALREADY_INSTALLED, boot.CONFIRMED)), "confirm")
+        self.assertEqual(result["status"], "BOOTLOADER_CHAIN_REVIEW_CANDIDATE")
+        self.assertEqual(result["chain"], "CONFIRM")
+
+    def test_the_board_capture_of_the_stale_request_path_is_rejected(self):
+        capture = EVIDENCE / "uart-boot-mutant.txt"
+        self.assertTrue(capture.is_file(), f"missing board capture {capture}")
+        result = boot.analyze_capture(capture.read_bytes(), BOARD_COMMIT, "confirm")
+        self.assertEqual(result["boot_count"], 1)
+        self.assertEqual(result["attempt_markers"], 0)
+        self.assertEqual(result["status"], "BOOTLOADER_CHAIN_VALIDATION_FAILED")
+        self.assertIn(
+            "boot frame 0: candidate confirmed in the same boot that installed it",
+            result["failures"],
+        )
+
+    def test_the_board_capture_with_the_clear_installed_is_accepted(self):
+        capture = EVIDENCE / "uart-boot-fixed-2.txt"
+        self.assertTrue(capture.is_file(), f"missing board capture {capture}")
+        result = boot.analyze_capture(capture.read_bytes(), BOARD_COMMIT, "confirm")
+        self.assertEqual(result["status"], "BOOTLOADER_CHAIN_REVIEW_CANDIDATE")
+        self.assertEqual(result["install_markers"][0], boot.INSTALLED)
+        self.assertEqual(result["frames"][0]["decision"], boot.ATTEMPT)
+        self.assertEqual(result["attempt_markers"], 2)
+        self.assertEqual(result["chain"], "CONFIRM")
 
 
 class RollbackChainTests(unittest.TestCase):

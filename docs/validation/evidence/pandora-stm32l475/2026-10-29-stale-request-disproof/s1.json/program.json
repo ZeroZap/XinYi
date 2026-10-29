@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "tool": "tools/pandora_hil_program.py",
+  "board": "pandora_stm32l475",
+  "created_utc": "2026-10-29T10:08:08+00:00",
+  "image": {
+    "path": "build/pandora-s6-215/boards/pandora_stm32l475/pandora_stm32l475_fota_bootloader.bin",
+    "size": 15768,
+    "sha256": "67a419d641f8c2a48a1b764c0d3c5ba70a46ce899eb9133d0b59f652f847a035",
+    "address": "0x8000000",
+    "region": "bootloader"
+  },
+  "readback": {
+    "span_identical": true,
+    "first_diff": null,
+    "observed_sha256": "67a419d641f8c2a48a1b764c0d3c5ba70a46ce899eb9133d0b59f652f847a035",
+    "erased_tail": 616,
+    "unexpected_changes": 0,
+    "unexpected_first": null
+  },
+  "reset": false,
+  "drift": [],
+  "drift_stable": true,
+  "drift_samples": 0,
+  "drift_seconds": 0.0,
+  "drift_window": {
+    "settle": 3.0,
+    "stable_for": 3.0,
+    "poll": 0.5,
+    "max_wait": 20.0
+  },
+  "restore_command": "tools/pandora_hil_state.py restore --snapshot docs/validation/evidence/pandora-stm32l475/2026-10-29-stale-request-disproof/s1.json --yes"
+}

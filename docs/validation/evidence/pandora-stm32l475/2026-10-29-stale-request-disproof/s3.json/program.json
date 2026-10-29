@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "tool": "tools/pandora_hil_program.py",
+  "board": "pandora_stm32l475",
+  "created_utc": "2026-10-29T10:11:51+00:00",
+  "image": {
+    "path": "build/pandora-s6-215/boards/pandora_stm32l475/pandora_stm32l475_fota_slot_seed.bin",
+    "size": 7316,
+    "sha256": "dc015fc84ab218e3bbdfddf3a826e350bbfb8a430fabe9dd081443afc7adfa21",
+    "address": "0x8000000",
+    "region": "bootloader"
+  },
+  "readback": {
+    "span_identical": true,
+    "first_diff": null,
+    "observed_sha256": "dc015fc84ab218e3bbdfddf3a826e350bbfb8a430fabe9dd081443afc7adfa21",
+    "erased_tail": 876,
+    "unexpected_changes": 0,
+    "unexpected_first": null
+  },
+  "reset": true,
+  "drift": [
+    {
+      "name": "bootloader",
+      "identical": false,
+      "first_diff": 4,
+      "captured": true
+    },
+    {
+      "name": "application",
+      "identical": true,
+      "first_diff": null,
+      "captured": true
+    },
+    {
+      "name": "fota_metadata",
+      "identical": true,
+      "first_diff": null,
+      "captured": true
+    },
+    {
+      "name": "board_reserved",
+      "identical": true,
+      "first_diff": null,
+      "captured": true
+    },
+    {
+      "name": "rtc_backup",
+      "identical": false,
+      "first_diff": 4,
+      "captured": true
+    }
+  ],
+  "drift_stable": true,
+  "drift_samples": 2,
+  "drift_seconds": 10.868,
+  "drift_window": {
+    "settle": 1.0,
+    "stable_for": 2.0,
+    "poll": 0.5,
+    "max_wait": 20.0
+  },
+  "restore_command": "tools/pandora_hil_state.py restore --snapshot docs/validation/evidence/pandora-stm32l475/2026-10-29-stale-request-disproof/s3.json --yes"
+}

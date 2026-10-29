@@ -404,6 +404,57 @@ add_custom_command(TARGET pandora_stm32l475_crypto POST_BUILD
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:pandora_stm32l475_crypto>
     COMMENT "Generating Pandora Crypto software KAT BIN")
 
+# The confirm slot can only be written by firmware, and the state that matters -
+# a request sitting in the slot when a candidate is installed - cannot be produced by
+# an application, because an application only runs after it was installed. These two
+# images are that missing step: they leave the slot in a chosen state and stop.
+foreach(_slot_target slot_seed slot_clear)
+    add_executable(pandora_stm32l475_fota_${_slot_target}
+        fota_slot_seed_main.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_rtc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_time.c
+        ${PANDORA_PLATFORM_STARTUP}
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
+        ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
+        ${_cmsis}/Source/Templates/system_stm32l4xx.c
+        ${_hal}/stm32l4xx_hal.c
+        ${_hal}/stm32l4xx_hal_cortex.c
+        ${_hal}/stm32l4xx_hal_gpio.c
+        ${_hal}/stm32l4xx_hal_pwr.c
+        ${_hal}/stm32l4xx_hal_pwr_ex.c
+        ${_hal}/stm32l4xx_hal_rcc.c
+        ${_hal}/stm32l4xx_hal_rcc_ex.c
+        ${_hal}/stm32l4xx_hal_rtc.c
+        ${_hal}/stm32l4xx_hal_rtc_ex.c
+        ${_hal}/stm32l4xx_hal_uart.c)
+    target_include_directories(pandora_stm32l475_fota_${_slot_target} BEFORE PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/components/device/inc
+        ${CMAKE_SOURCE_DIR}/components/device
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
+        ${CMAKE_SOURCE_DIR}/components/clib/xy_clib)
+    target_compile_definitions(pandora_stm32l475_fota_${_slot_target} PRIVATE
+        STM32L475xx USE_HAL_DRIVER
+        XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
+    target_link_libraries(pandora_stm32l475_fota_${_slot_target} PRIVATE xy_xy_clib)
+    target_link_options(pandora_stm32l475_fota_${_slot_target} PRIVATE
+        -T${CMAKE_CURRENT_SOURCE_DIR}/STM32L475VETX_FLASH.ld
+        --specs=nano.specs --specs=nosys.specs
+        -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_fota_${_slot_target}.map)
+    set_target_properties(pandora_stm32l475_fota_${_slot_target} PROPERTIES SUFFIX ".elf")
+    add_custom_command(TARGET pandora_stm32l475_fota_${_slot_target} POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:pandora_stm32l475_fota_${_slot_target}>
+                ${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_fota_${_slot_target}.bin
+        COMMAND ${CMAKE_SIZE} $<TARGET_FILE:pandora_stm32l475_fota_${_slot_target}>
+        COMMENT "Generating Pandora FOTA ${_slot_target} BIN")
+endforeach()
+target_compile_definitions(pandora_stm32l475_fota_slot_seed PRIVATE
+    PANDORA_SLOT_CONFIRM_VALUE=0x46525132U)
+target_compile_definitions(pandora_stm32l475_fota_slot_clear PRIVATE
+    PANDORA_SLOT_CONFIRM_VALUE=0U)
+
 if(OSAL_BACKEND STREQUAL "freertos")
     option(PANDORA_IPC_ISR_STRESS_ONLY
            "Keep the Pandora runtime in one boot for bounded IPC ISR stress capture" OFF)

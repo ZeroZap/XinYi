@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "tool": "tools/pandora_hil_state.py",
+  "board": "pandora_stm32l475",
+  "label": "green-clean-bootloader",
+  "git_head": "0499dba007ed2aec660718959f9a9fade292f576",
+  "created_utc": "2026-10-29T10:17:02+00:00",
+  "regions": [
+    {
+      "name": "bootloader",
+      "address": "0x8000000",
+      "size": 32768,
+      "file": "regions/bootloader.bin",
+      "sha256": "9245188e93e40434aa65359e3a981255680d0c7eb25c6f91ba2098d430e1d8d2",
+      "nonzero_bytes": 30457,
+      "captured": true,
+      "restorable": true,
+      "source": "STM32L475VETX_BOOTLOADER.ld FLASH"
+    },
+    {
+      "name": "application",
+      "address": "0x8008000",
+      "size": 483328,
+      "file": "regions/application.bin",
+      "sha256": "d35e2e9ab2fe7249c20492b0e4b651bc64c947d0e7af4074a55f3dcfe506eca4",
+      "nonzero_bytes": 480591,
+      "captured": true,
+      "restorable": true,
+      "source": "STM32L475VETX_FOTA_APP.ld FLASH (0x08008000..0x0807E000)"
+    },
+    {
+      "name": "fota_metadata",
+      "address": "0x807e000",
+      "size": 4096,
+      "file": "regions/fota_metadata.bin",
+      "sha256": "f47a8ec3e9aff2318d896942282ad4fe37d6391c82914f54a5da8a37de1300c6",
+      "nonzero_bytes": 4096,
+      "captured": true,
+      "restorable": true,
+      "source": "STM32L475VETX_FLASH.ld FOTA_METADATA"
+    },
+    {
+      "name": "board_reserved",
+      "address": "0x807f000",
+      "size": 4096,
+      "file": "regions/board_reserved.bin",
+      "sha256": "118f9c6f2d3787d97fc8284a0ae95940708f731c2591824dc0f76fc399fc6603",
+      "nonzero_bytes": 4051,
+      "captured": true,
+      "restorable": true,
+      "source": "STM32L475VETX_FLASH.ld BOARD_RESERVED"
+    },
+    {
+      "name": "rtc_backup",
+      "address": "0x40002850",
+      "size": 128,
+      "file": "regions/rtc_backup.bin",
+      "sha256": "4ec1621eda16393086b0224ff83a3fdccb55c28529b44f096703b0207e0844c9",
+      "nonzero_bytes": 4,
+      "captured": true,
+      "restorable": false,
+      "source": "RTC->BKP0R..BKP31R; slots 1/2 hold the FOTA confirm/restage handshake"
+    }
+  ]
+}

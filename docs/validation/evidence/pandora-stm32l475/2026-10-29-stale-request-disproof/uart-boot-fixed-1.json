@@ -1,0 +1,13 @@
+{
+  "baudrate": 115200,
+  "bytes_captured": 714,
+  "capture_status": "CAPTURED",
+  "captured_at_utc": "2026-10-29T10:08:59.268032+00:00",
+  "device": "/dev/ttyUSB0",
+  "error": null,
+  "format": "8-N-1",
+  "non_ascii_byte_count": 0,
+  "reset_command": null,
+  "sha256": "ea647d77ca664b3f8b6ae0a3782b2da30eea0e0a632649eca8b518ee935fab7c",
+  "window_seconds": 25.0
+}

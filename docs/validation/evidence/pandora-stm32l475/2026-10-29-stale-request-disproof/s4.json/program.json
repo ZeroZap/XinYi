@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "tool": "tools/pandora_hil_program.py",
+  "board": "pandora_stm32l475",
+  "created_utc": "2026-10-29T10:12:32+00:00",
+  "image": {
+    "path": "build/pandora-s6-215/mutant-no-clear.bin",
+    "size": 15708,
+    "sha256": "a2fcaaf49f5c2179eb666838356ef737be8b81a511436eee33fb1d6321413b0a",
+    "address": "0x8000000",
+    "region": "bootloader"
+  },
+  "readback": {
+    "span_identical": true,
+    "first_diff": null,
+    "observed_sha256": "a2fcaaf49f5c2179eb666838356ef737be8b81a511436eee33fb1d6321413b0a",
+    "erased_tail": 676,
+    "unexpected_changes": 0,
+    "unexpected_first": null
+  },
+  "reset": false,
+  "drift": [],
+  "drift_stable": true,
+  "drift_samples": 0,
+  "drift_seconds": 0.0,
+  "drift_window": {
+    "settle": 3.0,
+    "stable_for": 3.0,
+    "poll": 0.5,
+    "max_wait": 20.0
+  },
+  "restore_command": "tools/pandora_hil_state.py restore --snapshot docs/validation/evidence/pandora-stm32l475/2026-10-29-stale-request-disproof/s4.json --yes"
+}
