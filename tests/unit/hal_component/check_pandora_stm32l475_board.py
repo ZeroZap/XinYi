@@ -602,8 +602,11 @@ def main() -> None:
     assert "HAL_IWDG_Init(" not in smoke_entry
     # Reset-cause attribution is a contract with host coverage in pandora_sys.c.
     # An inline bit chain in the entry point is how a brownout boot got reported
-    # as POWER_ON, so keep the decision out of main.c entirely.
-    assert "XY_HAL_SYS_RESET_REASON_" not in smoke_entry, (
+    # as POWER_ON, so keep the decision out of main.c entirely. Scan the code:
+    # a comment that names a reason bit is not a decision.
+    smoke_code = re.sub(r"/\*.*?\*/", "", smoke_entry, flags=re.S)
+    smoke_code = re.sub(r"//[^\n]*", "", smoke_code)
+    assert "XY_HAL_SYS_RESET_REASON_" not in smoke_code, (
         "main.c attributes the reset cause inline; dispatch on pandora_sys_reset_kind()"
     )
     require(
