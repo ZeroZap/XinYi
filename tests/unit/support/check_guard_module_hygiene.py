@@ -17,7 +17,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-GUARDS = ROOT / "tests" / "unit"
+GUARDS = ROOT / "tests"
+CMAKE_DIRS = ("tests",)  # every CMakeLists.txt under these, plus the Makefile, may register a test
 
 
 def bound_names(tree: ast.Module) -> dict[str, list[int]]:
@@ -81,6 +82,99 @@ def entry_point_findings(root: Path = GUARDS, files: list[Path] | None = None) -
     return problems
 
 
+def registration_text(root: Path = ROOT) -> str:
+    """The gates that can name a test: the root CMakeLists, the Makefile, and every CMakeLists under a gate tree.
+
+    Deliberately not every CMakeLists in the repository. A vendor or component CMakeLists that happens to
+    contain a name is not a gate - counting it would let a file look registered while nothing runs it.
+    """
+    texts: list[str] = []
+    for path in (root / "CMakeLists.txt", root / "Makefile"):
+        if path.exists():
+            texts.append(path.read_text(encoding="utf-8", errors="replace"))
+    for tree in CMAKE_DIRS:
+        for path in sorted((root / tree).rglob("CMakeLists.txt")):
+            texts.append(path.read_text(encoding="utf-8", errors="replace"))
+    return "\n".join(texts)
+
+
+def make_variables(text: str) -> dict[str, str]:
+    """`NAME := value` / `NAME = value`. The Makefile names its test directory this way, so a token like
+    `$(TOOLS_TEST_DIR)` has to be resolved or the discovery line reads as covering nothing."""
+    variables: dict[str, str] = {}
+    for line in text.splitlines():
+        name, sep, value = line.partition(":=")
+        if not sep:
+            name, sep, value = line.partition("=")
+        name = name.strip()
+        if sep and name and " " not in name and not name.startswith("\t"):
+            variables.setdefault(name, value.strip())
+    return variables
+
+
+def expand(token: str, variables: dict[str, str]) -> str:
+    """Substitute Makefile variables until the token stops changing (definitions can nest)."""
+    for _ in range(8):
+        before = token
+        for name, value in variables.items():
+            token = token.replace(f"$({name})", value).replace(f"${{{name}}}", value)
+        if token == before:
+            break
+    return token
+
+
+def discovered_dirs(text: str) -> list[str]:
+    """Repository-relative directories handed to `unittest discover` by a gate."""
+    variables = make_variables(text)
+    dirs: list[str] = []
+    for line in text.splitlines():
+        if "discover" not in line or " -s " not in line:
+            continue
+        for token in line.split():
+            candidate = expand(token.strip("\"'"), variables).rstrip("/")
+            if candidate.startswith(("tests", "tools")) and "/" in candidate:
+                dirs.append(candidate)
+    return dirs
+
+
+def registration_findings(root: Path = GUARDS, files: list[Path] | None = None,
+                          text: str | None = None) -> list[str]:
+    """A test file no target names is a test that never runs - green because nobody looked.
+
+    A file counts as registered when a gate CMakeLists mentions it by name, or when the Makefile runs
+    unittest discovery over the directory it lives in.
+    """
+    blob = registration_text() if text is None else text
+    directories = discovered_dirs(blob)
+
+    problems: list[str] = []
+    inspected = 0
+    for path in files if files is not None else sorted(root.rglob("test_*.py")):
+        inspected += 1
+        if path.name in blob:
+            continue
+        try:
+            relative = path.resolve().relative_to(ROOT).as_posix()
+        except ValueError:
+            relative = ""
+        if any(relative == found or relative.startswith(found + "/") for found in directories):
+            continue
+        problems.append(
+            f"{shown(path, root)}: no gate target names this file and no discovery covers its "
+            f"directory - whatever it tests is not being tested")
+    if inspected == 0:
+        problems.append("no test files were inspected - the walk is broken")
+    return problems
+
+
+def shown(path: Path, root: Path) -> str:
+    """A path fit for a message, whether or not it lives under the tree being inspected."""
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def findings(root: Path = GUARDS, files: list[Path] | None = None) -> list[str]:
     problems: list[str] = []
     inspected = 0
@@ -105,14 +199,15 @@ def findings(root: Path = GUARDS, files: list[Path] | None = None) -> list[str]:
 def main() -> int:
     # Two independent questions, so each has its own function and its own tests: names bound once, and test
     # files that actually run something.
-    problems = findings() + entry_point_findings()
+    problems = findings() + entry_point_findings() + registration_findings()
     if problems:
         print("guard_module_hygiene failed:")
         for problem in problems:
             print(f"- {problem}")
         return 1
     print(f"guard_module_hygiene ok ({len(list(GUARDS.rglob('check_*.py')))} guard files, each name bound once; "
-          f"{len(list(GUARDS.rglob('test_*.py')))} test files, each running something)")
+          f"{len(list(GUARDS.rglob('test_*.py')))} test files, each running something and each named by a "
+          f"gate target or covered by a discovery walk)")
     return 0
 
 

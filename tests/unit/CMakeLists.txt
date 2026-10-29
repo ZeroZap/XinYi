@@ -1942,6 +1942,14 @@ add_test(NAME single_comment_stripper_unit
 add_test(NAME support_source_scan
     COMMAND python3 ${UNIT_SUPPORT}/test_source_scan.py)
 
+# These two live at tests/ rather than under tests/unit/, and were referenced by nothing: the parser test
+# could not even be imported, and no gate ran either file.
+add_test(NAME osal_backend_contract
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../test_osal_backend_contract.py)
+
+add_test(NAME kconfig_parser
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../test_kconfig_parser.py)
+
 add_test(NAME guard_module_hygiene
     COMMAND python3 ${UNIT_SUPPORT}/check_guard_module_hygiene.py)
 

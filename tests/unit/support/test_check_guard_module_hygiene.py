@@ -122,5 +122,58 @@ class EntryPointTests(unittest.TestCase):
             self.assertIn("walk is broken", problems[0])
 
 
+class RegistrationTests(unittest.TestCase):
+    """A test file no target names is a test that never runs."""
+
+    DISCOVERY = ("TOOLS_TEST_DIR := tests/unit/support\n"
+                 "\t@python3 -m unittest discover -s $(TOOLS_TEST_DIR) -p 'test_*.py'\n")
+
+    def test_an_unregistered_file_is_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "test_nobody_runs.py"
+            path.write_text("assert True\n")
+            problems = guard.registration_findings(Path(tmp), [path])
+            self.assertEqual(1, len(problems))
+            self.assertIn("test_nobody_runs.py", problems[0])
+            self.assertIn("not being tested", problems[0])
+
+    def test_a_file_named_by_a_gate_target_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "guard_module_hygiene.py"  # its own name is in tests/unit/CMakeLists.txt
+            path.write_text("assert True\n")
+            self.assertEqual([], guard.registration_findings(Path(tmp), [path]))
+
+    def test_a_file_under_a_discovered_directory_passes(self):
+        # Named by nothing, but the gate runs discovery over the directory it lives in. The directory is
+        # spelled as a Makefile variable here because that is how the real Makefile spells its one.
+        path = guard.ROOT / "tests" / "unit" / "support" / "test_source_scan.py"
+        self.assertNotIn(path.name, self.DISCOVERY)
+        self.assertEqual([], guard.registration_findings(files=[path], text=self.DISCOVERY))
+
+    def test_a_discovery_line_for_another_directory_covers_nothing(self):
+        path = guard.ROOT / "tests" / "unit" / "support" / "test_source_scan.py"
+        text = "TOOLS_TEST_DIR := tests/unit/somewhere_else\n" \
+               "\t@python3 -m unittest discover -s $(TOOLS_TEST_DIR) -p 'test_*.py'\n"
+        problems = guard.registration_findings(files=[path], text=text)
+        self.assertEqual(1, len(problems))
+        self.assertIn("test_source_scan.py", problems[0])
+
+    def test_the_makefile_discovery_directory_is_resolved(self):
+        # The repository's only discovery line names its directory through a variable; read as a literal
+        # token it covers no directory at all, and this rule would be enforcing nothing.
+        self.assertEqual(["tools/tests"], guard.discovered_dirs(guard.registration_text()))
+
+    def test_a_component_build_file_cannot_register_a_test(self):
+        # Only the gate trees count. A component or vendor CMakeLists that happens to contain a name is
+        # not a gate, and counting it would let a file look registered while nothing runs it.
+        self.assertNotIn("XY_PROTO_AT_CLIENT", guard.registration_text())
+
+    def test_an_empty_walk_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            problems = guard.registration_findings(Path(tmp), [])
+            self.assertEqual(1, len(problems))
+            self.assertIn("walk is broken", problems[0])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

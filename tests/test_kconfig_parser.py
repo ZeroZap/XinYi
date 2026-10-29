@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 """Regression tests for the lightweight Kconfig parser."""
 
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-from cmake.kconfig_parser import KconfigParser
+# Run as a script, this file puts tests/ on the path, not the repository root, so the import below fails
+# with ModuleNotFoundError. It did, for as long as nothing ran this file - see the registration in
+# tests/unit/CMakeLists.txt that keeps it running.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from cmake.kconfig_parser import KconfigParser  # noqa: E402
 
 
 class KconfigParserOutputTest(unittest.TestCase):
