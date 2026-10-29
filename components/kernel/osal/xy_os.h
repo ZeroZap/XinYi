@@ -250,6 +250,14 @@ typedef enum {
 /**
  * @brief Thread attributes flags
  */
+/**
+ * @brief Thread attribute flags
+ *
+ * These values are the CMSIS-RTOS2 ones, because the cmsis_rtx backend forwards attr_bits verbatim into
+ * osThreadAttr_t. They are not portable promises: the FreeRTOS backend refuses JOINABLE outright (only
+ * detached threads are supported there), so a caller that needs a joinable thread must be told by the
+ * NULL rather than assume this header documents a capability every backend has.
+ */
 #define XY_OS_THREAD_JOINABLE 0x00000001U ///< Thread created in joinable mode
 #define XY_OS_THREAD_DETACHED \
     0x00000000U ///< Thread created in detached mode (default)
@@ -643,7 +651,9 @@ typedef xy_os_handle_t xy_os_mutex_id_t;
  */
 #define XY_OS_MUTEX_RECURSIVE    0x00000001U ///< Recursive mutex
 #define XY_OS_MUTEX_PRIO_INHERIT 0x00000002U ///< Priority inherit protocol
-#define XY_OS_MUTEX_ROBUST       0x00000008U ///< Robust mutex
+#define XY_OS_MUTEX_ROBUST       0x00000008U ///< Robust mutex; refused by backends that cannot recover
+                                          ///< a mutex from a dead owner (the bare-metal and FreeRTOS
+                                          ///< backends both refuse every bit except RECURSIVE)
 
 /**
  * @brief Mutex attributes structure

@@ -771,6 +771,13 @@ xy_os_status_t xy_os_event_flags_delete(xy_os_event_flags_id_t ef_id)
 
 xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
 {
+    /* attr_bits used to be stored verbatim, so a caller that asked for a robust mutex, or for priority
+     * inheritance, was handed an ordinary one and told nothing. There is no scheduler here to inherit
+     * priority with and no recovery mechanism to be robust about, so both are refused - the same rule the
+     * FreeRTOS backend applies, which accepts only RECURSIVE. An undefined bit is refused too rather than
+     * kept for some future backend to interpret. */
+    if (attr && (attr->attr_bits & ~(XY_OS_MUTEX_RECURSIVE)) != 0U) return NULL;
+
     bm_mutex_t *m = (attr && attr->cb_mem &&
                      attr->cb_size >= sizeof(bm_mutex_t))
                     ? (bm_mutex_t *)attr->cb_mem : bm_mutex_alloc();

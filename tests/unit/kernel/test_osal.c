@@ -770,6 +770,34 @@ static void test_thread_queries_answer_about_the_id_they_were_given(void)
     TEST_ASSERT_EQUAL(XY_OS_PRIORITY_ERROR, xy_os_thread_get_priority(unknown));
 }
 
+/* attr_bits was stored verbatim here, so a caller asking for a robust mutex - or for priority
+ * inheritance - was handed an ordinary one and never told. The FreeRTOS backend refuses every bit except
+ * RECURSIVE, and this is the same rule: honour what you can, refuse the rest, do not silently downgrade.
+ * The header advertised both flags without saying that no backend implements them. */
+static void test_mutex_refuses_attribute_bits_it_cannot_honour(void)
+{
+    xy_os_mutex_attr_t robust = { .attr_bits = XY_OS_MUTEX_ROBUST, .name = "robust" };
+    TEST_ASSERT_NULL(xy_os_mutex_new(&robust));
+
+    xy_os_mutex_attr_t inherit = { .attr_bits = XY_OS_MUTEX_PRIO_INHERIT, .name = "inherit" };
+    TEST_ASSERT_NULL(xy_os_mutex_new(&inherit));
+
+    /* An undefined bit is refused too, rather than stored for a future backend to interpret. */
+    xy_os_mutex_attr_t bogus = { .attr_bits = 0x8000U, .name = "bogus" };
+    TEST_ASSERT_NULL(xy_os_mutex_new(&bogus));
+
+    /* Recursive is the one bit this backend can honour, and it still works. */
+    xy_os_mutex_attr_t recursive = { .attr_bits = XY_OS_MUTEX_RECURSIVE, .name = "rec" };
+    xy_os_mutex_id_t m = xy_os_mutex_new(&recursive);
+    TEST_ASSERT_NOT_NULL(m);
+    TEST_ASSERT_EQUAL_STRING("rec", xy_os_mutex_get_name(m));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_acquire(m, 0U));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_acquire(m, 0U));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_release(m));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_release(m));
+    xy_os_mutex_delete(m);
+}
+
 static void test_mutex_reports_its_owner(void)
 {
     xy_os_mutex_id_t m = xy_os_mutex_new(NULL);
@@ -957,6 +985,7 @@ int main(void)
     RUN_TEST(test_mempool_blocks_are_pointer_aligned);
     RUN_TEST(test_mempool_dimensions_that_overflow_are_refused);
     RUN_TEST(test_thread_queries_answer_about_the_id_they_were_given);
+    RUN_TEST(test_mutex_refuses_attribute_bits_it_cannot_honour);
     RUN_TEST(test_mutex_reports_its_owner);
     RUN_TEST(test_mempool_alloc_free);
     RUN_TEST(test_mempool_exhaust);
