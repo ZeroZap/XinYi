@@ -38,6 +38,11 @@ static void test_kernel_info_lock_and_ticks(void)
     char id[48] = {0};
     TEST_ASSERT_EQUAL(XY_OS_KERNEL_READY, xy_os_kernel_get_state());
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_kernel_get_info(&version, id, sizeof(id)));
+    /* api is the version of the OSAL contract this backend speaks, not the kernel's own version - the
+     * FreeRTOS backend hardcoded it, and the RT-Thread one reports 2.0 there while putting its kernel
+     * version in the field meant for it. */
+    TEST_ASSERT_EQUAL_UINT32((XY_OSAL_VERSION_MAJOR << 16) | XY_OSAL_VERSION_MINOR, version.api);
+    TEST_ASSERT_EQUAL_STRING("Baremetal (x86/x64 (No IRQ Control))", id);
     TEST_ASSERT_NOT_EQUAL(0, version.api);
     TEST_ASSERT_NOT_NULL(strstr(id, "Baremetal"));
     TEST_ASSERT_EQUAL_UINT32(1000U, xy_os_kernel_get_tick_freq());

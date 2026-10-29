@@ -228,7 +228,10 @@ xy_os_status_t xy_os_kernel_get_info(xy_os_version_t *version, char *id_buf,
                                      uint32_t id_size)
 {
     if (version) {
-        version->api = (1 << 16);
+        /* Was the literal (1 << 16), which happens to be right today and would keep claiming API 1.0
+         * the moment XY_OSAL_VERSION_MINOR moved. The version this adapter speaks comes from the same
+         * macros every other backend reads. */
+        version->api = (XY_OSAL_VERSION_MAJOR << 16) | XY_OSAL_VERSION_MINOR;
         version->kernel =
             (tskKERNEL_VERSION_MAJOR << 16) | (tskKERNEL_VERSION_MINOR << 8);
     }

@@ -162,6 +162,30 @@ class UnreadParameterTests(unittest.TestCase):
         self.assertEqual([], guard.unread_parameter_findings(source, "bm", sites))
 
 
+class ApiVersionTests(unittest.TestCase):
+    """The api field says which contract this backend speaks, not a number typed into it."""
+
+    def test_a_literal_is_named(self):
+        source = "xy_os_status_t xy_os_kernel_get_info(void)\n{\n    version->api = (1 << 16);\n}\n"
+        problems = guard.api_version_findings(source, "fr", {})
+        self.assertEqual(1, len(problems))
+        self.assertIn("not this adapter's version", problems[0])
+
+    def test_the_adapters_macros_pass(self):
+        source = ("xy_os_status_t xy_os_kernel_get_info(void)\n{\n"
+                  "    version->api = (XY_OSAL_VERSION_MAJOR << 16) | XY_OSAL_VERSION_MINOR;\n}\n")
+        self.assertEqual([], guard.api_version_findings(source, "fr", {}))
+
+    def test_a_vendor_query_passes(self):
+        source = "xy_os_status_t xy_os_kernel_get_info(void)\n{\n    version->api = osKernelGetVersion().api;\n}\n"
+        self.assertEqual([], guard.api_version_findings(source, "cm", {}))
+
+    def test_a_pinned_backend_is_accepted(self):
+        source = "xy_os_status_t xy_os_kernel_get_info(void)\n{\n    version->api = 0x20000;\n}\n"
+        sites = {("rt", "version->api"): "unreachable from every build"}
+        self.assertEqual([], guard.api_version_findings(source, "rt", sites))
+
+
 class RealTreeTests(unittest.TestCase):
     def test_the_walk_reaches_the_backends(self):
         found = list(guard.BACKENDS.glob("*/xy_os_*.c"))

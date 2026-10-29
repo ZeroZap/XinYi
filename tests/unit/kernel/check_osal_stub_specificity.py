@@ -45,6 +45,11 @@ BARE_CONST_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\
 #: thread whatever id they were given.
 VALUE_RETURNING = re.compile(r"^([A-Za-z_][\w \t\*]*?)\b(\w+)\s*\(([^;{]*)\)\s*$", re.M)
 
+#: version->api is the version of this adapter's contract, so it has to come from the adapter's own
+#: macros (or from a vendor query when the backend delegates). A literal drifts the moment the contract
+#: moves, and one backend reported 2.0 there - its own kernel's version in the wrong field.
+API_VERSION_LINE = re.compile(r"version\s*->\s*api\s*=([^;]*);")
+
 VENDOR_CALL = re.compile(r"\b(?:x[A-Z]\w+|os[A-Z]\w+|rt_\w+|vTask\w+|HAL_\w+)")
 LOCAL_IF = re.compile(r"\bif\s*\(([^)]*)\)")
 BARE_RETURN = re.compile(r"return\s+XY_OS_ERROR\s*;")
@@ -80,6 +85,11 @@ BARE_CONST_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\
 #: asked a question about its argument and did not look. Three thread queries answered about the main
 #: thread whatever id they were given.
 VALUE_RETURNING = re.compile(r"^([A-Za-z_][\w \t\*]*?)\b(\w+)\s*\(([^;{]*)\)\s*$", re.M)
+
+#: version->api is the version of this adapter's contract, so it has to come from the adapter's own
+#: macros (or from a vendor query when the backend delegates). A literal drifts the moment the contract
+#: moves, and one backend reported 2.0 there - its own kernel's version in the wrong field.
+API_VERSION_LINE = re.compile(r"version\s*->\s*api\s*=([^;]*);")
 
 VENDOR_CALL = re.compile(r"\b(?:x[A-Z]\w+|os[A-Z]\w+|rt_\w+|vTask\w+|HAL_\w+)")
 LOCAL_IF = re.compile(r"\bif\s*\(([^)]*)\)")
@@ -121,6 +131,14 @@ PINNED_UNREAD_PARAMETERS = {
         "header says so",
     ("baremetal", "xy_os_thread_get_stack_space"):
         "same: nothing to measure per thread, so 0 = unknown for any id",
+}
+
+#: Backends whose api version cannot be corrected by compiling them here.
+PINNED_API_VERSIONS = {
+    ("rtthread", "version->api"):
+        "unreachable from every build in this tree, so an edit would be unverifiable; it reports 0x20000 "
+        "(RT-Thread 2.0) in the field meant for the adapter's API version while already putting RT_VERSION "
+        "in version->kernel - the fix is the same XY_OSAL_VERSION_ expression the others use",
 }
 
 #: Individual sites inside a backend that is compiled, where the unspecified answer is still right.
@@ -183,6 +201,23 @@ def false_success_findings(source: str, name: str) -> list[str]:
                 f"{name}:{match.group(1)}: answers 0 whatever the input is. Zero is what a working "
                 f"backend returns when no flags are set, so callers cannot tell this from success; "
                 f"return XY_OS_THREAD_FLAGS_ERROR")
+    return problems
+
+
+def api_version_findings(source: str, name: str,
+                         sites: dict[tuple[str, str], str] | None = None) -> list[str]:
+    """The reported API version must be the adapter's, not a number typed into the backend."""
+    sites = PINNED_API_VERSIONS if sites is None else sites
+    problems: list[str] = []
+    for line in API_VERSION_LINE.finditer(source):
+        expression = line.group(1)
+        if "XY_OSAL_VERSION_" in expression or re.search(r"\b\w*[Gg]etVersion\s*\(", expression):
+            continue
+        if (name, "version->api") in sites:
+            continue
+        problems.append(
+            f"{name}:version->api: assigned {expression.strip()!r}, which is not this adapter's version - "
+            f"use XY_OSAL_VERSION_*, or take a pin with the reason")
     return problems
 
 
@@ -253,6 +288,7 @@ def findings(backend_dir: Path = BACKENDS) -> list[str]:
         problems.extend(false_success_findings(source, path.parent.name))
         problems.extend(constant_query_findings(source, path.parent.name))
         problems.extend(unread_parameter_findings(source, path.parent.name))
+        problems.extend(api_version_findings(source, path.parent.name))
     if not inspected:
         problems.append("no function definitions were found - the walk is broken")
     return problems
@@ -269,7 +305,7 @@ def main() -> int:
         return 1
     print(f"osal_stub_specificity ok ({inspected} definitions across "
           f"{len(list(BACKENDS.glob('*/xy_os_*.c')))} backends, "
-          f"none a bare unspecified return, no unpinned local rejection, no false flag success, no constant-only query, no value query ignoring its argument)")
+          f"none a bare unspecified return, no unpinned local rejection, no false flag success, no constant-only query, no value query ignoring its argument, no invented api version)")
     return 0
 
 
