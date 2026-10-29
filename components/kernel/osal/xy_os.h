@@ -436,6 +436,17 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options,
  */
 #define XY_OS_THREAD_FLAGS_ERROR 0x80000000U ///< Returned instead of a flag word when the call fails
 
+/* The event-group entries return a flag word for the same reason and carry the same reserved bit, and
+ * a mask may not contain it: otherwise a caller can store the error answer as a flag and xy_os_event_
+ * flags_get will report a failure that never happened - or hide a real one under a "flag". */
+#define XY_OS_EVENT_FLAGS_ERROR 0x80000000U ///< Returned instead of a flag word when the call fails
+#define XY_OS_EVENT_FLAGS_RESERVED 0xFF000000U ///< Bits no caller mask may use
+
+/* The whole top byte, not just bit 31: FreeRTOS keeps its control bits (clear-on-exit, unblocked-
+ * during-wait, wait-for-all) in that byte and refuses any mask touching it, and the error answer lives
+ * there too. The bare-metal backend used to reserve only bit 31, so a mask of 0x01000000 was stored as
+ * a flag here and refused on FreeRTOS. The narrower reservation was the wrong one. */
+
 /* Thread flags options */
 #define XY_OS_FLAGS_WAIT_ANY 0x00000000U ///< Wait for any flag (default)
 #define XY_OS_FLAGS_WAIT_ALL 0x00000001U ///< Wait for all flags

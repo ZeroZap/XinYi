@@ -91,7 +91,7 @@ def main() -> int:
     event_flags_clear = source.split("uint32_t xy_os_event_flags_clear", 1)[-1].split(
         "uint32_t xy_os_event_flags_get", 1
     )[0]
-    if "return 0x80000000U;" not in event_flags_clear:
+    if "return XY_OS_EVENT_FLAGS_ERROR;" not in event_flags_clear:
         errors.append(
             "FreeRTOS event-flags clear must fail closed for a NULL or invalid handle "
             "instead of reporting an empty previous value"
@@ -102,7 +102,7 @@ def main() -> int:
     )[0]
     for required in (
         "flags == 0U",
-        "flags & 0xFF000000U",
+        "flags & XY_OS_EVENT_FLAGS_RESERVED",
         "options & ~(XY_OS_FLAGS_WAIT_ALL | XY_OS_FLAGS_NO_CLEAR)",
     ):
         if required not in event_helper:
@@ -118,7 +118,7 @@ def main() -> int:
         "!freertos_event_flags_args_valid(flags, options)",
         "(bits & flags) != flags",
         "(bits & flags) == 0U",
-        "return 0x80000000U;",
+        "return XY_OS_EVENT_FLAGS_ERROR;",
     ):
         if required not in event_wait:
             errors.append(
@@ -341,7 +341,7 @@ def main() -> int:
     event_flags_get = source.split("uint32_t xy_os_event_flags_get", 1)[-1].split(
         "uint32_t xy_os_event_flags_wait", 1
     )[0]
-    if "!ef_id || !freertos_find_event_flags_context" not in event_flags_get or "return 0x80000000U;" not in event_flags_get:
+    if "!ef_id || !freertos_find_event_flags_context" not in event_flags_get or "return XY_OS_EVENT_FLAGS_ERROR;" not in event_flags_get:
         errors.append("FreeRTOS event-flags get must fail closed for a NULL handle")
 
     event_flags_delete = source.split("xy_os_status_t xy_os_event_flags_delete", 1)[-1]

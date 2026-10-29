@@ -261,6 +261,39 @@ static void test_semaphore_max_count(void)
 
 /* ========== Event Flags ========== */
 
+/* Bit 31 is the error answer for this whole family of calls, and this backend did not reserve it: a
+ * caller could set 0x80000000 as an ordinary flag, after which xy_os_event_flags_get returned exactly
+ * the value that means "the call failed". The error could be forged, and a real error could be read as
+ * a flag. FreeRTOS rejects masks containing that bit and rejects an empty mask; this backend accepted
+ * both, so the same call was refused on one backend and silently stored on the other. */
+static void test_event_flags_reserve_the_error_bit_and_refuse_empty_masks(void)
+{
+    xy_os_event_flags_id_t ef = xy_os_event_flags_new(NULL);
+    TEST_ASSERT_NOT_NULL(ef);
+
+    /* The reserved bit cannot be stored, so get() can never return the error answer by accident. */
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR,
+                             xy_os_event_flags_set(ef, XY_OS_EVENT_FLAGS_ERROR));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_os_event_flags_get(ef));
+    TEST_ASSERT_NOT_EQUAL(XY_OS_EVENT_FLAGS_ERROR, xy_os_event_flags_get(ef));
+
+    /* A mask of zero asks to set/clear nothing, which is not a request. */
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR, xy_os_event_flags_set(ef, 0U));
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR, xy_os_event_flags_clear(ef, 0U));
+
+    /* The reserved range is the whole top byte, as on FreeRTOS, not just the error bit: those bits are
+     * FreeRTOS control bits, and a mask of 0x01000000 was accepted here and refused there. */
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR, xy_os_event_flags_set(ef, 0x01000000U));
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR, xy_os_event_flags_set(ef, 0xFF000000U));
+
+    /* A legal mask still works, and mixing in the reserved range does not sneak it past. */
+    TEST_ASSERT_EQUAL_UINT32(0x00000005U, xy_os_event_flags_set(ef, 0x00000005U));
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR,
+                             xy_os_event_flags_set(ef, 0x0000000AU | XY_OS_EVENT_FLAGS_ERROR));
+    TEST_ASSERT_EQUAL_UINT32(0x00000005U, xy_os_event_flags_get(ef));
+    xy_os_event_flags_delete(ef);
+}
+
 static void test_event_flags_set_get(void)
 {
     xy_os_event_flags_id_t ef = xy_os_event_flags_new(NULL);
@@ -600,6 +633,7 @@ int main(void)
     RUN_TEST(test_semaphore_max_count);
 
     /* Event Flags */
+    RUN_TEST(test_event_flags_reserve_the_error_bit_and_refuse_empty_masks);
     RUN_TEST(test_event_flags_set_get);
     RUN_TEST(test_event_flags_wait_any);
     RUN_TEST(test_event_flags_wait_all);

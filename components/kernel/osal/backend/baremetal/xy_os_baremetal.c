@@ -670,10 +670,19 @@ const char *xy_os_event_flags_get_name(xy_os_event_flags_id_t ef_id)
     return (e && e->magic == BM_EVENT_MAGIC) ? e->name : NULL;
 }
 
+/* Masks are validated the way the FreeRTOS backend validates them: bit 31 of the word is the error
+ * answer, so no caller mask may contain it - otherwise the error could be stored as a flag and read
+ * back as one - and an empty mask asks for nothing, which is not a request. */
+static int bm_event_mask_valid(uint32_t flags)
+{
+    return flags != 0U && (flags & XY_OS_EVENT_FLAGS_RESERVED) == 0U;
+}
+
 uint32_t xy_os_event_flags_set(xy_os_event_flags_id_t ef_id, uint32_t flags)
 {
     bm_event_t *e = (bm_event_t *)ef_id;
-    if (!e || e->magic != BM_EVENT_MAGIC) return 0x80000000u;
+    if (!e || e->magic != BM_EVENT_MAGIC) return XY_OS_EVENT_FLAGS_ERROR;
+    if (!bm_event_mask_valid(flags)) return XY_OS_EVENT_FLAGS_ERROR;
     uint32_t irq = bm_enter_critical();
     e->flags |= flags;
     uint32_t result = e->flags;
@@ -684,7 +693,8 @@ uint32_t xy_os_event_flags_set(xy_os_event_flags_id_t ef_id, uint32_t flags)
 uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 {
     bm_event_t *e = (bm_event_t *)ef_id;
-    if (!e || e->magic != BM_EVENT_MAGIC) return 0x80000000u;
+    if (!e || e->magic != BM_EVENT_MAGIC) return XY_OS_EVENT_FLAGS_ERROR;
+    if (!bm_event_mask_valid(flags)) return XY_OS_EVENT_FLAGS_ERROR;
     uint32_t irq = bm_enter_critical();
     uint32_t prev = e->flags;
     e->flags &= ~flags;
@@ -695,7 +705,7 @@ uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)
 {
     bm_event_t *e = (bm_event_t *)ef_id;
-    if (!e || e->magic != BM_EVENT_MAGIC) return 0x80000000u;
+    if (!e || e->magic != BM_EVENT_MAGIC) return XY_OS_EVENT_FLAGS_ERROR;
     uint32_t irq = bm_enter_critical();
     uint32_t f = e->flags;
     bm_exit_critical(irq);
@@ -706,7 +716,11 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
                                 uint32_t options, uint32_t timeout)
 {
     bm_event_t *e = (bm_event_t *)ef_id;
-    if (!e || e->magic != BM_EVENT_MAGIC) return 0x80000000u;
+    if (!e || e->magic != BM_EVENT_MAGIC) return XY_OS_EVENT_FLAGS_ERROR;
+    /* Waiting for no flag would return for ever or immediately, depending on the option; waiting for
+     * the reserved bit would wait for something no mask can set. Both are refused, as on FreeRTOS. */
+    if (!bm_event_mask_valid(flags)) return XY_OS_EVENT_FLAGS_ERROR;
+    if (options & ~(XY_OS_FLAGS_WAIT_ALL | XY_OS_FLAGS_NO_CLEAR)) return XY_OS_EVENT_FLAGS_ERROR;
 
     uint32_t deadline = (timeout == XY_OS_WAIT_FOREVER)
                         ? 0xFFFFFFFFu
