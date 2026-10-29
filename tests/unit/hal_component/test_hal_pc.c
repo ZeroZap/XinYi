@@ -147,6 +147,42 @@ static void test_uart_i2c_spi_pc_smoke(void)
 {
     uint8_t tx[4] = {1, 2, 3, 4};
     uint8_t rx[4] = {0xff, 0xff, 0xff, 0xff};
+    xy_hal_uart_config_t uart_cfg = {
+        .baudrate = 115200U,
+        .wordlen = XY_HAL_UART_WORDLEN_8B,
+        .stopbits = XY_HAL_UART_STOPBITS_1,
+        .parity = XY_HAL_UART_PARITY_NONE,
+        .flowctrl = XY_HAL_UART_FLOWCTRL_NONE,
+        .mode = XY_HAL_UART_MODE_TX_RX,
+    };
+    xy_hal_i2c_config_t i2c_cfg = {
+        .clock_speed = 100000U,
+        .addr_mode = XY_HAL_I2C_ADDR_7BIT,
+        .duty_cycle = XY_HAL_I2C_DUTY_2,
+        .own_address = 0U,
+        .general_call_mode = 0U,
+    };
+    xy_hal_spi_config_t spi_cfg = {
+        .mode = XY_HAL_SPI_MODE_0,
+        .direction = XY_HAL_SPI_DIR_2LINES,
+        .datasize = XY_HAL_SPI_DATASIZE_8BIT,
+        .firstbit = XY_HAL_SPI_FIRSTBIT_MSB,
+        .nss = XY_HAL_SPI_NSS_SOFT,
+        .baudrate_prescaler = 2U,
+        .is_master = 1U,
+    };
+
+    /* A transfer before init used to "work"; it is the one answer a board would never give. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_uart_send((void *)1, tx, sizeof(tx), 10));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT,
+                      xy_hal_i2c_master_transmit((void *)1, 0x50, tx, sizeof(tx), 10));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT,
+                      xy_hal_spi_transmit((void *)1, tx, sizeof(tx), 10));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_uart_init((void *)1, &uart_cfg));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_i2c_init((void *)1, &i2c_cfg));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_spi_init((void *)1, &spi_cfg));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_ALREADY_INIT, xy_hal_uart_init((void *)1, &uart_cfg));
 
     TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_uart_send((void *)1, tx, sizeof(tx), 10));
     TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_uart_recv((void *)1, rx, sizeof(rx), 10));
@@ -165,9 +201,90 @@ static void test_uart_i2c_spi_pc_smoke(void)
     TEST_ASSERT_EQUAL_UINT8(0, rx[0]);
     TEST_ASSERT_EQUAL_UINT8(0, rx[3]);
     memset(rx, 0xff, sizeof(rx));
-    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_spi_transmit_receive((void *)1, tx, rx, sizeof(rx), 10));
+    TEST_ASSERT_EQUAL(XY_HAL_OK,
+                      xy_hal_spi_transmit_receive((void *)1, tx, rx, sizeof(rx), 10));
     TEST_ASSERT_EQUAL_UINT8(0, rx[0]);
     TEST_ASSERT_EQUAL_UINT8(0, rx[3]);
+
+    /* Deinit puts the port back where it started, and the transfer says so. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_uart_deinit((void *)1));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_uart_send((void *)1, tx, sizeof(tx), 10));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_uart_deinit((void *)1));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_i2c_deinit((void *)1));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_spi_deinit((void *)1));
+}
+
+static void test_uart_i2c_spi_pc_refuses_bad_input(void)
+{
+    uint8_t tx[4] = {1, 2, 3, 4};
+    uint8_t rx[4] = {0};
+    xy_hal_uart_config_t uart_cfg = {
+        .baudrate = 115200U,
+        .wordlen = XY_HAL_UART_WORDLEN_8B,
+        .stopbits = XY_HAL_UART_STOPBITS_1,
+        .parity = XY_HAL_UART_PARITY_NONE,
+        .flowctrl = XY_HAL_UART_FLOWCTRL_NONE,
+        .mode = XY_HAL_UART_MODE_TX_RX,
+    };
+    xy_hal_i2c_config_t i2c_cfg = {
+        .clock_speed = 100000U,
+        .addr_mode = XY_HAL_I2C_ADDR_7BIT,
+        .duty_cycle = XY_HAL_I2C_DUTY_2,
+        .own_address = 0U,
+        .general_call_mode = 0U,
+    };
+    xy_hal_spi_config_t spi_cfg = {
+        .mode = XY_HAL_SPI_MODE_0,
+        .direction = XY_HAL_SPI_DIR_2LINES,
+        .datasize = XY_HAL_SPI_DATASIZE_8BIT,
+        .firstbit = XY_HAL_SPI_FIRSTBIT_MSB,
+        .nss = XY_HAL_SPI_NSS_SOFT,
+        .baudrate_prescaler = 2U,
+        .is_master = 1U,
+    };
+    xy_hal_uart_config_t bad_uart = uart_cfg;
+    xy_hal_spi_config_t wide_spi = spi_cfg;
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_uart_init((void *)2, &uart_cfg));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_i2c_init((void *)2, &i2c_cfg));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_spi_init((void *)2, &spi_cfg));
+
+    /* Zero length is not a transfer. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_uart_send((void *)2, tx, 0U, 10));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_uart_recv((void *)2, rx, 0U, 10));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_i2c_master_transmit((void *)2, 0x50, tx, 0U, 10));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_spi_transmit((void *)2, tx, 0U, 10));
+
+    /* I2C addresses are 7-bit and unshifted. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_i2c_master_transmit((void *)2, 0xA0U, tx, sizeof(tx), 10));
+
+    /* A null buffer with a real length is a caller bug, not a no-op. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_uart_send((void *)2, NULL, sizeof(tx), 10));
+
+    /* 10-bit addressing is declared and implemented nowhere; the host backend must agree. */
+    {
+        xy_hal_i2c_config_t ten_bit = i2c_cfg;
+        ten_bit.addr_mode = XY_HAL_I2C_ADDR_10BIT;
+        TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED, xy_hal_i2c_init((void *)3, &ten_bit));
+    }
+
+    /* An enum outside its range is refused rather than defaulted to something else. */
+    bad_uart.parity = (xy_hal_uart_parity_t)0x7F;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_uart_init((void *)4, &bad_uart));
+
+    /* On a 16-bit bus `len` is bytes and the count must be whole frames. */
+    wide_spi.datasize = XY_HAL_SPI_DATASIZE_16BIT;
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_spi_init((void *)5, &wide_spi));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_spi_transmit((void *)5, tx, 3U, 10));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_spi_transmit((void *)5, tx, 4U, 10));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_uart_deinit((void *)2));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_i2c_deinit((void *)2));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_spi_deinit((void *)2));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_spi_deinit((void *)5));
 }
 
 static void test_rtc_backup_register_pc_contract(void)
@@ -206,6 +323,7 @@ int main(void)
     RUN_TEST(test_gpio_pc_config_state_and_batch);
     RUN_TEST(test_gpio_pc_irq_and_extended_helpers);
     RUN_TEST(test_uart_i2c_spi_pc_smoke);
+    RUN_TEST(test_uart_i2c_spi_pc_refuses_bad_input);
     RUN_TEST(test_rtc_backup_register_pc_contract);
     RUN_TEST(test_sys_irq_control_pc_contract);
     return UNITY_END();

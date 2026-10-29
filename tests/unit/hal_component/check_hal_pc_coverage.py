@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Which public HAL entries the PC backend has, pinned.
 
-The PC backend is what host tests and any simulator run against, and it defines 56 of the 308 entries
-the public headers declare. That is not a defect by itself - a host backend has no reason to
-implement a UART's flow control or a cache maintenance call - but it means a host test says something
-about the eighteen percent it touches and nothing about the rest, and until now nothing recorded
-which eighteen.
+The PC backend is what host tests and any simulator run against, and it defines a fraction of the
+entries the public headers declare - the count is printed on every run rather than quoted here, so it
+cannot go stale. That is not a defect by itself: a host backend has no reason to implement a UART's
+flow control or a cache maintenance call. It does mean a host test says something about the part it
+touches and nothing about the rest, and until this guard existed nothing recorded which part that
+was.
 
 So this guard pins the exact set of entries the PC backend does not define. It fails when a family
 gains a newly missing entry, and it fails when an entry has been implemented until the pin is
@@ -85,9 +86,8 @@ PC_MISSING = {
         "xy_hal_gpio_irq_handler",
     },
     "i2c": {
-        "xy_hal_i2c_deinit", "xy_hal_i2c_error", "xy_hal_i2c_init",
-        "xy_hal_i2c_is_device_ready", "xy_hal_i2c_master_receive_dma", "xy_hal_i2c_master_transmit_dma",
-        "xy_hal_i2c_register_callback",
+        "xy_hal_i2c_error", "xy_hal_i2c_is_device_ready", "xy_hal_i2c_master_receive_dma",
+        "xy_hal_i2c_master_transmit_dma", "xy_hal_i2c_register_callback",
     },
     "pwm": {
         "xy_hal_pwm_check_fault", "xy_hal_pwm_clear_fault", "xy_hal_pwm_compare_to_duty",
@@ -116,9 +116,8 @@ PC_MISSING = {
         "xy_hal_rtc_set_timestamp",
     },
     "spi": {
-        "xy_hal_spi_deinit", "xy_hal_spi_error", "xy_hal_spi_init",
-        "xy_hal_spi_receive_dma", "xy_hal_spi_register_callback", "xy_hal_spi_set_cs",
-        "xy_hal_spi_transmit_dma", "xy_hal_spi_transmit_receive_dma",
+        "xy_hal_spi_error", "xy_hal_spi_receive_dma", "xy_hal_spi_register_callback",
+        "xy_hal_spi_set_cs", "xy_hal_spi_transmit_dma", "xy_hal_spi_transmit_receive_dma",
     },
     "sys": {
         "xy_hal_sys_clear_irq_flag", "xy_hal_sys_clear_reset_reason", "xy_hal_sys_config_clk_domain",
@@ -156,10 +155,10 @@ PC_MISSING = {
         "xy_hal_timer_stop",
     },
     "uart": {
-        "xy_hal_uart_available", "xy_hal_uart_deinit", "xy_hal_uart_enable_rx_irq",
-        "xy_hal_uart_error", "xy_hal_uart_flush", "xy_hal_uart_init",
-        "xy_hal_uart_irq_handler", "xy_hal_uart_recv_dma", "xy_hal_uart_register_callback",
-        "xy_hal_uart_rx_byte", "xy_hal_uart_send_dma", "xy_hal_uart_set_error_cb",
+        "xy_hal_uart_available", "xy_hal_uart_enable_rx_irq", "xy_hal_uart_error",
+        "xy_hal_uart_flush", "xy_hal_uart_irq_handler", "xy_hal_uart_recv_dma",
+        "xy_hal_uart_register_callback", "xy_hal_uart_rx_byte", "xy_hal_uart_send_dma",
+        "xy_hal_uart_set_error_cb",
     },
 }
 

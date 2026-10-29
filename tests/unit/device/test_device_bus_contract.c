@@ -15,6 +15,8 @@
  */
 
 #include <string.h>
+#include "xy_hal_spi.h"
+#include "xy_hal_uart.h"
 
 #include "unity.h"
 #include "xy_device.h"
@@ -40,7 +42,25 @@ uint32_t xy_os_tick_get(void) {
     return 0U;
 }
 
-void setUp(void) {}
+/*
+ * The PC HAL enforces its contract now: a transfer on a bus that was never opened returns NOT_INIT.
+ * This suite drives the device layer through that backend for both SPI and UART, so both are opened
+ * on the fake handle here - before this, every transfer "succeeded" with nothing initialised.
+ */
+void setUp(void) {
+    static const xy_hal_spi_config_t spi_cfg = {
+        .mode = XY_HAL_SPI_MODE_0, .direction = XY_HAL_SPI_DIR_2LINES,
+        .datasize = XY_HAL_SPI_DATASIZE_8BIT, .firstbit = XY_HAL_SPI_FIRSTBIT_MSB,
+        .nss = XY_HAL_SPI_NSS_SOFT, .baudrate_prescaler = 2U, .is_master = 1U,
+    };
+    static const xy_hal_uart_config_t uart_cfg = {
+        .baudrate = 115200U, .wordlen = XY_HAL_UART_WORDLEN_8B,
+        .stopbits = XY_HAL_UART_STOPBITS_1, .parity = XY_HAL_UART_PARITY_NONE,
+        .flowctrl = XY_HAL_UART_FLOWCTRL_NONE, .mode = XY_HAL_UART_MODE_TX_RX,
+    };
+    (void)xy_hal_spi_init(&g_fake_bus, &spi_cfg);
+    (void)xy_hal_uart_init(&g_fake_bus, &uart_cfg);
+}
 
 void tearDown(void) {}
 

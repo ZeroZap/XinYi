@@ -7,21 +7,36 @@
  */
 
 #include <string.h>
+#include "xy_hal_i2c.h"
+#include "xy_hal_uart.h"
+#include "xy_hal_spi.h"
 
 #include "unity.h"
 #include "xy_device.h"
 #include "xy_device_core.h"
 
+/*
+ * The PC HAL enforces its contract now: a transfer on a bus that was never opened returns NOT_INIT.
+ * These tests drive the device layer through that backend, so the bus is opened here the way a board
+ * would open it - before this, every transfer "succeeded" without anything having been initialised.
+ */
+static int g_fake_i2c_bus = 1;
+
 void setUp(void)
 {
+    static const xy_hal_i2c_config_t i2c_cfg = {
+        .clock_speed = 100000U, .addr_mode = XY_HAL_I2C_ADDR_7BIT,
+        .duty_cycle = XY_HAL_I2C_DUTY_2, .own_address = 0U, .general_call_mode = 0U,
+    };
+    (void)xy_hal_i2c_init(&g_fake_i2c_bus, &i2c_cfg);
 }
+
 
 void tearDown(void)
 {
 }
 
 /* A non-NULL placeholder bus handle for the PC-stub I2C HAL. */
-static int g_fake_i2c_bus = 1;
 static int g_pm_callback_result;
 
 static int capture_pm_event(xy_device_t *dev, xy_device_pm_event_t event, void *user_data)
