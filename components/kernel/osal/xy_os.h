@@ -294,8 +294,10 @@ xy_os_thread_id_t xy_os_thread_get_id(void);
 
 /**
  * @brief Get current state of a thread
- * @param[in] thread_id Thread ID
- * @return Thread state
+ * @param[in] thread_id Thread ID of the thread being asked about
+ * @return Its state, or XY_OS_THREAD_ERROR for an id that is not a thread this backend knows. The
+ *         bare-metal backend used to answer RUNNING for every id, so a caller inspecting a thread it
+ *         had already lost was told it was running
  */
 xy_os_thread_state_t xy_os_thread_get_state(xy_os_thread_id_t thread_id);
 
@@ -324,8 +326,8 @@ xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
 
 /**
  * @brief Get current priority of a thread
- * @param[in] thread_id Thread ID
- * @return Priority value
+ * @param[in] thread_id Thread ID of the thread being asked about
+ * @return Its priority, or XY_OS_PRIORITY_ERROR for an id that is not a thread this backend knows
  */
 xy_os_priority_t xy_os_thread_get_priority(xy_os_thread_id_t thread_id);
 

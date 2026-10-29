@@ -297,9 +297,13 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t f, void *arg,
 {
     return NULL;
 }
+/* All three queries below answered the same thing for every argument, so asking about a thread that
+ * does not exist returned the facts about the main one. Here there is exactly one context, which makes
+ * the real answer cheap to give: this id, or nothing. NULL means "the current thread" for the name. */
 const char *xy_os_thread_get_name(xy_os_thread_id_t id)
 {
-    return "main";
+    if (id == NULL || id == xy_os_thread_get_id()) return "main";
+    return NULL;
 }
 xy_os_thread_id_t xy_os_thread_get_id(void)
 {
@@ -307,7 +311,7 @@ xy_os_thread_id_t xy_os_thread_get_id(void)
 }
 xy_os_thread_state_t xy_os_thread_get_state(xy_os_thread_id_t id)
 {
-    return XY_OS_THREAD_RUNNING;
+    return (id == xy_os_thread_get_id()) ? XY_OS_THREAD_RUNNING : XY_OS_THREAD_ERROR;
 }
 uint32_t xy_os_thread_get_stack_size(xy_os_thread_id_t id)
 {
@@ -328,7 +332,7 @@ xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t id,
 }
 xy_os_priority_t xy_os_thread_get_priority(xy_os_thread_id_t id)
 {
-    return XY_OS_PRIORITY_NORMAL;
+    return (id == xy_os_thread_get_id()) ? XY_OS_PRIORITY_NORMAL : XY_OS_PRIORITY_ERROR;
 }
 xy_os_status_t xy_os_thread_yield(void)
 {

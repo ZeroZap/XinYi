@@ -39,6 +39,12 @@ BARE_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$"
 BARE_NULL = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+NULL\s*;\s*\}$")
 BARE_CONST_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$")
 
+#: A function returning a status may refuse an argument without reading it - "this backend cannot do
+#: this, whatever you passed" is a real answer. A function returning a value has no such excuse: it was
+#: asked a question about its argument and did not look. Three thread queries answered about the main
+#: thread whatever id they were given.
+VALUE_RETURNING = re.compile(r"^([A-Za-z_][\w \t\*]*?)\b(\w+)\s*\(([^;{]*)\)\s*$", re.M)
+
 VENDOR_CALL = re.compile(r"\b(?:x[A-Z]\w+|os[A-Z]\w+|rt_\w+|vTask\w+|HAL_\w+)")
 LOCAL_IF = re.compile(r"\bif\s*\(([^)]*)\)")
 BARE_RETURN = re.compile(r"return\s+XY_OS_ERROR\s*;")
@@ -69,6 +75,12 @@ BARE_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$"
 BARE_NULL = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+NULL\s*;\s*\}$")
 BARE_CONST_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$")
 
+#: A function returning a status may refuse an argument without reading it - "this backend cannot do
+#: this, whatever you passed" is a real answer. A function returning a value has no such excuse: it was
+#: asked a question about its argument and did not look. Three thread queries answered about the main
+#: thread whatever id they were given.
+VALUE_RETURNING = re.compile(r"^([A-Za-z_][\w \t\*]*?)\b(\w+)\s*\(([^;{]*)\)\s*$", re.M)
+
 VENDOR_CALL = re.compile(r"\b(?:x[A-Z]\w+|os[A-Z]\w+|rt_\w+|vTask\w+|HAL_\w+)")
 LOCAL_IF = re.compile(r"\bif\s*\(([^)]*)\)")
 BARE_RETURN = re.compile(r"return\s+XY_OS_ERROR\s*;")
@@ -97,6 +109,18 @@ PINNED_CONSTANT_QUERIES = {
         "deliberate: enumerating kernel-global handles would publish tasks this adapter never made, and "
         "NULL placeholders for the ones it cannot resolve",
     ("cmsis_rtx", "xy_os_thread_get_count"): "backend compiled by no target in this build",
+}
+
+#: Value-returning functions that legitimately ignore an argument.
+PINNED_UNREAD_PARAMETERS = {
+    ("baremetal", "xy_os_thread_new"):
+        "returns NULL because there is no scheduler to create a thread on; the work function and its "
+        "argument are not merely ignored, they can never run",
+    ("baremetal", "xy_os_thread_get_stack_size"):
+        "no per-thread stacks exist here, so the id cannot change the answer - 0 means unknown and the "
+        "header says so",
+    ("baremetal", "xy_os_thread_get_stack_space"):
+        "same: nothing to measure per thread, so 0 = unknown for any id",
 }
 
 #: Individual sites inside a backend that is compiled, where the unspecified answer is still right.
@@ -162,6 +186,29 @@ def false_success_findings(source: str, name: str) -> list[str]:
     return problems
 
 
+def unread_parameter_findings(source: str, name: str,
+                              sites: dict[tuple[str, str], str] | None = None) -> list[str]:
+    """A value-returning function that never reads one of its parameters answers about something else."""
+    sites = PINNED_UNREAD_PARAMETERS if sites is None else sites
+    problems: list[str] = []
+    for match in VALUE_RETURNING.finditer(source):
+        return_type, function, params = match.group(1).strip(), match.group(2), match.group(3)
+        if not function.startswith("xy_os_") or "xy_os_status_t" in return_type:
+            continue
+        body = braced_body(source[match.end():])
+        if not body:
+            continue
+        names = [part.strip().split()[-1].lstrip("*")
+                 for part in params.split(",") if part.strip() and part.strip() != "void"]
+        unread = [n for n in names if n and not re.search(r"\b%s\b" % re.escape(n), body)]
+        if not unread or (name, function) in sites:
+            continue
+        problems.append(
+            f"{name}:{function}: returns a value without reading {', '.join(unread)} - the answer cannot "
+            f"depend on what the caller asked about; answer about the argument or take a pin")
+    return problems
+
+
 def constant_query_findings(source: str, name: str,
                             sites: dict[tuple[str, str], str] | None = None) -> list[str]:
     """A query whose whole body is a constant answer cannot be told from a working one."""
@@ -205,6 +252,7 @@ def findings(backend_dir: Path = BACKENDS) -> list[str]:
         problems.extend(local_check_findings(source, path.parent.name))
         problems.extend(false_success_findings(source, path.parent.name))
         problems.extend(constant_query_findings(source, path.parent.name))
+        problems.extend(unread_parameter_findings(source, path.parent.name))
     if not inspected:
         problems.append("no function definitions were found - the walk is broken")
     return problems
@@ -221,7 +269,7 @@ def main() -> int:
         return 1
     print(f"osal_stub_specificity ok ({inspected} definitions across "
           f"{len(list(BACKENDS.glob('*/xy_os_*.c')))} backends, "
-          f"none a bare unspecified return, no unpinned local rejection, no false flag success, no constant-only query)")
+          f"none a bare unspecified return, no unpinned local rejection, no false flag success, no constant-only query, no value query ignoring its argument)")
     return 0
 
 

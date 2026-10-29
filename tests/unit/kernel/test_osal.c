@@ -617,6 +617,28 @@ static void test_mempool_dimensions_that_overflow_are_refused(void)
 
 /* get_owner() was a stub that returned NULL whatever the state of the mutex, so a deadlock check or an
  * assertion built on it was told "nobody holds this" about a mutex that was held. Nothing tested it. */
+/* Three queries answered the same thing for every argument they were given: the state was RUNNING, the
+ * name was "main" and the priority was normal, even for an id that never existed. A caller asking about
+ * a thread that does not exist was told about the main one. The one context here is a real answer - for
+ * that id, and NULL means the current thread for get_name - so the tests pin both sides. */
+static void test_thread_queries_answer_about_the_id_they_were_given(void)
+{
+    const xy_os_thread_id_t current = xy_os_thread_get_id();
+    const xy_os_thread_id_t unknown = (void *)0x2;
+
+    TEST_ASSERT_EQUAL(XY_OS_THREAD_RUNNING, xy_os_thread_get_state(current));
+    TEST_ASSERT_EQUAL(XY_OS_THREAD_ERROR, xy_os_thread_get_state(unknown));
+    TEST_ASSERT_EQUAL(XY_OS_THREAD_ERROR, xy_os_thread_get_state(NULL));
+
+    TEST_ASSERT_EQUAL_STRING("main", xy_os_thread_get_name(current));
+    /* NULL is documented as "the current thread", so it must keep answering. */
+    TEST_ASSERT_EQUAL_STRING("main", xy_os_thread_get_name(NULL));
+    TEST_ASSERT_NULL(xy_os_thread_get_name(unknown));
+
+    TEST_ASSERT_EQUAL(XY_OS_PRIORITY_NORMAL, xy_os_thread_get_priority(current));
+    TEST_ASSERT_EQUAL(XY_OS_PRIORITY_ERROR, xy_os_thread_get_priority(unknown));
+}
+
 static void test_mutex_reports_its_owner(void)
 {
     xy_os_mutex_id_t m = xy_os_mutex_new(NULL);
@@ -799,6 +821,7 @@ int main(void)
     RUN_TEST(test_mempool_double_free_is_refused);
     RUN_TEST(test_mempool_blocks_are_pointer_aligned);
     RUN_TEST(test_mempool_dimensions_that_overflow_are_refused);
+    RUN_TEST(test_thread_queries_answer_about_the_id_they_were_given);
     RUN_TEST(test_mutex_reports_its_owner);
     RUN_TEST(test_mempool_alloc_free);
     RUN_TEST(test_mempool_exhaust);

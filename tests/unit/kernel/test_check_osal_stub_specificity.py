@@ -136,6 +136,32 @@ class ConstantQueryTests(unittest.TestCase):
         self.assertEqual([], guard.constant_query_findings(source, "bm", {}))
 
 
+class UnreadParameterTests(unittest.TestCase):
+    """A value-returning function that ignores its argument answers about something else."""
+
+    def test_a_query_ignoring_its_id_is_named(self):
+        source = ("xy_os_thread_state_t xy_os_thread_get_state(xy_os_thread_id_t id)\n{\n"
+                  "    return XY_OS_THREAD_RUNNING;\n}\n")
+        problems = guard.unread_parameter_findings(source, "bm", {})
+        self.assertEqual(1, len(problems))
+        self.assertIn("without reading id", problems[0])
+
+    def test_a_query_that_reads_its_id_passes(self):
+        source = ("xy_os_thread_state_t xy_os_thread_get_state(xy_os_thread_id_t id)\n{\n"
+                  "    return (id == xy_os_thread_get_id()) ? XY_OS_THREAD_RUNNING : XY_OS_THREAD_ERROR;\n}\n")
+        self.assertEqual([], guard.unread_parameter_findings(source, "bm", {}))
+
+    def test_a_status_function_may_refuse_without_reading(self):
+        source = ("xy_os_status_t xy_os_thread_suspend(xy_os_thread_id_t id)\n{\n"
+                  "    return XY_OS_ERROR_NOT_SUPPORTED;\n}\n")
+        self.assertEqual([], guard.unread_parameter_findings(source, "bm", {}))
+
+    def test_a_pinned_reason_is_accepted(self):
+        source = "uint32_t xy_os_thread_get_stack_size(xy_os_thread_id_t id)\n{\n    return 0;\n}\n"
+        sites = {("bm", "xy_os_thread_get_stack_size"): "no per-thread stacks"}
+        self.assertEqual([], guard.unread_parameter_findings(source, "bm", sites))
+
+
 class RealTreeTests(unittest.TestCase):
     def test_the_walk_reaches_the_backends(self):
         found = list(guard.BACKENDS.glob("*/xy_os_*.c"))
