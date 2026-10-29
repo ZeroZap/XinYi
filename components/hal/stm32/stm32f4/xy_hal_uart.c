@@ -277,6 +277,30 @@ xy_hal_error_t xy_hal_uart_recv_dma(void *uart, uint8_t *data, size_t len)
     return uart_status(HAL_UART_Receive_DMA((UART_HandleTypeDef *)uart, data, (uint16_t)len));
 }
 
+/*
+ * The receive interrupt is board-verified on WCH only. This wrapper does not claim
+ * it: CubeHAL dispatches reception through its own HAL_UART_*_Callback, so there is
+ * no vendor-free entry to route here yet. Saying "not supported" is the honest
+ * answer - returning OK and never firing would look like a working interrupt.
+ */
+xy_hal_error_t xy_hal_uart_enable_rx_irq(void *uart, int enable)
+{
+    (void)uart;
+    (void)enable;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
+}
+
+/*
+ * Nothing to deliver: on this platform the interrupt reaches CubeHAL directly, and
+ * the wrapper's callbacks are invoked from HAL_UART_*_Callback. Kept as a no-op so a
+ * caller written against the shared contract still links.
+ */
+void xy_hal_uart_irq_handler(void *uart)
+{
+    (void)uart;
+}
+
 xy_hal_error_t xy_hal_uart_register_callback(void *uart, xy_hal_uart_callback_t callback,
                                              void *arg)
 {

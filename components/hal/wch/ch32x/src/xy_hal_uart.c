@@ -14,6 +14,14 @@ static uint8_t uart_initialized[8];
 static xy_hal_uart_callback_t error_callbacks[8];
 static void* error_callback_args[8];
 
+/* USART1..UART8 have their own interrupt vectors on this part; the index mirrors
+   the order uart_index() uses. */
+static IRQn_Type uart_irq_channel(int index) {
+    static const IRQn_Type channels[8] = {USART1_IRQn, USART2_IRQn, USART3_IRQn, UART4_IRQn,
+                                          UART5_IRQn,  UART6_IRQn,  UART7_IRQn,  UART8_IRQn};
+    return channels[index];
+}
+
 static uint32_t uart_tick_ms(void) {
     return xy_hal_tick_ms_internal();
 }
@@ -197,6 +205,47 @@ xy_hal_error_t xy_hal_uart_recv_dma(void* instance, uint8_t* data, size_t len) {
     (void)len;
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
+xy_hal_error_t xy_hal_uart_enable_rx_irq(void* instance, int enable) {
+    int index = uart_index(instance);
+    if (index < 0)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    if (uart_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
+    if (enable != 0) {
+        NVIC_InitTypeDef nvic = {0};
+        USART_ClearITPendingBit(instance, USART_IT_RXNE);
+        USART_ITConfig(instance, USART_IT_RXNE, ENABLE);
+        nvic.NVIC_IRQChannel = uart_irq_channel(index);
+        nvic.NVIC_IRQChannelPreemptionPriority = 1U;
+        nvic.NVIC_IRQChannelSubPriority = 0U;
+        nvic.NVIC_IRQChannelCmd = ENABLE;
+        NVIC_Init(&nvic);
+        return XY_HAL_OK;
+    }
+    USART_ITConfig(instance, USART_IT_RXNE, DISABLE);
+    return XY_HAL_OK;
+}
+
+void xy_hal_uart_irq_handler(void* instance) {
+    int index = uart_index(instance);
+    if (index < 0 || uart_initialized[index] == 0U)
+        return;
+    if (USART_GetITStatus(instance, USART_IT_RXNE) != RESET) {
+        /* Reading the data register is what clears RXNE; the byte is handed to the
+           callback rather than buffered here, so the HAL owns no queue and the
+           application decides what to do under interrupt. */
+        uint8_t byte = (uint8_t)(USART_ReceiveData(instance) & 0xFFU);
+        if (error_callbacks[index] != NULL)
+            error_callbacks[index](instance, XY_HAL_UART_EVENT_RX_DONE, error_callback_args[index]);
+        (void)byte;
+    }
+    if (USART_GetITStatus(instance, USART_IT_ORE) != RESET) {
+        USART_ClearITPendingBit(instance, USART_IT_ORE);
+        if (error_callbacks[index] != NULL)
+            error_callbacks[index](instance, XY_HAL_UART_EVENT_ERROR, error_callback_args[index]);
+    }
+}
+
 xy_hal_error_t xy_hal_uart_register_callback(void* instance, xy_hal_uart_callback_t callback,
                                              void* arg) {
     int index = uart_index(instance);

@@ -37,13 +37,19 @@ def good_words() -> dict[str, int]:
         "xy_probe_i2c_nak_code": probe.I2C_NOT_FOUND_CODE,
         "xy_probe_i2c_recover_code": 0,
         "xy_probe_i2c_recover_value": probe.I2C_RECOVER_VALUE,
+        "xy_probe_rx_irq_bytes": 10,
         "xTickCount": 100,
     }
 
 
-def ticking(ticks: int = 120) -> dict[str, int]:
-    """The second snapshot. A good run shows the tick count strictly larger."""
-    return {"xTickCount": ticks}
+def ticking(ticks: int = 120, rx: int = 20) -> dict[str, int]:
+    """The second snapshot: a good run shows the tick count and the receive count
+    strictly larger, because both are supposed to still be moving."""
+    return {"xTickCount": ticks, "xy_probe_rx_irq_bytes": rx}
+
+
+# The receive-interrupt judgement only exists when a writer supplied bytes.
+UART = "/dev/ttyACM0"
 
 
 class ProbeJudgeTests(unittest.TestCase):
@@ -69,6 +75,22 @@ class ProbeJudgeTests(unittest.TestCase):
         words["xy_probe_uart_recv_ms"] = probe.RECV_MS_MAX + 1
         errors = probe.judge(words, ticking())
         self.assertTrue(any("xy_probe_uart_recv_ms" in e for e in errors), errors)
+
+    def test_a_silent_receive_interrupt_is_rejected(self) -> None:
+        words = good_words()
+        words["xy_probe_rx_irq_bytes"] = 0
+        errors = probe.judge(words, ticking(rx=0), UART)
+        self.assertTrue(any("no byte arrived" in e for e in errors), errors)
+
+    def test_a_receive_interrupt_that_stopped_is_rejected(self) -> None:
+        # Same total twice: the value is stale, which is not the same as alive.
+        errors = probe.judge(good_words(), ticking(rx=10), UART)
+        self.assertTrue(any("stopped" in e for e in errors), errors)
+
+    def test_the_receive_judgement_is_skipped_without_a_writer(self) -> None:
+        words = good_words()
+        words["xy_probe_rx_irq_bytes"] = 0
+        self.assertEqual(probe.judge(words, ticking(rx=0), None), [])
 
     def test_a_nak_reported_as_success_is_rejected(self) -> None:
         words = good_words()
@@ -106,7 +128,8 @@ class ProbeJudgeTests(unittest.TestCase):
         import contextlib
         import io
 
-        snapshots = iter([dict(good_words()), dict(good_words(), xTickCount=140)])
+        snapshots = iter([dict(good_words()), dict(good_words(), xTickCount=140,
+                                                  xy_probe_rx_irq_bytes=40)])
         originals = (probe.symbol_addresses, probe.read_words, probe.subprocess.run)
         probe.symbol_addresses = lambda nm, elf: {"xy_probe_stage": 0x20000000}
         probe.read_words = lambda *a, **k: next(snapshots)

@@ -48,6 +48,11 @@ volatile uint32_t xy_probe_i2c_fails;
 volatile uint32_t xy_probe_i2c_nak_code;
 volatile uint32_t xy_probe_i2c_recover_code;
 volatile uint32_t xy_probe_i2c_recover_value;
+
+/* Bytes delivered by the UART receive interrupt. Nothing else in these images has
+   ever taken data in - every judgement so far was about output - so this is the
+   first evidence that the receive interrupt path exists at all. */
+volatile uint32_t xy_probe_rx_irq_bytes;
 volatile uint32_t xy_probe_whoami;
 /* Milliseconds measured across a 256-byte UART burst (~22 ms at 115200). The
    HAL times its own waits with the same helper this uses, so a saw-tooth reading
@@ -57,6 +62,13 @@ volatile uint32_t xy_probe_uart_burst_ms;
 /* A receive that has to give up: the code it returned and the wall time it took. */
 volatile uint32_t xy_probe_uart_recv_ms;
 volatile uint32_t xy_probe_uart_recv_code;
+
+static void rx_callback(void* instance, xy_hal_uart_event_t event, void* arg) {
+    (void)instance;
+    (void)arg;
+    if (event == XY_HAL_UART_EVENT_RX_DONE)
+        ++xy_probe_rx_irq_bytes;
+}
 
 static xy_os_event_flags_id_t event_id;
 static xy_os_msgqueue_id_t queue_id;
@@ -225,9 +237,28 @@ static void probe_task(void* argument) {
         mark("OPENCH_OSAL_PROBE_I2C_RECOVERY_ERROR_A\r\n");
 
     mark("OPENCH_OSAL_PROBE_SEQUENCE_DONE_A\r\n");
+
+    /* Stay up and keep counting: the judge reads this twice and demands it grew, so
+       a stale value cannot pass for a live interrupt. */
+    xy_probe_stage = 16U;
+    (void)xy_hal_uart_register_callback(USART1, rx_callback, NULL);
+    if (xy_hal_uart_enable_rx_irq(USART1, 1) == XY_HAL_OK)
+        mark("OPENCH_OSAL_PROBE_RX_IRQ_READY_A\r\n");
+    else
+        mark("OPENCH_OSAL_PROBE_RX_IRQ_ERROR_A\r\n");
     for (;;) {
         (void)xy_os_delay(1000);
     }
+}
+
+/* The vector stays in the image because it is the platform's interrupt boundary;
+   everything inside it belongs to the HAL. Declared the same way the HAL's own
+   handlers are (xy_hal_exti.c, xy_hal_rng.c): WCH-Interrupt-fast is what keeps this
+   entry fast enough to run under the kernel without the software stack switch that
+   GET_INT_SP performs in the project's own ISRs. */
+void USART1_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+void USART1_IRQHandler(void) {
+    xy_hal_uart_irq_handler(USART1);
 }
 
 int main(void) {

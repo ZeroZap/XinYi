@@ -27,11 +27,12 @@ import re
 import subprocess
 import sys
 
-# The probe now ends at stage 15: stage 10 runs the UART burst that measures the
+# The probe settles at stage 16 and stays up counting receive interrupts, so the two
+# snapshots can be compared. Earlier stages: stage 10 runs the UART burst that measures the
 # HAL millisecond helper against wall clock, stage 12 makes a receive give up on a
 # silent line, stage 14 asks a bus for an address nobody answers on, and 15 means
 # every measurement is published.
-STAGE_DONE = 15
+STAGE_DONE = 16
 # 256 bytes at 115200 8N1 is 22.2 ms on the wire. The window is wide enough for
 # buffering jitter but narrow enough that a saw-tooth timebase cannot land in it.
 BURST_MS_MIN = 10
@@ -68,6 +69,7 @@ SYMBOLS = (
     "xy_probe_i2c_nak_code",
     "xy_probe_i2c_recover_code",
     "xy_probe_i2c_recover_value",
+    "xy_probe_rx_irq_bytes",
     "xTickCount",
 )
 
@@ -108,7 +110,34 @@ def read_words(openocd: str, config: str, addresses: dict[str, int], resume: boo
     return values
 
 
-def judge(first: dict[str, int], second: dict[str, int]) -> list[str]:
+def _start_writer(port: str):
+    """Keep feeding bytes to the board so the receive interrupt has something to do."""
+    import os
+    import threading
+
+    stop = threading.Event()
+
+    def run() -> None:
+        fd = os.open(port, os.O_WRONLY | os.O_NOCTTY)
+        try:
+            while not stop.is_set():
+                os.write(fd, b"IRQTEST-0123456789ABCDEF")
+                stop.wait(0.15)
+        finally:
+            os.close(fd)
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    return stop, thread
+
+
+def _stop_writer(writer) -> None:
+    stop, thread = writer
+    stop.set()
+    thread.join(timeout=2)
+
+
+def judge(first: dict[str, int], second: dict[str, int], uart: str | None = "") -> list[str]:
     """Judge two RAM snapshots of one probe run; empty list means the run is good."""
     errors = []
     if first.get("xy_probe_stage") != STAGE_DONE:
@@ -129,6 +158,19 @@ def judge(first: dict[str, int], second: dict[str, int]) -> list[str]:
         errors.append(
             f"xy_probe_uart_recv_code is {first.get('xy_probe_uart_recv_code')}, "
             f"expected {RECV_TIMEOUT_CODE:#x} (XY_HAL_ERROR_TIMEOUT)"
+        )
+    rx_first, rx_second = first.get("xy_probe_rx_irq_bytes"), second.get("xy_probe_rx_irq_bytes")
+    if not uart:
+        pass  # nothing was sent, so there is nothing to judge
+    elif not rx_first:
+        errors.append(
+            "no byte arrived through the UART receive interrupt: "
+            f"xy_probe_rx_irq_bytes is {rx_first}"
+        )
+    elif rx_second is None or rx_second <= rx_first:
+        errors.append(
+            f"the receive interrupt stopped: xy_probe_rx_irq_bytes {rx_first} -> {rx_second} "
+            "(a stale value cannot pass for a live interrupt)"
         )
     if first.get("xy_probe_i2c_nak_code") != I2C_NOT_FOUND_CODE:
         errors.append(
@@ -193,6 +235,11 @@ def main() -> int:
     parser.add_argument("--elf", required=True)
     parser.add_argument("--nm", required=True)
     parser.add_argument("--settle-ms", type=int, default=4000)
+    parser.add_argument(
+        "--uart",
+        help="serial port to write test bytes to; without it the receive-interrupt "
+        "judgement cannot be made and is skipped",
+    )
     args = parser.parse_args()
 
     if args.settle_ms < 0:
@@ -210,11 +257,16 @@ def main() -> int:
     )
     subprocess.run(["sleep", str(args.settle_ms / 1000.0)])
 
+    writer = None
+    if args.uart:
+        writer = _start_writer(args.uart)
     first = read_words(args.openocd, args.config, addresses, resume=True)
     subprocess.run(["sleep", "2"])
     second = read_words(args.openocd, args.config, addresses, resume=False)
+    if writer is not None:
+        _stop_writer(writer)
 
-    errors = judge(first, second)
+    errors = judge(first, second, args.uart)
     if errors:
         print("osal_stall_probe failed:")
         for error in errors:

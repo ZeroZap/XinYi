@@ -144,6 +144,33 @@ xy_hal_error_t xy_hal_uart_register_callback(void *uart,
                                              void *arg);
 
 /**
+ * @brief Enable or disable the receive interrupt for a UART
+ *
+ * With the receive interrupt on, the platform feeds incoming bytes to the
+ * registered callback as XY_HAL_UART_EVENT_RX_DONE. The interrupt line is owned by
+ * the HAL, exactly as xy_hal_timer_enable_irq() owns the timer's: a caller that asks
+ * for the interrupt must not have to program the NVIC itself.
+ *
+ * @param uart UART instance
+ * @param enable Non-zero to enable, zero to disable
+ * @return XY_HAL_OK on success, XY_HAL_ERROR_NOT_SUPPORTED where the platform has no
+ *         receive interrupt path yet
+ */
+xy_hal_error_t xy_hal_uart_enable_rx_irq(void *uart, int enable);
+
+/**
+ * @brief Deliver a pending UART interrupt to the HAL
+ *
+ * Platform interrupt handlers call this with the instance that fired. It clears the
+ * flags it consumes and invokes the registered callback; it is safe to call when
+ * nothing is pending.
+ *
+ * @param uart UART instance
+ */
+void xy_hal_uart_irq_handler(void *uart);
+
+
+/**
  * @brief Get number of bytes available in RX buffer
  * @param uart UART instance
  * @return Number of bytes available, XY_HAL_ERROR_INVALID_PARAM on error
