@@ -39,8 +39,8 @@ REJECTED = {
 
 FLAG = re.compile(r"-D([A-Za-z_][A-Za-z0-9_]*)=")
 FORCED = re.compile(r"set\(\s*([A-Za-z_][A-Za-z0-9_]*)\b[^)]*\bCACHE\b[^)]*\bFORCE\b")
-BLOCK_OPEN = re.compile(r"^\s*(if|foreach|while|function|macro|block)\s*\(")
-BLOCK_CLOSE = re.compile(r"^\s*(endif|endforeach|endwhile|endfunction|endmacro|endblock)\s*\(")
+ANY_OPEN = re.compile(r"\b(if|foreach|while|function|macro|block)\s*\(")
+ANY_CLOSE = re.compile(r"\b(endif|endforeach|endwhile|endfunction|endmacro|endblock)\s*\(")
 
 
 def cmake_sources() -> list[Path]:
@@ -69,11 +69,12 @@ def forced_names(paths: list[Path]) -> dict[str, str]:
         for line_number, line in enumerate(text.split("\n"), start=1):
             if line.lstrip().startswith("#"):
                 continue
-            if BLOCK_CLOSE.match(line):
-                depth = max(0, depth - 1)
-                continue
-            if BLOCK_OPEN.match(line):
-                depth += 1
+            opens = len(ANY_OPEN.findall(line))
+            closes = len(ANY_CLOSE.findall(line))
+            if opens or closes:
+                # A line that opens or closes a block is not an unconditional statement, even when it does
+                # both at once - `if(A) set(X ... FORCE) endif()` is the shape that used to slip through.
+                depth = max(0, depth + opens - closes)
                 continue
             if depth:
                 continue

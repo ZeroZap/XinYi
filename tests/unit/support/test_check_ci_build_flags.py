@@ -78,6 +78,11 @@ class ForcedFromKconfigTests(unittest.TestCase):
         self.assertEqual([], self.run_guard(
             '      run: cmake -B b -DKCONFIG_OVERRIDES="BUILD_TESTING=OFF" .\n', UNCONDITIONAL))
 
+    def test_a_one_line_conditional_is_not_unconditional(self):
+        """if(A) set(X ... FORCE) endif() on one line used to slip past the depth tracker."""
+        one_line = 'if(WIN32) set(BUILD_TESTING OFF CACHE BOOL "t" FORCE) endif()\n'
+        self.assertEqual([], self.run_guard("      run: cmake -B b -DBUILD_TESTING=OFF .\n", one_line))
+
     def test_the_real_build_forces_build_testing_and_not_the_build_type(self):
         forced = guard.forced_names(guard.cmake_sources())
         self.assertIn("BUILD_TESTING", forced)
