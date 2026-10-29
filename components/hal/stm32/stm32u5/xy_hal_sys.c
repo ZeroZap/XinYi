@@ -20,3 +20,11 @@ void xy_hal_sys_tick_irq_handler(void)
 {
     HAL_IncTick();
 }
+
+xy_hal_error_t xy_hal_sys_get_reset_raw_flags(uint32_t *raw)
+{
+    /* The U5 SYS backend does not own reset-cause reporting yet; report absence
+     * instead of inventing a value from a register this file never reads. */
+    (void)raw;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
+}

@@ -80,6 +80,12 @@ xy_hal_error_t xy_hal_sys_clear_reset_reason(void) {
     RCC_ClearFlag();
     return XY_HAL_OK;
 }
+xy_hal_error_t xy_hal_sys_get_reset_raw_flags(uint32_t* raw) {
+    /* CH32V307 spreads the reset flags across RSTSCKR/RCC flags accessed only
+     * through vendor getters, so there is no single register to hand back. */
+    (void)raw;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
+}
 int32_t xy_hal_sys_get_chip_id(void) {
     return (int32_t)DBGMCU_GetCHIPID();
 }

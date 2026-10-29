@@ -108,6 +108,19 @@ xy_hal_error_t xy_hal_sys_software_reset(void);
 uint32_t xy_hal_sys_get_reset_reason(void);
 
 /**
+ * @brief 读取复位状态寄存器的原始值（证据用，不参与解码）
+ *
+ * `xy_hal_sys_get_reset_reason()` 返回的是解码后的位掩码，调用方拿到的数字就是
+ * 解码器自己的结论；要证明解码正确，必须同时留下寄存器原文。该值只有配合本平台
+ * 的位定义才有意义，跨平台不可比较，且必须在清除复位标志之前读取。
+ *
+ * @param[out] raw 原始寄存器值
+ * @return XY_HAL_OK；XY_HAL_ERROR_INVALID_PARAM；后台不支持原始寄存器时返回
+ *         XY_HAL_ERROR_NOT_SUPPORTED（不伪造数值）
+ */
+xy_hal_error_t xy_hal_sys_get_reset_raw_flags(uint32_t *raw);
+
+/**
  * @brief 清除复位原因
  * @return XY_HAL_OK 成功，其他值失败
  */

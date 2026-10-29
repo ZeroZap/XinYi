@@ -1,5 +1,6 @@
 #include "unity.h"
 
+#include "pandora_sys.h"
 #include "xy_error.h"
 #include "xy_hal_rtc.h"
 #include "xy_hal_sys.h"
@@ -244,6 +245,78 @@ void test_mac_addr_normalizes_unicast_and_locally_administered_bits(void) {
     TEST_ASSERT_EQUAL_UINT8(0x02, mac[0] & 0x03U); /* bit 0 clear, bit 1 set */
 }
 
+/* One reset has one cause from the boot decision's point of view, but the HAL
+ * returns a bitmask. The board captured these masks on real boots: a software
+ * reset reported 0x5 and a watchdog reset 0x9, i.e. an internal reset also
+ * asserts the NRST flag. So the pin bit alone can never outrank the internal
+ * cause that produced it, and a power event must never be reported as POWER_ON. */
+void test_reset_kind_attribution_uses_the_documented_priority(void) {
+    static const struct {
+        uint32_t reason;
+        pandora_reset_kind_t expected;
+        const char *meaning;
+    } cases[] = {
+        {XY_HAL_SYS_RESET_REASON_NONE, PANDORA_RESET_KIND_POWER_ON, "no flag set at all"},
+        {XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN, PANDORA_RESET_KIND_EXTERNAL_PIN, "pin only"},
+        {XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN | XY_HAL_SYS_RESET_REASON_SOFTWARE,
+         PANDORA_RESET_KIND_SOFTWARE, "software reset as captured (0x5)"},
+        {XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN | XY_HAL_SYS_RESET_REASON_WATCHDOG,
+         PANDORA_RESET_KIND_WATCHDOG, "watchdog reset as captured (0x9)"},
+        {XY_HAL_SYS_RESET_REASON_BROWNOUT, PANDORA_RESET_KIND_BROWNOUT, "brownout only"},
+        {XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN | XY_HAL_SYS_RESET_REASON_BROWNOUT,
+         PANDORA_RESET_KIND_BROWNOUT, "brownout also asserts the pin flag"},
+        {XY_HAL_SYS_RESET_REASON_LOW_POWER, PANDORA_RESET_KIND_LOW_POWER, "low-power only"},
+        {XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN | XY_HAL_SYS_RESET_REASON_LOW_POWER,
+         PANDORA_RESET_KIND_LOW_POWER, "low-power also asserts the pin flag"},
+        {XY_HAL_SYS_RESET_REASON_BROWNOUT | XY_HAL_SYS_RESET_REASON_LOW_POWER,
+         PANDORA_RESET_KIND_BROWNOUT, "brownout outranks low-power"},
+        {XY_HAL_SYS_RESET_REASON_SOFTWARE | XY_HAL_SYS_RESET_REASON_BROWNOUT,
+         PANDORA_RESET_KIND_SOFTWARE, "requested reset outranks the power event"},
+        {XY_HAL_SYS_RESET_REASON_WATCHDOG | XY_HAL_SYS_RESET_REASON_SOFTWARE |
+             XY_HAL_SYS_RESET_REASON_BROWNOUT,
+         PANDORA_RESET_KIND_WATCHDOG, "watchdog outranks software"},
+        {XY_HAL_SYS_RESET_REASON_WATCHDOG | XY_HAL_SYS_RESET_REASON_LOW_POWER,
+         PANDORA_RESET_KIND_WATCHDOG, "watchdog outranks low-power"},
+        {UINT32_C(1) << 5U, PANDORA_RESET_KIND_UNKNOWN, "unknown bit is not a power-on"},
+        {UINT32_C(0xFFFFFFFF), PANDORA_RESET_KIND_UNKNOWN, "unknown bits are not a power-on"},
+    };
+
+    for (size_t index = 0U; index < sizeof(cases) / sizeof(cases[0]); ++index) {
+        TEST_ASSERT_EQUAL_INT_MESSAGE(cases[index].expected,
+                                      pandora_reset_kind_from_reason(cases[index].reason),
+                                      cases[index].meaning);
+    }
+}
+
+void test_reset_kind_names_are_stable_and_distinct(void) {
+    TEST_ASSERT_EQUAL_STRING("UNKNOWN", pandora_reset_kind_name(PANDORA_RESET_KIND_UNKNOWN));
+    TEST_ASSERT_EQUAL_STRING("POWER_ON", pandora_reset_kind_name(PANDORA_RESET_KIND_POWER_ON));
+    TEST_ASSERT_EQUAL_STRING("EXTERNAL_PIN",
+                             pandora_reset_kind_name(PANDORA_RESET_KIND_EXTERNAL_PIN));
+    TEST_ASSERT_EQUAL_STRING("BROWNOUT", pandora_reset_kind_name(PANDORA_RESET_KIND_BROWNOUT));
+    TEST_ASSERT_EQUAL_STRING("SOFTWARE", pandora_reset_kind_name(PANDORA_RESET_KIND_SOFTWARE));
+    TEST_ASSERT_EQUAL_STRING("WATCHDOG", pandora_reset_kind_name(PANDORA_RESET_KIND_WATCHDOG));
+    TEST_ASSERT_EQUAL_STRING("LOW_POWER", pandora_reset_kind_name(PANDORA_RESET_KIND_LOW_POWER));
+    /* An out-of-range value must not index past the name table. */
+    TEST_ASSERT_EQUAL_STRING("UNKNOWN", pandora_reset_kind_name((pandora_reset_kind_t)99));
+}
+
+void test_init_latches_the_kind_decoded_from_the_snapshot(void) {
+    fake_reset_reason = XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN | XY_HAL_SYS_RESET_REASON_WATCHDOG;
+    xy_sys_init();
+    TEST_ASSERT_EQUAL_INT(PANDORA_RESET_KIND_WATCHDOG, pandora_sys_reset_kind());
+
+    fake_reset_reason = XY_HAL_SYS_RESET_REASON_NONE;
+    xy_sys_init();
+    TEST_ASSERT_EQUAL_INT(PANDORA_RESET_KIND_POWER_ON, pandora_sys_reset_kind());
+}
+
+void test_init_reports_unknown_kind_when_the_hal_returns_an_unrecognized_bit(void) {
+    fake_reset_reason = UINT32_C(1) << 5U;
+    xy_sys_init();
+    TEST_ASSERT_EQUAL_INT(PANDORA_RESET_KIND_UNKNOWN, pandora_sys_reset_kind());
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_snapshots_reset_reason_and_clears_hal_flags);
@@ -258,5 +331,9 @@ int main(void) {
     RUN_TEST(test_chip_id_requires_output_and_preserves_output_on_hal_failure);
     RUN_TEST(test_mac_addr_requires_output_and_preserves_on_hal_failure);
     RUN_TEST(test_mac_addr_normalizes_unicast_and_locally_administered_bits);
+    RUN_TEST(test_reset_kind_attribution_uses_the_documented_priority);
+    RUN_TEST(test_reset_kind_names_are_stable_and_distinct);
+    RUN_TEST(test_init_latches_the_kind_decoded_from_the_snapshot);
+    RUN_TEST(test_init_reports_unknown_kind_when_the_hal_returns_an_unrecognized_bit);
     return UNITY_END();
 }

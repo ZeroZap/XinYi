@@ -558,21 +558,18 @@ def main() -> None:
         "xy_sys_init",
         "xy_sys_reboot_reason",
         "xy_sys_get_chip_id",
-        "XY_HAL_SYS_RESET_REASON_SOFTWARE",
         "SYS_RESET_CSR",
+        "SYS_RESET_FLAGS",
         "SYS_CHIP_ID",
-        "SYS_RESET_KIND SOFTWARE",
+        "pandora_sys_reset_kind",
+        "pandora_reset_kind_name",
+        "SYS_RESET_KIND ",
         "SYS_SOFTWARE_RESET_REQUEST",
         "SYS_SOFTWARE_RESET_OK",
-        "XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN",
-        "XY_HAL_SYS_RESET_REASON_BROWNOUT",
-        "SYS_RESET_KIND EXTERNAL_PIN",
         "SYS_EXTERNAL_PIN_RESET_OK",
-        "SYS_RESET_KIND POWER_ON",
-        "XY_HAL_SYS_RESET_REASON_WATCHDOG",
         "SYS_WATCHDOG_RESET_REQUEST",
-        "SYS_RESET_KIND WATCHDOG",
         "SYS_WATCHDOG_RESET_OK",
+        "SYS_RESET_KIND_UNRECOGNIZED",
         "xy_hal_iwdg_init",
         "xy_fota_metadata_flash_validate",
         "xy_fota_metadata_flash_commit",
@@ -594,6 +591,29 @@ def main() -> None:
     )
     smoke_entry = (BOARD / "main.c").read_text(encoding="utf-8")
     assert "HAL_IWDG_Init(" not in smoke_entry
+    # Reset-cause attribution is a contract with host coverage in pandora_sys.c.
+    # An inline bit chain in the entry point is how a brownout boot got reported
+    # as POWER_ON, so keep the decision out of main.c entirely.
+    assert "XY_HAL_SYS_RESET_REASON_" not in smoke_entry, (
+        "main.c attributes the reset cause inline; dispatch on pandora_sys_reset_kind()"
+    )
+    require(
+        BOARD / "pandora_sys.c",
+        "pandora_reset_kind_from_reason",
+        "PANDORA_RESET_KIND_UNKNOWN",
+        "XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN",
+        "XY_HAL_SYS_RESET_REASON_BROWNOUT",
+        "XY_HAL_SYS_RESET_REASON_SOFTWARE",
+        "XY_HAL_SYS_RESET_REASON_WATCHDOG",
+        "XY_HAL_SYS_RESET_REASON_LOW_POWER",
+        '"POWER_ON"',
+        '"EXTERNAL_PIN"',
+        '"BROWNOUT"',
+        '"SOFTWARE"',
+        '"WATCHDOG"',
+        '"LOW_POWER"',
+        '"UNKNOWN"',
+    )
     require(
         BOARD / "STM32L475VETX_FLASH.ld",
         "ORIGIN = 0x08000000",

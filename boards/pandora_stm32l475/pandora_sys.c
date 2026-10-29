@@ -1,5 +1,6 @@
 #include "xy_sys.h"
 
+#include "pandora_sys.h"
 #include "xy_error.h"
 #include "xy_hal_rtc.h"
 #include "xy_hal_sys.h"
@@ -11,14 +12,74 @@
 #define PANDORA_RESET_REQUEST_MAGIC 0x58595200UL
 #define PANDORA_RESET_REQUEST_REASON_MASK 0xFFUL
 
+/* Every bit xy_hal_sys_get_reset_reason() can report. Anything outside it means
+ * the HAL grew a cause this board has not been taught to attribute. */
+#define PANDORA_RESET_REASON_KNOWN                                                        \
+    (XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN | XY_HAL_SYS_RESET_REASON_BROWNOUT |            \
+     XY_HAL_SYS_RESET_REASON_SOFTWARE | XY_HAL_SYS_RESET_REASON_WATCHDOG |                \
+     XY_HAL_SYS_RESET_REASON_LOW_POWER)
+
+static const char *const pandora_reset_kind_names[] = {
+    [PANDORA_RESET_KIND_UNKNOWN] = "UNKNOWN",
+    [PANDORA_RESET_KIND_POWER_ON] = "POWER_ON",
+    [PANDORA_RESET_KIND_EXTERNAL_PIN] = "EXTERNAL_PIN",
+    [PANDORA_RESET_KIND_BROWNOUT] = "BROWNOUT",
+    [PANDORA_RESET_KIND_SOFTWARE] = "SOFTWARE",
+    [PANDORA_RESET_KIND_WATCHDOG] = "WATCHDOG",
+    [PANDORA_RESET_KIND_LOW_POWER] = "LOW_POWER",
+};
+
 static uint32_t pandora_reset_reason;
 static uint32_t pandora_reset_request;
+static pandora_reset_kind_t pandora_reset_kind = PANDORA_RESET_KIND_UNKNOWN;
+
+pandora_reset_kind_t pandora_reset_kind_from_reason(uint32_t reason)
+{
+    uint32_t known = reason & PANDORA_RESET_REASON_KNOWN;
+
+    if ((reason & ~PANDORA_RESET_REASON_KNOWN) != 0U) {
+        return PANDORA_RESET_KIND_UNKNOWN;
+    }
+    /* An internal reset pulls NRST low, so it also reports the pin flag: the
+     * named cause has to outrank the pin bit it asserts. */
+    if ((known & XY_HAL_SYS_RESET_REASON_WATCHDOG) != 0U) {
+        return PANDORA_RESET_KIND_WATCHDOG;
+    }
+    if ((known & XY_HAL_SYS_RESET_REASON_SOFTWARE) != 0U) {
+        return PANDORA_RESET_KIND_SOFTWARE;
+    }
+    if ((known & XY_HAL_SYS_RESET_REASON_BROWNOUT) != 0U) {
+        return PANDORA_RESET_KIND_BROWNOUT;
+    }
+    if ((known & XY_HAL_SYS_RESET_REASON_LOW_POWER) != 0U) {
+        return PANDORA_RESET_KIND_LOW_POWER;
+    }
+    if ((known & XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN) != 0U) {
+        return PANDORA_RESET_KIND_EXTERNAL_PIN;
+    }
+    return PANDORA_RESET_KIND_POWER_ON;
+}
+
+const char *pandora_reset_kind_name(pandora_reset_kind_t kind)
+{
+    if ((unsigned int)kind >=
+        sizeof(pandora_reset_kind_names) / sizeof(pandora_reset_kind_names[0])) {
+        return pandora_reset_kind_names[PANDORA_RESET_KIND_UNKNOWN];
+    }
+    return pandora_reset_kind_names[kind];
+}
+
+pandora_reset_kind_t pandora_sys_reset_kind(void)
+{
+    return pandora_reset_kind;
+}
 
 void xy_sys_init(void)
 {
     uint32_t retained = 0U;
 
     pandora_reset_reason = xy_hal_sys_get_reset_reason();
+    pandora_reset_kind = pandora_reset_kind_from_reason(pandora_reset_reason);
     (void)xy_hal_sys_clear_reset_reason();
 
     pandora_reset_request = XY_SYS_RESET_REQUEST_UNSPECIFIED;

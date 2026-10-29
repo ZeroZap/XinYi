@@ -84,6 +84,15 @@ xy_hal_error_t xy_hal_sys_clear_reset_reason(void)
     return XY_HAL_OK;
 }
 
+xy_hal_error_t xy_hal_sys_get_reset_raw_flags(uint32_t *raw)
+{
+    if (raw == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    *raw = RCC->CSR;
+    return XY_HAL_OK;
+}
+
 xy_hal_error_t xy_hal_sys_get_unique_id(uint32_t id[3])
 {
     if (id == NULL) {

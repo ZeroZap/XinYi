@@ -2525,8 +2525,13 @@ xy_add_unit_test(test_pandora_sys pandora_sys UNITY
     ${ROOT}/boards/pandora_stm32l475/pandora_sys.c
 )
 target_include_directories(test_pandora_sys PRIVATE
+    ${ROOT}/boards/pandora_stm32l475
     ${SYS}/xy_sys
     ${HAL}/inc
+)
+add_test(NAME pandora_sys_reset_capture_validator
+    COMMAND python3 ${UNIT_SYS}/test_pandora_sys_reset_capture.py
+    WORKING_DIRECTORY ${ROOT}
 )
 
 xy_add_unit_test(test_bootreason_check bootreason_check UNITY

@@ -2,6 +2,7 @@
 #include "pandora_platform_startup.h"
 #include "pandora_fota_flash.h"
 #include "pandora_soft_i2c.h"
+#include "pandora_sys.h"
 #include "xy_device.h"
 #include "xy_hal_delay.h"
 #include "xy_hal_gpio.h"
@@ -166,6 +167,8 @@ int main(void)
     int32_t temperature_milli_c = 0;
     uint32_t reset_reason = 0;
     uint32_t reset_request = 0;
+    uint32_t reset_csr = 0;
+    pandora_reset_kind_t reset_kind;
     uint32_t chip_id[3] = {0};
     uint8_t mac_addr[6] = {0};
     xy_i2c_device_t aht10 = {0};
@@ -196,7 +199,16 @@ int main(void)
     if (xy_sys_reboot_reason(&reset_reason) != XY_OK || xy_sys_get_chip_id(chip_id) != XY_OK) {
         fail();
     }
-    uart_text("SYS_RESET_CSR 0x");
+    uart_text("SYS_RESET_CSR ");
+    if (xy_hal_sys_get_reset_raw_flags(&reset_csr) == XY_HAL_OK) {
+        uart_text("0x");
+        uart_hex32(reset_csr);
+    } else {
+        /* No raw register on this backend: say so rather than printing the
+         * decoder's own output under a register's name. */
+        uart_text("UNAVAILABLE");
+    }
+    uart_text("\r\nSYS_RESET_FLAGS 0x");
     uart_hex32(reset_reason);
     uart_text("\r\nSYS_CHIP_ID ");
     uart_hex32(chip_id[0]);
@@ -217,11 +229,18 @@ int main(void)
     uart_text("SYS_RESET_REQUEST ");
     uart_u32(reset_request);
     uart_text("\r\n");
-    if ((reset_reason & XY_HAL_SYS_RESET_REASON_WATCHDOG) != 0U) {
-        uart_text("SYS_RESET_KIND WATCHDOG\r\nSYS_WATCHDOG_RESET_OK\r\n");
-    } else if ((reset_reason & XY_HAL_SYS_RESET_REASON_SOFTWARE) != 0U) {
-        uart_text("SYS_RESET_KIND SOFTWARE\r\nSYS_SOFTWARE_RESET_OK\r\n");
-        uart_text("SYS_WATCHDOG_RESET_REQUEST\r\n");
+    reset_kind = pandora_sys_reset_kind();
+    uart_text("SYS_RESET_KIND ");
+    uart_text(pandora_reset_kind_name(reset_kind));
+    uart_text("\r\n");
+    switch (reset_kind) {
+    case PANDORA_RESET_KIND_WATCHDOG:
+        uart_text("SYS_WATCHDOG_RESET_OK\r\n");
+        break;
+    case PANDORA_RESET_KIND_SOFTWARE:
+        /* The previous boot asked for this reset: prove the request, then hand
+         * the board to the watchdog so the WATCHDOG boot is exercised too. */
+        uart_text("SYS_SOFTWARE_RESET_OK\r\nSYS_WATCHDOG_RESET_REQUEST\r\n");
         xy_hal_delay_ms(250U);
         watchdog.Instance = IWDG;
         if (xy_hal_iwdg_init(&watchdog, &watchdog_config) != XY_HAL_OK) {
@@ -229,17 +248,27 @@ int main(void)
         }
         for (;;) {
         }
-    } else if ((reset_reason & XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN) != 0U &&
-               (reset_reason & XY_HAL_SYS_RESET_REASON_BROWNOUT) == 0U) {
-        uart_text("SYS_RESET_KIND EXTERNAL_PIN\r\nSYS_EXTERNAL_PIN_RESET_OK\r\n");
+    case PANDORA_RESET_KIND_EXTERNAL_PIN:
+        uart_text("SYS_EXTERNAL_PIN_RESET_OK\r\nSYS_SOFTWARE_RESET_REQUEST\r\n");
+        xy_hal_delay_ms(250U);
+        (void)xy_sys_reset(XY_SYS_RESET_REQUEST_APP_RESTART);
+        fail();
+    case PANDORA_RESET_KIND_POWER_ON:
         uart_text("SYS_SOFTWARE_RESET_REQUEST\r\n");
         xy_hal_delay_ms(250U);
         (void)xy_sys_reset(XY_SYS_RESET_REQUEST_APP_RESTART);
         fail();
-    } else {
-        uart_text("SYS_RESET_KIND POWER_ON\r\nSYS_SOFTWARE_RESET_REQUEST\r\n");
-        xy_hal_delay_ms(250U);
-        (void)xy_sys_reset(XY_SYS_RESET_REQUEST_APP_RESTART);
+    case PANDORA_RESET_KIND_BROWNOUT:
+    case PANDORA_RESET_KIND_LOW_POWER:
+        /* A power event is reported, not masked by another reset: booting on is
+         * the interesting observation, and a reset here would loop on a rail
+         * that has not recovered yet. */
+        uart_text("SYS_POWER_EVENT_BOOT_CONTINUES\r\n");
+        break;
+    default:
+        /* An unattributable reset must stop the boot instead of being folded
+         * into the POWER_ON path. */
+        uart_text("SYS_RESET_KIND_UNRECOGNIZED\r\n");
         fail();
     }
     uart_text("FOTA_FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
