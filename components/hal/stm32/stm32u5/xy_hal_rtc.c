@@ -271,11 +271,27 @@ xy_hal_error_t xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
     return XY_HAL_OK;
 }
 
+/* The public API identifies the alarm by character, as F4 does: 'A' or 'B'. Mapping anything
+ * else to B would answer the wrong alarm while reporting success, which is exactly what happened
+ * when this backend ignored the parameter and always used RTC_ALARM_A. */
+static int rtc_alarm_select(char alarm_id, uint32_t *alarm)
+{
+    if (alarm_id == 'A') {
+        *alarm = RTC_ALARM_A;
+        return 0;
+    }
+    if (alarm_id == 'B') {
+        *alarm = RTC_ALARM_B;
+        return 0;
+    }
+    return -1;
+}
+
 xy_hal_error_t xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm,
                                     char alarm_id)
 {
-    XY_UNUSED(alarm_id);
-    if (!rtc || !alarm) {
+    uint32_t selected = 0U;
+    if (!rtc || !alarm || rtc_alarm_select(alarm_id, &selected) != 0) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -291,7 +307,7 @@ xy_hal_error_t xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm,
     sAlarm.AlarmTime.Seconds = bin_to_bcd(alarm->time.seconds);
     sAlarm.AlarmTime.SubSeconds = alarm->time.subseconds;
     sAlarm.AlarmMask = alarm->alarm_mask;
-    sAlarm.Alarm = RTC_ALARM_A;
+    sAlarm.Alarm = selected;
 
     if (HAL_RTC_SetAlarm((RTC_HandleTypeDef *)rtc, &sAlarm,
                          RTC_FORMAT_BCD) != HAL_OK) {
@@ -304,8 +320,8 @@ xy_hal_error_t xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm,
 xy_hal_error_t xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm,
                                     char alarm_id)
 {
-    XY_UNUSED(alarm_id);
-    if (!rtc || !alarm) {
+    uint32_t selected = 0U;
+    if (!rtc || !alarm || rtc_alarm_select(alarm_id, &selected) != 0) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -317,7 +333,7 @@ xy_hal_error_t xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm,
     RTC_AlarmTypeDef sAlarm = { 0 };
 
     if (HAL_RTC_GetAlarm((RTC_HandleTypeDef *)rtc, &sAlarm,
-                         RTC_ALARM_A, RTC_FORMAT_BCD) != HAL_OK) {
+                         selected, RTC_FORMAT_BCD) != HAL_OK) {
         return XY_HAL_ERROR_FAIL;
     }
 
@@ -332,8 +348,8 @@ xy_hal_error_t xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm,
 
 xy_hal_error_t xy_hal_rtc_enable_alarm(void *rtc, char alarm_id)
 {
-    XY_UNUSED(alarm_id);
-    if (!rtc) {
+    uint32_t selected = 0U;
+    if (!rtc || rtc_alarm_select(alarm_id, &selected) != 0) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -342,15 +358,16 @@ xy_hal_error_t xy_hal_rtc_enable_alarm(void *rtc, char alarm_id)
         return XY_HAL_ERROR_NOT_INIT;
     }
 
-    __HAL_RTC_ALARM_ENABLE_IT((RTC_HandleTypeDef *)rtc, RTC_IT_ALRA);
+    __HAL_RTC_ALARM_ENABLE_IT((RTC_HandleTypeDef *)rtc,
+                              selected == RTC_ALARM_B ? RTC_IT_ALRB : RTC_IT_ALRA);
 
     return XY_HAL_OK;
 }
 
 xy_hal_error_t xy_hal_rtc_disable_alarm(void *rtc, char alarm_id)
 {
-    XY_UNUSED(alarm_id);
-    if (!rtc) {
+    uint32_t selected = 0U;
+    if (!rtc || rtc_alarm_select(alarm_id, &selected) != 0) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -359,7 +376,8 @@ xy_hal_error_t xy_hal_rtc_disable_alarm(void *rtc, char alarm_id)
         return XY_HAL_ERROR_NOT_INIT;
     }
 
-    __HAL_RTC_ALARM_DISABLE_IT((RTC_HandleTypeDef *)rtc, RTC_IT_ALRA);
+    __HAL_RTC_ALARM_DISABLE_IT((RTC_HandleTypeDef *)rtc,
+                               selected == RTC_ALARM_B ? RTC_IT_ALRB : RTC_IT_ALRA);
 
     return XY_HAL_OK;
 }
