@@ -139,6 +139,42 @@ class DirectoryTests(unittest.TestCase):
         self.assertIn("rtx5", guard.ORPHANED)
 
 
+class UndefinedSymbolTests(unittest.TestCase):
+    """A condition on a symbol the parsed Kconfig never defines guards a branch nobody can take."""
+
+    CMAKE = 'if(CONFIG_OSAL_BACKEND_FREERTOS)\n    list(APPEND OSAL_SOURCES backend_source)\nendif()\n'
+    KCONFIG = 'config OSAL_BACKEND_FREERTOS\n    bool "FreeRTOS"\n'
+
+    def test_a_defined_symbol_passes(self):
+        self.assertEqual([], guard.undefined_symbol_findings(self.CMAKE, self.KCONFIG, {}))
+
+    def test_an_undefined_symbol_is_reported(self):
+        problems = guard.undefined_symbol_findings(self.CMAKE, "", {})
+        self.assertEqual(1, len(problems))
+        self.assertIn("can never be taken", problems[0])
+
+    def test_a_pinned_symbol_passes(self):
+        self.assertEqual([], guard.undefined_symbol_findings(
+            self.CMAKE, "", {"CONFIG_OSAL_BACKEND_FREERTOS": "declared in a file nothing parses"}))
+
+    def test_a_pin_that_closes_is_reported(self):
+        """Defining the symbol makes the pin stale - the gap closed and the record has to say so."""
+        problems = guard.undefined_symbol_findings(
+            self.CMAKE, self.KCONFIG, {"CONFIG_OSAL_BACKEND_FREERTOS": "old reason"})
+        self.assertEqual(1, len(problems))
+        self.assertIn("the pin is stale", problems[0])
+
+    def test_a_parser_that_finds_no_condition_fails(self):
+        problems = guard.undefined_symbol_findings("message(STATUS \"hi\")\n", self.KCONFIG, {})
+        self.assertEqual(1, len(problems))
+        self.assertIn("a parser that finds nothing", problems[0])
+
+    def test_symbols_outside_conditions_are_not_judged(self):
+        """A CONFIG_ token in a message or a variable name is not a branch."""
+        text = 'message(STATUS "backend: ${CONFIG_OSAL_BACKEND}")\nset(OSAL_CONFIG_DIR x)\n'
+        self.assertEqual(set(), guard.condition_symbols(text))
+
+
 class DocumentTests(unittest.TestCase):
     def test_a_fenced_command_naming_an_unavailable_backend_is_reported(self):
         docs = {"docs/design/x.md": "```bash\ncmake .. -DOSAL_BACKEND=rtthread\n```\n"}

@@ -26,12 +26,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 ROOT_CMAKE = ROOT / "CMakeLists.txt"
 OSAL_CMAKE = ROOT / "components" / "kernel" / "osal" / "CMakeLists.txt"
+KERNEL_CMAKE = ROOT / "components" / "kernel" / "CMakeLists.txt"
+ROOT_KCONFIG = ROOT / "Kconfig"
 
 # Compiled nowhere, and named so the branches below cannot quietly become dead code.
 UNREACHABLE = {
-    "rtthread": "backends exist, but the root build derives OSAL_BACKEND from Kconfig and "
-                "no Kconfig symbol selects it; kept pending a decision to wire or remove",
-    "cmsis_rtx": "same as rtthread: source and dispatch branch only, not selectable",
+    "rtthread": "backends exist, but the only Kconfig the parser reads is the root one and it "
+                "declares no RTTHREAD symbol - the declaration sits in components/kernel/Kconfig, "
+                "which nothing parses; kept pending a decision to wire or remove",
+    "cmsis_rtx": "same as rtthread: source and a dispatch branch, and the symbol that would select "
+                 "it (CONFIG_OSAL_BACKEND_CMSIS_RTX) is declared in no Kconfig file under any prefix",
 }
 
 #: Not even a dispatch branch: a directory with sources that nothing can ever build. Kept separate
@@ -60,6 +64,61 @@ def selectable(root_cmake: str) -> set[str]:
 def dispatched(osal_cmake: str) -> set[str]:
     return set(re.findall(r'(?:else)?if\(\s*OSAL_BACKEND\s+STREQUAL\s+"([A-Za-z0-9_]+)"',
                           osal_cmake))
+
+
+#: CMake conditions on CONFIG symbols that the parsed Kconfig never defines. The root Kconfig is the
+#: only file the parser reads - it handles no `source` directive - so a symbol declared only in
+#: components/kernel/Kconfig or Kconfig.osal is declared nowhere as far as the build is concerned.
+#: A condition on one is permanently false, which makes the branch behind it dead code.
+PINNED_UNDEFINED_SYMBOLS = {
+    "CONFIG_OSAL_BACKEND_RTTHREAD":
+        "declared in components/kernel/Kconfig, which the parser never reads",
+    "CONFIG_OSAL_BACKEND_RTX5":
+        "declared in components/kernel/Kconfig, which the parser never reads",
+    "CONFIG_OSAL_BACKEND_CMSIS_RTX":
+        "declared in no Kconfig file at all, under either prefix - the branch it guards is "
+        "unreachable twice over",
+}
+
+CONDITION = re.compile(r"^\s*(?:else)?if\s*\((.*)$")
+SYMBOL = re.compile(r"\b(CONFIG_[A-Z0-9_]+)\b")
+DECLARED = re.compile(r"^config\s+([A-Za-z0-9_]+)", re.M)
+
+
+def condition_symbols(cmake_text: str) -> set[str]:
+    """CONFIG symbols used inside if()/elseif() conditions - the ones a build actually branches on."""
+    found: set[str] = set()
+    for line in cmake_text.splitlines():
+        match = CONDITION.match(line)
+        if match:
+            found |= set(SYMBOL.findall(match.group(1)))
+    return found
+
+
+def parsed_symbols(root_kconfig: str) -> set[str]:
+    """Symbols the config parser will define, which is exactly what the root Kconfig declares."""
+    return {f"CONFIG_{name}" for name in DECLARED.findall(root_kconfig)}
+
+
+def undefined_symbol_findings(cmake_text: str, root_kconfig: str,
+                              pinned: dict[str, str] | None = None) -> list[str]:
+    """A branch guarded by a symbol nothing defines is a branch that cannot be taken."""
+    pinned = PINNED_UNDEFINED_SYMBOLS if pinned is None else pinned
+    used = condition_symbols(cmake_text)
+    if not used:
+        return ["no CONFIG symbols were found in any condition - a parser that finds nothing is not "
+                "the same as every symbol being defined"]
+    declared = parsed_symbols(root_kconfig)
+    problems: list[str] = []
+    for name in sorted(used - declared - set(pinned)):
+        problems.append(
+            f"{name} is tested in a condition but the parsed Kconfig never defines it, so the branch "
+            f"behind it can never be taken")
+    for name in sorted(set(pinned) - (used - declared)):
+        problems.append(
+            f"{name} is pinned as undefined but is either defined now or no longer tested - the pin "
+            f"is stale ({pinned[name]})")
+    return problems
 
 
 def backend_directories(osal_dir: Path) -> set[str]:
@@ -167,6 +226,10 @@ def main() -> int:
     problems = findings(root_text, osal_text)
     problems.extend(directory_findings(dispatched(osal_text), UNREACHABLE, ORPHANED,
                                        backend_directories(OSAL_CMAKE.parent)))
+    # The parsed Kconfig is the root one: the parser reads that file and follows no source directive.
+    problems.extend(undefined_symbol_findings(
+        KERNEL_CMAKE.read_text(encoding="utf-8") + "\n" + osal_text,
+        ROOT_KCONFIG.read_text(encoding="utf-8")))
     problems.extend(doc_command_findings(design_docs(), selectable(root_text)))
     if problems:
         print("osal_backend_advertise failed:")
@@ -174,7 +237,8 @@ def main() -> int:
             print(f"- {problem}")
         return 1
     print(f"osal_backend_advertise ok (advertised=selectable={sorted(selectable(ROOT_CMAKE.read_text(encoding='utf-8')))}, "
-          f"unreachable={sorted(UNREACHABLE)}, orphaned={sorted(ORPHANED)})")
+          f"unreachable={sorted(UNREACHABLE)}, orphaned={sorted(ORPHANED)}, "
+          f"undefined-symbols={len(PINNED_UNDEFINED_SYMBOLS)})")
     return 0
 
 
