@@ -34,8 +34,13 @@ GUARD = "STM32_HAL_ENABLED"
 # drift from the current public HAL contracts.  Shrinking this list is the
 # migration work; growing it requires an explicit decision, so an unexpected
 # addition fails here instead of silently reducing the built surface.
+#
+# xy_hal_rtc.c left this set by being repaired, not by being wanted: it had never
+# been compiled, and could not be - a format helper with only its name commented
+# out left a braced block at file scope, and four HAL calls had their last
+# argument commented away.  Recording the shrink here is the point of the set:
+# the built surface is a decision, and this makes it a visible one.
 EXPECTED_F4_DEFERRED = {
-    "xy_hal_rtc.c",
     "xy_hal_timer.c",
 }
 

@@ -12,17 +12,15 @@
 #include "stm32_hal.h"
 #include <time.h>
 
-// static uint32_t // xy_to_stm32_format(xy_hal_rtc_format_t format)
+static uint32_t xy_to_stm32_format(xy_hal_rtc_format_t format)
 {
     return (format == XY_HAL_RTC_FORMAT_BIN) ? RTC_FORMAT_BIN : RTC_FORMAT_BCD;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
-int xy_hal_rtc_init(void *rtc)
+xy_hal_error_t xy_hal_rtc_init(void *rtc)
 {
     if (!rtc) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     RTC_HandleTypeDef *hrtc = (RTC_HandleTypeDef *)rtc;
@@ -35,34 +33,30 @@ int xy_hal_rtc_init(void *rtc)
     hrtc->Init.OutPutType     = RTC_OUTPUT_TYPE_OPENDRAIN;
 
     if (HAL_RTC_Init(hrtc) != HAL_OK) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
 }
 
-int xy_hal_rtc_deinit(void *rtc)
+xy_hal_error_t xy_hal_rtc_deinit(void *rtc)
 {
     if (!rtc) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     if (HAL_RTC_DeInit((RTC_HandleTypeDef *)rtc) != HAL_OK) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
 }
 
-int xy_hal_rtc_set_time(void *rtc, const xy_hal_rtc_time_t *time,
+xy_hal_error_t xy_hal_rtc_set_time(void *rtc, const xy_hal_rtc_time_t *time,
                         xy_hal_rtc_format_t format)
 {
     if (!rtc || !time) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     RTC_TimeTypeDef sTime = { 0 };
@@ -74,29 +68,27 @@ int xy_hal_rtc_set_time(void *rtc, const xy_hal_rtc_time_t *time,
     sTime.StoreOperation  = RTC_STOREOPERATION_RESET;
 
     if (HAL_RTC_SetTime(
-            (RTC_HandleTypeDef *)rtc, &sTime, // xy_to_stm32_format(format))
+            (RTC_HandleTypeDef *)rtc, &sTime, xy_to_stm32_format(format))
         != HAL_OK) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
 }
 
-int xy_hal_rtc_get_time(void *rtc, xy_hal_rtc_time_t *time,
+xy_hal_error_t xy_hal_rtc_get_time(void *rtc, xy_hal_rtc_time_t *time,
                         xy_hal_rtc_format_t format)
 {
     if (!rtc || !time) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     RTC_TimeTypeDef sTime = { 0 };
 
     if (HAL_RTC_GetTime(
-            (RTC_HandleTypeDef *)rtc, &sTime, // xy_to_stm32_format(format))
+            (RTC_HandleTypeDef *)rtc, &sTime, xy_to_stm32_format(format))
         != HAL_OK) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     time->hours      = sTime.Hours;
@@ -104,16 +96,14 @@ int xy_hal_rtc_get_time(void *rtc, xy_hal_rtc_time_t *time,
     time->seconds    = sTime.Seconds;
     time->subseconds = sTime.SubSeconds;
 
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
 }
 
-int xy_hal_rtc_set_date(void *rtc, const xy_hal_rtc_date_t *date,
+xy_hal_error_t xy_hal_rtc_set_date(void *rtc, const xy_hal_rtc_date_t *date,
                         xy_hal_rtc_format_t format)
 {
     if (!rtc || !date) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     RTC_DateTypeDef sDate = { 0 };
@@ -123,30 +113,28 @@ int xy_hal_rtc_set_date(void *rtc, const xy_hal_rtc_date_t *date,
     sDate.Year            = date->year % 100; /* STM32 uses 2-digit year */
 
     if (HAL_RTC_SetDate(
-            (RTC_HandleTypeDef *)rtc, &sDate, // xy_to_stm32_format(format))
+            (RTC_HandleTypeDef *)rtc, &sDate, xy_to_stm32_format(format))
         != HAL_OK) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
-int xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
+xy_hal_error_t xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
                         xy_hal_rtc_format_t format)
 {
     if (!rtc || !date) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     RTC_DateTypeDef sDate = { 0 };
 
     if (HAL_RTC_GetDate(
-            (RTC_HandleTypeDef *)rtc, &sDate, // xy_to_stm32_format(format))
+            (RTC_HandleTypeDef *)rtc, &sDate, xy_to_stm32_format(format))
         != HAL_OK) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     date->weekday = sDate.WeekDay;
@@ -154,17 +142,15 @@ int xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
     date->date    = sDate.Date;
     date->year    = sDate.Year + 2000; /* Convert back to 4-digit */
 
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
-int xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm,
+xy_hal_error_t xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm,
                          char alarm_id)
 {
     if (!rtc || !alarm) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     RTC_AlarmTypeDef sAlarm     = { 0 };
@@ -177,18 +163,16 @@ int xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm,
 
     if (HAL_RTC_SetAlarm((RTC_HandleTypeDef *)rtc, &sAlarm, RTC_FORMAT_BIN)
         != HAL_OK) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
 }
 
-int xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm, char alarm_id)
+xy_hal_error_t xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm, char alarm_id)
 {
     if (!rtc || !alarm) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     RTC_AlarmTypeDef sAlarm = { 0 };
@@ -197,7 +181,7 @@ int xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm, char alarm_id)
     if (HAL_RTC_GetAlarm(
             (RTC_HandleTypeDef *)rtc, &sAlarm, sAlarm.Alarm, RTC_FORMAT_BIN)
         != HAL_OK) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     alarm->time.hours      = sAlarm.AlarmTime.Hours;
@@ -206,15 +190,13 @@ int xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm, char alarm_id)
     alarm->time.subseconds = sAlarm.AlarmTime.SubSeconds;
     alarm->date            = sAlarm.AlarmDateWeekDay;
 
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
 }
 
-int xy_hal_rtc_enable_alarm(void *rtc, char alarm_id)
+xy_hal_error_t xy_hal_rtc_enable_alarm(void *rtc, char alarm_id)
 {
     if (!rtc) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     RTC_AlarmTypeDef sAlarm = { 0 };
@@ -222,55 +204,49 @@ int xy_hal_rtc_enable_alarm(void *rtc, char alarm_id)
 
     if (HAL_RTC_SetAlarm_IT((RTC_HandleTypeDef *)rtc, &sAlarm, RTC_FORMAT_BIN)
         != HAL_OK) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
 }
 
-int xy_hal_rtc_disable_alarm(void *rtc, char alarm_id)
+xy_hal_error_t xy_hal_rtc_disable_alarm(void *rtc, char alarm_id)
 {
     if (!rtc) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     uint32_t alarm = (alarm_id == 'A') ? RTC_ALARM_A : RTC_ALARM_B;
 
     if (HAL_RTC_DeactivateAlarm((RTC_HandleTypeDef *)rtc, alarm) != HAL_OK) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
 }
 
-int xy_hal_rtc_register_callback(void *rtc, xy_hal_rtc_event_t event,
+xy_hal_error_t xy_hal_rtc_register_callback(void *rtc, xy_hal_rtc_event_t event,
                                  xy_hal_rtc_callback_t callback, void *arg)
 {
     /* Store callback in context */
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
 }
 
 int64_t xy_hal_rtc_get_timestamp(void *rtc)
 {
     if (!rtc) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     xy_hal_rtc_time_t time;
     xy_hal_rtc_date_t date;
 
-    if (xy_hal_rtc_get_time(rtc, &time, XY_HAL_RTC_FORMAT_BIN) != 0) {
-        return -1;
+    if (xy_hal_rtc_get_time(rtc, &time, XY_HAL_RTC_FORMAT_BIN) != XY_HAL_OK) {
+        return XY_HAL_ERROR_FAIL;
     }
 
-    if (xy_hal_rtc_get_date(rtc, &date, XY_HAL_RTC_FORMAT_BIN) != 0) {
-        return -1;
+    if (xy_hal_rtc_get_date(rtc, &date, XY_HAL_RTC_FORMAT_BIN) != XY_HAL_OK) {
+        return XY_HAL_ERROR_FAIL;
     }
 
     struct tm timeinfo = { 0 };
@@ -282,14 +258,12 @@ int64_t xy_hal_rtc_get_timestamp(void *rtc)
     timeinfo.tm_sec    = time.seconds;
 
     return (int64_t)mktime(&timeinfo);
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
-int xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)
+xy_hal_error_t xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)
 {
     if (!rtc) {
-        return -1;
+        return XY_HAL_ERROR_FAIL;
     }
 
     time_t ts           = (time_t)timestamp;
@@ -307,17 +281,15 @@ int xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)
                                .date    = timeinfo->tm_mday,
                                .year    = timeinfo->tm_year + 1900 };
 
-    if (xy_hal_rtc_set_time(rtc, &time, XY_HAL_RTC_FORMAT_BIN) != 0) {
-        return -1;
+    if (xy_hal_rtc_set_time(rtc, &time, XY_HAL_RTC_FORMAT_BIN) != XY_HAL_OK) {
+        return XY_HAL_ERROR_FAIL;
     }
 
-    if (xy_hal_rtc_set_date(rtc, &date, XY_HAL_RTC_FORMAT_BIN) != 0) {
-        return -1;
+    if (xy_hal_rtc_set_date(rtc, &date, XY_HAL_RTC_FORMAT_BIN) != XY_HAL_OK) {
+        return XY_HAL_ERROR_FAIL;
     }
 
-    return 0;
-
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_OK;
 }
 
 #endif /* STM32_HAL_ENABLED */
