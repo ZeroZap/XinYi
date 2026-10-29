@@ -4,7 +4,7 @@
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import code_only  # noqa: E402
+from source_scan import read_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT / "boards" / "pandora_stm32l475"
@@ -23,7 +23,7 @@ PC_SYS = ROOT / "components" / "hal" / "PC" / "xy_hal_pc.c"
 
 def main() -> int:
     errors: list[str] = []
-    cmake = CMAKE.read_text(encoding="utf-8")
+    cmake = read_raw(CMAKE)
 
     for path, label in (
         (MAIN, "runtime main"),
@@ -52,7 +52,7 @@ def main() -> int:
             errors.append(f"Pandora CMake must wire token: {token}")
 
     if MAIN.is_file():
-        main_source = code_only(MAIN.read_text(encoding="utf-8"))
+        main_source = read_code(MAIN)
         for token in (
             "xy_os_thread_new",
             "xy_os_kernel_start",
@@ -279,7 +279,7 @@ def main() -> int:
     if not L4_DMA.is_file():
         errors.append("dedicated STM32L4 DMA wrapper is missing")
     else:
-        dma_source = code_only(L4_DMA.read_text(encoding="utf-8"))
+        dma_source = read_code(L4_DMA)
         for token in (
             "STM32L4",
             "HAL_DMA_Init",
@@ -299,7 +299,7 @@ def main() -> int:
     if not L4_SPI.is_file():
         errors.append("dedicated STM32L4 SPI wrapper is missing")
     else:
-        spi_source = code_only(L4_SPI.read_text(encoding="utf-8"))
+        spi_source = read_code(L4_SPI)
         for token in (
             "STM32L4",
             "HAL_SPI_Init",
@@ -316,7 +316,7 @@ def main() -> int:
     if not L4_TIMER.is_file():
         errors.append("dedicated STM32L4 timer wrapper is missing")
     else:
-        timer_source = code_only(L4_TIMER.read_text(encoding="utf-8"))
+        timer_source = read_code(L4_TIMER)
         for token in (
             "STM32L4",
             "HAL_TIM_Base_Init",
@@ -330,7 +330,7 @@ def main() -> int:
                 errors.append(f"STM32L4 timer wrapper must preserve token: {token}")
 
     if STRESS_VALIDATOR.is_file():
-        validator_source = code_only(STRESS_VALIDATOR.read_text(encoding="utf-8"))
+        validator_source = read_raw(STRESS_VALIDATOR)  # a Python validator, not C
         for token in (
             "STRESS_REVIEW_CANDIDATE",
             "STRESS_VALIDATION_FAILED",
@@ -343,7 +343,7 @@ def main() -> int:
                 errors.append(f"stress validator must preserve token: {token}")
 
     if HANDLERS.is_file():
-        handler_source = code_only(HANDLERS.read_text(encoding="utf-8"))
+        handler_source = read_code(HANDLERS)
         for token in (
             "vPortSVCHandler",
             "xPortPendSVHandler",
@@ -362,20 +362,14 @@ def main() -> int:
             if forbidden in handler_source:
                 errors.append(f"runtime handlers bypass canonical XinYi HAL: {forbidden}")
 
-        timer_header = (ROOT / "components" / "hal" / "inc" / "xy_hal_timer.h").read_text(
-            encoding="utf-8"
-        )
-        dma_header = (ROOT / "components" / "hal" / "inc" / "xy_hal_dma.h").read_text(
-            encoding="utf-8"
-        )
+        timer_header = read_code(ROOT / "components" / "hal" / "inc" / "xy_hal_timer.h")
+        dma_header = read_code(ROOT / "components" / "hal" / "inc" / "xy_hal_dma.h")
         if "void xy_hal_timer_irq_handler(void *timer);" not in timer_header:
             errors.append("timer HAL must publish the canonical IRQ dispatch entry")
         if "void xy_hal_dma_irq_handler(void *dma);" not in dma_header:
             errors.append("DMA HAL must publish the canonical IRQ dispatch entry")
 
-        sys_header = (ROOT / "components" / "hal" / "inc" / "xy_hal_sys.h").read_text(
-            encoding="utf-8"
-        )
+        sys_header = read_code(ROOT / "components" / "hal" / "inc" / "xy_hal_sys.h")
         for token in (
             "xy_hal_sys_set_irq_priority",
             "xy_hal_sys_enable_irq_num",
@@ -397,9 +391,9 @@ def main() -> int:
                 "HAL_DMA_IRQHandler((DMA_HandleTypeDef *)dma)",
             ),
         ):
-            if dispatch not in backend.read_text(encoding="utf-8"):
+            if dispatch not in read_code(backend):
                 errors.append(f"{backend.relative_to(ROOT)} must own vendor IRQ dispatch")
-        l4_sys_source = code_only(L4_SYS.read_text(encoding="utf-8"))
+        l4_sys_source = read_code(L4_SYS)
         for token in (
             "xy_hal_sys_set_irq_priority",
             "xy_hal_sys_enable_irq_num",
@@ -413,17 +407,16 @@ def main() -> int:
             if token not in l4_sys_source:
                 errors.append(f"STM32L4 SYS wrapper must own NVIC token: {token}")
         for backend, label in ((U5_SYS, "STM32U5"), (PC_SYS, "PC")):
-            source = backend.read_text(encoding="utf-8")
+            source = read_code(backend)
             if "xy_hal_sys_tick_irq_handler" not in source:
                 errors.append(f"{label} SYS backend must implement canonical SysTick dispatch")
-        if "HAL_IncTick" not in U5_SYS.read_text(encoding="utf-8"):
+        if "HAL_IncTick" not in read_code(U5_SYS):
             errors.append("STM32U5 SYS backend must own vendor SysTick dispatch")
         pc_irq = ROOT / "components" / "hal" / "PC" / "xy_hal_irq_pc.c"
         if not pc_irq.is_file():
             errors.append("PC HAL must provide no-op IRQ dispatch compatibility")
-        elif "xy_hal_timer_irq_handler" not in pc_irq.read_text(
-            encoding="utf-8"
-        ) or "xy_hal_dma_irq_handler" not in pc_irq.read_text(encoding="utf-8"):
+        elif "xy_hal_timer_irq_handler" not in read_code(pc_irq) or \
+                "xy_hal_dma_irq_handler" not in read_code(pc_irq):
             errors.append("PC HAL must implement both IRQ dispatch entries")
 
     if errors:

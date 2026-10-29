@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Fail-closed source contract for the resident Pandora FOTA bootloader."""
 
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT / "boards" / "pandora_stm32l475"
@@ -12,14 +16,14 @@ def require(text: str, token: str) -> None:
 
 
 def main() -> int:
-    cmake = (BOARD / "CMakeLists.txt").read_text(encoding="utf-8")
-    linker = (BOARD / "STM32L475VETX_BOOTLOADER.ld").read_text(encoding="utf-8")
-    boot = (BOARD / "fota_bootloader_main.c").read_text(encoding="utf-8")
-    boot_flow = (BOARD / "pandora_fota_boot_flow.c").read_text(encoding="utf-8")
-    boot_flow_header = (BOARD / "pandora_fota_boot_flow.h").read_text(encoding="utf-8")
-    flash = (BOARD / "pandora_fota_install_flash.c").read_text(encoding="utf-8")
-    application = (BOARD / "rtos_main.c").read_text(encoding="utf-8")
-    programmer = (BOARD / "fota_candidate_programmer_main.c").read_text(encoding="utf-8")
+    cmake = read_raw(BOARD / "CMakeLists.txt")
+    linker = read_code(BOARD / "STM32L475VETX_BOOTLOADER.ld")
+    boot = read_code(BOARD / "fota_bootloader_main.c")
+    boot_flow = read_code(BOARD / "pandora_fota_boot_flow.c")
+    boot_flow_header = read_code(BOARD / "pandora_fota_boot_flow.h")
+    flash = read_code(BOARD / "pandora_fota_install_flash.c")
+    application = read_code(BOARD / "rtos_main.c")
+    programmer = read_code(BOARD / "fota_candidate_programmer_main.c")
 
     for token in (
         "add_executable(pandora_stm32l475_fota_bootloader",

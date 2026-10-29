@@ -3,7 +3,11 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -15,10 +19,10 @@ def require(condition: bool, message: str, errors: list[str]) -> None:
 
 def validate() -> list[str]:
     errors: list[str] = []
-    kconfig = (ROOT / "Kconfig").read_text(encoding="utf-8")
-    cmake = (ROOT / "components/net/CMakeLists.txt").read_text(encoding="utf-8")
-    umbrella = (ROOT / "components/net/inc/xy_net.h").read_text(encoding="utf-8")
-    readme = (ROOT / "components/net/README.md").read_text(encoding="utf-8")
+    kconfig = read_raw(ROOT / "Kconfig")
+    cmake = read_raw(ROOT / "components/net/CMakeLists.txt")
+    umbrella = read_code(ROOT / "components/net/inc/xy_net.h")
+    readme = read_raw(ROOT / "components/net/README.md")
 
     for block in (
         'config NETWORK\n    bool "Network Support"\n    default n',

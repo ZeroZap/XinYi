@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import code_only  # noqa: E402
+from source_scan import read_code, read_raw  # noqa: E402
 BOARD = ROOT / "boards" / "pandora_stm32l475"
 RECORD = ROOT / "docs" / "validation" / "xinyi-pandora-stm32l475-board-smoke-record.md"
 EVIDENCE = ROOT / "docs" / "validation" / "evidence" / "pandora-stm32l475" / "2026-09-03"
@@ -48,7 +48,7 @@ def require(path: Path, *needles: str) -> None:
     one is still a symbol.
     """
     assert path.is_file(), f"missing {shown(path)}"
-    text = code_only(path.read_text(encoding="utf-8"))
+    text = read_code(path)
     for needle in needles:
         assert needle in text, (f"{shown(path)} missing {needle!r} in code "
                                 f"(a comment mentioning it does not satisfy this)")
@@ -160,12 +160,12 @@ def main() -> None:
         "xy_hal_rtc_backup_read",
         "xy_hal_rtc_backup_write",
     )
-    pandora_sys = (BOARD / "pandora_sys.c").read_text(encoding="utf-8")
+    pandora_sys = read_code(BOARD / "pandora_sys.c")
     # Scan the code, not the prose: a comment naming a forbidden call (usually to explain
     # why it is not used) is evidence the boundary holds, not a violation.
-    pandora_sys_code = code_only(pandora_sys)
+    pandora_sys_code = pandora_sys
     for forbidden in ("NVIC_SystemReset", "HAL_GetUID", "__HAL_RCC_", "RCC->"):
-        assert forbidden not in code_only(pandora_sys_code), (
+        assert forbidden not in pandora_sys_code, (
             f"pandora_sys.c bypasses canonical SYS HAL: {forbidden}"
         )
     require(
@@ -180,7 +180,7 @@ def main() -> None:
         "HAL_GetUIDw0",
         "RCC->CSR",
     )
-    fota_bootloader = code_only((BOARD / "fota_bootloader_main.c").read_text(encoding="utf-8"))
+    fota_bootloader = read_code(BOARD / "fota_bootloader_main.c")
     assert "xy_hal_sys_deinit()" in fota_bootloader
     assert "HAL_DeInit(" not in fota_bootloader
     require(
@@ -204,9 +204,9 @@ def main() -> None:
         "pandora_fota_metadata_backend",
     )
     for flash_owner in ("pandora_fota_flash.c", "pandora_fota_install_flash.c"):
-        source = (BOARD / flash_owner).read_text(encoding="utf-8")
+        source = read_code(BOARD / flash_owner)
         for forbidden in ("HAL_FLASH_", "HAL_FLASHEx_", "FLASH_TYPEPROGRAM_", "FLASH_TYPEERASE_"):
-            assert forbidden not in code_only(source), f"{flash_owner} bypasses canonical Flash HAL: {forbidden}"
+            assert forbidden not in source, f"{flash_owner} bypasses canonical Flash HAL: {forbidden}"
     require(
         BOARD / "pandora_fota_install_flash.c",
         "PANDORA_FOTA_INSTALL_PROGRAM_SIZE",
@@ -265,9 +265,9 @@ def main() -> None:
         "xy_hal_i2c_is_device_ready",
         "pandora_hw_i2c3_init",
     )
-    soft_i2c = (BOARD / "pandora_soft_i2c.c").read_text(encoding="utf-8")
+    soft_i2c = read_code(BOARD / "pandora_soft_i2c.c")
     for forbidden in ("HAL_GPIO_Init(", "HAL_GPIO_WritePin(", "HAL_GPIO_ReadPin("):
-        assert forbidden not in code_only(soft_i2c), f"Pandora software I2C bypasses xy_hal GPIO: {forbidden}"
+        assert forbidden not in soft_i2c, f"Pandora software I2C bypasses xy_hal GPIO: {forbidden}"
     delay_entries = (
         "main.c",
         "buzzer_main.c",
@@ -284,7 +284,7 @@ def main() -> None:
         "rtos_main.c",
     )
     for board_entry in init_entries:
-        entry = code_only((BOARD / board_entry).read_text(encoding="utf-8"))
+        entry = read_code(BOARD / board_entry)
         assert "xy_hal_sys_init()" in entry, f"{board_entry} missing canonical SYS init"
         assert "HAL_Init(" not in entry, f"{board_entry} bypasses canonical SYS init HAL"
         assert "pandora_platform_startup()" in entry, (
@@ -295,7 +295,7 @@ def main() -> None:
             "HAL_RCC_OscConfig(",
             "HAL_RCC_ClockConfig(",
         ):
-            assert forbidden not in code_only(entry), (
+            assert forbidden not in entry, (
                 f"{board_entry} bypasses board-owned startup policy: {forbidden}"
             )
     require(
@@ -314,13 +314,13 @@ def main() -> None:
         "rtos_handlers.c",
     )
     for board_entry in tick_entries:
-        entry = code_only((BOARD / board_entry).read_text(encoding="utf-8"))
+        entry = read_code(BOARD / board_entry)
         assert "xy_hal_sys_tick_irq_handler" in entry, (
             f"{board_entry} missing canonical SysTick dispatch"
         )
         assert "HAL_IncTick(" not in entry, f"{board_entry} owns vendor SysTick dispatch"
     for board_entry in delay_entries[1:]:
-        entry = code_only((BOARD / board_entry).read_text(encoding="utf-8"))
+        entry = read_code(BOARD / board_entry)
         for required in (
             "xy_hal_uart_init",
             "xy_hal_uart_send",
@@ -335,22 +335,22 @@ def main() -> None:
             "HAL_Delay(",
             "HAL_GetTick(",
         ):
-            assert forbidden not in code_only(entry), f"{board_entry} bypasses canonical XinYi HAL: {forbidden}"
-    smoke_entry = code_only((BOARD / "main.c").read_text(encoding="utf-8"))
+            assert forbidden not in entry, f"{board_entry} bypasses canonical XinYi HAL: {forbidden}"
+    smoke_entry = read_code(BOARD / "main.c")
     assert "xy_hal_delay_ms" in smoke_entry
     assert "HAL_Delay(" not in smoke_entry
     for sensor_entry in ("sensor_ap3216c_main.c", "sensor_icm20608_main.c"):
-        entry = code_only((BOARD / sensor_entry).read_text(encoding="utf-8"))
+        entry = read_code(BOARD / sensor_entry)
         assert "xy_hal_sys_get_tick_count" in entry
         assert "HAL_GetTick(" not in entry
     for fota_entry in ("fota_bootloader_main.c", "fota_candidate_programmer_main.c"):
-        entry = code_only((BOARD / fota_entry).read_text(encoding="utf-8"))
+        entry = read_code(BOARD / fota_entry)
         for required in ("xy_hal_uart_init", "xy_hal_uart_send", "xy_hal_gpio_init"):
             assert required in entry, f"{fota_entry} missing canonical HAL call {required}"
         for forbidden in ("HAL_UART_Init(", "HAL_UART_Transmit(", "HAL_GPIO_Init("):
-            assert forbidden not in code_only(entry), f"{fota_entry} bypasses canonical XinYi HAL: {forbidden}"
+            assert forbidden not in entry, f"{fota_entry} bypasses canonical XinYi HAL: {forbidden}"
     for primary_entry in ("main.c", "rtos_main.c"):
-        entry = code_only((BOARD / primary_entry).read_text(encoding="utf-8"))
+        entry = read_code(BOARD / primary_entry)
         for required in (
             "xy_hal_uart_init",
             "xy_hal_uart_send",
@@ -364,8 +364,8 @@ def main() -> None:
             "HAL_GPIO_Init(",
             "HAL_GPIO_TogglePin(",
         ):
-            assert forbidden not in code_only(entry), f"{primary_entry} bypasses canonical XinYi HAL: {forbidden}"
-    rtos_entry = code_only((BOARD / "rtos_main.c").read_text(encoding="utf-8"))
+            assert forbidden not in entry, f"{primary_entry} bypasses canonical XinYi HAL: {forbidden}"
+    rtos_entry = read_code(BOARD / "rtos_main.c")
     assert "uart1.Instance = USART1;" in rtos_entry
     assert "xy_hal_sys_software_reset" in rtos_entry
     assert "NVIC_SystemReset" not in rtos_entry
@@ -392,11 +392,11 @@ def main() -> None:
     uart_body = function_body(rtos_entry, "static void uart_text(")
     assert "xy_image_last_marker = text;" in uart_body
     for backup_entry in ("rtos_main.c", "fota_bootloader_main.c"):
-        entry = code_only((BOARD / backup_entry).read_text(encoding="utf-8"))
+        entry = read_code(BOARD / backup_entry)
         for required in ("xy_hal_rtc_backup_read", "xy_hal_rtc_backup_write"):
             assert required in entry, f"{backup_entry} missing canonical RTC backup call {required}"
         for forbidden in ("HAL_PWR_EnableBkUpAccess", "RTC->BKP"):
-            assert forbidden not in code_only(entry), f"{backup_entry} bypasses canonical RTC HAL: {forbidden}"
+            assert forbidden not in entry, f"{backup_entry} bypasses canonical RTC HAL: {forbidden}"
     require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_rtc.c",
         "xy_hal_rtc_backup_read",
@@ -427,10 +427,10 @@ def main() -> None:
         "HAL_I2C_Master_Receive",
         "dev_addr << 1",
     )
-    hal_cmake = (ROOT / "components" / "hal" / "CMakeLists.txt").read_text(encoding="utf-8")
+    hal_cmake = read_raw(ROOT / "components" / "hal" / "CMakeLists.txt")
     assert 'stm32/stm32l4/xy_hal_i2c.c' in hal_cmake
     assert 'stm32/stm32l4/xy_hal_wdg.c' in hal_cmake
-    board_cmake = (BOARD / "CMakeLists.txt").read_text(encoding="utf-8")
+    board_cmake = read_raw(BOARD / "CMakeLists.txt")
     assert "components/hal/stm32/stm32f4/xy_hal_wdg.c" not in board_cmake
     assert "components/hal/stm32/stm32l4/xy_hal_wdg.c" in board_cmake
     # The software-I2C owner now defines the same xy_hal_i2c_* symbols as the
@@ -442,7 +442,7 @@ def main() -> None:
             f"{target} compiles both pandora_soft_i2c.c and the STM32L4 handle-based "
             "I2C backend; the xy_hal_i2c_* definitions would collide"
         )
-    board_i2c = code_only((BOARD / "pandora_hw_i2c.c").read_text(encoding="utf-8"))
+    board_i2c = read_code(BOARD / "pandora_hw_i2c.c")
     assert "HAL_I2C_Master_Transmit" not in board_i2c
     assert "HAL_I2C_Master_Receive" not in board_i2c
     assert "xy_hal_gpio_init" in board_i2c
@@ -521,10 +521,10 @@ def main() -> None:
         "xy_aht10_read",
         "XY_AHT10_DEFAULT_ADDRESS",
     )
-    aht10_entry = (BOARD / "sensor_aht10_main.c").read_text(encoding="utf-8")
+    aht10_entry = read_code(BOARD / "sensor_aht10_main.c")
     for forbidden in ("0xE1U", "0xACU", "xy_i2c_device_init", "xy_i2c_device_read",
                       "xy_i2c_device_write", "50000U", "200000U"):
-        assert forbidden not in code_only(aht10_entry), (
+        assert forbidden not in aht10_entry, (
             f"sensor_aht10_main.c re-implements the AHT10 protocol instead of using "
             f"the canonical driver: {forbidden}"
         )
@@ -539,7 +539,7 @@ def main() -> None:
         "pandora_icm20608_owner.c",
         "pandora_aht10_owner.c",
     ):
-        source = (BOARD / sensor_owner).read_text(encoding="utf-8")
+        source = read_code(BOARD / sensor_owner)
         for forbidden in (
             "sensor_core.h",
             "sensor_device_t",
@@ -550,10 +550,10 @@ def main() -> None:
             "icm20608_priv_t",
             "SENSOR_EOK",
         ):
-            assert forbidden not in code_only(source), (
+            assert forbidden not in source, (
                 f"{sensor_owner} still depends on the legacy sensor wrapper: {forbidden}"
             )
-    board_cmake_text = (BOARD / "CMakeLists.txt").read_text(encoding="utf-8")
+    board_cmake_text = read_raw(BOARD / "CMakeLists.txt")
     for legacy_wrapper in ("sensor_ap3216c.c", "sensor_icm20608.c"):
         assert legacy_wrapper not in board_cmake_text, (
             f"board CMakeLists.txt still links the legacy wrapper {legacy_wrapper}"
@@ -615,13 +615,13 @@ def main() -> None:
         "FOTA_AUTOMATIC_ROLLBACK_COMMITTED",
         "FOTA_METADATA_FLASH_OK",
     )
-    smoke_entry = code_only((BOARD / "main.c").read_text(encoding="utf-8"))
+    smoke_entry = read_code(BOARD / "main.c")
     assert "HAL_IWDG_Init(" not in smoke_entry
     # Reset-cause attribution is a contract with host coverage in pandora_sys.c.
     # An inline bit chain in the entry point is how a brownout boot got reported
     # as POWER_ON, so keep the decision out of main.c entirely. Scan the code:
     # a comment that names a reason bit is not a decision.
-    smoke_code = code_only(smoke_entry)
+    smoke_code = smoke_entry
     assert "XY_HAL_SYS_RESET_REASON_" not in smoke_code, (
         "main.c attributes the reset cause inline; dispatch on pandora_sys_reset_kind()"
     )
@@ -732,7 +732,7 @@ def main() -> None:
         WATCHDOG_LOG_SHA256,
     ).decode("utf-8")
     watchdog_metadata = json.loads(
-        (WATCHDOG_EVIDENCE / "sys-watchdog-12bf990f.json").read_text(encoding="utf-8")
+        read_raw(WATCHDOG_EVIDENCE / "sys-watchdog-12bf990f.json")
     )
     assert watchdog_metadata["status"] == "WATCHDOG_RESET_B2_REVIEW_CANDIDATE"
     assert watchdog_metadata["firmware_commit"] == WATCHDOG_FIRMWARE_COMMIT
@@ -749,7 +749,7 @@ def main() -> None:
         EXTERNAL_RESET_LOG_SHA256,
     ).decode("utf-8")
     external_reset_metadata = json.loads(
-        (WATCHDOG_EVIDENCE / "sys-external-reset-960f68b0.json").read_text(encoding="utf-8")
+        read_raw(WATCHDOG_EVIDENCE / "sys-external-reset-960f68b0.json")
     )
     assert external_reset_metadata["status"] == "EXTERNAL_RESET_B2_REVIEW_CANDIDATE"
     assert external_reset_metadata["firmware_commit"] == EXTERNAL_RESET_FIRMWARE_COMMIT

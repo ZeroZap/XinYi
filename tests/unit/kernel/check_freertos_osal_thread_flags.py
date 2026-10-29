@@ -4,26 +4,30 @@
 from pathlib import Path
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code, read_raw  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 BACKEND = ROOT / "components/kernel/osal/backend/freertos/xy_os_freertos.c"
 PUBLIC_API = ROOT / "components/kernel/osal/xy_os.h"
 
 
 def main() -> int:
-    source = BACKEND.read_text(encoding="utf-8")
-    public_api = PUBLIC_API.read_text(encoding="utf-8")
-    board_cmake = (ROOT / "boards/opench_ch32v307/CMakeLists.txt").read_text(encoding="utf-8")
-    board_semaphore = (ROOT / "boards/opench_ch32v307/osal_freertos_semaphore_lifecycle_main.c").read_text(encoding="utf-8")
-    board_mutex = (ROOT / "boards/opench_ch32v307/osal_freertos_mutex_lifecycle_main.c").read_text(encoding="utf-8")
-    board_queue = (ROOT / "boards/opench_ch32v307/osal_freertos_queue_lifecycle_main.c").read_text(encoding="utf-8")
-    board_event_flags = (ROOT / "boards/opench_ch32v307/osal_freertos_event_flags_lifecycle_main.c").read_text(encoding="utf-8")
-    board_oneshot_timer = (ROOT / "boards/opench_ch32v307/osal_freertos_oneshot_timer_main.c").read_text(encoding="utf-8")
-    board_mempool = (ROOT / "boards/opench_ch32v307/osal_freertos_mempool_lifecycle_main.c").read_text(encoding="utf-8")
-    board_thread = (ROOT / "boards/opench_ch32v307/osal_freertos_thread_lifecycle_main.c").read_text(encoding="utf-8")
-    board_isr_stress = (ROOT / "boards/opench_ch32v307/osal_freertos_isr_stress_main.c").read_text(encoding="utf-8")
-    board_timer_flags = (ROOT / "boards/opench_ch32v307/osal_freertos_timer_flags_main.c").read_text(encoding="utf-8")
-    board_primitives = (ROOT / "boards/opench_ch32v307/osal_freertos_primitives_main.c").read_text(encoding="utf-8")
-    board_sdk = (ROOT / "boards/opench_ch32v307/osal_freertos_sdk_main.c").read_text(encoding="utf-8")
+    source = read_code(BACKEND)
+    raw = read_raw(BACKEND)
+    public_api = read_code(PUBLIC_API)
+    board_cmake = read_raw(ROOT / "boards/opench_ch32v307/CMakeLists.txt")
+    board_semaphore = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_semaphore_lifecycle_main.c")
+    board_mutex = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_mutex_lifecycle_main.c")
+    board_queue = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_queue_lifecycle_main.c")
+    board_event_flags = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_event_flags_lifecycle_main.c")
+    board_oneshot_timer = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_oneshot_timer_main.c")
+    board_mempool = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_mempool_lifecycle_main.c")
+    board_thread = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_thread_lifecycle_main.c")
+    board_isr_stress = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_isr_stress_main.c")
+    board_timer_flags = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_timer_flags_main.c")
+    board_primitives = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_primitives_main.c")
+    board_sdk = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_sdk_main.c")
     errors: list[str] = []
 
     if "return ulTaskNotifyValueClear(NULL, flags);" not in source:
@@ -627,8 +631,8 @@ def main() -> int:
         "thread_lifecycle",
         "timer_flags",
     ):
-        board_source = (ROOT / f"boards/opench_ch32v307/osal_freertos_{board_name}_main.c").read_text(
-            encoding="utf-8"
+        board_source = read_code(
+            ROOT / f"boards/opench_ch32v307/osal_freertos_{board_name}_main.c"
         )
         if '#error "XINYI_FIRMWARE_COMMIT must identify the exact source commit"' not in board_source:
             errors.append(f"FreeRTOS {board_name} image must fail closed when source identity is absent")
@@ -1196,15 +1200,25 @@ def main() -> int:
     thread_inventory = source.split("uint32_t xy_os_thread_get_count", 1)[-1].split(
         "/* Thread Flags", 1
     )[0]
+    # The rationale lives in comments, so this half reads raw text on purpose: the contract
+    # is that the reason is written down next to the decision, and code_only would delete it.
+    raw_inventory = raw.split("uint32_t xy_os_thread_get_count", 1)[-1].split("/* Thread Flags", 1)[0]
     for required in (
         "return 0U;",
-        "FreeRTOS exposes kernel-global task inventory",
-        "Do not publish NULL placeholders or untracked kernel-global handles",
     ):
         if required not in thread_inventory:
             errors.append(
                 "FreeRTOS thread inventory must fail closed because kernel-global task "
                 f"handles are not adapter-owned; missing: {required}"
+            )
+    for required in (
+        "FreeRTOS exposes kernel-global task inventory",
+        "Do not publish NULL placeholders or untracked kernel-global handles",
+    ):
+        if required not in raw_inventory:
+            errors.append(
+                "FreeRTOS thread inventory must document why it fails closed; "
+                f"missing rationale: {required}"
             )
     if "uxTaskGetNumberOfTasks" in thread_inventory:
         errors.append(

@@ -4,7 +4,7 @@
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import code_only  # noqa: E402
+from source_scan import read_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BACKEND = ROOT / "components/kernel/osal/backend/rtthread/xy_os_rtthread.c"
@@ -15,7 +15,7 @@ def function_body(source: str, start: str, end: str) -> str:
 
 
 def main() -> int:
-    source = code_only(BACKEND.read_text(encoding="utf-8"))
+    source = read_code(BACKEND)
     errors: list[str] = []
 
     owner_region = function_body(

@@ -18,7 +18,7 @@ from pathlib import Path
 import re
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import code_only  # noqa: E402
+from source_scan import code_only, read_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BACKEND = ROOT / "components/kernel/osal/backend/freertos/xy_os_freertos.c"
@@ -44,7 +44,7 @@ def main() -> int:
         print(f"freertos_hal_timebase_binding failed: {BACKEND} is missing", file=sys.stderr)
         return 1
 
-    source = BACKEND.read_text(encoding="utf-8")
+    source = read_code(BACKEND)
     code = code_only(source)
     errors: list[str] = []
 
@@ -104,7 +104,7 @@ def main() -> int:
     if not re.search(r'#include\s+"xy_hal_time\.h"', code):
         errors.append('the backend must include "xy_hal_time.h" so the hook always compiles')
 
-    cmake = OSAL_CMAKE.read_text(encoding="utf-8") if OSAL_CMAKE.is_file() else ""
+    cmake = read_raw(OSAL_CMAKE) if OSAL_CMAKE.is_file() else ""
     if "components/hal/inc" not in cmake:
         errors.append(
             "xy_osal must put components/hal/inc on its own include path, or the backend "

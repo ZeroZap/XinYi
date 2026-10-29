@@ -6,6 +6,9 @@ import json
 from pathlib import Path
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 DECISION = ROOT / "docs" / "validation" / "reference-rtos-decision.md"
 TRACKER = ROOT / "docs" / "plans" / "SPRINT_TRACKER.md"
@@ -405,7 +408,7 @@ def main() -> int:
     require(FREERTOS_COMPILE_PROBE.is_file(),
             "STM32U5 FreeRTOS adapter/kernel compile probe is missing", errors)
     if FREERTOS_CONFIG.is_file():
-        config = FREERTOS_CONFIG.read_text(encoding="utf-8")
+        config = read_code(FREERTOS_CONFIG)
         for token in (
             "configCPU_CLOCK_HZ",
             "configTICK_RATE_HZ",

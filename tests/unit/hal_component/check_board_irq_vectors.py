@@ -31,7 +31,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import code_only  # noqa: E402
+from source_scan import code_only, read_code, read_raw  # noqa: E402
 
 VECTOR = re.compile(r"void\s+([A-Z][A-Z0-9_]*_IRQHandler)\s*\(\s*void\s*\)", re.M)
 
@@ -191,7 +191,7 @@ def walk_sources(root: Path):
             path = Path(dirpath) / name
             if name == "CMakeLists.txt" or name.endswith(".cmake"):
                 try:
-                    cmakes[str(path)] = path.read_text(encoding="utf-8", errors="replace")
+                    cmakes[str(path)] = read_raw(path)
                 except OSError:
                     continue
             elif name.endswith(".c"):
@@ -240,17 +240,17 @@ def scan_repository(root: Path = ROOT) -> list[str]:
     checked, _unchecked = sources_to_scan(root)
     for path in checked:
         relative = path.relative_to(root).as_posix()
-        findings.extend(vector_findings(path.read_text(encoding="utf-8", errors="replace"),
+        findings.extend(vector_findings(read_code(path),
                                         relative, relative))
 
     for board in sorted(path for path in (root / "boards").iterdir() if path.is_dir()):
-        sources = {path.name: path.read_text(encoding="utf-8", errors="replace")
+        sources = {path.name: read_code(path)
                    for path in board.glob("*.c")}
         vectors: set[str] = set()
         for source in sources.values():
             vectors.update(vectors_in(code_only(source)))
         cmake = board / "CMakeLists.txt"
-        cmake_text = cmake.read_text(encoding="utf-8") if cmake.is_file() else ""
+        cmake_text = read_raw(cmake) if cmake.is_file() else ""
         findings.extend(arming_findings(sources, vectors,
                                         "XY_HAL_UART_PROVIDE_IRQ_VECTORS" in cmake_text,
                                         board.name))
@@ -263,7 +263,7 @@ def boundary_report(root: Path = ROOT) -> list[str]:
     for (relative, name), reason in sorted(BOUNDARY_VECTORS.items()):
         path = root / relative
         present = path.is_file() and name in vectors_in(
-            code_only(path.read_text(encoding="utf-8", errors="replace")))
+            read_code(path))
         if present:
             report.append(f"{relative}: {name} (boundary: {reason.split(':')[0]})")
         else:
@@ -279,7 +279,7 @@ def unchecked_vectors(root: Path = ROOT) -> list[str]:
     for path in unchecked:
         relative = path.relative_to(root).as_posix()
         for name in sorted(vectors_in(code_only(
-                path.read_text(encoding="utf-8", errors="replace")))):
+                read_code(path)))):
             notes.append(f"not checked (no CMakeLists names this file): {relative}: {name}")
     return notes
 

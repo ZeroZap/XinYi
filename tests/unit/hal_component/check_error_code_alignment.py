@@ -19,6 +19,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 HEADERS = {
     "hal": (ROOT / "components" / "hal" / "inc" / "xy_hal_error.h", "XY_HAL_"),
@@ -28,7 +31,7 @@ HEADERS = {
 
 
 def parse(path: Path, prefix: str) -> dict[str, int]:
-    text = path.read_text(encoding="utf-8")
+    text = read_code(path)
     codes: dict[str, int] = {}
     for name, value in re.findall(rf"\b({prefix}[A-Z0-9_]+)\s*=\s*(-?\d+)", text):
         codes[name[len(prefix):]] = int(value)
@@ -71,7 +74,7 @@ def hal_name_for(alias: str) -> str | None:
 
 def parse_device_aliases() -> dict[str, str]:
     """Read `#define XY_DEVICE_X <symbol>` pairs; these alias other families, not numbers."""
-    text = HEADERS["device"][0].read_text(encoding="utf-8")
+    text = read_code(HEADERS["device"][0])
     aliases: dict[str, str] = {}
     for name, target in re.findall(r"#define\s+XY_DEVICE_([A-Z0-9_]+)\s+(XY_[A-Z0-9_]+)\s*$",
                                    text, flags=re.M):

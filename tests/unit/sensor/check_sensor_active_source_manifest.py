@@ -2,6 +2,10 @@
 """Guard the canonical Sensor active-source ownership manifest."""
 
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code, read_raw  # noqa: E402
 import re
 import sys
 
@@ -76,7 +80,7 @@ def false_owner_candidates(paths: list[Path]) -> list[str]:
     )
     candidates: list[str] = []
     for path in paths:
-        source = path.read_text(encoding="utf-8")
+        source = read_code(path)
         executable = re.sub(r"^\s*extern\b[^;]*;", "", source, flags=re.MULTILINE)
         if literal_output.search(executable) and not transport_call.search(executable):
             candidates.append(path.name)
@@ -92,14 +96,14 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    manifest = MANIFEST.read_text(encoding="utf-8")
-    tracker = TRACKER.read_text(encoding="utf-8")
-    audit_plan = AUDIT_PLAN.read_text(encoding="utf-8")
-    sensor_cmake = SENSOR_CMAKE.read_text(encoding="utf-8")
-    drivers_cmake = DRIVERS_CMAKE.read_text(encoding="utf-8")
-    unit_cmake = UNIT_CMAKE.read_text(encoding="utf-8")
-    smart_hygrometer_cmake = SMART_HYGROMETER_CMAKE.read_text(encoding="utf-8")
-    smart_hygrometer_main = SMART_HYGROMETER_MAIN.read_text(encoding="utf-8")
+    manifest = read_raw(MANIFEST)
+    tracker = read_raw(TRACKER)
+    audit_plan = read_raw(AUDIT_PLAN)
+    sensor_cmake = read_raw(SENSOR_CMAKE)
+    drivers_cmake = read_raw(DRIVERS_CMAKE)
+    unit_cmake = read_raw(UNIT_CMAKE)
+    smart_hygrometer_cmake = read_raw(SMART_HYGROMETER_CMAKE)
+    smart_hygrometer_main = read_code(SMART_HYGROMETER_MAIN)
 
     legacy = sorted((ROOT / "components" / "sensor" / "sensors").glob("sensor_*.c"))
     framework_sources = {

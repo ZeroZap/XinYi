@@ -2,8 +2,12 @@
 """Regression tests for OSAL backend/public-header contract drift."""
 
 import re
+import sys
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[0] / "unit" / "support"))
+from source_scan import read_code  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,13 +56,13 @@ def _collect_backend_definitions(text: str):
 
 class OsalBackendContractTest(unittest.TestCase):
     def setUp(self):
-        self.public = _collect_public_declarations(HEADER.read_text(encoding="utf-8"))
+        self.public = _collect_public_declarations(read_code(HEADER))
         self.assertGreater(len(self.public), 0)
 
     def test_all_backends_define_the_public_api_with_matching_return_types(self):
         for backend_name, backend_path in BACKENDS.items():
             with self.subTest(backend=backend_name):
-                definitions = _collect_backend_definitions(backend_path.read_text(encoding="utf-8"))
+                definitions = _collect_backend_definitions(read_code(backend_path))
                 missing = sorted(set(self.public) - set(definitions))
                 extra = sorted(set(definitions) - set(self.public))
                 wrong_return = {
@@ -73,7 +77,7 @@ class OsalBackendContractTest(unittest.TestCase):
 
     def test_backend_sources_do_not_use_removed_public_compat_names(self):
         for backend_name, backend_path in BACKENDS.items():
-            text = backend_path.read_text(encoding="utf-8")
+            text = read_code(backend_path)
             with self.subTest(backend=backend_name):
                 offenders = [token for token in OBSOLETE_BACKEND_TOKENS if token in text]
                 self.assertEqual([], offenders)

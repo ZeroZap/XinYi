@@ -76,7 +76,7 @@ def main() -> int:
     # kernel installs its own delay source, so images may use the HAL delay only
     # while the backend really binds one.
     kernel = ROOT / "components/kernel/osal/backend/freertos/xy_os_freertos.c"
-    kernel_text = kernel.read_text(encoding="utf-8")
+    kernel_text = read_code(kernel)
     binds_delay = "xy_hal_delay_set_source(freertos_hal_delay_us)" in kernel_text
     binds_time = "xy_hal_tick_set_source(freertos_hal_tick_ms)" in kernel_text
     if not (binds_delay and binds_time):

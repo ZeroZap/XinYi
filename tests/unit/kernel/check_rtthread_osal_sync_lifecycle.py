@@ -5,6 +5,9 @@ from pathlib import Path
 import re
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 BACKEND = ROOT / "components/kernel/osal/backend/rtthread/xy_os_rtthread.c"
 
@@ -65,7 +68,7 @@ def check_runtime_owner(
 
 
 def main() -> int:
-    source = BACKEND.read_text(encoding="utf-8")
+    source = read_code(BACKEND)
     errors: list[str] = []
 
     check_lifecycle(

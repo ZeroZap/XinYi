@@ -19,6 +19,9 @@ import argparse
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 HEADER = ROOT / "components" / "hal" / "inc" / "xy_hal_uart.h"
 TARGETS = {
@@ -58,8 +61,8 @@ def main() -> int:
         print(f"{label} failed:\n- {WRAPPER} is missing")
         return 1
 
-    source = WRAPPER.read_text(encoding="utf-8")
-    header = HEADER.read_text(encoding="utf-8")
+    source = read_code(WRAPPER)
+    header = read_code(HEADER)
 
     for declaration in ("xy_hal_uart_enable_rx_irq", "xy_hal_uart_irq_handler",
                         "xy_hal_uart_rx_byte"):

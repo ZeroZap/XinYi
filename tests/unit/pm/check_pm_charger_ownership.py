@@ -5,6 +5,9 @@ from pathlib import Path
 import re
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code, read_raw  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 PM_CHARGER = ROOT / "components" / "pm" / "src" / "xy_charger.c"
 PM_PLATFORM = ROOT / "components" / "pm" / "src" / "xy_pm_platform.c"
@@ -18,10 +21,10 @@ def definitions(text: str, symbol: str) -> int:
 
 def main() -> int:
     errors = []
-    charger = PM_CHARGER.read_text(encoding="utf-8")
-    platform = PM_PLATFORM.read_text(encoding="utf-8")
-    unit_cmake = UNIT_CMAKE.read_text(encoding="utf-8")
-    pandora_cmake = PANDORA_CMAKE.read_text(encoding="utf-8")
+    charger = read_code(PM_CHARGER)
+    platform = read_code(PM_PLATFORM)
+    unit_cmake = read_raw(UNIT_CMAKE)
+    pandora_cmake = read_raw(PANDORA_CMAKE)
 
     for symbol in ("xy_charger_hw_enable", "xy_charger_hw_disable"):
         if definitions(charger, symbol) != 0:

@@ -24,7 +24,7 @@ from pathlib import Path
 import re
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import code_only  # noqa: E402
+from source_scan import code_only, read_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 HAL = ROOT / "components/hal/wch/ch32x/src"
@@ -58,8 +58,10 @@ def main() -> int:
     if not HELPER.is_file():
         errors.append("xy_hal_tick_internal.h is missing from the WCH HAL")
     else:
-        helper = HELPER.read_text(encoding="utf-8")
-        helper_code = code_only(helper)
+        # Two reads on purpose: the code contracts scan stripped source, while the OPEN ISSUE
+        # note below is documentation that has to stay written down, so it is read raw.
+        helper = read_raw(HELPER)
+        helper_code = read_code(HELPER)
         if "SysTick->CNT" not in helper_code:
             errors.append(
                 "the shared timebase must keep deriving milliseconds from SysTick->CNT until a "
@@ -91,7 +93,7 @@ def main() -> int:
     systick_users = {
         name
         for name in sources
-        if "SysTick->CNT" in code_only((HAL / name).read_text(encoding="utf-8"))
+        if "SysTick->CNT" in read_code(HAL / name)
     }
     unclassified = systick_users - MIGRATED - DEFERRED
     for name in sorted(unclassified):
@@ -105,7 +107,7 @@ def main() -> int:
         if not path.is_file():
             errors.append(f"migrated source is missing: {name}")
             continue
-        source = path.read_text(encoding="utf-8")
+        source = read_code(path)
         if "xy_hal_tick_internal.h" not in source:
             errors.append(f"{name} must include xy_hal_tick_internal.h")
         if "SysTick->CNT" in code_only(source):

@@ -4,6 +4,9 @@
 from pathlib import Path
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code, read_raw  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 DRIVER = ROOT / "components" / "drivers" / "power" / "charger"
 LEGACY = ROOT / "components" / "charger"
@@ -35,9 +38,10 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    readme = README.read_text(encoding="utf-8")
-    unit_cmake = UNIT_CMAKE.read_text(encoding="utf-8")
-    framework = FRAMEWORK.read_text(encoding="utf-8")
+    readme = read_raw(README)
+    unit_cmake = read_raw(UNIT_CMAKE)
+    framework = read_code(FRAMEWORK)
+    header = read_code(HEADER)
     require("${DRV}/power/charger/xy_bq25620.c" in unit_cmake,
             "charger_bq25620 CTest must exercise the canonical power-driver owner", errors)
     require("charger_ownership" in unit_cmake,
@@ -49,16 +53,15 @@ def main() -> int:
             errors)
     require("*config;" not in framework and "xy_charger_device_status_t status;" not in framework,
             "Device charger contract must not retain ownerless config/status cache fields", errors)
-    require("xy_bq25620_write_reg" not in HEADER.read_text(encoding="utf-8") and
+    require("xy_bq25620_write_reg" not in header and
             "hw_write_reg" not in framework,
             "raw register writes must not bypass the validated Charger control API", errors)
     require("(*hw_" not in framework and "hw_data" not in framework,
             "Device charger contract must not retain unconsumed callback/context fields", errors)
-    require("bool initialized;" not in HEADER.read_text(encoding="utf-8"),
+    require("bool initialized;" not in header,
             "BQ25620 owner must not duplicate the canonical Device lifecycle flag", errors)
-    require("xy_bq25620_configure" in HEADER.read_text(encoding="utf-8"),
+    require("xy_bq25620_configure" in header,
             "BQ25620 full configuration must have a chip-owner public API", errors)
-    header = HEADER.read_text(encoding="utf-8")
     require("BQ25620_REG_DEVICE_ID     = 0x38" in header and
             "BQ25620_PART_NUMBER         (0x00U << 3)" in header,
             "BQ25620 probe identity must match datasheet Part Information register 0x38", errors)

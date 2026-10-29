@@ -19,7 +19,7 @@ from pathlib import Path
 import re
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import code_only  # noqa: E402
+from source_scan import code_only, read_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 HAL = ROOT / "components" / "hal" / "stm32"
@@ -37,7 +37,7 @@ def check_platform(name: str, header: str, require_tick_count: bool) -> list[str
     if not time_source.is_file():
         return [f"{name}: xy_hal_time.c is missing"]
 
-    text = time_source.read_text(encoding="utf-8")
+    text = read_code(time_source)
     code = code_only(text)
     if header not in text:
         errors.append(f"{name}: xy_hal_time.c must include {header}")
@@ -62,7 +62,7 @@ def check_platform(name: str, header: str, require_tick_count: bool) -> list[str
     if not sys_source.is_file():
         errors.append(f"{name}: xy_hal_sys.c is missing")
     else:
-        sys_text = sys_source.read_text(encoding="utf-8")
+        sys_text = read_code(sys_source)
         if "xy_hal_sys_get_tick_count" not in sys_text:
             if require_tick_count:
                 errors.append(f"{name}: xy_hal_sys.c must keep xy_hal_sys_get_tick_count()")

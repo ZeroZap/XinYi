@@ -21,7 +21,7 @@ import re
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import code_only  # noqa: E402
+from source_scan import read_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = ROOT / "components" / "hal" / "stm32" / "stm32f4" / "xy_hal_i2c.c"
@@ -61,11 +61,6 @@ ERROR_ENTRY_POINTS = (
 )
 
 
-def strip_comments(text: str) -> str:
-    """Stripped by the shared character walk; a `//` in a string is not a comment."""
-    return code_only(text)
-
-
 def function_body(source: str, signature: str) -> str:
     start = source.find(signature)
     if start < 0:
@@ -86,16 +81,16 @@ def function_body(source: str, signature: str) -> str:
 
 
 def main() -> int:
-    raw = WRAPPER.read_text(encoding="utf-8")
-    source = strip_comments(raw)
-    header = HEADER.read_text(encoding="utf-8")
+    raw = read_raw(WRAPPER)  # the #ifdef check is about presence, not code
+    source = read_code(WRAPPER)
+    header = read_code(HEADER)
     errors: list[str] = []
 
     # 1. Built by the platform gate, behind the guard.
     if "#ifdef STM32_HAL_ENABLED" not in raw:
         errors.append("STM32F4 I2C wrapper must be wrapped in #ifdef STM32_HAL_ENABLED")
     deferred = re.search(r"set\(XY_HAL_F4_DEFERRED_SOURCES(.*?)\)",
-                         HAL_CMAKE.read_text(encoding="utf-8"), re.S)
+                         read_raw(HAL_CMAKE), re.S)
     if deferred and "xy_hal_i2c.c" in deferred.group(1):
         errors.append(
             "STM32F4 branch still lists xy_hal_i2c.c as contract-deferred; the migrated wrapper "

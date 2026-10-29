@@ -2,7 +2,11 @@
 """Fail-closed policy for direct STM32 HAL calls in Pandora board sources."""
 
 import re
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT / "boards" / "pandora_stm32l475"
@@ -26,7 +30,7 @@ def assert_host_clock_contract() -> None:
     for path in (FAKE_VENDOR, HOST_CONTRACT):
         assert path.is_file(), f"missing {path.relative_to(ROOT)}"
 
-    fake = FAKE_VENDOR.read_text(encoding="utf-8")
+    fake = read_code(FAKE_VENDOR)
     for symbol in (
         *sorted(ALLOWED_OWNER_CALLS),
         "__HAL_RCC_PWR_CLK_ENABLE",
@@ -37,7 +41,7 @@ def assert_host_clock_contract() -> None:
     ):
         assert symbol in fake, f"{FAKE_VENDOR.relative_to(ROOT)} missing {symbol!r}"
 
-    contract = HOST_CONTRACT.read_text(encoding="utf-8")
+    contract = read_code(HOST_CONTRACT)
     for token in (
         "pandora_platform_startup()",
         "PWR_REGULATOR_VOLTAGE_SCALE1",
@@ -47,7 +51,7 @@ def assert_host_clock_contract() -> None:
     ):
         assert token in contract, f"{HOST_CONTRACT.relative_to(ROOT)} missing {token!r}"
 
-    cmake = UNIT_CMAKE.read_text(encoding="utf-8")
+    cmake = read_raw(UNIT_CMAKE)
     anchor = "xy_add_unit_test(test_pandora_platform_startup pandora_platform_startup UNITY"
     start = cmake.find(anchor)
     assert start >= 0, "tests/unit/CMakeLists.txt does not register the startup host contract"
@@ -81,7 +85,7 @@ def main() -> None:
 
     seen_owner_calls: set[str] = set()
     for source in sorted(BOARD.rglob("*.c")):
-        calls = set(HAL_CALL.findall(source.read_text(encoding="utf-8")))
+        calls = set(HAL_CALL.findall(read_code(source)))
         if source == OWNER:
             unexpected = calls - ALLOWED_OWNER_CALLS
             assert not unexpected, (
@@ -102,7 +106,7 @@ def main() -> None:
     assert_host_clock_contract()
 
     assert DOC.is_file(), f"missing architecture boundary document: {DOC.relative_to(ROOT)}"
-    doc = DOC.read_text(encoding="utf-8")
+    doc = read_raw(DOC)
     for token in (
         "pandora_platform_startup.c",
         "HAL_PWREx_ControlVoltageScaling",
