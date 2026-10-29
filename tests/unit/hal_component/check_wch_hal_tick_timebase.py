@@ -23,6 +23,8 @@ builds - only has to be made once. This guard keeps that property:
 from pathlib import Path
 import re
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import code_only  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 HAL = ROOT / "components/hal/wch/ch32x/src"
@@ -48,12 +50,6 @@ MIGRATED = {
 DEFERRED = {
     "xy_hal_sys.c",
 }
-
-
-def code_only(text: str) -> str:
-    """Strip comments so prose about SysTick->CNT never trips the guard."""
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
-    return re.sub(r"//[^\n]*", "", text)
 
 
 def main() -> int:

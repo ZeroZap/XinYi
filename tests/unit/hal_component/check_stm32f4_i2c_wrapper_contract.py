@@ -20,6 +20,8 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import code_only  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = ROOT / "components" / "hal" / "stm32" / "stm32f4" / "xy_hal_i2c.c"
@@ -60,8 +62,8 @@ ERROR_ENTRY_POINTS = (
 
 
 def strip_comments(text: str) -> str:
-    text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
-    return re.sub(r"//[^\n]*", " ", text)
+    """Stripped by the shared character walk; a `//` in a string is not a comment."""
+    return code_only(text)
 
 
 def function_body(source: str, signature: str) -> str:

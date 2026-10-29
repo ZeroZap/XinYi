@@ -17,18 +17,14 @@ kernel tick it reports actually exists. This guard pins that ordering.
 from pathlib import Path
 import re
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import code_only  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BACKEND = ROOT / "components/kernel/osal/backend/freertos/xy_os_freertos.c"
 OSAL_CMAKE = ROOT / "components/kernel/osal/CMakeLists.txt"
 
 FUNCTION_PATTERN = r"xy_os_status_t %s\(void\)\s*\{"
-
-
-def code_only(text: str) -> str:
-    """Drop comments so prose that names a banned construct does not trip the guard."""
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
-    return re.sub(r"//[^\n]*", "", text)
 
 
 def function_body(source: str, name: str, errors: list[str]) -> str:

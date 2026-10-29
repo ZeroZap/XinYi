@@ -18,6 +18,8 @@ tick source plus a strong HAL_GetTick() override; this guard keeps both in place
 from pathlib import Path
 import re
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import code_only  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 HAL = ROOT / "components" / "hal" / "stm32"
@@ -27,11 +29,6 @@ PLATFORMS = {
     "stm32l4": ("stm32l4xx_hal.h", True),
     "stm32u5": ("stm32u5xx_hal.h", False),
 }
-
-
-def code_only(text: str) -> str:
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
-    return re.sub(r"//[^\n]*", "", text)
 
 
 def check_platform(name: str, header: str, require_tick_count: bool) -> list[str]:
