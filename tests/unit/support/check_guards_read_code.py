@@ -54,6 +54,7 @@ REGISTRY = (
     "tests/unit/hal_component/check_hal_timer_irq_contract.py",
     "tests/unit/hal_component/check_hal_stub_returns.py",
     "tests/unit/hal_component/check_hal_spi_contract.py",
+    "tests/unit/hal_component/check_hal_rtc_contract.py",
     "tests/unit/hal_component/check_hal_i2c_contract.py",
     "tests/unit/hal_component/check_hal_platform_build_contract.py",
     "tests/unit/hal_component/check_opench_osal_hal_usage.py",

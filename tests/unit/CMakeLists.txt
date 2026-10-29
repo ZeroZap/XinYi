@@ -136,6 +136,12 @@ add_test(NAME hal_spi_contract
 add_test(NAME hal_spi_contract_unit
     COMMAND python3 ${UNIT_HAL}/test_hal_spi_contract.py)
 
+add_test(NAME hal_rtc_contract
+    COMMAND python3 ${UNIT_HAL}/check_hal_rtc_contract.py)
+
+add_test(NAME hal_rtc_contract_unit
+    COMMAND python3 ${UNIT_HAL}/test_hal_rtc_contract.py)
+
 add_test(NAME hal_i2c_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_i2c_contract.py)
 
@@ -319,6 +325,10 @@ add_test(NAME pandora_aht10_capture_validator
 
 add_test(NAME pandora_icm20608_capture_validator
     COMMAND python3 ${UNIT_SENSOR}/test_pandora_icm20608_capture_validator.py)
+add_test(NAME pandora_capture_window
+    COMMAND python3 ${UNIT_SENSOR}/test_pandora_capture_window.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_qma6100p_capture_validator
     COMMAND python3 ${UNIT_SENSOR}/test_pandora_qma6100p_capture.py
     WORKING_DIRECTORY ${ROOT}

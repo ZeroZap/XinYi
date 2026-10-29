@@ -71,6 +71,32 @@ typedef enum {
 /* RTC callback */
 typedef void (*xy_hal_rtc_callback_t)(xy_hal_rtc_event_t event, void *arg);
 
+/**
+ * @name RTC contract
+ *
+ * These declarations carried no description at all, so each backend decided for itself what the
+ * arguments meant. What follows is what all of them are held to:
+ *
+ * - Every entry except the backup registers answers NOT_INIT on an RTC that was never initialised.
+ *   `xy_hal_rtc_get_timestamp` has no room for an error other than its return value, so there it
+ *   returns the error code - zero seconds and "nothing was ever initialised" are not the same answer
+ *   and must not look like it.
+ *
+ * - `alarm_id` selects which alarm is used. 'A' and 'B' are different slots; a caller that asks for
+ *   B must not be answered out of A. An id that is not an alarm is INVALID_PARAM. A backend with one
+ *   real alarm answers the other with NOT_SUPPORTED.
+ *
+ * - `format` is the format the caller wants back or is handing over; it is not a hint. A backend that
+ *   cannot produce the requested format must refuse with NOT_SUPPORTED rather than hand back digits
+ *   in a format the caller did not ask for - BCD and binary are the same bytes with different
+ *   meanings.
+ *
+ * - `xy_hal_rtc_backup_read` / `_write` bound the index by XY_HAL_RTC_BACKUP_REGISTER_COUNT and
+ *   return INVALID_PARAM beyond it. Register contents survive a reset; they do not survive power
+ *   removal unless the domain is retained, and no backend may claim otherwise.
+ *
+ * @{
+ */
 xy_hal_error_t xy_hal_rtc_init(void *rtc);
 xy_hal_error_t xy_hal_rtc_deinit(void *rtc);
 xy_hal_error_t xy_hal_rtc_set_time(void *rtc, const xy_hal_rtc_time_t *time,
@@ -96,6 +122,8 @@ xy_hal_error_t xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp);
 #define XY_HAL_RTC_BACKUP_REGISTER_COUNT 20U
 xy_hal_error_t xy_hal_rtc_backup_read(uint32_t index, uint32_t *value);
 xy_hal_error_t xy_hal_rtc_backup_write(uint32_t index, uint32_t value);
+
+/** @} */
 
 #ifdef __cplusplus
 }
