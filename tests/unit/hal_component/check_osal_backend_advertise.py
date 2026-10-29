@@ -20,6 +20,10 @@ Every one of these questions is a question about *live* CMake. A commented-out b
 `dispatched()` from the raw text exactly as well as a live one, and a guard that reads prose
 here is green on the thing it exists to catch - the offered-but-undispatched backend. So the
 CMake and Kconfig text goes through source_scan.code_only_hash() before any of it is matched.
+
+The fenced commands in docs/design get the same treatment one format over: a `#` inside a fence
+is a comment there too. Before that, a block that wrote down "this spelling is refused" was
+reported as telling readers to use it, which punishes the documentation that explains the rule.
 """
 
 from __future__ import annotations
@@ -208,20 +212,57 @@ def findings(root_cmake: str, osal_cmake: str,
     return problems
 
 
-FENCE = re.compile(r"```[^\n]*\n(.*?)```", re.S)
+FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 DOC_COMMAND = re.compile(r"-DOSAL_BACKEND=([A-Za-z0-9_]+)")
+
+
+def fenced_blocks(text: str) -> list[str]:
+    """Every fenced block in `text`, fence markers removed.
+
+    Read line by line rather than by one regex over the whole document, because a regex that
+    treats the text between the first and last fence as one block cannot tell a nested fence
+    from a closing one, and misses tildes and the three-space indent CommonMark allows. A
+    block whose closing fence never arrives runs to the end of the document: a file that lost
+    its terminator still shows the command it was describing.
+    """
+    blocks: list[str] = []
+    current: list[str] | None = None
+    marker = ""
+
+    for line in text.splitlines():
+        opener = FENCE_OPEN.match(line)
+        if current is None:
+            if opener is not None:
+                marker = opener.group(1)
+                current = []
+            continue
+        # A closing fence is the same character, at least as long, and nothing else on the line.
+        if opener is not None and line.strip() == opener.group(1) and \
+                opener.group(1)[0] == marker[0] and len(opener.group(1)) >= len(marker):
+            blocks.append("\n".join(current))
+            current = None
+            marker = ""
+            continue
+        current.append(line)
+    if current is not None:
+        blocks.append("\n".join(current))
+    return blocks
 
 
 def doc_command_findings(docs: dict[str, str], chosen: set[str]) -> list[str]:
     """Copy-pasteable commands in docs/design must name a backend this build accepts.
 
     Prose may explain what is unavailable; a fenced command that a reader will paste must
-    not. Only fenced blocks are checked, so the surrounding explanation stays free.
+    not. A fenced line is read as code, not as text: a `#` there is a comment - someone
+    writing down that the rejected spelling is rejected - and a comment is not an
+    instruction. Quoted text survives the strip, so a backend named inside a command line
+    is still read. Shell ends a comment only at a word boundary and this helper ends it at
+    any `#`, which can only lose a spelling that was already inside a word.
     """
     problems: list[str] = []
     for where, text in sorted(docs.items()):
-        for block in FENCE.findall(text):
-            for line in block.splitlines():
+        for block in fenced_blocks(text):
+            for line in code_only_hash(block).splitlines():
                 for value in DOC_COMMAND.findall(line):
                     if value not in chosen:
                         problems.append(

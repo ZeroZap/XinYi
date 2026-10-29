@@ -234,6 +234,58 @@ class DocumentTests(unittest.TestCase):
                 "直接传 `-DOSAL_BACKEND=rtthread` 会被拒绝，因为该后端不可达。\n"}
         self.assertEqual(guard.doc_command_findings(docs, {"baremetal", "freertos"}), [])
 
+    def test_a_commented_out_fenced_command_is_not_an_instruction(self):
+        """Writing down that a spelling is rejected is not telling readers to use it."""
+        docs = {"docs/design/x.md":
+                "```bash\n# cmake .. -DOSAL_BACKEND=rtthread   <- refused, see above\n"
+                "cmake .. -DOSAL_BACKEND=freertos\n```\n"}
+        self.assertEqual(guard.doc_command_findings(docs, {"baremetal", "freertos"}), [])
+
+    def test_a_backend_named_inside_a_command_line_is_still_read(self):
+        """Stripping the comment must not delete quoted text - that is data, not prose."""
+        docs = {"docs/design/x.md":
+                '```bash\nsh -c "cmake .. -DOSAL_BACKEND=rtthread"   # the refused spelling\n```\n'}
+        problems = guard.doc_command_findings(docs, {"baremetal", "freertos"})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("-DOSAL_BACKEND=rtthread", problems[0])
+
+    def test_a_tilde_fence_is_a_fence(self):
+        docs = {"docs/design/x.md": "~~~bash\ncmake .. -DOSAL_BACKEND=rtthread\n~~~\n"}
+        problems = guard.doc_command_findings(docs, {"baremetal", "freertos"})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("-DOSAL_BACKEND=rtthread", problems[0])
+
+    def test_an_unterminated_fence_still_shows_its_command(self):
+        docs = {"docs/design/x.md": "```bash\ncmake .. -DOSAL_BACKEND=rtthread\n"}
+        problems = guard.doc_command_findings(docs, {"baremetal", "freertos"})
+        self.assertEqual(len(problems), 1)
+
+    def test_two_fences_are_two_blocks(self):
+        docs = {"docs/design/x.md":
+                "```bash\ncmake .. -DOSAL_BACKEND=freertos\n```\n\ntext\n\n"
+                "```bash\ncmake .. -DOSAL_BACKEND=rtthread\n```\n"}
+        problems = guard.doc_command_findings(docs, {"baremetal", "freertos"})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("-DOSAL_BACKEND=rtthread", problems[0])
+
+
+class FencedBlockTests(unittest.TestCase):
+    def test_a_four_backtick_fence_is_not_closed_by_three(self):
+        """A block that quotes a fenced example keeps its content instead of ending inside it."""
+        text = "````markdown\n```bash\ncmake .. -DOSAL_BACKEND=rtthread\n```\n````\n"
+        blocks = guard.fenced_blocks(text)
+        self.assertEqual(len(blocks), 1)
+        self.assertIn("-DOSAL_BACKEND=rtthread", blocks[0])
+
+    def test_a_four_space_indented_line_is_not_a_fence(self):
+        self.assertEqual(guard.fenced_blocks("    ```bash\ncmake ..\n    ```\n"), [])
+
+    def test_the_real_design_docs_are_read_as_blocks(self):
+        """A parser that finds no fence is green for the same reason an empty file is."""
+        docs = guard.design_docs()
+        self.assertTrue(docs)
+        self.assertTrue(any(guard.fenced_blocks(text) for text in docs.values()))
+
 
 class RepositoryTests(unittest.TestCase):
     def test_the_repository_passes(self):
