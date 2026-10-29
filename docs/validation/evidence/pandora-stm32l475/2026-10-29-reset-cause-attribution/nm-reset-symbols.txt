@@ -1,0 +1,7 @@
+20000100 b pandora_reset_kind
+08000f30 T pandora_reset_kind_from_reason
+08000f64 T pandora_reset_kind_name
+080038a4 r pandora_reset_kind_names
+08000f88 T pandora_sys_reset_csr
+08000f7c T pandora_sys_reset_kind
+080012c4 T xy_hal_sys_get_reset_raw_flags

@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "tool": "tools/pandora_hil_program.py",
+  "board": "pandora_stm32l475",
+  "created_utc": "2026-10-29T01:25:12+00:00",
+  "image": {
+    "path": "build/pandora-s6-159/boards/pandora_stm32l475/pandora_stm32l475_smoke.bin",
+    "size": 14736,
+    "sha256": "66dde1e343425a449f5c7dd67f98de604d3d6dc3f1d6fc12306c24ad5a6e3a8f",
+    "address": "0x8000000",
+    "region": "bootloader"
+  },
+  "readback": {
+    "span_identical": true,
+    "first_diff": null,
+    "observed_sha256": "66dde1e343425a449f5c7dd67f98de604d3d6dc3f1d6fc12306c24ad5a6e3a8f",
+    "erased_tail": 1648,
+    "unexpected_changes": 0,
+    "unexpected_first": null
+  },
+  "reset": false,
+  "drift": [],
+  "drift_stable": true,
+  "drift_samples": 0,
+  "drift_seconds": 0.0,
+  "drift_window": {
+    "settle": 3.0,
+    "stable_for": 3.0,
+    "poll": 0.5,
+    "max_wait": 20.0
+  },
+  "restore_command": "tools/pandora_hil_state.py restore --snapshot docs/validation/evidence/pandora-stm32l475/2026-10-29-reset-cause-attribution/pre-snapshot-2.json --yes"
+}

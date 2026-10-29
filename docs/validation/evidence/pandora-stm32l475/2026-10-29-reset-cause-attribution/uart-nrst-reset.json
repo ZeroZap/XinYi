@@ -1,0 +1,18 @@
+{
+  "baudrate": 115200,
+  "bytes_captured": 11072,
+  "captured_at_utc": "2026-10-29T01:26:04.281770+00:00",
+  "device": "/dev/ttyUSB0",
+  "error": null,
+  "firmware_commit": "66edfb280f0e344b27c2103d8dc22ba3b1151a8a",
+  "firmware_commit_marker_matched": true,
+  "format": "8-N-1",
+  "required_ack_marker": "AHT10 0x38 ACK",
+  "required_firmware_commit_marker": "FIRMWARE_COMMIT 66edfb280f0e344b27c2103d8dc22ba3b1151a8a",
+  "required_marker": "PANDORA STM32L475VE XINYI SMOKE OK",
+  "required_measurement_pattern": "AHT10 RH_milli_percent=([0-9]+) T_milli_c=(-?[0-9]+)(?:\\r?\\n|$)",
+  "required_nack_marker": "AHT10 0x38 NACK",
+  "runtime_evidence": "B1_REVIEW_CANDIDATE",
+  "status": "CAPTURED",
+  "timeout_seconds": 40.0
+}

@@ -1,0 +1,18 @@
+{
+  "baudrate": 115200,
+  "bytes_captured": 216,
+  "captured_at_utc": "2026-10-29T01:23:21.606714+00:00",
+  "device": "/dev/ttyUSB0",
+  "error": "required runtime marker(s) not found: Pandora banner, AHT10 ACK, plausible AHT10 measurement, ordered firmware commit marker, ordered firmware/startup chain",
+  "firmware_commit": "2aecb046af0bf0635279cd077f5b47f893b04e18",
+  "firmware_commit_marker_matched": false,
+  "format": "8-N-1",
+  "required_ack_marker": "AHT10 0x38 ACK",
+  "required_firmware_commit_marker": "FIRMWARE_COMMIT 2aecb046af0bf0635279cd077f5b47f893b04e18",
+  "required_marker": "PANDORA STM32L475VE XINYI SMOKE OK",
+  "required_measurement_pattern": "AHT10 RH_milli_percent=([0-9]+) T_milli_c=(-?[0-9]+)(?:\\r?\\n|$)",
+  "required_nack_marker": "AHT10 0x38 NACK",
+  "runtime_evidence": "NONE",
+  "status": "CAPTURE_CONTENT_MISMATCH",
+  "timeout_seconds": 45.0
+}

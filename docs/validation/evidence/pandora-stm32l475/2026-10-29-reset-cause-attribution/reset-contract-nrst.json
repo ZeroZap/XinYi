@@ -1,0 +1,54 @@
+{
+  "observed_chain": [
+    {
+      "csr": "04000600",
+      "csr_raw": 67110400,
+      "flags": 1,
+      "kind": "EXTERNAL_PIN",
+      "request": 0
+    },
+    {
+      "csr": "14000600",
+      "csr_raw": 335545856,
+      "flags": 5,
+      "kind": "SOFTWARE",
+      "request": 1
+    },
+    {
+      "csr": "24000600",
+      "csr_raw": 603981312,
+      "flags": 9,
+      "kind": "WATCHDOG",
+      "request": 0
+    }
+  ],
+  "expected_chain": [
+    {
+      "kinds": [
+        "POWER_ON",
+        "EXTERNAL_PIN"
+      ],
+      "request": 0,
+      "meaning": "no record before the first SYS-requested reset"
+    },
+    {
+      "kinds": [
+        "SOFTWARE"
+      ],
+      "request": 1,
+      "meaning": "reason recorded before the previous software reset"
+    },
+    {
+      "kinds": [
+        "WATCHDOG"
+      ],
+      "request": 0,
+      "meaning": "record consumed one-shot, not carried into the watchdog boot"
+    }
+  ],
+  "firmware_commit": "66edfb280f0e344b27c2103d8dc22ba3b1151a8a",
+  "bytes_examined": 11072,
+  "problems": [],
+  "capture": "docs/validation/evidence/pandora-stm32l475/2026-10-29-reset-cause-attribution/uart-nrst-reset.txt",
+  "status": "PASS"
+}
