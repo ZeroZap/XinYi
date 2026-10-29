@@ -98,12 +98,66 @@ class HelperTests(unittest.TestCase):
         self.assertTrue(guard.helper_findings(source, "wch"))
 
 
+class TenBitTests(unittest.TestCase):
+    """10-bit addressing is declared in the header and implemented nowhere.
+
+    The failure is not that 10-bit is missing - it is that init approved the mode and set the
+    peripheral up for it while every transfer rejected 10-bit addresses. Fail closed at init.
+    """
+
+    INIT_REFUSES = """
+xy_hal_error_t xy_hal_i2c_init(void *i2c, const xy_hal_i2c_config_t *config)
+{
+    if (i2c == NULL || config == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (config->addr_mode == XY_HAL_I2C_ADDR_10BIT) {
+        return XY_HAL_ERROR_NOT_SUPPORTED;
+    }
+    return XY_HAL_OK;
+}
+"""
+
+    INIT_ACCEPTS = """
+xy_hal_error_t xy_hal_i2c_init(void *i2c, const xy_hal_i2c_config_t *config)
+{
+    if (i2c == NULL || config == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    handle->Init.AddressingMode = config->addr_mode == XY_HAL_I2C_ADDR_10BIT
+                                      ? I2C_ADDRESSINGMODE_10BIT
+                                      : I2C_ADDRESSINGMODE_7BIT;
+    return XY_HAL_OK;
+}
+"""
+
+    def test_init_that_refuses_10_bit_passes(self):
+        self.assertEqual(guard.ten_bit_findings(self.INIT_REFUSES, "backend"), [])
+
+    def test_init_that_accepts_10_bit_is_reported_twice(self):
+        problems = guard.ten_bit_findings(self.INIT_ACCEPTS, "backend")
+        self.assertEqual(len(problems), 2)
+        self.assertTrue(any("NOT_SUPPORTED" in problem for problem in problems))
+        self.assertTrue(any("programs the peripheral" in problem for problem in problems))
+
+
 class HeaderTests(unittest.TestCase):
     def test_a_header_that_names_the_7_bit_address_passes(self):
         self.assertEqual(guard.header_findings(" * @param dev_addr 7-bit address\n"), [])
 
     def test_a_silent_header_is_reported(self):
         self.assertEqual(len(guard.header_findings(" * @param dev_addr Device address\n")), 1)
+
+    def test_declaring_10_bit_without_saying_it_is_refused_is_reported(self):
+        header = " * @param dev_addr 7-bit address\n  XY_HAL_I2C_ADDR_10BIT,\n"
+        problems = guard.header_findings(header)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("10BIT is declared without saying", problems[0])
+
+    def test_declaring_10_bit_with_the_refusal_documented_passes(self):
+        header = (" * @param dev_addr 7-bit address\n  XY_HAL_I2C_ADDR_10BIT,\n"
+                  " *   NOT_SUPPORTED from init\n")
+        self.assertEqual(guard.header_findings(header), [])
 
 
 class RepositoryTests(unittest.TestCase):

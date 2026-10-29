@@ -114,8 +114,39 @@ def helper_findings(source: str, where: str) -> list[str]:
         f"{where}: i2c_address_valid does not restrict the address to 7 bits"]
 
 
+FUNCTION_INIT = "xy_hal_i2c_init("
+TEN_BIT_PROGRAMMING = re.compile(r"I2C_ADDRESSINGMODE_10BIT|I2C_10BITADDR|I2C_ADDMODE_10BIT")
+
+
+def ten_bit_findings(source: str, where: str) -> list[str]:
+    """A mode the header declares but no backend implements must be refused, not programmed.
+
+    All three STM32 backends set the peripheral to 10-bit addressing when the caller asked for
+    it, and then rejected every address above 0x7F at the transfer boundary: init accepted a
+    mode the backend could never use. WCH already returned NOT_SUPPORTED at init, which is the
+    behaviour this pins.
+    """
+    problems: list[str] = []
+    body = function_body(source, FUNCTION_INIT)
+    if not body:
+        return [f"{where}: has no xy_hal_i2c_init to refuse 10-bit addressing"] if False else []
+    if "XY_HAL_I2C_ADDR_10BIT" not in body or "XY_HAL_ERROR_NOT_SUPPORTED" not in body:
+        problems.append(
+            f"{where}: xy_hal_i2c_init accepts XY_HAL_I2C_ADDR_10BIT instead of returning "
+            f"XY_HAL_ERROR_NOT_SUPPORTED; 10-bit is declared in the header but no transfer "
+            f"accepts a 10-bit address, so init would approve a mode that cannot work")
+    if TEN_BIT_PROGRAMMING.search(source):
+        problems.append(
+            f"{where}: programs the peripheral for 10-bit addressing, which no transfer path "
+            f"supports - that is what let init accept the mode in the first place")
+    return problems
+
+
 def header_findings(header: str) -> list[str]:
     problems: list[str] = []
+    if "ADDR_10BIT" in header and "NOT_SUPPORTED" not in header:
+        problems.append("xy_hal_i2c.h: XY_HAL_I2C_ADDR_10BIT is declared without saying that "
+                        "init refuses it")
     if "7-bit" not in header.lower():
         problems.append("xy_hal_i2c.h: the header does not say the caller passes a 7-bit "
                         "address (the backends are expected to shift it themselves)")
@@ -136,6 +167,7 @@ def findings(backends: dict[str, Path] | None = None, header: Path | None = None
     for name, path in sorted(backends.items()):
         text = read_code(path)
         problems.extend(helper_findings(text, name))
+        problems.extend(ten_bit_findings(text, name))
         for function in FUNCTIONS:
             body = function_body(text, function)
             if not body:

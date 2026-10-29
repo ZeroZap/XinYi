@@ -105,8 +105,20 @@ def main() -> int:
                 "type and address-mode constants must be used"
             )
     init_body = function_body(source, "xy_hal_i2c_init(")
+    if "XY_HAL_I2C_ADDR_10BIT" not in init_body or "XY_HAL_ERROR_NOT_SUPPORTED" not in init_body:
+        errors.append(
+            "STM32F4 I2C init must refuse XY_HAL_I2C_ADDR_10BIT with XY_HAL_ERROR_NOT_SUPPORTED; "
+            "10-bit addressing is declared in the header and no transfer path supports it"
+        )
+    if "I2C_ADDRESSINGMODE_10BIT" in source:
+        errors.append(
+            "STM32F4 I2C wrapper must not program 10-bit addressing; init refuses the mode"
+        )
+    # This used to require I2C_ADDRESSINGMODE_10BIT here, which made the guard insist on the
+    # defect: init programmed the peripheral for 10-bit addressing while every transfer
+    # rejected 10-bit addresses. 10-bit is declared in the header and implemented nowhere, so
+    # init refuses it and the only vendor addressing constant it may use is the 7-bit one.
     for required in (
-        "I2C_ADDRESSINGMODE_10BIT",
         "I2C_ADDRESSINGMODE_7BIT",
         "I2C_DUTYCYCLE_2",
         "I2C_DUTYCYCLE_16_9",

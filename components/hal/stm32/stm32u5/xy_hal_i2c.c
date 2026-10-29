@@ -58,8 +58,6 @@ static uint32_t xy_to_stm32_addr_mode(xy_hal_i2c_addr_mode_t addr_mode)
     switch (addr_mode) {
     case XY_HAL_I2C_ADDR_7BIT:
         return I2C_ADDRESSINGMODE_7BIT;
-    case XY_HAL_I2C_ADDR_10BIT:
-        return I2C_ADDRESSINGMODE_10BIT;
     default:
         return I2C_ADDRESSINGMODE_7BIT;
     }
@@ -91,6 +89,13 @@ xy_hal_error_t xy_hal_i2c_init(void *i2c, const xy_hal_i2c_config_t *config)
     if (!i2c || !config) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
+    /* 10-bit addressing is declared in xy_hal_i2c.h but not implemented. Programming the
+     * peripheral for it while every transfer rejects addresses above 0x7F made init
+     * accept a mode the backend could never use; WCH already fails closed here. */
+    if (config->addr_mode == XY_HAL_I2C_ADDR_10BIT) {
+        return XY_HAL_ERROR_NOT_SUPPORTED;
+    }
+
 
     I2C_HandleTypeDef *hi2c = (I2C_HandleTypeDef *)i2c;
 

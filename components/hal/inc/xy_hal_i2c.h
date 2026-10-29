@@ -20,7 +20,12 @@ extern "C" {
 /* I2C Addressing Mode */
 typedef enum {
   XY_HAL_I2C_ADDR_7BIT = 0, /**< 7-bit addressing */
-  XY_HAL_I2C_ADDR_10BIT,    /**< 10-bit addressing */
+  XY_HAL_I2C_ADDR_10BIT,    /**< 10-bit addressing. Declared for the API shape but NOT
+                             *   implemented: xy_hal_i2c_init() returns
+                             *   XY_HAL_ERROR_NOT_SUPPORTED on every backend. Programming
+                             *   the peripheral and then refusing every 10-bit address at
+                             *   the transfer boundary is how init came to accept a mode
+                             *   the backend could never use. */
 } xy_hal_i2c_addr_mode_t;
 
 /* I2C Duty Cycle (for fast mode) */

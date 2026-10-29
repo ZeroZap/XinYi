@@ -77,6 +77,14 @@ xy_hal_error_t xy_hal_i2c_init(void *i2c, const xy_hal_i2c_config_t *config)
     if (i2c == NULL || config == NULL) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
+
+    /* 10-bit addressing is declared in xy_hal_i2c.h but not implemented. Programming the
+     * peripheral for it while every transfer rejects addresses above 0x7F made init
+     * accept a mode the backend could never use; WCH already fails closed here. */
+    if (config->addr_mode == XY_HAL_I2C_ADDR_10BIT) {
+        return XY_HAL_ERROR_NOT_SUPPORTED;
+    }
+
     context = find_context(i2c);
     if (context != NULL && context->initialized != 0U) {
         return XY_HAL_ERROR_ALREADY_INIT;
@@ -90,9 +98,8 @@ xy_hal_error_t xy_hal_i2c_init(void *i2c, const xy_hal_i2c_config_t *config)
 
     handle = (I2C_HandleTypeDef *)i2c;
     handle->Init.OwnAddress1 = config->own_address;
-    handle->Init.AddressingMode = config->addr_mode == XY_HAL_I2C_ADDR_10BIT
-                                      ? I2C_ADDRESSINGMODE_10BIT
-                                      : I2C_ADDRESSINGMODE_7BIT;
+    /* Only 7-bit reaches here; the 10-bit branch above returns NOT_SUPPORTED. */
+    handle->Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
     handle->Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
     handle->Init.OwnAddress2 = 0U;
     handle->Init.OwnAddress2Masks = I2C_OA2_NOMASK;
