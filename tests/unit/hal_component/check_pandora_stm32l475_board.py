@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Fail-closed contract for the Pandora STM32L475VE smoke target."""
-import re
 import hashlib
 import json
+import re
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import code_only  # noqa: E402
 BOARD = ROOT / "boards" / "pandora_stm32l475"
 RECORD = ROOT / "docs" / "validation" / "xinyi-pandora-stm32l475-board-smoke-record.md"
 EVIDENCE = ROOT / "docs" / "validation" / "evidence" / "pandora-stm32l475" / "2026-09-03"
@@ -141,14 +144,11 @@ def main() -> None:
         "xy_hal_rtc_backup_write",
     )
     pandora_sys = (BOARD / "pandora_sys.c").read_text(encoding="utf-8")
-    # Scan the code, not the prose. A comment that explains why a vendor macro is *not*
-    # used here is evidence the boundary is being respected, and a bare substring match
-    # reads it as a violation - the comment naming __HAL_RCC_CLEAR_RESET_FLAGS() turned
-    # this guard red while the code did the right thing.
-    pandora_sys_code = re.sub(r"/\*.*?\*/", "", pandora_sys, flags=re.S)
-    pandora_sys_code = re.sub(r"//[^\n]*", "", pandora_sys_code)
+    # Scan the code, not the prose: a comment naming a forbidden call (usually to explain
+    # why it is not used) is evidence the boundary holds, not a violation.
+    pandora_sys_code = code_only(pandora_sys)
     for forbidden in ("NVIC_SystemReset", "HAL_GetUID", "__HAL_RCC_", "RCC->"):
-        assert forbidden not in pandora_sys_code, (
+        assert forbidden not in code_only(pandora_sys_code), (
             f"pandora_sys.c bypasses canonical SYS HAL: {forbidden}"
         )
     require(
@@ -189,7 +189,7 @@ def main() -> None:
     for flash_owner in ("pandora_fota_flash.c", "pandora_fota_install_flash.c"):
         source = (BOARD / flash_owner).read_text(encoding="utf-8")
         for forbidden in ("HAL_FLASH_", "HAL_FLASHEx_", "FLASH_TYPEPROGRAM_", "FLASH_TYPEERASE_"):
-            assert forbidden not in source, f"{flash_owner} bypasses canonical Flash HAL: {forbidden}"
+            assert forbidden not in code_only(source), f"{flash_owner} bypasses canonical Flash HAL: {forbidden}"
     require(
         BOARD / "pandora_fota_install_flash.c",
         "PANDORA_FOTA_INSTALL_PROGRAM_SIZE",
@@ -250,7 +250,7 @@ def main() -> None:
     )
     soft_i2c = (BOARD / "pandora_soft_i2c.c").read_text(encoding="utf-8")
     for forbidden in ("HAL_GPIO_Init(", "HAL_GPIO_WritePin(", "HAL_GPIO_ReadPin("):
-        assert forbidden not in soft_i2c, f"Pandora software I2C bypasses xy_hal GPIO: {forbidden}"
+        assert forbidden not in code_only(soft_i2c), f"Pandora software I2C bypasses xy_hal GPIO: {forbidden}"
     delay_entries = (
         "main.c",
         "buzzer_main.c",
@@ -278,7 +278,7 @@ def main() -> None:
             "HAL_RCC_OscConfig(",
             "HAL_RCC_ClockConfig(",
         ):
-            assert forbidden not in entry, (
+            assert forbidden not in code_only(entry), (
                 f"{board_entry} bypasses board-owned startup policy: {forbidden}"
             )
     require(
@@ -318,7 +318,7 @@ def main() -> None:
             "HAL_Delay(",
             "HAL_GetTick(",
         ):
-            assert forbidden not in entry, f"{board_entry} bypasses canonical XinYi HAL: {forbidden}"
+            assert forbidden not in code_only(entry), f"{board_entry} bypasses canonical XinYi HAL: {forbidden}"
     smoke_entry = (BOARD / "main.c").read_text(encoding="utf-8")
     assert "xy_hal_delay_ms" in smoke_entry
     assert "HAL_Delay(" not in smoke_entry
@@ -331,7 +331,7 @@ def main() -> None:
         for required in ("xy_hal_uart_init", "xy_hal_uart_send", "xy_hal_gpio_init"):
             assert required in entry, f"{fota_entry} missing canonical HAL call {required}"
         for forbidden in ("HAL_UART_Init(", "HAL_UART_Transmit(", "HAL_GPIO_Init("):
-            assert forbidden not in entry, f"{fota_entry} bypasses canonical XinYi HAL: {forbidden}"
+            assert forbidden not in code_only(entry), f"{fota_entry} bypasses canonical XinYi HAL: {forbidden}"
     for primary_entry in ("main.c", "rtos_main.c"):
         entry = (BOARD / primary_entry).read_text(encoding="utf-8")
         for required in (
@@ -347,7 +347,7 @@ def main() -> None:
             "HAL_GPIO_Init(",
             "HAL_GPIO_TogglePin(",
         ):
-            assert forbidden not in entry, f"{primary_entry} bypasses canonical XinYi HAL: {forbidden}"
+            assert forbidden not in code_only(entry), f"{primary_entry} bypasses canonical XinYi HAL: {forbidden}"
     rtos_entry = (BOARD / "rtos_main.c").read_text(encoding="utf-8")
     assert "uart1.Instance = USART1;" in rtos_entry
     assert "xy_hal_sys_software_reset" in rtos_entry
@@ -379,7 +379,7 @@ def main() -> None:
         for required in ("xy_hal_rtc_backup_read", "xy_hal_rtc_backup_write"):
             assert required in entry, f"{backup_entry} missing canonical RTC backup call {required}"
         for forbidden in ("HAL_PWR_EnableBkUpAccess", "RTC->BKP"):
-            assert forbidden not in entry, f"{backup_entry} bypasses canonical RTC HAL: {forbidden}"
+            assert forbidden not in code_only(entry), f"{backup_entry} bypasses canonical RTC HAL: {forbidden}"
     require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_rtc.c",
         "xy_hal_rtc_backup_read",
@@ -507,7 +507,7 @@ def main() -> None:
     aht10_entry = (BOARD / "sensor_aht10_main.c").read_text(encoding="utf-8")
     for forbidden in ("0xE1U", "0xACU", "xy_i2c_device_init", "xy_i2c_device_read",
                       "xy_i2c_device_write", "50000U", "200000U"):
-        assert forbidden not in aht10_entry, (
+        assert forbidden not in code_only(aht10_entry), (
             f"sensor_aht10_main.c re-implements the AHT10 protocol instead of using "
             f"the canonical driver: {forbidden}"
         )
@@ -533,7 +533,7 @@ def main() -> None:
             "icm20608_priv_t",
             "SENSOR_EOK",
         ):
-            assert forbidden not in source, (
+            assert forbidden not in code_only(source), (
                 f"{sensor_owner} still depends on the legacy sensor wrapper: {forbidden}"
             )
     board_cmake_text = (BOARD / "CMakeLists.txt").read_text(encoding="utf-8")

@@ -1800,6 +1800,9 @@ target_compile_definitions(test_trace_release PRIVATE
 
 # --- Test 25a: byte-stream framing contracts (see test_xy_frame.c for the shipped
 #     defects each case pins) ---
+add_test(NAME support_source_scan
+    COMMAND python3 ${UNIT_SUPPORT}/test_source_scan.py)
+
 add_test(NAME clib_frame_mutations
     COMMAND python3 ${UNIT_CLIB}/mutation_check_frame.py --build-dir ${CMAKE_BINARY_DIR})
 
