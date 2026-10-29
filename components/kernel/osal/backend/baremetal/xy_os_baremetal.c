@@ -749,9 +749,12 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
             return cur;
         }
         bm_exit_critical(irq);
-        if (timeout == 0) return 0x80000000u;
+        /* Not ready. The flag word has no status channel, so this is the same sentinel that reports a bad
+         * mask - a caller cannot tell the two apart, which is a property of the API rather than of this
+         * backend, and is written down in the header. */
+        if (timeout == 0) return (uint32_t)XY_OS_EVENT_FLAGS_ERROR;
         if (timeout != XY_OS_WAIT_FOREVER && xy_tick_get() >= deadline)
-            return 0x80000000u;
+            return (uint32_t)XY_OS_EVENT_FLAGS_ERROR;
     }
 }
 

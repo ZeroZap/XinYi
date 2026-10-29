@@ -330,6 +330,46 @@ static void test_semaphore_max_count(void)
  * the value that means "the call failed". The error could be forged, and a real error could be read as
  * a flag. FreeRTOS rejects masks containing that bit and rejects an empty mask; this backend accepted
  * both, so the same call was refused on one backend and silently stored on the other. */
+/* The three options had never been executed. S6-224 only checked that the mask was validated; nothing
+ * called wait() with WAIT_ALL, with NO_CLEAR, or with a timeout that runs out, so "which flags does a
+ * wait consume" was documented and untested. timeout 0 keeps every case here non-blocking: this host
+ * has no tick source, and a real wait would never return. */
+static void test_event_flags_wait_options(void)
+{
+    xy_os_event_flags_id_t ef = xy_os_event_flags_new(NULL);
+    TEST_ASSERT_NOT_NULL(ef);
+
+    /* Any-of: satisfied by one of the two requested bits, and only the requested ones are consumed. */
+    /* set() answers the flag word after setting it, not a status - the header says so. */
+    TEST_ASSERT_EQUAL_UINT32(0x03U, xy_os_event_flags_set(ef, 0x03U));
+    uint32_t seen = xy_os_event_flags_wait(ef, 0x02U, XY_OS_FLAGS_WAIT_ANY, 0U);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0x03U, seen, "the wait returns the whole flag word as it was");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0x01U, xy_os_event_flags_get(ef), "0x02 consumed, 0x01 kept");
+
+    /* All-of: one bit short, so it does not return the word - and it must not consume anything. */
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR,
+                             xy_os_event_flags_wait(ef, 0x05U, XY_OS_FLAGS_WAIT_ALL, 0U));
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0x01U, xy_os_event_flags_get(ef), "a wait that did not happen clears nothing");
+
+    /* All-of when both are there: satisfied. */
+    TEST_ASSERT_EQUAL_UINT32(0x05U, xy_os_event_flags_set(ef, 0x04U));
+    seen = xy_os_event_flags_wait(ef, 0x05U, XY_OS_FLAGS_WAIT_ALL, 0U);
+    TEST_ASSERT_EQUAL_UINT32(0x05U, seen);
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_os_event_flags_get(ef));
+
+    /* No-clear: the flags survive the return. */
+    TEST_ASSERT_EQUAL_UINT32(0x01U, xy_os_event_flags_set(ef, 0x01U));
+    seen = xy_os_event_flags_wait(ef, 0x01U, XY_OS_FLAGS_NO_CLEAR, 0U);
+    TEST_ASSERT_EQUAL_UINT32(0x01U, seen);
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(0x01U, xy_os_event_flags_get(ef), "NO_CLEAR leaves it set");
+
+    /* Options outside the two defined bits are refused rather than ignored. */
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR,
+                             xy_os_event_flags_wait(ef, 0x01U, 0x04U, 0U));
+
+    xy_os_event_flags_delete(ef);
+}
+
 static void test_event_flags_reserve_the_error_bit_and_refuse_empty_masks(void)
 {
     xy_os_event_flags_id_t ef = xy_os_event_flags_new(NULL);
@@ -865,6 +905,7 @@ int main(void)
     RUN_TEST(test_semaphore_max_count);
 
     /* Event Flags */
+    RUN_TEST(test_event_flags_wait_options);
     RUN_TEST(test_event_flags_reserve_the_error_bit_and_refuse_empty_masks);
     RUN_TEST(test_event_flags_set_get);
     RUN_TEST(test_event_flags_wait_any);

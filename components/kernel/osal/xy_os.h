@@ -612,7 +612,13 @@ uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id);
  * @param[in] flags Flags to wait for
  * @param[in] options Flags options (or/and, clear)
  * @param[in] timeout Ticks to wait; XY_OS_NO_WAIT to poll once, XY_OS_WAIT_FOREVER to block
- * @return Event flags before clearing or error code
+ * @param[in] options XY_OS_FLAGS_WAIT_ALL to require every requested bit, XY_OS_FLAGS_WAIT_ANY (0) for
+ *            one; XY_OS_FLAGS_NO_CLEAR to leave the bits set on return. Any other bit is refused with
+ *            the error sentinel rather than ignored
+ * @return The whole flag word as it stood when the call returned, or the error sentinel. A wait that
+ *         ran out of time answers with the same sentinel as a rejected mask: the return type is a flag
+ *         word, not a status, so "not ready" has no separate encoding. Callers that must distinguish
+ *         the two have to check the mask themselves before waiting
  */
 uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
                                 uint32_t options, uint32_t timeout);
