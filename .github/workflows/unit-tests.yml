@@ -75,7 +75,7 @@ jobs:
           retention-days: 14
 
       - name: Configure PC root build
-        run: cmake -S . -B build/pc -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
+        run: cmake -S . -B build/pc -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release -DKCONFIG_OVERRIDES="BUILD_TESTING=OFF"
 
       - name: Build PC root target
         run: cmake --build build/pc -j$(nproc)
