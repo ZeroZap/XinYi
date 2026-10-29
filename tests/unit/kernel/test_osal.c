@@ -533,6 +533,52 @@ static void test_msgqueue_static_cb_and_storage(void)
  * offset 9, and writing a pointer there is an unaligned store - tolerated on Cortex-M, a fault on the
  * RISC-V core this project also targets. The FreeRTOS backend rounds the stride up to pointer alignment
  * for exactly this reason, so the same pool works there and faults here. */
+/* A block from somewhere else was accepted: free() wrote the free-list head through whatever pointer it
+ * was given, so a stale or foreign pointer became an arbitrary write, and it reported success. The pool
+ * knows its own region, so it can refuse anything outside it - and refuse a pointer that is inside but
+ * not on a block boundary, which is the same write in a smaller form. */
+static void test_mempool_free_refuses_a_pointer_it_never_handed_out(void)
+{
+    xy_os_mempool_id_t mp = xy_os_mempool_new(4U, 16U, NULL);
+    TEST_ASSERT_NOT_NULL(mp);
+
+    uint32_t victim = 0xDEADBEEFU;
+    /* A stack address is the cheapest foreign pointer to try, and the write lands somewhere we can
+     * inspect rather than somewhere that crashes. */
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_mempool_free(mp, &victim));
+    TEST_ASSERT_EQUAL_UINT32(0xDEADBEEFU, victim);
+
+    /* Inside the pool's region but not on a block boundary: still not a block. */
+    void *block = xy_os_mempool_alloc(mp, 0U);
+    TEST_ASSERT_NOT_NULL(block);
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_mempool_free(mp, (uint8_t *)block + 1U));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mempool_free(mp, block));
+    xy_os_mempool_delete(mp);
+}
+
+/* Freeing the same block twice put it on the free-list twice, so two later allocations handed out the
+ * same memory to two owners - each of them certain it was theirs alone. */
+static void test_mempool_double_free_is_refused(void)
+{
+    xy_os_mempool_id_t mp = xy_os_mempool_new(2U, 16U, NULL);
+    TEST_ASSERT_NOT_NULL(mp);
+
+    void *block = xy_os_mempool_alloc(mp, 0U);
+    TEST_ASSERT_NOT_NULL(block);
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mempool_free(mp, block));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_mempool_free(mp, block));
+
+    /* And the two allocations that follow are different memory. */
+    void *first = xy_os_mempool_alloc(mp, 0U);
+    void *second = xy_os_mempool_alloc(mp, 0U);
+    TEST_ASSERT_NOT_NULL(first);
+    TEST_ASSERT_NOT_NULL(second);
+    TEST_ASSERT_NOT_EQUAL(first, second);
+    xy_os_mempool_free(mp, first);
+    xy_os_mempool_free(mp, second);
+    xy_os_mempool_delete(mp);
+}
+
 static void test_mempool_blocks_are_pointer_aligned(void)
 {
     xy_os_mempool_id_t mp = xy_os_mempool_new(4U, 9U, NULL);
@@ -713,6 +759,8 @@ int main(void)
     RUN_TEST(test_msgqueue_static_cb_and_storage);
 
     /* Memory Pool */
+    RUN_TEST(test_mempool_free_refuses_a_pointer_it_never_handed_out);
+    RUN_TEST(test_mempool_double_free_is_refused);
     RUN_TEST(test_mempool_blocks_are_pointer_aligned);
     RUN_TEST(test_mempool_dimensions_that_overflow_are_refused);
     RUN_TEST(test_mempool_alloc_free);

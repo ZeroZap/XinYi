@@ -1020,7 +1020,27 @@ xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
 {
     bm_pool_t *p = (bm_pool_t *)mp_id;
     if (!p || p->magic != BM_POOL_MAGIC || !block) return XY_OS_ERROR_PARAMETER;
-    uint32_t irq  = bm_enter_critical();
+
+    uint32_t irq = bm_enter_critical();
+    /* The block has to be one this pool handed out: inside its own region, on a stride boundary, and
+     * not already on the free list. Without that, free() wrote the free-list head through whatever
+     * pointer it was given - a stale or foreign pointer was an arbitrary write, and the call reported
+     * success - and freeing a block twice linked it twice, so two later allocations handed the same
+     * memory to two owners who each believed it was theirs alone. */
+    const uintptr_t start = (uintptr_t)p->mem;
+    const uintptr_t addr  = (uintptr_t)block;
+    const uintptr_t limit = start + (uintptr_t)p->capacity * p->block_size;
+    if (addr < start || addr >= limit || ((addr - start) % p->block_size) != 0U) {
+        bm_exit_critical(irq);
+        return XY_OS_ERROR_PARAMETER;
+    }
+    for (void *it = p->free_list; it != NULL; it = *(void **)it) {
+        if (it == block) {
+            bm_exit_critical(irq);
+            return XY_OS_ERROR_PARAMETER;
+        }
+    }
+
     *(void **)block = p->free_list;
     p->free_list    = block;
     p->free_count++;
