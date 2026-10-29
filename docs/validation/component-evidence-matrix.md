@@ -1,5 +1,37 @@
 # XinYi 组件证据台账
 
+### 2026-10-29 Pandora 复位原因：寄存器、解码掩码、归因名三者互校（含板级 RED）
+
+- **证据等级**：实板运行时（Pandora STM32L475VE，CP2102 `/dev/ttyUSB0` 115200 8N1，捕获先开再
+  `st-flash reset`），同一镜像两轮独立采集。有 RED→GREEN 对照。
+- **问的问题**：`SYS_RESET_KIND` 此前由 `main.c` 里内联 if 链决定（`WATCHDOG`→`SOFTWARE`→
+  `EXTERNAL_PIN && !BROWNOUT`→else `POWER_ON`），而 `SYS_RESET_CSR` 打印的其实是**解码后的掩码**
+  而非寄存器本身；validator 只检查 kind 名字构成链，从不看数值 —— 判据在用自己的结论给自己打分。
+  后果是 BROWNOUT / LOW_POWER 引导会被报成 `POWER_ON`，且没有任何测试能发现。
+- **做法**：`pandora_reset_kind_from_reason()` 成为带文档的归因契约（WATCHDOG > SOFTWARE >
+  BROWNOUT > LOW_POWER > EXTERNAL_PIN，因为内部复位同时置起 NRST 标志：本板实测软件复位
+  `0x5`、看门狗复位 `0x9`）；空掩码才是 `POWER_ON`，出现未知位是 `UNKNOWN` 并停机（不再并入
+  `POWER_ON`）；BROWNOUT/LOW_POWER 打印 `SYS_POWER_EVENT_BOOT_CONTINUES` 而不是再复位掩盖事件。
+  `xy_hal_sys_get_reset_raw_flags()` 在 L4 暴露 `RCC->CSR`，WCH/U5 显式 `NOT_SUPPORTED`（不伪造
+  数值）。镜像同时打印 `SYS_RESET_CSR`（寄存器）/`SYS_RESET_FLAGS`（掩码）/`SYS_RESET_KIND`；
+  validator 从寄存器重算掩码、由掩码重算名字，未打印寄存器的记录一律拒绝（因此 2026-10-27 的
+  旧捕获现在**判红**，这正是目的）。board 守卫禁止 `main.c` 内联 `XY_HAL_SYS_RESET_REASON_` 位测试。
+- **实板读数**（两轮一致）：`0x04000600 / 0x1 / EXTERNAL_PIN / 0` →
+  `0x14000600 / 0x5 / SOFTWARE / 1` → `0x24000600 / 0x9 / WATCHDOG / 0`；捕获 11072 B 与 8264 B，
+  两轮 validator 均 PASS，链后镜像继续跑完 smoke（66 banner / 66 `AHT10 0x38 ACK` / 一次
+  `FOTA_BOOT_CONTRACT_OK`）。每次读到的 `0x600` 是 `RCC_CSR.MSISRANGE_4`（`LSION`/`LSIRDY` 同寄存器），
+  所以寄存器值不能直接与掩码比较，必须重算解码。
+- **判据证明会失败**：第一版改动把寄存器读取放在 `xy_sys_init()` 清标志之后，实板打出
+  `SYS_RESET_CSR 0x00000600` + `SYS_RESET_FLAGS 0x00000007`，validator 落红并点名
+  `SYS_RESET_FLAGS 0x00000007 does not match CSR 0x00000600 (decoded 0x00000000)`；216 B 捕获与
+  validator 输出作为 RED 半留存。`66edfb28` 改为在 init 内、清标志前锁存寄存器并经
+  `pandora_sys_reset_csr()` 发布，Host 断言 `raw_seq < clear_seq`。
+- **未覆盖 / 边界**：BROWNOUT / LOW_POWER 归因只有 Host 证据（无人值守无法制造电源故障）；本板的
+  `POWER_ON` 语义是"无原因位"（调试器 core reset），**不是**"市电上电"，冷启动可能同时置起
+  `BORRSTF` 因而被报成 `BROWNOUT` —— 该情形未观测。未覆盖掉电/欠压下的 RTC backup 保持、复位
+  耐久、WWDG、复位原因读取延迟，也不外推到其它板。
+- 证据：`docs/validation/evidence/pandora-stm32l475/2026-10-29-reset-cause-attribution/`。
+
 ### 2026-10-29 openCH I2C 无应答：`NOT_FOUND` 与"下一条传输还能用"首次实板取证（含判据 RED）
 
 - **证据等级**：实板运行时（openCH CH32V307，WCH-Link + OpenOCD 读 RAM 计数器）。有 RED→GREEN
