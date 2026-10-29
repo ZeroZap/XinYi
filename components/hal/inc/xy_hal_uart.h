@@ -93,6 +93,10 @@ xy_hal_error_t xy_hal_uart_deinit(void *uart);
 
 /**
  * @brief Send data via UART (blocking)
+ *
+ * @param timeout is the budget for the whole transfer, exactly as for xy_hal_uart_recv.
+ *        Zero means wait indefinitely. len must be non-zero and no larger than UINT16_MAX;
+ *        both are rejected as XY_HAL_ERROR_INVALID_PARAM on every backend.
  * @param uart UART instance
  * @param data Data buffer
  * @param len Data length

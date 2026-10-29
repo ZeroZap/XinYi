@@ -216,7 +216,7 @@ xy_hal_error_t xy_hal_uart_deinit(void *uart)
 xy_hal_error_t xy_hal_uart_send(void *uart, const uint8_t *data, size_t len,
                      uint32_t timeout)
 {
-    if (!uart || !data || len == 0) {
+    if (!uart || !data || len == 0 || len > UINT16_MAX) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -240,7 +240,7 @@ xy_hal_error_t xy_hal_uart_send(void *uart, const uint8_t *data, size_t len,
 
 xy_hal_error_t xy_hal_uart_recv(void *uart, uint8_t *data, size_t len, uint32_t timeout)
 {
-    if (!uart || !data || len == 0) {
+    if (!uart || !data || len == 0 || len > UINT16_MAX) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -265,7 +265,7 @@ xy_hal_error_t xy_hal_uart_recv(void *uart, uint8_t *data, size_t len, uint32_t 
 xy_hal_error_t xy_hal_uart_send_dma(void *uart, const uint8_t *data,
                                     size_t len)
 {
-    if (!uart || !data || len == 0) {
+    if (!uart || !data || len == 0 || len > UINT16_MAX) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -286,7 +286,7 @@ xy_hal_error_t xy_hal_uart_send_dma(void *uart, const uint8_t *data,
 
 xy_hal_error_t xy_hal_uart_recv_dma(void *uart, uint8_t *data, size_t len)
 {
-    if (!uart || !data || len == 0) {
+    if (!uart || !data || len == 0 || len > UINT16_MAX) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 

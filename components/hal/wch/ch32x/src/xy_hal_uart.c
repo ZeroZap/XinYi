@@ -151,6 +151,22 @@ xy_hal_error_t xy_hal_uart_deinit(void* instance) {
     return XY_HAL_OK;
 }
 
+/* Remaining budget for a transfer that must finish inside one deadline. Returns 0 only when
+ * `timeout` is 0, which uart_wait reads as "wait indefinitely" - an exhausted budget is
+ * reported as TIMEOUT by the caller instead, because passing 0 here would turn running out of
+ * time into waiting forever. */
+static uint32_t uart_budget_remaining(uint32_t start, uint32_t timeout) {
+    uint32_t elapsed;
+    if (timeout == 0U)
+        return 0U;
+    elapsed = uart_tick_ms() - start;
+    return elapsed >= timeout ? 0U : timeout - elapsed;
+}
+
+static uint8_t uart_budget_exhausted(uint32_t start, uint32_t timeout) {
+    return (timeout != 0U && (uart_tick_ms() - start) >= timeout) ? 1U : 0U;
+}
+
 static xy_hal_error_t uart_wait(void* instance, uint16_t flag, uint32_t timeout) {
     uint32_t start = uart_tick_ms();
     while (USART_GetFlagStatus(instance, flag) == RESET) {
@@ -164,18 +180,29 @@ xy_hal_error_t xy_hal_uart_send(void* instance, const uint8_t* data, size_t len,
     size_t i;
     xy_hal_error_t result;
     int index;
-    if (!uart_valid(instance) || (len != 0U && data == NULL))
+    uint32_t start;
+
+    if (!uart_valid(instance) || data == NULL || len == 0U || len > UINT16_MAX)
         return XY_HAL_ERROR_INVALID_PARAM;
     index = uart_index(instance);
     if (uart_initialized[index] == 0U)
         return XY_HAL_ERROR_NOT_INIT;
+
+    /* One deadline for the whole transfer, the same as xy_hal_uart_recv and as the vendor
+     * blocking transmit on STM32. Restarting it per byte lets one call block len times longer
+     * than the contract says. */
+    start = uart_tick_ms();
     for (i = 0U; i < len; ++i) {
-        result = uart_wait(instance, USART_FLAG_TXE, timeout);
+        if (uart_budget_exhausted(start, timeout) != 0U)
+            return XY_HAL_ERROR_TIMEOUT;
+        result = uart_wait(instance, USART_FLAG_TXE, uart_budget_remaining(start, timeout));
         if (result != XY_HAL_OK)
             return result;
         USART_SendData(instance, data[i]);
     }
-    return len == 0U ? XY_HAL_OK : uart_wait(instance, USART_FLAG_TC, timeout);
+    if (uart_budget_exhausted(start, timeout) != 0U)
+        return XY_HAL_ERROR_TIMEOUT;
+    return uart_wait(instance, USART_FLAG_TC, uart_budget_remaining(start, timeout));
 }
 
 xy_hal_error_t xy_hal_uart_recv(void* instance, uint8_t* data, size_t len, uint32_t timeout) {
@@ -185,7 +212,7 @@ xy_hal_error_t xy_hal_uart_recv(void* instance, uint8_t* data, size_t len, uint3
     uint32_t start;
     uint32_t remaining = timeout;
 
-    if (!uart_valid(instance) || data == NULL || len == 0U)
+    if (!uart_valid(instance) || data == NULL || len == 0U || len > UINT16_MAX)
         return XY_HAL_ERROR_INVALID_PARAM;
     index = uart_index(instance);
     if (uart_initialized[index] == 0U)
@@ -196,8 +223,9 @@ xy_hal_error_t xy_hal_uart_recv(void* instance, uint8_t* data, size_t len, uint3
      * HAL runs a single deadline. */
     start = uart_tick_ms();
     for (i = 0U; i < len; ++i) {
-        if (timeout != 0U)
-            remaining = (uart_tick_ms() - start >= timeout) ? 0U : timeout - (uart_tick_ms() - start);
+        if (uart_budget_exhausted(start, timeout) != 0U)
+            return XY_HAL_ERROR_TIMEOUT;
+        remaining = uart_budget_remaining(start, timeout);
         result = uart_wait(instance, USART_FLAG_RXNE, remaining);
         if (result != XY_HAL_OK)
             return result;

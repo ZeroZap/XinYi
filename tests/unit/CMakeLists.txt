@@ -106,11 +106,11 @@ add_test(NAME osal_backend_advertise
 add_test(NAME osal_backend_advertise_unit
     COMMAND python3 ${UNIT_HAL}/test_osal_backend_advertise.py)
 
-add_test(NAME hal_uart_recv_contract
-    COMMAND python3 ${UNIT_HAL}/check_hal_uart_recv_contract.py)
+add_test(NAME hal_uart_blocking_contract
+    COMMAND python3 ${UNIT_HAL}/check_hal_uart_blocking_contract.py)
 
-add_test(NAME hal_uart_recv_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_uart_recv_contract.py)
+add_test(NAME hal_uart_blocking_contract_unit
+    COMMAND python3 ${UNIT_HAL}/test_hal_uart_blocking_contract.py)
 
 add_test(NAME pandora_board_guard_unit
     COMMAND python3 ${UNIT_HAL}/test_pandora_board_guard.py)
