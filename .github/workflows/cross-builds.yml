@@ -59,12 +59,14 @@ jobs:
             echo "::endgroup::"
           done
 
+      # The backend is derived from Kconfig; passing -DOSAL_BACKEND here is rejected outright, because a
+      # request that cannot take effect would make every downstream result ambiguous.
       - name: Build the Pandora FreeRTOS variant
         run: |
           set -e
           cmake -S . -B build/pandora-rtos \
             -DHAL_PLATFORM=STM32L4 \
-            -DOSAL_BACKEND=freertos \
+            -DKCONFIG_OVERRIDES="OSAL_BACKEND_FREERTOS=ON" \
             -DCMAKE_BUILD_TYPE=Release \
             -DTOOLCHAIN_PATH="$TOOLCHAIN_PATH"
           cmake --build build/pandora-rtos -j"$(nproc)"

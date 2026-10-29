@@ -1950,6 +1950,12 @@ add_test(NAME osal_backend_contract
 add_test(NAME kconfig_parser
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../test_kconfig_parser.py)
 
+add_test(NAME ci_build_flags
+    COMMAND python3 ${UNIT_SUPPORT}/check_ci_build_flags.py)
+
+add_test(NAME ci_build_flags_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_ci_build_flags.py)
+
 add_test(NAME tool_defaults
     COMMAND python3 ${UNIT_SUPPORT}/check_tool_defaults.py)
 
