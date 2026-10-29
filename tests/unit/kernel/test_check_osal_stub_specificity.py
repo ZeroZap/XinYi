@@ -80,6 +80,34 @@ class LocalRejectionTests(unittest.TestCase):
         self.assertEqual([], guard.local_check_findings(source, "rtthread", {"rtthread": "unbuildable"}, {}))
 
 
+class FalseSuccessTests(unittest.TestCase):
+    """A flag-word entry answering 0 is indistinguishable from a working backend with nothing set."""
+
+    def test_a_bare_zero_flag_answer_is_named(self):
+        source = "uint32_t xy_os_thread_flags_get(void)\n{\n    return 0;\n}\n"
+        problems = guard.false_success_findings(source, "bm")
+        self.assertEqual(1, len(problems))
+        self.assertIn("XY_OS_THREAD_FLAGS_ERROR", problems[0])
+
+    def test_the_error_answer_passes(self):
+        source = "uint32_t xy_os_thread_flags_get(void)\n{\n    return XY_OS_THREAD_FLAGS_ERROR;\n}\n"
+        self.assertEqual([], guard.false_success_findings(source, "bm"))
+
+    def test_a_cast_away_parameter_with_zero_still_counts(self):
+        source = ("uint32_t xy_os_thread_flags_clear(uint32_t f)\n{\n    (void)f;\n    return 0;\n}\n")
+        self.assertEqual(1, len(guard.false_success_findings(source, "bm")))
+
+    def test_an_entry_that_can_succeed_is_not_a_stub(self):
+        source = ("uint32_t xy_os_thread_flags_get(void)\n{\n    if (!s_ready) return XY_OS_THREAD_FLAGS_ERROR;\n"
+                  "    return s_flags;\n}\n")
+        self.assertEqual([], guard.false_success_findings(source, "bm"))
+
+    def test_other_entries_returning_zero_are_left_alone(self):
+        """An event-group read answering 0 is genuinely "nothing set" - that call has state behind it."""
+        source = "uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t id)\n{\n    return 0;\n}\n"
+        self.assertEqual([], guard.false_success_findings(source, "bm"))
+
+
 class RealTreeTests(unittest.TestCase):
     def test_the_walk_reaches_the_backends(self):
         found = list(guard.BACKENDS.glob("*/xy_os_*.c"))

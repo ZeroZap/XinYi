@@ -516,7 +516,7 @@ uint32_t xy_os_thread_enumerate(xy_os_thread_id_t *thread_array,
 /* Thread Flags - using task notifications */
 static int freertos_thread_flags_args_valid(uint32_t flags, uint32_t options)
 {
-    if (flags == 0U || (flags & 0x80000000U))
+    if (flags == 0U || (flags & XY_OS_THREAD_FLAGS_ERROR))
         return 0;
     if (options & ~(XY_OS_FLAGS_WAIT_ALL | XY_OS_FLAGS_NO_CLEAR))
         return 0;
@@ -529,16 +529,16 @@ uint32_t xy_os_thread_flags_set(xy_os_thread_id_t thread_id, uint32_t flags)
     uint32_t previous;
 
     if (!h || !freertos_find_thread_context(h) || !freertos_thread_flags_args_valid(flags, 0U))
-        return 0x80000000;
+        return XY_OS_THREAD_FLAGS_ERROR;
     if (xTaskNotifyAndQuery(h, flags, eSetBits, &previous) != pdPASS)
-        return 0x80000000;
+        return XY_OS_THREAD_FLAGS_ERROR;
     return previous | flags;
 }
 
 uint32_t xy_os_thread_flags_clear(uint32_t flags)
 {
     if (!freertos_thread_flags_args_valid(flags, 0U))
-        return 0x80000000;
+        return XY_OS_THREAD_FLAGS_ERROR;
     return ulTaskNotifyValueClear(NULL, flags);
 }
 
@@ -547,7 +547,7 @@ uint32_t xy_os_thread_flags_get(void)
     uint32_t flags;
 
     if (xTaskNotifyAndQuery(xTaskGetCurrentTaskHandle(), 0, eNoAction, &flags) != pdPASS)
-        return 0x80000000;
+        return XY_OS_THREAD_FLAGS_ERROR;
     return flags;
 }
 
@@ -560,14 +560,14 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options,
 
     if (!freertos_timeout_to_ticks(timeout, &ticks) ||
         !freertos_thread_flags_args_valid(flags, options))
-        return 0x80000000;
+        return XY_OS_THREAD_FLAGS_ERROR;
     BaseType_t wait_all = (options & XY_OS_FLAGS_WAIT_ALL) ? pdTRUE : pdFALSE;
     BaseType_t clear = (options & XY_OS_FLAGS_NO_CLEAR) ? pdFALSE : pdTRUE;
 
     start = xTaskGetTickCount();
     for (;;) {
         if (xTaskNotifyWait(0, 0, &notif, ticks) != pdPASS)
-            return 0x80000000;
+            return XY_OS_THREAD_FLAGS_ERROR;
         if ((!wait_all && (notif & flags)) ||
             (wait_all && ((notif & flags) == flags))) {
             if (clear)
@@ -575,11 +575,11 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options,
             return notif;
         }
         if (!wait_all || timeout == 0U)
-            return 0x80000000;
+            return XY_OS_THREAD_FLAGS_ERROR;
         if (timeout != XY_OS_WAIT_FOREVER) {
             TickType_t elapsed = xTaskGetTickCount() - start;
             if (elapsed >= ticks)
-                return 0x80000000;
+                return XY_OS_THREAD_FLAGS_ERROR;
             ticks -= elapsed;
             start = xTaskGetTickCount();
         }

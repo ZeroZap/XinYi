@@ -29,6 +29,11 @@ BACKENDS = ROOT / "components" / "kernel" / "osal" / "backend"
 DEFINITION = re.compile(r"^[A-Za-z_][\w \t\*]*\b(xy_os_\w+)\s*\([^;{]*\)\s*$", re.M)
 #: An if() that decides from values the backend already holds, rather than from a vendor call's
 #: result. When such a check rejects the call, the reason is known and the code can say it.
+#: Entries that return a flag word rather than a status code. Their failure has to be reported inside
+#: that word, and 0 is a valid answer - "no flags are set" - so it cannot double as the failure.
+FLAG_WORD_ENTRY = re.compile(r"^xy_os_thread_flags_")
+BARE_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$")
+
 VENDOR_CALL = re.compile(r"\b(?:x[A-Z]\w+|os[A-Z]\w+|rt_\w+|vTask\w+|HAL_\w+)")
 LOCAL_IF = re.compile(r"\bif\s*\(([^)]*)\)")
 BARE_RETURN = re.compile(r"return\s+XY_OS_ERROR\s*;")
@@ -49,6 +54,11 @@ PINNED_UNSPECIFIED = {
 DEFINITION = re.compile(r"^[A-Za-z_][\w \t\*]*\b(xy_os_\w+)\s*\([^;{]*\)\s*$", re.M)
 #: An if() that decides from values the backend already holds, rather than from a vendor call's
 #: result. When such a check rejects the call, the reason is known and the code can say it.
+#: Entries that return a flag word rather than a status code. Their failure has to be reported inside
+#: that word, and 0 is a valid answer - "no flags are set" - so it cannot double as the failure.
+FLAG_WORD_ENTRY = re.compile(r"^xy_os_thread_flags_")
+BARE_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$")
+
 VENDOR_CALL = re.compile(r"\b(?:x[A-Z]\w+|os[A-Z]\w+|rt_\w+|vTask\w+|HAL_\w+)")
 LOCAL_IF = re.compile(r"\bif\s*\(([^)]*)\)")
 BARE_RETURN = re.compile(r"return\s+XY_OS_ERROR\s*;")
@@ -105,6 +115,23 @@ def local_check_findings(source: str, name: str,
     return problems
 
 
+def false_success_findings(source: str, name: str) -> list[str]:
+    """A flag-word entry that answers 0 whatever the input is claiming success it cannot deliver."""
+    problems: list[str] = []
+    for match in DEFINITION.finditer(source):
+        if not FLAG_WORD_ENTRY.match(match.group(1)):
+            continue
+        body = braced_body(source[match.end():])
+        if not body:
+            continue
+        if BARE_ZERO.match(re.sub(r"\s+", " ", body).strip()):
+            problems.append(
+                f"{name}:{match.group(1)}: answers 0 whatever the input is. Zero is what a working "
+                f"backend returns when no flags are set, so callers cannot tell this from success; "
+                f"return XY_OS_THREAD_FLAGS_ERROR")
+    return problems
+
+
 def local_rejection(body: str) -> bool:
     """True when a decision the backend makes on its own values is answered with a bare XY_OS_ERROR."""
     for match in LOCAL_IF.finditer(body):
@@ -123,6 +150,7 @@ def findings(backend_dir: Path = BACKENDS) -> list[str]:
         inspected += len(DEFINITION.findall(source))
         problems.extend(stub_findings(source, path.parent.name))
         problems.extend(local_check_findings(source, path.parent.name))
+        problems.extend(false_success_findings(source, path.parent.name))
     if not inspected:
         problems.append("no function definitions were found - the walk is broken")
     return problems
@@ -139,7 +167,7 @@ def main() -> int:
         return 1
     print(f"osal_stub_specificity ok ({inspected} definitions across "
           f"{len(list(BACKENDS.glob('*/xy_os_*.c')))} backends, "
-          f"none a bare unspecified return, no unpinned local rejection)")
+          f"none a bare unspecified return, no unpinned local rejection, no false flag success)")
     return 0
 
 

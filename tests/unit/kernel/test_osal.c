@@ -68,8 +68,14 @@ static void test_thread_stub_contract(void)
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_thread_yield());
     TEST_ASSERT_EQUAL(XY_OS_ERROR_NOT_SUPPORTED, xy_os_thread_suspend(current));
     TEST_ASSERT_EQUAL_UINT32(0x80000000u, xy_os_thread_flags_set(current, 0x1));
-    TEST_ASSERT_EQUAL_INT(0, xy_os_thread_flags_get());
-    TEST_ASSERT_EQUAL_INT(0, xy_os_thread_flags_clear(0x1));
+    /* get() used to answer 0 and clear() reported success. Zero is what "no flags are set" looks like,
+     * so on a backend that has no thread flags at all a caller polling for work was told, forever,
+     * that there was none - and clear() reported clearing something that never existed. The other
+     * backends answer 0x80000000 here: this one now does too. */
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_THREAD_FLAGS_ERROR, xy_os_thread_flags_get());
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_THREAD_FLAGS_ERROR, xy_os_thread_flags_clear(0x1));
+    /* And the error answer must not be mistakable for a flag word. */
+    TEST_ASSERT_NOT_EQUAL(0U, xy_os_thread_flags_get());
     TEST_ASSERT_EQUAL_UINT32(0x80000000u, xy_os_thread_flags_wait(0x1, XY_OS_FLAGS_WAIT_ANY, 0));
 }
 

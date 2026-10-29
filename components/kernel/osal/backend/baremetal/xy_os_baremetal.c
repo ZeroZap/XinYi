@@ -392,22 +392,31 @@ uint32_t xy_os_thread_enumerate(xy_os_thread_id_t *arr, uint32_t n)
     return 0;
 }
 
-// Thread flags stubs
+/* Thread flags stubs. This backend has one context and no scheduler, so no thread ever has flags and
+ * all four entries answer XY_OS_THREAD_FLAGS_ERROR. clear() and get() used to answer 0 - the same
+ * value a working backend returns when nothing is set - so a caller polling flags waited for ever on
+ * a backend that could never satisfy it, and clear() reported clearing flags that never existed. */
 uint32_t xy_os_thread_flags_set(xy_os_thread_id_t id, uint32_t f)
 {
-    return 0x80000000;
+    (void)id;
+    (void)f;
+    return XY_OS_THREAD_FLAGS_ERROR;
 }
 uint32_t xy_os_thread_flags_clear(uint32_t f)
 {
-    return 0;
+    (void)f;
+    return XY_OS_THREAD_FLAGS_ERROR;
 }
 uint32_t xy_os_thread_flags_get(void)
 {
-    return 0;
+    return XY_OS_THREAD_FLAGS_ERROR;
 }
 uint32_t xy_os_thread_flags_wait(uint32_t f, uint32_t opt, uint32_t to)
 {
-    return 0x80000000;
+    (void)f;
+    (void)opt;
+    (void)to;
+    return XY_OS_THREAD_FLAGS_ERROR;
 }
 
 /* ==================== Baremetal internal helpers ==================== */

@@ -49,7 +49,7 @@ def main() -> int:
 
     required_get_contract = (
         "if (xTaskNotifyAndQuery(xTaskGetCurrentTaskHandle(), 0, eNoAction, &flags) != pdPASS)",
-        "return 0x80000000;",
+        "return XY_OS_THREAD_FLAGS_ERROR;",
     )
     for required in required_get_contract:
         if required not in source:
@@ -63,7 +63,7 @@ def main() -> int:
     )[0]
     for required in (
         "flags == 0U",
-        "flags & 0x80000000U",
+        "flags & XY_OS_THREAD_FLAGS_ERROR",
         "options & ~(XY_OS_FLAGS_WAIT_ALL | XY_OS_FLAGS_NO_CLEAR)",
     ):
         if required not in thread_flags_helper:

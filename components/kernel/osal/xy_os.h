@@ -425,6 +425,17 @@ uint32_t xy_os_thread_flags_get(void);
 uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options,
                                  uint32_t timeout);
 
+/* Thread flags error answer.
+ *
+ * The four thread_flags entries return a flag word, not a status code, so an error has to be reported
+ * inside that word. Bit 31 is the one that cannot be a flag: FreeRTOS uses it for its own error return
+ * from the task-notification API, and a mask including it is refused. This value was a bare 0x80000000
+ * in four backends with no name in this header and nothing saying it was an error rather than a flag -
+ * while two other backends answered 0 for "no thread flags exist here", which is what "no flags are
+ * set" also looks like. Zero is a valid answer and therefore cannot be the error.
+ */
+#define XY_OS_THREAD_FLAGS_ERROR 0x80000000U ///< Returned instead of a flag word when the call fails
+
 /* Thread flags options */
 #define XY_OS_FLAGS_WAIT_ANY 0x00000000U ///< Wait for any flag (default)
 #define XY_OS_FLAGS_WAIT_ALL 0x00000001U ///< Wait for all flags
