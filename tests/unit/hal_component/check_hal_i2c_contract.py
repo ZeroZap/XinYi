@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""The I2C device address means the same thing on every backend, and it reaches the vendor once.
+"""Four I2C contracts that four backends used to disagree about.
+
+The device address (7-bit, shifted once by the backend), 10-bit addressing (declared in
+the header, implemented nowhere, refused at init), the register address (16-bit, encoded
+from its value rather than truncated or refused), and the timeout (one budget for the
+whole call rather than one per event wait).
+
+Started as the address rule; the other three were found by asking the same question of the
+remaining parameters.
 
 STM32's HAL takes the address already shifted left: the datasheet's 7-bit 0x50 arrives as 0xA0.
 Every backend is therefore supposed to take the plain 7-bit address from the caller and shift it
@@ -217,8 +225,75 @@ def register_address_findings(source: str, where: str) -> list[str]:
     return problems
 
 
+WAIT_CALL = re.compile(r"\b\w*wait\w*\s*\(([^;]*?)\)")
+BUDGET_TOKEN = re.compile(r"\b(transfer_start|deadline|budget\w*|remaining)\b")
+BARE_TIMEOUT = re.compile(r"(?:^|,)\s*timeout\s*$")
+VENDOR_READY_CALL = re.compile(r"HAL_I2C_IsDeviceReady\s*\([^;]*?trials\s*,\s*timeout\s*\)",
+                               re.S)
+TRANSFERS = ("xy_hal_i2c_master_transmit(", "xy_hal_i2c_master_receive(",
+             "xy_hal_i2c_mem_write(", "xy_hal_i2c_mem_read(", "xy_hal_i2c_is_device_ready(")
+
+
+def per_event_waits(body: str) -> list[str]:
+    """Wait calls that spend the caller's budget again and carry no budget of their own.
+
+    `i2c_wait_event(instance, EVENT, timeout)` is the defect: five to nine of them per transfer,
+    each measured separately. `i2c_wait_event_until(instance, EVENT, transfer_start, timeout)` is
+    the fix - the timeout is still in the argument list, because the helper derives the remaining
+    budget from `transfer_start`. The difference is the presence of a budget, not the absence of
+    the word `timeout`.
+    """
+    offenders: list[str] = []
+    for match in WAIT_CALL.finditer(body):
+        arguments = match.group(1)
+        if BARE_TIMEOUT.search(arguments.rstrip()) and not BUDGET_TOKEN.search(arguments):
+            offenders.append(match.group(0).strip())
+    return offenders
+
+
+def timeout_findings(source: str, where: str) -> list[str]:
+    """`timeout` is the budget for the whole call, not for each wait inside it.
+
+    WCH performs five, seven or nine event waits per transfer, plus one per data byte, and handed
+    each of them the caller's timeout - so a 10 ms request could block for a quarter of a second.
+    STM32 hands the same number to a single HAL call, which spends it once. The rule is the one
+    the UART backends were given: derive a remaining budget from one start time, and report an
+    exhausted budget as TIMEOUT rather than passing zero to a helper whose zero means "forever".
+    """
+    problems: list[str] = []
+    for call in TRANSFERS:
+        body = function_body(source, call)
+        if not body:
+            continue
+        name = call.rstrip("(")
+        offenders = per_event_waits(body)
+        if offenders:
+            problems.append(
+                f"{where}:{name}: spends the caller's timeout again on each event "
+                f"({offenders[0]}), so one transfer can block several times the budget")
+    if per_event_waits(source) or "wait" in source:
+        derives = "i2c_budget_remaining" in source or "budget_remaining" in source
+        reports = "XY_HAL_ERROR_TIMEOUT" in source
+        if derives and not reports:
+            problems.append(
+                f"{where}: derives a remaining budget but never reports TIMEOUT when it runs "
+                f"out; a zero budget reads as 'wait forever' to the helpers it feeds")
+    if VENDOR_READY_CALL.search(source):
+        problems.append(
+            f"{where}: xy_hal_i2c_is_device_ready passes trials and the caller's timeout straight "
+            f"to HAL, which spends the timeout on each trial - the call can block trials times "
+            f"longer than asked")
+    return problems
+
+
 def header_findings(header: str) -> list[str]:
     problems: list[str] = []
+    if "whole call" not in header:
+        problems.append("xy_hal_i2c.h: timeout is not documented as the budget for the whole "
+                        "call, which is how it came to mean per event wait on one backend")
+    if "trials" in header and "N trials" not in header:
+        problems.append("xy_hal_i2c.h: trials is documented without saying the timeout is shared "
+                        "between them")
     if "reg_addr" in header and "16-bit" not in header:
         problems.append("xy_hal_i2c.h: reg_addr is 16-bit in the signature and the header does "
                         "not say how the size is chosen")
@@ -247,6 +322,7 @@ def findings(backends: dict[str, Path] | None = None, header: Path | None = None
         problems.extend(helper_findings(text, name))
         problems.extend(ten_bit_findings(text, name))
         problems.extend(register_address_findings(text, name))
+        problems.extend(timeout_findings(text, name))
         for function in FUNCTIONS:
             body = function_body(text, function)
             if not body:
@@ -258,11 +334,12 @@ def findings(backends: dict[str, Path] | None = None, header: Path | None = None
 def main() -> int:
     problems = findings()
     if problems:
-        print("hal_i2c_address_convention failed:")
+        print("hal_i2c_contract failed:")
         for problem in problems:
             print(f"- {problem}")
         return 1
-    print(f"hal_i2c_address_convention ok ({len(BACKENDS)} backends, one shift each)")
+    print(f"hal_i2c_contract ok ({len(BACKENDS)} backends: address, 10-bit, register size, "
+          f"one deadline each)")
     return 0
 
 

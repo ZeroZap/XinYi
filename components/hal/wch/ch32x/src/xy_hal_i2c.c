@@ -66,6 +66,38 @@ static xy_hal_error_t i2c_wait_event(void* instance, uint32_t event, uint32_t ti
     return XY_HAL_OK;
 }
 
+/* One deadline per transfer. `timeout == 0` still means "wait indefinitely", which is why the
+ * budget is never handed on as zero: an exhausted budget is reported as TIMEOUT first, instead of
+ * becoming an instruction to wait for a byte that will never arrive. */
+static uint32_t i2c_budget_remaining(uint32_t start, uint32_t timeout) {
+    uint32_t elapsed;
+    if (timeout == 0U)
+        return 0U;
+    elapsed = i2c_tick_ms() - start;
+    return (elapsed >= timeout) ? 0U : (timeout - elapsed);
+}
+
+static int i2c_budget_exhausted(uint32_t start, uint32_t timeout) {
+    return timeout != 0U && (i2c_tick_ms() - start) >= timeout;
+}
+
+static xy_hal_error_t i2c_wait_event_until(void* instance, uint32_t event, uint32_t start,
+                                           uint32_t timeout) {
+    if (i2c_budget_exhausted(start, timeout)) {
+        i2c_abort(instance);
+        return XY_HAL_ERROR_TIMEOUT;
+    }
+    return i2c_wait_event(instance, event, i2c_budget_remaining(start, timeout));
+}
+
+static xy_hal_error_t i2c_wait_idle_until(void* instance, uint32_t start, uint32_t timeout) {
+    if (i2c_budget_exhausted(start, timeout)) {
+        i2c_abort(instance);
+        return XY_HAL_ERROR_TIMEOUT;
+    }
+    return i2c_wait_idle(instance, i2c_budget_remaining(start, timeout));
+}
+
 static int i2c_address_valid(uint16_t address) {
     return address <= 0x7FU;
 }
@@ -118,6 +150,7 @@ xy_hal_error_t xy_hal_i2c_deinit(void* instance) {
 
 xy_hal_error_t xy_hal_i2c_master_transmit(void* instance, uint16_t address, const uint8_t* data,
                                           size_t len, uint32_t timeout) {
+    uint32_t transfer_start = i2c_tick_ms();
     size_t i;
     xy_hal_error_t result;
     int index = i2c_index(instance);
@@ -126,30 +159,31 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void* instance, uint16_t address, cons
     }
     if (i2c_initialized[index] == 0U)
         return XY_HAL_ERROR_NOT_INIT;
-    result = i2c_wait_idle(instance, timeout);
+    result = i2c_wait_idle_until(instance, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     I2C_AcknowledgeConfig(instance, ENABLE);
     I2C_GenerateSTART(instance, ENABLE);
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_MODE_SELECT, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     I2C_Send7bitAddress(instance, i2c_sdk_address(address), I2C_Direction_Transmitter);
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     for (i = 0U; i < len; ++i) {
         I2C_SendData(instance, data[i]);
-        result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, timeout);
+        result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, transfer_start, timeout);
         if (result != XY_HAL_OK)
             return result;
     }
     I2C_GenerateSTOP(instance, ENABLE);
-    return i2c_wait_idle(instance, timeout);
+    return i2c_wait_idle_until(instance, transfer_start, timeout);
 }
 
 xy_hal_error_t xy_hal_i2c_master_receive(void* instance, uint16_t address, uint8_t* data,
                                          size_t len, uint32_t timeout) {
+    uint32_t transfer_start = i2c_tick_ms();
     size_t i;
     xy_hal_error_t result;
     int index = i2c_index(instance);
@@ -158,34 +192,35 @@ xy_hal_error_t xy_hal_i2c_master_receive(void* instance, uint16_t address, uint8
     }
     if (i2c_initialized[index] == 0U)
         return XY_HAL_ERROR_NOT_INIT;
-    result = i2c_wait_idle(instance, timeout);
+    result = i2c_wait_idle_until(instance, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     I2C_AcknowledgeConfig(instance, ENABLE);
     I2C_GenerateSTART(instance, ENABLE);
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_MODE_SELECT, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     I2C_Send7bitAddress(instance, i2c_sdk_address(address), I2C_Direction_Receiver);
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     for (i = 0U; i < len; ++i) {
         if (i + 1U == len) {
             I2C_AcknowledgeConfig(instance, DISABLE);
         }
-        result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_RECEIVED, timeout);
+        result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_BYTE_RECEIVED, transfer_start, timeout);
         if (result != XY_HAL_OK)
             return result;
         data[i] = I2C_ReceiveData(instance);
     }
     I2C_GenerateSTOP(instance, ENABLE);
     I2C_AcknowledgeConfig(instance, ENABLE);
-    return i2c_wait_idle(instance, timeout);
+    return i2c_wait_idle_until(instance, transfer_start, timeout);
 }
 
 xy_hal_error_t xy_hal_i2c_mem_write(void* instance, uint16_t address, uint16_t reg,
                                     const uint8_t* data, size_t len, uint32_t timeout) {
+    uint32_t transfer_start = i2c_tick_ms();
     size_t i;
     xy_hal_error_t result;
     int index = i2c_index(instance);
@@ -193,16 +228,16 @@ xy_hal_error_t xy_hal_i2c_mem_write(void* instance, uint16_t address, uint16_t r
         return XY_HAL_ERROR_INVALID_PARAM;
     if (i2c_initialized[index] == 0U)
         return XY_HAL_ERROR_NOT_INIT;
-    result = i2c_wait_idle(instance, timeout);
+    result = i2c_wait_idle_until(instance, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     I2C_AcknowledgeConfig(instance, ENABLE);
     I2C_GenerateSTART(instance, ENABLE);
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_MODE_SELECT, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     I2C_Send7bitAddress(instance, i2c_sdk_address(address), I2C_Direction_Transmitter);
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     if (reg > 0xFFU) {
@@ -210,26 +245,27 @@ xy_hal_error_t xy_hal_i2c_mem_write(void* instance, uint16_t address, uint16_t r
          * Refusing the address (or truncating it) made one public parameter mean three
          * different things across the backends. */
         I2C_SendData(instance, (uint8_t)(reg >> 8));
-        result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, timeout);
+        result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, transfer_start, timeout);
         if (result != XY_HAL_OK)
             return result;
     }
     I2C_SendData(instance, (uint8_t)(reg & 0xFFU));
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     for (i = 0U; i < len; ++i) {
         I2C_SendData(instance, data[i]);
-        result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, timeout);
+        result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, transfer_start, timeout);
         if (result != XY_HAL_OK)
             return result;
     }
     I2C_GenerateSTOP(instance, ENABLE);
-    return i2c_wait_idle(instance, timeout);
+    return i2c_wait_idle_until(instance, transfer_start, timeout);
 }
 
 xy_hal_error_t xy_hal_i2c_mem_read(void* instance, uint16_t address, uint16_t reg, uint8_t* data,
                                    size_t len, uint32_t timeout) {
+    uint32_t transfer_start = i2c_tick_ms();
     size_t i;
     xy_hal_error_t result;
     int index = i2c_index(instance);
@@ -237,16 +273,16 @@ xy_hal_error_t xy_hal_i2c_mem_read(void* instance, uint16_t address, uint16_t re
         return XY_HAL_ERROR_INVALID_PARAM;
     if (i2c_initialized[index] == 0U)
         return XY_HAL_ERROR_NOT_INIT;
-    result = i2c_wait_idle(instance, timeout);
+    result = i2c_wait_idle_until(instance, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     I2C_AcknowledgeConfig(instance, ENABLE);
     I2C_GenerateSTART(instance, ENABLE);
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_MODE_SELECT, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     I2C_Send7bitAddress(instance, i2c_sdk_address(address), I2C_Direction_Transmitter);
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     if (reg > 0xFFU) {
@@ -254,34 +290,34 @@ xy_hal_error_t xy_hal_i2c_mem_read(void* instance, uint16_t address, uint16_t re
          * Refusing the address (or truncating it) made one public parameter mean three
          * different things across the backends. */
         I2C_SendData(instance, (uint8_t)(reg >> 8));
-        result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, timeout);
+        result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, transfer_start, timeout);
         if (result != XY_HAL_OK)
             return result;
     }
     I2C_SendData(instance, (uint8_t)(reg & 0xFFU));
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     I2C_GenerateSTART(instance, ENABLE);
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_MODE_SELECT, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     I2C_Send7bitAddress(instance, i2c_sdk_address(address), I2C_Direction_Receiver);
-    result = i2c_wait_event(instance, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED, timeout);
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED, transfer_start, timeout);
     if (result != XY_HAL_OK)
         return result;
     for (i = 0U; i < len; ++i) {
         if (i + 1U == len) {
             I2C_AcknowledgeConfig(instance, DISABLE);
         }
-        result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_RECEIVED, timeout);
+        result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_BYTE_RECEIVED, transfer_start, timeout);
         if (result != XY_HAL_OK)
             return result;
         data[i] = I2C_ReceiveData(instance);
     }
     I2C_GenerateSTOP(instance, ENABLE);
     I2C_AcknowledgeConfig(instance, ENABLE);
-    return i2c_wait_idle(instance, timeout);
+    return i2c_wait_idle_until(instance, transfer_start, timeout);
 }
 
 xy_hal_error_t xy_hal_i2c_master_transmit_dma(void* instance, uint16_t address, const uint8_t* data,
@@ -315,6 +351,7 @@ xy_hal_error_t xy_hal_i2c_register_callback(void* instance, xy_hal_i2c_callback_
 }
 xy_hal_error_t xy_hal_i2c_is_device_ready(void* instance, uint16_t address, uint32_t trials,
                                           uint32_t timeout) {
+    uint32_t transfer_start = i2c_tick_ms();
     uint32_t trial;
     uint32_t start;
     xy_hal_error_t result = XY_HAL_ERROR_NOT_FOUND;
@@ -326,12 +363,12 @@ xy_hal_error_t xy_hal_i2c_is_device_ready(void* instance, uint16_t address, uint
     if (i2c_initialized[index] == 0U)
         return XY_HAL_ERROR_NOT_INIT;
     for (trial = 0U; trial < trials; ++trial) {
-        result = i2c_wait_idle(instance, timeout);
+        result = i2c_wait_idle_until(instance, transfer_start, timeout);
         if (result != XY_HAL_OK)
             return result;
         I2C_AcknowledgeConfig(instance, ENABLE);
         I2C_GenerateSTART(instance, ENABLE);
-        result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
+        result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_MODE_SELECT, transfer_start, timeout);
         if (result != XY_HAL_OK)
             continue;
         I2C_Send7bitAddress(instance, i2c_sdk_address(address), I2C_Direction_Transmitter);
@@ -362,9 +399,9 @@ xy_hal_error_t xy_hal_i2c_is_device_ready(void* instance, uint16_t address, uint
         }
         if (result == XY_HAL_OK) {
             I2C_GenerateSTOP(instance, ENABLE);
-            return i2c_wait_idle(instance, timeout);
+            return i2c_wait_idle_until(instance, transfer_start, timeout);
         }
-        cleanup_result = i2c_wait_idle(instance, timeout);
+        cleanup_result = i2c_wait_idle_until(instance, transfer_start, timeout);
         if (cleanup_result != XY_HAL_OK)
             return cleanup_result;
     }

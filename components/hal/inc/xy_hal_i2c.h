@@ -76,7 +76,9 @@ xy_hal_error_t xy_hal_i2c_deinit(void *i2c);
  *        validates it and applies the shift itself
  * @param data Data buffer
  * @param len Data length
- * @param timeout Timeout in milliseconds
+ * @param timeout Budget for the whole call in milliseconds, not per event wait and not per
+ *        byte; 0 waits indefinitely. A backend that performs several waits derives a
+ *        remaining budget from one start time instead of spending this again on each.
  * @return 0 on success, negative on error
  */
 xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
@@ -90,7 +92,9 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
  *        validates it and applies the shift itself
  * @param data Data buffer
  * @param len Buffer length
- * @param timeout Timeout in milliseconds
+ * @param timeout Budget for the whole call in milliseconds, not per event wait and not per
+ *        byte; 0 waits indefinitely. A backend that performs several waits derives a
+ *        remaining budget from one start time instead of spending this again on each.
  * @return 0 on success, negative on error
  */
 xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr,
@@ -108,7 +112,9 @@ xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr,
  *        ordinary 16-bit part unusable.
  * @param data Data buffer
  * @param len Data length
- * @param timeout Timeout in milliseconds
+ * @param timeout Budget for the whole call in milliseconds, not per event wait and not per
+ *        byte; 0 waits indefinitely. A backend that performs several waits derives a
+ *        remaining budget from one start time instead of spending this again on each.
  * @return 0 on success, negative on error
  */
 xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr,
@@ -126,7 +132,9 @@ xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr,
  *        ordinary 16-bit part unusable.
  * @param data Data buffer
  * @param len Buffer length
- * @param timeout Timeout in milliseconds
+ * @param timeout Budget for the whole call in milliseconds, not per event wait and not per
+ *        byte; 0 waits indefinitely. A backend that performs several waits derives a
+ *        remaining budget from one start time instead of spending this again on each.
  * @return 0 on success, negative on error
  */
 xy_hal_error_t xy_hal_i2c_mem_read(void *i2c, uint16_t dev_addr,
@@ -173,8 +181,11 @@ xy_hal_error_t xy_hal_i2c_register_callback(void *i2c,
  * @param i2c I2C instance
  * @param dev_addr Device address, 7-bit and unshifted (0x50, not 0xA0); each backend
  *        validates it and applies the shift itself
- * @param trials Number of trials
- * @param timeout Timeout in milliseconds
+ * @param trials Number of trials, at least 1. The timeout is shared between them, so N trials
+ *        do not turn a 10 ms budget into N x 10 ms; 0 is INVALID_PARAM.
+ * @param timeout Budget for the whole call in milliseconds, not per event wait and not per
+ *        byte; 0 waits indefinitely. A backend that performs several waits derives a
+ *        remaining budget from one start time instead of spending this again on each.
  * @return 0 if device is ready, negative on error
  */
 xy_hal_error_t xy_hal_i2c_is_device_ready(void *i2c, uint16_t dev_addr,

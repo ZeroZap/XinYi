@@ -48,7 +48,7 @@ REGISTRY = (
     "tests/unit/hal_component/check_board_irq_vectors.py",
     "tests/unit/hal_component/check_error_code_alignment.py",
     "tests/unit/hal_component/check_hal_uart_blocking_contract.py",
-    "tests/unit/hal_component/check_hal_i2c_address_convention.py",
+    "tests/unit/hal_component/check_hal_i2c_contract.py",
     "tests/unit/hal_component/check_hal_platform_build_contract.py",
     "tests/unit/hal_component/check_opench_osal_hal_usage.py",
     "tests/unit/hal_component/check_pandora_stm32l475_board.py",

@@ -354,7 +354,7 @@ xy_hal_error_t xy_hal_i2c_register_callback(void *i2c,
 xy_hal_error_t xy_hal_i2c_is_device_ready(void *i2c, uint16_t dev_addr,
                                           uint32_t trials, uint32_t timeout)
 {
-    if (!i2c || dev_addr > 0x7FU) {
+    if (!i2c || dev_addr > 0x7FU || trials == 0U) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -363,8 +363,12 @@ xy_hal_error_t xy_hal_i2c_is_device_ready(void *i2c, uint16_t dev_addr,
         return XY_HAL_ERROR_NOT_INIT;
     }
 
+    /* HAL spends `timeout` on each trial, so `trials` attempts could block trials * timeout
+     * while the caller asked to wait `timeout` in total. Split the budget instead. */
+    const uint32_t per_trial = (timeout == 0U) ? 0U
+                                               : ((timeout / trials) == 0U ? 1U : (timeout / trials));
     HAL_StatusTypeDef status = HAL_I2C_IsDeviceReady(
-        (I2C_HandleTypeDef *)i2c, (uint16_t)(dev_addr << 1), trials, timeout);
+        (I2C_HandleTypeDef *)i2c, (uint16_t)(dev_addr << 1), trials, per_trial);
 
     if (status != HAL_OK) {
         if (status == HAL_TIMEOUT) {

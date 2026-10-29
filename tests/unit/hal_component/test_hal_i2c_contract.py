@@ -17,7 +17,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import check_hal_i2c_address_convention as guard  # noqa: E402
+import check_hal_i2c_contract as guard  # noqa: E402
 
 
 STM32_SHIFTED = """
@@ -211,23 +211,118 @@ xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr, uint16_t reg_a
         self.assertEqual(guard.register_address_findings(self.F4_DERIVED, "f4"), [])
 
 
-class HeaderTests(unittest.TestCase):
-    def test_a_header_that_names_the_7_bit_address_passes(self):
-        self.assertEqual(guard.header_findings(" * @param dev_addr 7-bit address\n"), [])
+class TimeoutTests(unittest.TestCase):
+    """`timeout` means the budget for the whole call on every backend.
 
-    def test_a_silent_header_is_reported(self):
-        self.assertEqual(len(guard.header_findings(" * @param dev_addr Device address\n")), 1)
+    WCH ran five to nine event waits per transfer, each with the caller's full timeout, plus one
+    per data byte: a 10 ms request could block for a quarter of a second. STM32 spends the same
+    number inside a single HAL call.
+    """
+
+    PER_EVENT = """
+xy_hal_error_t xy_hal_i2c_master_transmit(void* instance, uint16_t address, const uint8_t* data,
+                                          size_t len, uint32_t timeout) {
+    result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
+    if (result != XY_HAL_OK)
+        return result;
+    return XY_HAL_OK;
+}
+"""
+
+    ONE_DEADLINE = """
+xy_hal_error_t xy_hal_i2c_master_transmit(void* instance, uint16_t address, const uint8_t* data,
+                                          size_t len, uint32_t timeout) {
+    uint32_t transfer_start = i2c_tick_ms();
+    result = i2c_wait_event_until(instance, I2C_EVENT_MASTER_MODE_SELECT, transfer_start, timeout);
+    if (result != XY_HAL_OK)
+        return result;
+    return XY_HAL_OK;
+}
+
+static xy_hal_error_t i2c_wait_event_until(void* instance, uint32_t event, uint32_t start,
+                                           uint32_t timeout) {
+    if (i2c_budget_exhausted(start, timeout))
+        return XY_HAL_ERROR_TIMEOUT;
+    return i2c_wait_event(instance, event, i2c_budget_remaining(start, timeout));
+}
+"""
+
+    READY_WITH_TRIALS = """
+xy_hal_error_t xy_hal_i2c_is_device_ready(void *i2c, uint16_t dev_addr, uint32_t trials,
+                                          uint32_t timeout)
+{
+    return map_status(HAL_I2C_IsDeviceReady((I2C_HandleTypeDef *)i2c,
+                                            (uint16_t)(dev_addr << 1), trials, timeout));
+}
+"""
+
+    READY_WITH_BUDGET = READY_WITH_TRIALS.replace(
+        "trials, timeout));", "trials, per_trial));")
+
+    def test_a_per_event_wait_is_reported(self):
+        problems = guard.timeout_findings(self.PER_EVENT, "wch")
+        self.assertTrue(any("again on each event" in problem for problem in problems))
+
+    def test_a_helper_fed_by_a_start_time_passes(self):
+        """The timeout is still an argument; what matters is the budget travelling with it."""
+        self.assertEqual(guard.timeout_findings(self.ONE_DEADLINE, "wch"), [])
+
+    def test_a_budget_without_a_timeout_report_is_reported(self):
+        broken = self.ONE_DEADLINE.replace("return XY_HAL_ERROR_TIMEOUT;", "return XY_HAL_OK;")
+        problems = guard.timeout_findings(broken, "wch")
+        self.assertTrue(any("never reports TIMEOUT" in problem for problem in problems))
+
+    def test_handing_trials_and_the_timeout_to_hal_is_reported(self):
+        problems = guard.timeout_findings(self.READY_WITH_TRIALS, "stm32l4")
+        self.assertTrue(any("trials times" in problem for problem in problems))
+
+    def test_splitting_the_budget_across_trials_passes(self):
+        self.assertEqual(guard.timeout_findings(self.READY_WITH_BUDGET, "stm32l4"), [])
+
+
+class HeaderTests(unittest.TestCase):
+    """One fixture carrying every header requirement, so a case isolates the rule it names.
+
+    Adding the timeout and trials requirements broke four of these cases at once: the fixtures
+    were minimal strings, so each new rule fired on all of them and the exact-count assertions
+    started counting the wrong thing.
+    """
+
+    COMPLETE = (
+        " * @param dev_addr Device address, 7-bit and unshifted\n"
+        " * @param reg_addr Register address, 8- or 16-bit\n"
+        " * @param timeout Budget for the whole call in milliseconds\n"
+        " * @param trials Number of trials; N trials share the timeout\n"
+        "  XY_HAL_I2C_ADDR_10BIT, /**< declared, init returns NOT_SUPPORTED */\n"
+    )
+
+    def test_the_complete_fixture_passes(self):
+        self.assertEqual(guard.header_findings(self.COMPLETE), [])
+
+    def test_a_header_that_omits_the_7_bit_address_is_reported(self):
+        header = self.COMPLETE.replace("7-bit", "unspecified")
+        self.assertTrue(any("7-bit address" in problem
+                            for problem in guard.header_findings(header)))
 
     def test_declaring_10_bit_without_saying_it_is_refused_is_reported(self):
-        header = " * @param dev_addr 7-bit address\n  XY_HAL_I2C_ADDR_10BIT,\n"
+        header = self.COMPLETE.replace("init returns NOT_SUPPORTED", "10-bit addressing")
         problems = guard.header_findings(header)
-        self.assertEqual(len(problems), 1)
-        self.assertIn("10BIT is declared without saying", problems[0])
+        self.assertTrue(any("10BIT is declared without saying" in problem for problem in problems))
 
-    def test_declaring_10_bit_with_the_refusal_documented_passes(self):
-        header = (" * @param dev_addr 7-bit address\n  XY_HAL_I2C_ADDR_10BIT,\n"
-                  " *   NOT_SUPPORTED from init\n")
-        self.assertEqual(guard.header_findings(header), [])
+    def test_omitting_the_timeout_contract_is_reported(self):
+        header = self.COMPLETE.replace("Budget for the whole call", "Timeout")
+        problems = guard.header_findings(header)
+        self.assertTrue(any("whole call" in problem for problem in problems))
+
+    def test_omitting_the_trials_contract_is_reported(self):
+        header = self.COMPLETE.replace("N trials share the timeout", "attempts")
+        problems = guard.header_findings(header)
+        self.assertTrue(any("shared between them" in problem for problem in problems))
+
+    def test_omitting_the_register_width_is_reported(self):
+        header = self.COMPLETE.replace("8- or 16-bit", "register")
+        problems = guard.header_findings(header)
+        self.assertTrue(any("16-bit" in problem for problem in problems))
 
 
 class RepositoryTests(unittest.TestCase):
