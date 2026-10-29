@@ -106,6 +106,12 @@ add_test(NAME osal_backend_advertise
 add_test(NAME osal_backend_advertise_unit
     COMMAND python3 ${UNIT_HAL}/test_osal_backend_advertise.py)
 
+add_test(NAME hal_uart_recv_contract
+    COMMAND python3 ${UNIT_HAL}/check_hal_uart_recv_contract.py)
+
+add_test(NAME hal_uart_recv_contract_unit
+    COMMAND python3 ${UNIT_HAL}/test_hal_uart_recv_contract.py)
+
 add_test(NAME pandora_board_guard_unit
     COMMAND python3 ${UNIT_HAL}/test_pandora_board_guard.py)
 
@@ -1838,6 +1844,12 @@ add_test(NAME single_comment_stripper_unit
 
 add_test(NAME support_source_scan
     COMMAND python3 ${UNIT_SUPPORT}/test_source_scan.py)
+
+add_test(NAME guards_read_code
+    COMMAND python3 ${UNIT_SUPPORT}/check_guards_read_code.py)
+
+add_test(NAME guards_read_code_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_guards_read_code.py)
 
 add_test(NAME clib_frame_mutations
     COMMAND python3 ${UNIT_CLIB}/mutation_check_frame.py --build-dir ${CMAKE_BINARY_DIR})

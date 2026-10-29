@@ -104,11 +104,19 @@ xy_hal_error_t xy_hal_uart_send(void *uart, const uint8_t *data, size_t len,
 
 /**
  * @brief Receive data via UART (blocking)
+ *
+ * @param timeout is the budget for the whole transfer, not per byte. Receiving 4 bytes with
+ *        a 10 ms timeout gives up after about 10 ms, not 40 ms - a backend that waits per
+ *        byte makes the same call mean different things on different silicon.
+ *        Zero means wait indefinitely.
+ * @param len must be non-zero: a zero-length receive is a caller mistake, not a success, and
+ *        is rejected as XY_HAL_ERROR_INVALID_PARAM on every backend.
+ *
  * @param uart UART instance
  * @param data Data buffer
  * @param len Buffer length
- * @param timeout Timeout in milliseconds
- * @return XY_HAL_OK on success, XY_HAL_ERROR_* on error
+ * @return XY_HAL_OK on success, XY_HAL_ERROR_TIMEOUT if the budget ran out,
+ *         XY_HAL_ERROR_INVALID_PARAM / XY_HAL_ERROR_NOT_INIT on bad input
  */
 xy_hal_error_t xy_hal_uart_recv(void *uart, uint8_t *data, size_t len, uint32_t timeout);
 

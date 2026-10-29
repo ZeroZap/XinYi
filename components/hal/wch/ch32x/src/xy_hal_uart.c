@@ -182,13 +182,23 @@ xy_hal_error_t xy_hal_uart_recv(void* instance, uint8_t* data, size_t len, uint3
     size_t i;
     xy_hal_error_t result;
     int index;
-    if (!uart_valid(instance) || (len != 0U && data == NULL))
+    uint32_t start;
+    uint32_t remaining = timeout;
+
+    if (!uart_valid(instance) || data == NULL || len == 0U)
         return XY_HAL_ERROR_INVALID_PARAM;
     index = uart_index(instance);
     if (uart_initialized[index] == 0U)
         return XY_HAL_ERROR_NOT_INIT;
+
+    /* The timeout is the budget for the whole transfer. Waiting `timeout` per byte would make
+     * one 4-byte call block for four times as long as the same call on STM32, where the vendor
+     * HAL runs a single deadline. */
+    start = uart_tick_ms();
     for (i = 0U; i < len; ++i) {
-        result = uart_wait(instance, USART_FLAG_RXNE, timeout);
+        if (timeout != 0U)
+            remaining = (uart_tick_ms() - start >= timeout) ? 0U : timeout - (uart_tick_ms() - start);
+        result = uart_wait(instance, USART_FLAG_RXNE, remaining);
         if (result != XY_HAL_OK)
             return result;
         data[i] = (uint8_t)USART_ReceiveData(instance);
