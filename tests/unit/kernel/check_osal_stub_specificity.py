@@ -67,38 +67,6 @@ PINNED_UNSPECIFIED = {
     "rtx5": "orphaned: no OSAL_BACKEND branch names this directory, as above",
 }
 
-DEFINITION = re.compile(r"^[A-Za-z_][\w \t\*]*\b(xy_os_\w+)\s*\([^;{]*\)\s*$", re.M)
-#: An if() that decides from values the backend already holds, rather than from a vendor call's
-#: result. When such a check rejects the call, the reason is known and the code can say it.
-#: Entries that return a flag word rather than a status code. Their failure has to be reported inside
-#: that word, and 0 is a valid answer - "no flags are set" - so it cannot double as the failure.
-FLAG_WORD_ENTRY = re.compile(r"^xy_os_thread_flags_")
-BARE_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$")
-
-#: A query answered with a constant looks exactly like a real answer: NULL is "no owner" or "not
-#: found", 0 is "no flags" or "zero bytes". Only a stub can answer a query with nothing else.
-BARE_NULL = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+NULL\s*;\s*\}$")
-BARE_CONST_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$")
-
-#: A function returning a status may refuse an argument without reading it - "this backend cannot do
-#: this, whatever you passed" is a real answer. A function returning a value has no such excuse: it was
-#: asked a question about its argument and did not look. Three thread queries answered about the main
-#: thread whatever id they were given.
-VALUE_RETURNING = re.compile(r"^([A-Za-z_][\w \t\*]*?)\b(\w+)\s*\(([^;{]*)\)\s*$", re.M)
-
-#: version->api is the version of this adapter's contract, so it has to come from the adapter's own
-#: macros (or from a vendor query when the backend delegates). A literal drifts the moment the contract
-#: moves, and one backend reported 2.0 there - its own kernel's version in the wrong field.
-API_VERSION_LINE = re.compile(r"version\s*->\s*api\s*=([^;]*);")
-
-VENDOR_CALL = re.compile(r"\b(?:x[A-Z]\w+|os[A-Z]\w+|rt_\w+|vTask\w+|HAL_\w+)")
-LOCAL_IF = re.compile(r"\bif\s*\(([^)]*)\)")
-BARE_RETURN = re.compile(r"return\s+XY_OS_ERROR\s*;")
-
-#: How far past an if() to look for the rejection. Enough for `{ unlock(); return X; }`, short enough
-#: not to attribute a later, unrelated rejection to this check.
-WINDOW = 200
-
 #: Sites that reject a local check with the unspecified error and are still right to. Each needs a
 #: reason that would survive review, not a shrug.
 #: Queries that must answer a constant because that is the honest answer, with the reason.

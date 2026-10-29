@@ -1942,6 +1942,12 @@ add_test(NAME single_comment_stripper_unit
 add_test(NAME support_source_scan
     COMMAND python3 ${UNIT_SUPPORT}/test_source_scan.py)
 
+add_test(NAME guard_module_hygiene
+    COMMAND python3 ${UNIT_SUPPORT}/check_guard_module_hygiene.py)
+
+add_test(NAME guard_module_hygiene_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_guard_module_hygiene.py)
+
 add_test(NAME guards_read_code
     COMMAND python3 ${UNIT_SUPPORT}/check_guards_read_code.py)
 
