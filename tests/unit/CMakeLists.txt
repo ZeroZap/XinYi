@@ -1950,6 +1950,12 @@ add_test(NAME osal_backend_contract
 add_test(NAME kconfig_parser
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../test_kconfig_parser.py)
 
+add_test(NAME dead_cmake_options
+    COMMAND python3 ${UNIT_SUPPORT}/check_dead_cmake_options.py)
+
+add_test(NAME dead_cmake_options_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_dead_cmake_options.py)
+
 add_test(NAME dead_cli_options
     COMMAND python3 ${UNIT_SUPPORT}/check_dead_cli_options.py)
 

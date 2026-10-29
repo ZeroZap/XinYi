@@ -30,6 +30,10 @@ set(FOTA_EXAMPLES
 )
 
 # Build each example
+set(FOTA_BUILT "")
+if(NOT BUILD_EXAMPLES)
+    message(STATUS "BUILD_EXAMPLES is OFF, so no FOTA example is built")
+else()
 foreach(EXAMPLE ${FOTA_EXAMPLES})
     set(EXAMPLE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/${EXAMPLE}.c)
 
@@ -39,6 +43,7 @@ foreach(EXAMPLE ${FOTA_EXAMPLES})
     endif()
 
     add_executable(${EXAMPLE} ${EXAMPLE_SRC})
+    list(APPEND FOTA_BUILT ${EXAMPLE})
 
     # Link with math library for basic examples
     target_link_libraries(${EXAMPLE} m)
@@ -64,7 +69,7 @@ message(STATUS "FOTA Examples Build Summary:")
 message(STATUS "===========================")
 message(STATUS "Source dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "FOTA component: ${FOTA_SRC_DIR}")
-message(STATUS "Examples: ${FOTA_EXAMPLES}")
+message(STATUS "Examples: ${FOTA_BUILT}")
 message(STATUS "")
 
 # Create a helpful target to run all examples
@@ -88,3 +93,4 @@ add_custom_command(TARGET run_all_fota_examples POST_BUILD
     COMMAND echo ""
     COMMENT "FOTA Examples Help"
 )
+endif()
