@@ -227,10 +227,15 @@ def analyze_capture(payload: bytes, firmware_commit: str, expect: str = "auto") 
         failures.append("no boot frame captured")
 
     accepted = not failures
-    if accepted and attempts and terminal == "jump":
-        chain = "ATTEMPT"
-    elif accepted and confirms:
+    # The label describes the frame that decided the boot, not the loudest frame in the
+    # window. A real confirm run is multi-boot - install/attempt, then the application's
+    # request, then the confirm - so keying "ATTEMPT" off "any attempt marker exists"
+    # labelled the only capture that ever reached the confirm branch as an attempt chain.
+    last_decision = frames[-1]["decision"] if frames else None
+    if accepted and terminal == "jump" and last_decision == CONFIRMED:
         chain = "CONFIRM"
+    elif accepted and terminal == "jump":
+        chain = "ATTEMPT"
     elif accepted and terminal == "halt_rollback":
         chain = "ROLLBACK"
     elif accepted and terminal == "halt_no_image":

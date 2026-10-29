@@ -109,6 +109,33 @@ class AttemptChainTests(unittest.TestCase):
         self.assertEqual(result["confirm_markers"], 1)
         self.assertEqual(result["attempt_markers"], 0)
 
+    def test_attempts_before_a_confirm_report_a_confirm_chain(self):
+        # The board only reaches the confirm branch after the install boot and the
+        # application's request boot, so the earliest confirm capture is
+        # ATTEMPT -> ATTEMPT -> CONFIRM. Labelling that "ATTEMPT" because the earlier
+        # frames recorded attempts mis-described the one run that proved the branch.
+        result = analyze(
+            encode(
+                attempt_frame(),
+                attempt_frame(boot.ALREADY_INSTALLED),
+                frame(boot.ALREADY_INSTALLED, boot.CONFIRMED),
+            ),
+            "confirm",
+        )
+        self.assertEqual(result["status"], "BOOTLOADER_CHAIN_REVIEW_CANDIDATE")
+        self.assertEqual(result["chain"], "CONFIRM")
+        self.assertEqual(result["terminal"], "jump")
+        self.assertEqual(result["boot_count"], 3)
+        self.assertEqual(result["attempt_markers"], 2)
+        self.assertEqual(result["confirm_markers"], 1)
+        self.assertTrue(result["expect_matched"])
+
+    def test_attempts_without_a_confirm_stay_an_attempt_chain(self):
+        result = analyze(
+            encode(attempt_frame(), attempt_frame(boot.ALREADY_INSTALLED)), "attempt"
+        )
+        self.assertEqual(result["chain"], "ATTEMPT")
+
     def test_restage_marker_is_recorded_not_required(self):
         restaged = encode(attempt_frame()).replace(
             (f"BOOTLOADER_COMMIT {COMMIT}\r\n").encode("ascii"),
