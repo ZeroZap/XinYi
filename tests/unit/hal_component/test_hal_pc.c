@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "xy_hal_error.h"
+#include "xy_hal_dma.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_i2c.h"
 #include "xy_hal_pc.h"
@@ -287,6 +288,81 @@ static void test_uart_i2c_spi_pc_refuses_bad_input(void)
     TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_spi_deinit((void *)5));
 }
 
+static int g_dma_complete_events;
+static xy_hal_dma_event_t g_dma_last_event;
+
+static void dma_counting_callback(void *dma, xy_hal_dma_event_t event, void *arg)
+{
+    int *counter = (int *)arg;
+    (void)dma;
+    g_dma_last_event = event;
+    if (counter != NULL) {
+        (*counter)++;
+    }
+    g_dma_complete_events++;
+}
+
+static void test_dma_pc_state_and_events(void)
+{
+    static const xy_hal_dma_config_t cfg = {
+        .direction = XY_HAL_DMA_DIR_MEM_TO_PERIPH,
+        .mode = XY_HAL_DMA_MODE_NORMAL,
+        .priority = XY_HAL_DMA_PRIORITY_MEDIUM,
+        .periph_width = XY_HAL_DMA_WIDTH_BYTE,
+        .mem_width = XY_HAL_DMA_WIDTH_BYTE,
+        .periph_incr = XY_HAL_DMA_INCR_DISABLE,
+        .mem_incr = XY_HAL_DMA_INCR_ENABLE,
+    };
+    static const xy_hal_dma_config_t circular = {
+        .direction = XY_HAL_DMA_DIR_MEM_TO_PERIPH,
+        .mode = XY_HAL_DMA_MODE_CIRCULAR,
+        .priority = XY_HAL_DMA_PRIORITY_LOW,
+        .periph_width = XY_HAL_DMA_WIDTH_BYTE,
+        .mem_width = XY_HAL_DMA_WIDTH_BYTE,
+        .periph_incr = XY_HAL_DMA_INCR_DISABLE,
+        .mem_incr = XY_HAL_DMA_INCR_ENABLE,
+    };
+    int count = 0;
+
+    g_dma_complete_events = 0;
+    g_dma_last_event = XY_HAL_DMA_EVENT_ERROR;
+
+    /* Nothing works before init - including the counter, whose register would hold anything. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_dma_start((void *)10, 0x1000U, 0x2000U, 4U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_dma_stop((void *)10));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_dma_poll_complete((void *)10, 10U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_dma_get_counter((void *)10));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_dma_deinit((void *)10));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dma_init((void *)10, &cfg));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_ALREADY_INIT, xy_hal_dma_init((void *)10, &cfg));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_dma_register_callback(
+                      (void *)10, (xy_hal_dma_event_t)7, dma_counting_callback, &count));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dma_register_callback(
+                      (void *)10, XY_HAL_DMA_EVENT_COMPLETE, dma_counting_callback, &count));
+
+    /* Zero items is not a transfer; one past the counter width would be truncated by hardware. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_dma_start((void *)10, 0x1000U, 0x2000U, 0U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_dma_start((void *)10, 0x1000U, 0x2000U, 0x10000U));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dma_start((void *)10, 0x1000U, 0x2000U, 16U));
+    TEST_ASSERT_EQUAL_INT(1, count);
+    TEST_ASSERT_EQUAL(XY_HAL_DMA_EVENT_COMPLETE, g_dma_last_event);
+    TEST_ASSERT_EQUAL_INT(0, xy_hal_dma_get_counter((void *)10));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dma_poll_complete((void *)10, 0U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dma_stop((void *)10));
+
+    /* Circular mode keeps the counter armed; the callback still fires once per start. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dma_init((void *)11, &circular));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dma_start((void *)11, 0x1000U, 0x2000U, 8U));
+    TEST_ASSERT_EQUAL_INT(8, xy_hal_dma_get_counter((void *)11));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dma_deinit((void *)11));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dma_deinit((void *)10));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_dma_get_counter((void *)10));
+}
+
 static void test_rtc_backup_register_pc_contract(void)
 {
     uint32_t value = 0xAAAAAAAAU;
@@ -324,6 +400,7 @@ int main(void)
     RUN_TEST(test_gpio_pc_irq_and_extended_helpers);
     RUN_TEST(test_uart_i2c_spi_pc_smoke);
     RUN_TEST(test_uart_i2c_spi_pc_refuses_bad_input);
+    RUN_TEST(test_dma_pc_state_and_events);
     RUN_TEST(test_rtc_backup_register_pc_contract);
     RUN_TEST(test_sys_irq_control_pc_contract);
     return UNITY_END();

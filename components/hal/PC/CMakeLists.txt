@@ -23,6 +23,7 @@ set(SOURCES
     xy_hal_i2c_pc.c
     xy_hal_spi_pc.c
     xy_hal_uart_pc.c
+    xy_hal_dma_pc.c
     xy_hal_gpio_pc.c
 )
 

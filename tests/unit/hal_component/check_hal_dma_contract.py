@@ -32,6 +32,8 @@ BACKENDS = {
     "stm32u5": ROOT / "components/hal/stm32/stm32u5/xy_hal_dma.c",
     "stm32f4": ROOT / "components/hal/stm32/stm32f4/xy_hal_dma.c",
     "wch": ROOT / "components/hal/wch/ch32x/src/xy_hal_dma.c",
+    # The host backend models the same contract; it must be held to it too.
+    "pc": ROOT / "components/hal/PC/xy_hal_dma_pc.c",
 }
 
 REFUSES_ZERO = re.compile(r"data_len\s*==\s*0U?")
@@ -96,6 +98,22 @@ def with_delegation(body: str, definitions: dict[str, str]) -> str:
         if not added:
             break
     return body
+
+
+def timeout_findings(source: str, name: str, raw: str | None = None) -> list[str]:
+    """What a zero timeout means has to be stated, or an unbounded wait cannot be asked for.
+
+    A backend that never blocks has nothing to wait on; the honest form is to discard the value where
+    it would be used and say why. That reason lives in a comment, and read_code strips comments, so
+    this rule reads the raw text - the same shape the UART guard takes.
+    """
+    body = function_body(source, "xy_hal_dma_poll_complete(")
+    if not body or UNBOUNDED_WAIT.search(body):
+        return []
+    if "(void)timeout" in body and raw is not None and "never blocks" in raw:
+        return []
+    return [f"{name}: poll_complete never states what a zero timeout means, so an unbounded wait "
+            f"cannot be requested portably"]
 
 
 def mode_findings(source: str, name: str) -> list[str]:
@@ -196,6 +214,7 @@ def findings(backends: dict | None = None, header: Path | None = None) -> list[s
         problems.extend(mode_findings(source, name))
         problems.extend(callback_findings(source, name))
         problems.extend(counter_findings(source, name))
+        problems.extend(timeout_findings(source, name, raw))
         problems.extend(routing_findings(source, name, raw))
         start_body = function_body(source, "xy_hal_dma_start(")
         if not start_body:
@@ -225,10 +244,6 @@ def findings(backends: dict | None = None, header: Path | None = None) -> list[s
             problems.append(
                 f"{name}: poll_complete hands the caller's timeout to the vendor poll unchanged, so "
                 f"0 means an immediate timeout here and an unbounded wait on WCH")
-        elif not UNBOUNDED_WAIT.search(body):
-            problems.append(
-                f"{name}: poll_complete never states what a zero timeout means, so an unbounded "
-                f"wait cannot be requested portably")
 
     text = read_raw(header)
     if "owned by the caller" not in text:

@@ -63,11 +63,6 @@ PC_MISSING = {
         "xy_hal_adc_set_window_threshold", "xy_hal_adc_start", "xy_hal_adc_stop",
         "xy_hal_adc_value_to_mv",
     },
-    "dma": {
-        "xy_hal_dma_deinit", "xy_hal_dma_get_counter", "xy_hal_dma_init",
-        "xy_hal_dma_poll_complete", "xy_hal_dma_register_callback", "xy_hal_dma_start",
-        "xy_hal_dma_stop",
-    },
     "exti": {
         "xy_hal_exti_clear_pending", "xy_hal_exti_configure", "xy_hal_exti_deinit",
         "xy_hal_exti_disable", "xy_hal_exti_enable", "xy_hal_exti_generate_software_interrupt",
