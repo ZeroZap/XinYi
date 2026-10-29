@@ -67,7 +67,8 @@ xy_hal_error_t xy_hal_i2c_deinit(void *i2c);
 /**
  * @brief Transmit data via I2C (blocking)
  * @param i2c I2C instance
- * @param dev_addr Device address
+ * @param dev_addr Device address, 7-bit and unshifted (0x50, not 0xA0); each backend
+ *        validates it and applies the shift itself
  * @param data Data buffer
  * @param len Data length
  * @param timeout Timeout in milliseconds
@@ -80,7 +81,8 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
 /**
  * @brief Receive data via I2C (blocking)
  * @param i2c I2C instance
- * @param dev_addr Device address
+ * @param dev_addr Device address, 7-bit and unshifted (0x50, not 0xA0); each backend
+ *        validates it and applies the shift itself
  * @param data Data buffer
  * @param len Buffer length
  * @param timeout Timeout in milliseconds
@@ -93,7 +95,8 @@ xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr,
 /**
  * @brief Write data to register via I2C (blocking)
  * @param i2c I2C instance
- * @param dev_addr Device address
+ * @param dev_addr Device address, 7-bit and unshifted (0x50, not 0xA0); each backend
+ *        validates it and applies the shift itself
  * @param reg_addr Register address
  * @param data Data buffer
  * @param len Data length
@@ -107,7 +110,8 @@ xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr,
 /**
  * @brief Read data from register via I2C (blocking)
  * @param i2c I2C instance
- * @param dev_addr Device address
+ * @param dev_addr Device address, 7-bit and unshifted (0x50, not 0xA0); each backend
+ *        validates it and applies the shift itself
  * @param reg_addr Register address
  * @param data Data buffer
  * @param len Buffer length
@@ -121,7 +125,8 @@ xy_hal_error_t xy_hal_i2c_mem_read(void *i2c, uint16_t dev_addr,
 /**
  * @brief Transmit data via I2C (non-blocking with DMA)
  * @param i2c I2C instance
- * @param dev_addr Device address
+ * @param dev_addr Device address, 7-bit and unshifted (0x50, not 0xA0); each backend
+ *        validates it and applies the shift itself
  * @param data Data buffer
  * @param len Data length
  * @return 0 on success, negative on error
@@ -132,7 +137,8 @@ xy_hal_error_t xy_hal_i2c_master_transmit_dma(void *i2c, uint16_t dev_addr,
 /**
  * @brief Receive data via I2C (non-blocking with DMA)
  * @param i2c I2C instance
- * @param dev_addr Device address
+ * @param dev_addr Device address, 7-bit and unshifted (0x50, not 0xA0); each backend
+ *        validates it and applies the shift itself
  * @param data Data buffer
  * @param len Buffer length
  * @return 0 on success, negative on error
@@ -154,7 +160,8 @@ xy_hal_error_t xy_hal_i2c_register_callback(void *i2c,
 /**
  * @brief Check if device is ready
  * @param i2c I2C instance
- * @param dev_addr Device address
+ * @param dev_addr Device address, 7-bit and unshifted (0x50, not 0xA0); each backend
+ *        validates it and applies the shift itself
  * @param trials Number of trials
  * @param timeout Timeout in milliseconds
  * @return 0 if device is ready, negative on error

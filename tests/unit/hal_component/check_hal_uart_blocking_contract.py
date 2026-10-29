@@ -25,6 +25,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code, read_raw  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 HEADER = ROOT / "components" / "hal" / "inc" / "xy_hal_uart.h"
 
@@ -43,7 +46,10 @@ PER_BYTE_WAIT = re.compile(r"\b\w*wait\w*\s*\([^;()]*,\s*timeout\s*\)", re.S)
 LOOP = re.compile(r"\b(for|while)\s*\(")
 VENDOR_TAKES_TIMEOUT = re.compile(
     r"(?:HAL_UART_(?:Transmit|Receive)|HAL_UART_IRQHandler)\s*\([^;]*\btimeout\b", re.S)
-DERIVED = re.compile(r"\b(remaining|left|budget|deadline|elapsed)\b")
+# No \b around these fragments: `\bbudget\b` does not match `uart_budget_remaining`,
+# because `_` and `b` are both word characters. This has now cost four false alarms in this
+# tree, twice in guards written the same evening as the note about it.
+DERIVED = re.compile(r"(remaining|budget|deadline|elapsed)")
 
 
 def function_body(source: str, signature: str) -> str:
@@ -139,9 +145,9 @@ def header_findings(header: str) -> list[str]:
 def findings(backends: dict[str, Path] | None = None, header: Path | None = None) -> list[str]:
     backends = BACKENDS if backends is None else backends
     header = HEADER if header is None else header
-    problems = header_findings(header.read_text(encoding="utf-8"))
+    problems = header_findings(read_raw(header))
     for name, path in sorted(backends.items()):
-        text = path.read_text(encoding="utf-8")
+        text = read_code(path)
         for function in FUNCTIONS:
             problems.extend(body_findings(function_body(text, function),
                                           f"{name}:{function.rstrip('(')}"))

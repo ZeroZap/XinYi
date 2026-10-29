@@ -169,7 +169,7 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
                                           const uint8_t *data, size_t len,
                                           uint32_t timeout)
 {
-    if (!i2c || !data || len == 0) {
+    if (!i2c || !data || len == 0 || dev_addr > 0x7FU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -179,7 +179,7 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
     }
 
     HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(
-        (I2C_HandleTypeDef *)i2c, dev_addr, (uint8_t *)data, (uint16_t)len, timeout);
+        (I2C_HandleTypeDef *)i2c, (uint16_t)(dev_addr << 1), (uint8_t *)data, (uint16_t)len, timeout);
 
     if (status != HAL_OK) {
         if (status == HAL_TIMEOUT) {
@@ -195,7 +195,7 @@ xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr,
                                          uint8_t *data, size_t len,
                                          uint32_t timeout)
 {
-    if (!i2c || !data || len == 0) {
+    if (!i2c || !data || len == 0 || dev_addr > 0x7FU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -205,7 +205,7 @@ xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr,
     }
 
     HAL_StatusTypeDef status = HAL_I2C_Master_Receive(
-        (I2C_HandleTypeDef *)i2c, dev_addr, data, (uint16_t)len, timeout);
+        (I2C_HandleTypeDef *)i2c, (uint16_t)(dev_addr << 1), data, (uint16_t)len, timeout);
 
     if (status != HAL_OK) {
         if (status == HAL_TIMEOUT) {
@@ -221,7 +221,7 @@ xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr,
                                     uint16_t reg_addr, const uint8_t *data,
                                     size_t len, uint32_t timeout)
 {
-    if (!i2c || !data || len == 0) {
+    if (!i2c || !data || len == 0 || dev_addr > 0x7FU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -231,7 +231,7 @@ xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr,
     }
 
     HAL_StatusTypeDef status = HAL_I2C_Mem_Write(
-        (I2C_HandleTypeDef *)i2c, dev_addr, reg_addr,
+        (I2C_HandleTypeDef *)i2c, (uint16_t)(dev_addr << 1), reg_addr,
         I2C_MEMADD_SIZE_8BIT, (uint8_t *)data, (uint16_t)len, timeout);
 
     if (status != HAL_OK) {
@@ -248,7 +248,7 @@ xy_hal_error_t xy_hal_i2c_mem_read(void *i2c, uint16_t dev_addr,
                                    uint16_t reg_addr, uint8_t *data, size_t len,
                                    uint32_t timeout)
 {
-    if (!i2c || !data || len == 0) {
+    if (!i2c || !data || len == 0 || dev_addr > 0x7FU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -258,7 +258,7 @@ xy_hal_error_t xy_hal_i2c_mem_read(void *i2c, uint16_t dev_addr,
     }
 
     HAL_StatusTypeDef status = HAL_I2C_Mem_Read(
-        (I2C_HandleTypeDef *)i2c, dev_addr, reg_addr,
+        (I2C_HandleTypeDef *)i2c, (uint16_t)(dev_addr << 1), reg_addr,
         I2C_MEMADD_SIZE_8BIT, data, (uint16_t)len, timeout);
 
     if (status != HAL_OK) {
@@ -274,7 +274,7 @@ xy_hal_error_t xy_hal_i2c_mem_read(void *i2c, uint16_t dev_addr,
 xy_hal_error_t xy_hal_i2c_master_transmit_dma(void *i2c, uint16_t dev_addr,
                                               const uint8_t *data, size_t len)
 {
-    if (!i2c || !data || len == 0) {
+    if (!i2c || !data || len == 0 || dev_addr > 0x7FU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -284,7 +284,7 @@ xy_hal_error_t xy_hal_i2c_master_transmit_dma(void *i2c, uint16_t dev_addr,
     }
 
     HAL_StatusTypeDef status = HAL_I2C_Master_Transmit_DMA(
-        (I2C_HandleTypeDef *)i2c, dev_addr, (uint8_t *)data, (uint16_t)len);
+        (I2C_HandleTypeDef *)i2c, (uint16_t)(dev_addr << 1), (uint8_t *)data, (uint16_t)len);
 
     if (status != HAL_OK) {
         return XY_HAL_ERROR_BUSY;
@@ -296,7 +296,7 @@ xy_hal_error_t xy_hal_i2c_master_transmit_dma(void *i2c, uint16_t dev_addr,
 xy_hal_error_t xy_hal_i2c_master_receive_dma(void *i2c, uint16_t dev_addr,
                                              uint8_t *data, size_t len)
 {
-    if (!i2c || !data || len == 0) {
+    if (!i2c || !data || len == 0 || dev_addr > 0x7FU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -306,7 +306,7 @@ xy_hal_error_t xy_hal_i2c_master_receive_dma(void *i2c, uint16_t dev_addr,
     }
 
     HAL_StatusTypeDef status = HAL_I2C_Master_Receive_DMA(
-        (I2C_HandleTypeDef *)i2c, dev_addr, data, (uint16_t)len);
+        (I2C_HandleTypeDef *)i2c, (uint16_t)(dev_addr << 1), data, (uint16_t)len);
 
     if (status != HAL_OK) {
         return XY_HAL_ERROR_BUSY;
@@ -341,7 +341,7 @@ xy_hal_error_t xy_hal_i2c_register_callback(void *i2c,
 xy_hal_error_t xy_hal_i2c_is_device_ready(void *i2c, uint16_t dev_addr,
                                           uint32_t trials, uint32_t timeout)
 {
-    if (!i2c) {
+    if (!i2c || dev_addr > 0x7FU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -351,7 +351,7 @@ xy_hal_error_t xy_hal_i2c_is_device_ready(void *i2c, uint16_t dev_addr,
     }
 
     HAL_StatusTypeDef status = HAL_I2C_IsDeviceReady(
-        (I2C_HandleTypeDef *)i2c, dev_addr, trials, timeout);
+        (I2C_HandleTypeDef *)i2c, (uint16_t)(dev_addr << 1), trials, timeout);
 
     if (status != HAL_OK) {
         if (status == HAL_TIMEOUT) {
