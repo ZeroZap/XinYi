@@ -15,7 +15,7 @@
 #define UART_TIMEOUT_MS 1000U
 /* xy_os_event_flags_wait reports an unsatisfied wait with this sentinel, not with
    0, so a timeout assertion must compare against it. */
-#define EVENT_FLAGS_ERROR 0x80000000U
+/* XY_OS_EVENT_FLAGS_ERROR is defined in xy_os.h; a local copy of the number would keep checking 0x80000000 after the contract moved. */
 
 static xy_os_mutex_id_t mutex_id;
 static xy_os_event_flags_id_t event_id;
@@ -148,7 +148,7 @@ static void consumer(void* argument) {
     }
     value = 0;
     if (xy_os_msgqueue_get(queue_id, &value, NULL, 25) == XY_OS_ERROR_TIMEOUT &&
-        xy_os_event_flags_wait(event_id, READY_FLAG, XY_OS_FLAGS_WAIT_ALL, 25) == EVENT_FLAGS_ERROR)
+        xy_os_event_flags_wait(event_id, READY_FLAG, XY_OS_FLAGS_WAIT_ALL, 25) == XY_OS_EVENT_FLAGS_ERROR)
         mark("OPENCH_OSAL_PRIMITIVES_TIMEOUT_OK_A\r\n");
     else
         mark("OPENCH_OSAL_PRIMITIVES_TIMEOUT_ERROR_A\r\n");

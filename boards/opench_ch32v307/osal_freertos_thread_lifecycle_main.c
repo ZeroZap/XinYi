@@ -12,7 +12,7 @@
 #endif
 
 #define THREAD_FLAG_READY 0x01U
-#define THREAD_FLAGS_ERROR 0x80000000U
+/* XY_OS_THREAD_FLAGS_ERROR is defined in xy_os.h; a local copy of the number would keep checking 0x80000000 after the contract moved. */
 
 static void uart_init(void) {
     const xy_hal_gpio_config_t tx = {XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_NONE,
@@ -126,7 +126,7 @@ static void monitor(void* argument) {
     mark("OPENCH_OSAL_THREAD_LIFECYCLE_SUSPEND_OK_A\r\n");
 
     if (xy_os_thread_get_count() != 0U || xy_os_thread_enumerate(NULL, 0U) != 0U ||
-        xy_os_thread_flags_set(self, 0U) != THREAD_FLAGS_ERROR ||
+        xy_os_thread_flags_set(self, 0U) != XY_OS_THREAD_FLAGS_ERROR ||
         xy_os_thread_terminate(NULL) != XY_OS_ERROR_PARAMETER ||
         xy_os_thread_join(NULL) != XY_OS_ERROR_PARAMETER ||
         xy_os_thread_detach(NULL) != XY_OS_ERROR_PARAMETER)

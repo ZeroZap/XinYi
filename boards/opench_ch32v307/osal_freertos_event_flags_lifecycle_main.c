@@ -14,7 +14,7 @@
 #define EVENT_FLAG_A 0x01U
 #define EVENT_FLAG_B 0x02U
 #define EVENT_FLAG_ALL (EVENT_FLAG_A | EVENT_FLAG_B)
-#define EVENT_FLAGS_ERROR 0x80000000U
+/* XY_OS_EVENT_FLAGS_ERROR is defined in xy_os.h; a local copy of the number would keep checking 0x80000000 after the contract moved. */
 
 static void uart_init(void) {
     const xy_hal_gpio_config_t tx = {XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_NONE,
@@ -99,15 +99,15 @@ static void monitor(void* argument) {
         fail("OPENCH_OSAL_EVENT_FLAGS_LIFECYCLE_ALL_ERROR_A\r\n");
     if (xy_os_event_flags_clear(flags, EVENT_FLAG_ALL) != EVENT_FLAG_ALL)
         fail("OPENCH_OSAL_EVENT_FLAGS_LIFECYCLE_ALL_CLEAR_ERROR_A\r\n");
-    if (xy_os_event_flags_wait(flags, EVENT_FLAG_A, XY_OS_FLAGS_WAIT_ALL, 0U) != EVENT_FLAGS_ERROR)
+    if (xy_os_event_flags_wait(flags, EVENT_FLAG_A, XY_OS_FLAGS_WAIT_ALL, 0U) != XY_OS_EVENT_FLAGS_ERROR)
         fail("OPENCH_OSAL_EVENT_FLAGS_LIFECYCLE_TIMEOUT_ERROR_A\r\n");
     mark("OPENCH_OSAL_EVENT_FLAGS_LIFECYCLE_TIMEOUT_OK_A\r\n");
 
     if (xy_os_event_flags_delete(flags) != XY_OS_OK ||
-        xy_os_event_flags_get(flags) != EVENT_FLAGS_ERROR ||
-        xy_os_event_flags_set(flags, EVENT_FLAG_A) != EVENT_FLAGS_ERROR ||
-        xy_os_event_flags_clear(flags, EVENT_FLAG_A) != EVENT_FLAGS_ERROR ||
-        xy_os_event_flags_wait(flags, EVENT_FLAG_A, XY_OS_FLAGS_WAIT_ALL, 0U) != EVENT_FLAGS_ERROR ||
+        xy_os_event_flags_get(flags) != XY_OS_EVENT_FLAGS_ERROR ||
+        xy_os_event_flags_set(flags, EVENT_FLAG_A) != XY_OS_EVENT_FLAGS_ERROR ||
+        xy_os_event_flags_clear(flags, EVENT_FLAG_A) != XY_OS_EVENT_FLAGS_ERROR ||
+        xy_os_event_flags_wait(flags, EVENT_FLAG_A, XY_OS_FLAGS_WAIT_ALL, 0U) != XY_OS_EVENT_FLAGS_ERROR ||
         xy_os_event_flags_delete(flags) != XY_OS_ERROR_PARAMETER)
         fail("OPENCH_OSAL_EVENT_FLAGS_LIFECYCLE_STALE_ERROR_A\r\n");
     mark("OPENCH_OSAL_EVENT_FLAGS_LIFECYCLE_STALE_OK_A\r\n");

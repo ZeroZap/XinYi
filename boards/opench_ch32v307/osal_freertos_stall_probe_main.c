@@ -15,7 +15,7 @@
 #define READY_FLAG 0x1U
 #define UART_TIMEOUT_MS 1000U
 /* xy_os_event_flags_wait reports an unsatisfied wait with this sentinel, not 0. */
-#define EVENT_FLAGS_ERROR 0x80000000U
+/* XY_OS_EVENT_FLAGS_ERROR is defined in xy_os.h; a local copy of the number would keep checking 0x80000000 after the contract moved. */
 
 /*
  * Progress counters that the debugger reads straight out of RAM.
@@ -287,7 +287,7 @@ static void probe_task(void* argument) {
     xy_probe_stage = 5U;
     xy_probe_wait_ret = xy_os_event_flags_wait(event_id, READY_FLAG, XY_OS_FLAGS_WAIT_ALL, 200);
     xy_probe_stage = 6U;
-    if (xy_probe_wait_ret == EVENT_FLAGS_ERROR)
+    if (xy_probe_wait_ret == XY_OS_EVENT_FLAGS_ERROR)
         xy_probe_timeout_sentinel_ok = 1U;
 
     xy_probe_stage = 7U;

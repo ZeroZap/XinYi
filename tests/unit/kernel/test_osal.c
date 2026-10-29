@@ -361,6 +361,39 @@ static void test_semaphore_max_count(void)
  * called wait() with WAIT_ALL, with NO_CLEAR, or with a timeout that runs out, so "which flags does a
  * wait consume" was documented and untested. timeout 0 keeps every case here non-blocking: this host
  * has no tick source, and a real wait would never return. */
+/* The two openCH self-checks spell out what a stale handle answers, and they run that through the
+ * FreeRTOS backend on hardware. Nothing on this host checked the same thing for the bare-metal pools,
+ * where "deleted" is a pool slot with its magic cleared rather than a freed kernel object. */
+static void test_stale_event_flags_answer_the_way_the_board_checks(void)
+{
+    xy_os_event_flags_id_t ef = xy_os_event_flags_new(NULL);
+    TEST_ASSERT_NOT_NULL(ef);
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_os_event_flags_get(ef)); /* it really was alive */
+
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_event_flags_delete(ef));
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR, xy_os_event_flags_get(ef));
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR, xy_os_event_flags_set(ef, 0x01U));
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR, xy_os_event_flags_clear(ef, 0x01U));
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_EVENT_FLAGS_ERROR,
+                             xy_os_event_flags_wait(ef, 0x01U, XY_OS_FLAGS_WAIT_ALL, 0U));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_event_flags_delete(ef));
+}
+
+static void test_stale_msgqueue_answers_the_way_the_board_checks(void)
+{
+    xy_os_msgqueue_id_t q = xy_os_msgqueue_new(2U, sizeof(uint32_t), NULL);
+    TEST_ASSERT_NOT_NULL(q);
+    TEST_ASSERT_EQUAL_UINT32(2U, xy_os_msgqueue_get_capacity(q));
+
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_delete(q));
+    uint32_t value = 0U;
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_os_msgqueue_get_count(q));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_os_msgqueue_get_space(q));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_msgqueue_put(q, &value, 0U, 0U));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_msgqueue_get(q, &value, NULL, 0U));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_msgqueue_delete(q));
+}
+
 static void test_event_flags_wait_options(void)
 {
     xy_os_event_flags_id_t ef = xy_os_event_flags_new(NULL);
@@ -965,6 +998,8 @@ int main(void)
     RUN_TEST(test_semaphore_max_count);
 
     /* Event Flags */
+    RUN_TEST(test_stale_event_flags_answer_the_way_the_board_checks);
+    RUN_TEST(test_stale_msgqueue_answers_the_way_the_board_checks);
     RUN_TEST(test_event_flags_wait_options);
     RUN_TEST(test_event_flags_reserve_the_error_bit_and_refuse_empty_masks);
     RUN_TEST(test_event_flags_set_get);

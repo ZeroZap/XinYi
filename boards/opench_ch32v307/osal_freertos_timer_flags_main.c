@@ -13,7 +13,7 @@
 
 #define TIMER_FLAG 0x1U
 #define TIMER_TARGET 20U
-#define FLAGS_ERROR 0x80000000U
+/* XY_OS_EVENT_FLAGS_ERROR is defined in xy_os.h; a local copy of the number would keep checking 0x80000000 after the contract moved. */
 
 static xy_os_thread_id_t monitor_id;
 static xy_os_timer_id_t timer_id;
@@ -109,7 +109,7 @@ static void monitor(void* argument) {
         mark("OPENCH_OSAL_TIMER_FLAGS_STOP_STABLE_OK_A\r\n");
     else
         mark("OPENCH_OSAL_TIMER_FLAGS_STOP_STABLE_ERROR_A\r\n");
-    if (xy_os_thread_flags_wait(TIMER_FLAG, XY_OS_FLAGS_WAIT_ALL, 20) == FLAGS_ERROR)
+    if (xy_os_thread_flags_wait(TIMER_FLAG, XY_OS_FLAGS_WAIT_ALL, 20) == XY_OS_EVENT_FLAGS_ERROR)
         mark("OPENCH_OSAL_TIMER_FLAGS_TIMEOUT_OK_A\r\n");
     else
         mark("OPENCH_OSAL_TIMER_FLAGS_TIMEOUT_ERROR_A\r\n");
