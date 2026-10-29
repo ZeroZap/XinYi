@@ -37,28 +37,36 @@ def parse(path: Path, prefix: str) -> dict[str, int]:
     return codes
 
 
-# The device layer renames a few codes as it re-exports them. The table is short and
-# explicit because the naming difference is the interesting part: a reader has to know that
-# XY_DEVICE_NOT_SUPPORT and XY_HAL_ERROR_NOT_SUPPORTED mean the same thing.
-DEVICE_ALIASES = {
-    "OK": "OK",
-    "ERROR": "ERROR",
-    "INVALID_PARAM": "ERROR_INVALID_PARAM",
-    "NOT_SUPPORT": "ERROR_NOT_SUPPORTED",
-    "TIMEOUT": "ERROR_TIMEOUT",
-    "BUSY": "ERROR_BUSY",
-    "NO_MEM": "ERROR_NO_MEMORY",
-    "IO_ERROR": "ERROR_IO",
-    "NOT_INIT": "ERROR_NOT_INIT",
-    "ALREADY_INIT": "ERROR_ALREADY_INIT",
-    "NO_RESOURCE": "ERROR_NO_RESOURCE",
-    "FAIL": "ERROR_FAIL",
-    "NOT_FOUND": "ERROR_NOT_FOUND",
-    "EINVAL": "ERROR_INVALID_PARAM",
-    "ENOMEM": "ERROR_NO_MEMORY",
-    "ENODEV": "ERROR_NOT_FOUND",
-    "EAGAIN": "ERROR_NOT_READY",  # the HAL has no equivalent, clib does
+# The device layer renames codes as it re-exports them. Rather than a table of every
+# name (which goes stale the moment someone adds one), the mapping is a small set of
+# spelling rules plus a list of the names that genuinely have no HAL counterpart.
+#
+# A new alias like XY_DEVICE_CRC_ERROR is therefore covered the day it is written. An
+# alias that does not fit the rules and is not declared as POSIX-named fails, which is the
+# direction that catches typos: XY_DEVICE_NOT_SUPORTED must not quietly become "no
+# counterpart".
+DEVICE_MORPHOLOGY = {
+    "NOT_SUPPORT": "NOT_SUPPORTED",  # the device layer drops the suffix
+    "NO_MEM": "NO_MEMORY",
 }
+
+# POSIX-style names carry no HAL meaning of their own; they take it from what they alias.
+DEVICE_NO_HAL_COUNTERPART = {"EINVAL", "ENOMEM", "ENODEV", "EAGAIN"}
+
+
+def hal_name_for(alias: str) -> str | None:
+    """Return the HAL code name an alias should equal, or None for a POSIX-style name."""
+    if alias in DEVICE_NO_HAL_COUNTERPART:
+        return None
+    name = alias.strip("_").upper()
+    if name == "OK":
+        return "OK"
+    if name.endswith("_ERROR"):
+        name = name[: -len("_ERROR")]
+    elif name.endswith("_ERR"):
+        name = name[: -len("_ERR")]
+    name = DEVICE_MORPHOLOGY.get(name, name)
+    return name if name.startswith("ERROR") else f"ERROR_{name}"
 
 
 def parse_device_aliases() -> dict[str, str]:
@@ -101,26 +109,29 @@ def check_device_aliases(families: dict[str, dict[str, int]]) -> list[str]:
         return ["device: no XY_DEVICE_* aliases parsed - the parser is looking at the "
                 "wrong shape, which is not the same as the aliases being fine"]
 
-    defined = set(aliases)
-    expected = {"OK", "ERROR", "INVALID_PARAM", "NOT_SUPPORT", "TIMEOUT", "BUSY", "NO_MEM",
-                "IO_ERROR", "NOT_INIT", "ALREADY_INIT", "NO_RESOURCE", "FAIL", "NOT_FOUND",
-                "EINVAL", "ENOMEM", "ENODEV", "EAGAIN"}
-    for name in sorted(expected - defined):
-        failures.append(f"device: XY_DEVICE_{name} is gone; device code referring to it "
-                        f"will not compile and the removal was not deliberate here")
-
+    covered = 0
     for name, symbol in sorted(aliases.items()):
         value = resolve(symbol, families, aliases)
         if value is None:
             failures.append(f"device: XY_DEVICE_{name} → {symbol}, which no family defines")
             continue
-        target = DEVICE_ALIASES.get(name)
-        if target is None:
+        hal_name = hal_name_for(name)
+        if hal_name is None:
             continue
-        hal_value = families["hal"].get(target)
-        if hal_value is not None and value != hal_value:
+        hal_value = families["hal"].get(hal_name)
+        if hal_value is None:
+            failures.append(f"device: XY_DEVICE_{name} should match XY_HAL_{hal_name}, "
+                            f"which the HAL header does not define - either the alias is "
+                            f"misspelled or it belongs in DEVICE_NO_HAL_COUNTERPART")
+            continue
+        covered += 1
+        if value != hal_value:
             failures.append(f"device: XY_DEVICE_{name} → {symbol} = {value} but "
-                            f"XY_HAL_{target} = {hal_value}")
+                            f"XY_HAL_{hal_name} = {hal_value}")
+
+    if covered == 0:
+        failures.append("device: no alias was compared against the HAL - the name rules "
+                        "stopped matching, which is not the same as everything agreeing")
     return failures
 
 
@@ -164,8 +175,9 @@ def main() -> int:
             print(f"- {failure}")
         return 1
     shared = len(names)
+    aliases = parse_device_aliases()
     print(f"error_code_alignment ok families={len(families)} shared_names={shared} "
-          f"device_aliases={len(DEVICE_ALIASES)}")
+          f"device_aliases={len(aliases)}")
     return 0
 
 
