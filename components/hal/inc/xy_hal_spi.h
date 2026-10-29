@@ -93,7 +93,9 @@ xy_hal_error_t xy_hal_spi_deinit(void *spi);
  * @brief Transmit data via SPI (blocking)
  * @param spi SPI instance
  * @param data Data buffer
- * @param len Data length
+ * @param len Buffer length in bytes, never zero; 16-bit transfers need an even byte count.
+ *        HAL counts frames, so each backend converts - a frame is two bytes at 16-bit - and
+ *        refuses a count that does not fit its frame register.
  * @param timeout Timeout in milliseconds
  * @return 0 on success, negative on error
  */
@@ -104,7 +106,9 @@ xy_hal_error_t xy_hal_spi_transmit(void *spi, const uint8_t *data, size_t len,
  * @brief Receive data via SPI (blocking)
  * @param spi SPI instance
  * @param data Data buffer
- * @param len Buffer length
+ * @param len Buffer length in bytes, never zero; 16-bit transfers need an even byte count.
+ *        HAL counts frames, so each backend converts - a frame is two bytes at 16-bit - and
+ *        refuses a count that does not fit its frame register.
  * @param timeout Timeout in milliseconds
  * @return 0 on success, negative on error
  */
@@ -116,7 +120,9 @@ xy_hal_error_t xy_hal_spi_receive(void *spi, uint8_t *data, size_t len,
  * @param spi SPI instance
  * @param tx_data TX data buffer
  * @param rx_data RX data buffer
- * @param len Data length
+ * @param len Buffer length in bytes, never zero; 16-bit transfers need an even byte count.
+ *        HAL counts frames, so each backend converts - a frame is two bytes at 16-bit - and
+ *        refuses a count that does not fit its frame register.
  * @param timeout Timeout in milliseconds
  * @return 0 on success, negative on error
  */
@@ -128,7 +134,9 @@ xy_hal_error_t xy_hal_spi_transmit_receive(void *spi, const uint8_t *tx_data,
  * @brief Transmit data via SPI (non-blocking with DMA)
  * @param spi SPI instance
  * @param data Data buffer
- * @param len Data length
+ * @param len Buffer length in bytes, never zero; 16-bit transfers need an even byte count.
+ *        HAL counts frames, so each backend converts - a frame is two bytes at 16-bit - and
+ *        refuses a count that does not fit its frame register.
  * @return 0 on success, negative on error
  */
 xy_hal_error_t xy_hal_spi_transmit_dma(void *spi, const uint8_t *data,
@@ -138,7 +146,9 @@ xy_hal_error_t xy_hal_spi_transmit_dma(void *spi, const uint8_t *data,
  * @brief Receive data via SPI (non-blocking with DMA)
  * @param spi SPI instance
  * @param data Data buffer
- * @param len Buffer length
+ * @param len Buffer length in bytes, never zero; 16-bit transfers need an even byte count.
+ *        HAL counts frames, so each backend converts - a frame is two bytes at 16-bit - and
+ *        refuses a count that does not fit its frame register.
  * @return 0 on success, negative on error
  */
 xy_hal_error_t xy_hal_spi_receive_dma(void *spi, uint8_t *data, size_t len);
@@ -148,7 +158,9 @@ xy_hal_error_t xy_hal_spi_receive_dma(void *spi, uint8_t *data, size_t len);
  * @param spi SPI instance
  * @param tx_data TX data buffer
  * @param rx_data RX data buffer
- * @param len Data length
+ * @param len Buffer length in bytes, never zero; 16-bit transfers need an even byte count.
+ *        HAL counts frames, so each backend converts - a frame is two bytes at 16-bit - and
+ *        refuses a count that does not fit its frame register.
  * @return 0 on success, negative on error
  */
 xy_hal_error_t xy_hal_spi_transmit_receive_dma(void *spi,

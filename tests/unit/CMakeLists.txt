@@ -106,6 +106,12 @@ add_test(NAME osal_backend_advertise
 add_test(NAME osal_backend_advertise_unit
     COMMAND python3 ${UNIT_HAL}/test_osal_backend_advertise.py)
 
+add_test(NAME hal_spi_contract
+    COMMAND python3 ${UNIT_HAL}/check_hal_spi_contract.py)
+
+add_test(NAME hal_spi_contract_unit
+    COMMAND python3 ${UNIT_HAL}/test_hal_spi_contract.py)
+
 add_test(NAME hal_i2c_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_i2c_contract.py)
 

@@ -74,8 +74,14 @@ xy_hal_error_t xy_hal_spi_init(void* instance, const xy_hal_spi_config_t* config
                              ? SPI_Direction_2Lines_RxOnly
                              : SPI_Direction_2Lines_FullDuplex;
     init.SPI_Mode = config->is_master ? SPI_Mode_Master : SPI_Mode_Slave;
-    init.SPI_DataSize =
-        config->datasize == XY_HAL_SPI_DATASIZE_16BIT ? SPI_DataSize_16b : SPI_DataSize_8b;
+    /* 16-bit frames are not implemented here: the transfers walk the buffer one byte at a time,
+     * so programming SPI_DataSize_16b would put `len` frames on the wire instead of `len / 2`,
+     * each carrying one byte and a zero high byte. Assembling frames needs a byte order chosen
+     * from `firstbit`, and there is no hardware here to check that against - so the mode is
+     * refused instead of approximated. */
+    if (config->datasize == XY_HAL_SPI_DATASIZE_16BIT)
+        return XY_HAL_ERROR_NOT_SUPPORTED;
+    init.SPI_DataSize = SPI_DataSize_8b;
     init.SPI_CPOL = config->mode >= XY_HAL_SPI_MODE_2 ? SPI_CPOL_High : SPI_CPOL_Low;
     init.SPI_CPHA = (config->mode & 1U) != 0U ? SPI_CPHA_2Edge : SPI_CPHA_1Edge;
     init.SPI_NSS = config->nss == XY_HAL_SPI_NSS_SOFT ? SPI_NSS_Soft : SPI_NSS_Hard;

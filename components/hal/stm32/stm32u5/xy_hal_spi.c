@@ -139,6 +139,30 @@ static uint32_t xy_to_stm32_direction(xy_hal_spi_direction_t direction)
     }
 }
 
+/* `len` is a byte count, on every backend. HAL's Size parameter counts frames, and a frame is
+ * two bytes when the peripheral is configured for 16-bit data - passing the byte count through
+ * asked HAL for twice the caller's buffer. An odd byte count cannot be a whole number of 16-bit
+ * frames, so it is refused rather than rounded down. */
+static xy_hal_error_t spi_frame_count(const void *spi, size_t len, uint16_t *frames)
+{
+    const SPI_HandleTypeDef *handle = (const SPI_HandleTypeDef *)spi;
+
+    if (len == 0U) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (handle->Init.DataSize == SPI_DATASIZE_16BIT) {
+        if ((len & 1U) != 0U) {
+            return XY_HAL_ERROR_INVALID_PARAM;
+        }
+        len >>= 1U;
+    }
+    if (len > UINT16_MAX) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    *frames = (uint16_t)len;
+    return XY_HAL_OK;
+}
+
 xy_hal_error_t xy_hal_spi_init(void *spi, const xy_hal_spi_config_t *config)
 {
     if (!spi || !config) {
@@ -212,7 +236,12 @@ xy_hal_error_t xy_hal_spi_deinit(void *spi)
 xy_hal_error_t xy_hal_spi_transmit(void *spi, const uint8_t *data, size_t len,
                                    uint32_t timeout)
 {
-    if (!spi || !data || len == 0) {
+    uint16_t frames = 0U;
+
+    if (!spi || !data) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (spi_frame_count(spi, len, &frames) != XY_HAL_OK) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -222,7 +251,7 @@ xy_hal_error_t xy_hal_spi_transmit(void *spi, const uint8_t *data, size_t len,
     }
 
     HAL_StatusTypeDef status = HAL_SPI_Transmit(
-        (SPI_HandleTypeDef *)spi, (uint8_t *)data, (uint16_t)len, timeout);
+        (SPI_HandleTypeDef *)spi, (uint8_t *)data, frames, timeout);
 
     if (status != HAL_OK) {
         if (status == HAL_TIMEOUT) {
@@ -237,7 +266,12 @@ xy_hal_error_t xy_hal_spi_transmit(void *spi, const uint8_t *data, size_t len,
 xy_hal_error_t xy_hal_spi_receive(void *spi, uint8_t *data, size_t len,
                                   uint32_t timeout)
 {
-    if (!spi || !data || len == 0) {
+    uint16_t frames = 0U;
+
+    if (!spi || !data) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (spi_frame_count(spi, len, &frames) != XY_HAL_OK) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -247,7 +281,7 @@ xy_hal_error_t xy_hal_spi_receive(void *spi, uint8_t *data, size_t len,
     }
 
     HAL_StatusTypeDef status = HAL_SPI_Receive(
-        (SPI_HandleTypeDef *)spi, data, (uint16_t)len, timeout);
+        (SPI_HandleTypeDef *)spi, data, frames, timeout);
 
     if (status != HAL_OK) {
         if (status == HAL_TIMEOUT) {
@@ -263,7 +297,12 @@ xy_hal_error_t xy_hal_spi_transmit_receive(void *spi, const uint8_t *tx_data,
                                            uint8_t *rx_data, size_t len,
                                            uint32_t timeout)
 {
-    if (!spi || !tx_data || !rx_data || len == 0) {
+    uint16_t frames = 0U;
+
+    if (!spi || !tx_data || !rx_data) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (spi_frame_count(spi, len, &frames) != XY_HAL_OK) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -274,7 +313,7 @@ xy_hal_error_t xy_hal_spi_transmit_receive(void *spi, const uint8_t *tx_data,
 
     HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(
         (SPI_HandleTypeDef *)spi, (uint8_t *)tx_data, rx_data,
-        (uint16_t)len, timeout);
+        frames, timeout);
 
     if (status != HAL_OK) {
         if (status == HAL_TIMEOUT) {
@@ -289,7 +328,12 @@ xy_hal_error_t xy_hal_spi_transmit_receive(void *spi, const uint8_t *tx_data,
 xy_hal_error_t xy_hal_spi_transmit_dma(void *spi, const uint8_t *data,
                                        size_t len)
 {
-    if (!spi || !data || len == 0) {
+    uint16_t frames = 0U;
+
+    if (!spi || !data) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (spi_frame_count(spi, len, &frames) != XY_HAL_OK) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -299,7 +343,7 @@ xy_hal_error_t xy_hal_spi_transmit_dma(void *spi, const uint8_t *data,
     }
 
     HAL_StatusTypeDef status = HAL_SPI_Transmit_DMA(
-        (SPI_HandleTypeDef *)spi, (uint8_t *)data, (uint16_t)len);
+        (SPI_HandleTypeDef *)spi, (uint8_t *)data, frames);
 
     if (status != HAL_OK) {
         return XY_HAL_ERROR_BUSY;
@@ -310,7 +354,12 @@ xy_hal_error_t xy_hal_spi_transmit_dma(void *spi, const uint8_t *data,
 
 xy_hal_error_t xy_hal_spi_receive_dma(void *spi, uint8_t *data, size_t len)
 {
-    if (!spi || !data || len == 0) {
+    uint16_t frames = 0U;
+
+    if (!spi || !data) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (spi_frame_count(spi, len, &frames) != XY_HAL_OK) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -320,7 +369,7 @@ xy_hal_error_t xy_hal_spi_receive_dma(void *spi, uint8_t *data, size_t len)
     }
 
     HAL_StatusTypeDef status = HAL_SPI_Receive_DMA(
-        (SPI_HandleTypeDef *)spi, data, (uint16_t)len);
+        (SPI_HandleTypeDef *)spi, data, frames);
 
     if (status != HAL_OK) {
         return XY_HAL_ERROR_BUSY;
@@ -333,7 +382,12 @@ xy_hal_error_t xy_hal_spi_transmit_receive_dma(void *spi,
                                                const uint8_t *tx_data,
                                                uint8_t *rx_data, size_t len)
 {
-    if (!spi || !tx_data || !rx_data || len == 0) {
+    uint16_t frames = 0U;
+
+    if (!spi || !tx_data || !rx_data) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (spi_frame_count(spi, len, &frames) != XY_HAL_OK) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -343,7 +397,7 @@ xy_hal_error_t xy_hal_spi_transmit_receive_dma(void *spi,
     }
 
     HAL_StatusTypeDef status = HAL_SPI_TransmitReceive_DMA(
-        (SPI_HandleTypeDef *)spi, (uint8_t *)tx_data, rx_data, (uint16_t)len);
+        (SPI_HandleTypeDef *)spi, (uint8_t *)tx_data, rx_data, frames);
 
     if (status != HAL_OK) {
         return XY_HAL_ERROR_BUSY;
