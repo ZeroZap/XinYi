@@ -451,17 +451,22 @@ xy_hal_error_t xy_hal_spi_set_cs(void *spi, uint8_t level)
 {
     XY_UNUSED(spi);
     XY_UNUSED(level);
-    /* CS pin control depends on hardware implementation */
-    /* User should control CS pin manually if using software NSS */
-    return XY_HAL_OK;
+
+    /* The caller drives CS with a GPIO, which is why L4, F4 and WCH all refuse this call.
+     * Returning OK claimed the pin had been driven while nothing happened, so a caller that
+     * trusted the status talked to a device that was never selected. */
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 xy_hal_error_t xy_hal_spi_error(void *spi, uint8_t level)
 {
     XY_UNUSED(spi);
     XY_UNUSED(level);
-    /* Placeholder for SPI error pin control if needed */
-    return XY_HAL_OK;
+
+    /* No error pin is wired on this platform; L4 and F4 refuse for the same reason. Reporting
+     * success made "the error line was driven" indistinguishable from "nothing is wired",
+     * which is the pair a caller most needs to tell apart. */
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 xy_hal_error_t xy_hal_spi_set_error_cb(void *spi, xy_hal_spi_callback_t callback,
