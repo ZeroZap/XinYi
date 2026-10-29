@@ -124,6 +124,13 @@ board_reserved 118f9c6f…  rtc_backup 38723a2e…   verify_ok regions=5
 
 All five regions are byte-identical to the pre-run snapshot, RTC backup included.
 
+The mutant run was not the last one: the clean capture of the current bootloader
+(`uart-boot-fixed-2.txt`) was taken afterwards, and it leaves that bootloader at
+`0x08000000` with the candidate installed and the journal `CONFIRMED`. A second
+`restore --snapshot s0.json` was therefore performed at the end and re-verified:
+`verify_ok regions=5`, same five hashes. Both restores are the same operation from
+the same snapshot; the second one is the state the board was left in.
+
 ## Also kept: a mis-timed capture
 
 `uart-seed-1.txt` (10105 B) is what a capture window looks like when it closes before the
