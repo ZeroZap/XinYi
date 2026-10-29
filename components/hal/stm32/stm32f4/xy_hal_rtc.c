@@ -10,7 +10,8 @@
 #ifdef STM32_HAL_ENABLED
 
 #include "stm32_hal.h"
-#include <time.h>
+/* Shared calendar arithmetic; included by path so it resolves in every build shape. */
+#include "../../../clib/xy_clib/inc/xy_time_civil.h"
 
 static uint32_t xy_to_stm32_format(xy_hal_rtc_format_t format)
 {
@@ -249,15 +250,13 @@ int64_t xy_hal_rtc_get_timestamp(void *rtc)
         return XY_HAL_ERROR_FAIL;
     }
 
-    struct tm timeinfo = { 0 };
-    timeinfo.tm_year   = date.year - 1900;
-    timeinfo.tm_mon    = date.month - 1;
-    timeinfo.tm_mday   = date.date;
-    timeinfo.tm_hour   = time.hours;
-    timeinfo.tm_min    = time.minutes;
-    timeinfo.tm_sec    = time.seconds;
-
-    return (int64_t)mktime(&timeinfo);
+    /* This built a struct tm and called mktime(). On a bare-metal target that is newlib's mktime,
+     * which reads the struct as *local* time, so the answer depends on a TZ nobody sets; it also
+     * returns -1 for an error, indistinguishable from a real one second before the epoch. The shared
+     * arithmetic is exact, has no timezone and has no failure mode. */
+    return xy_civil_seconds_from_epoch((int)date.year, (unsigned int)date.month,
+                                       (unsigned int)date.date, (unsigned int)time.hours,
+                                       (unsigned int)time.minutes, (unsigned int)time.seconds);
 }
 
 xy_hal_error_t xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)
@@ -266,20 +265,30 @@ xy_hal_error_t xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)
         return XY_HAL_ERROR_FAIL;
     }
 
-    time_t ts           = (time_t)timestamp;
-    struct tm *timeinfo = localtime(&ts);
+    int64_t days;
+    int64_t rest;
+    int year = 0;
+    unsigned int month = 0;
+    unsigned int day = 0;
 
-    xy_hal_rtc_time_t time = { .hours      = timeinfo->tm_hour,
-                               .minutes    = timeinfo->tm_min,
-                               .seconds    = timeinfo->tm_sec,
+    /* Same reasoning as the read path: localtime() reads a TZ nobody sets and can return NULL for a
+     * value it cannot represent, which the old code dereferenced without checking. */
+    if (timestamp < 0) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    days = timestamp / 86400;
+    rest = timestamp % 86400;
+    xy_civil_from_days(days, &year, &month, &day);
+
+    xy_hal_rtc_time_t time = { .hours      = (uint8_t)(rest / 3600),
+                               .minutes    = (uint8_t)((rest % 3600) / 60),
+                               .seconds    = (uint8_t)(rest % 60),
                                .subseconds = 0 };
 
-    xy_hal_rtc_date_t date = { .weekday = timeinfo->tm_wday == 0
-                                              ? 7
-                                              : timeinfo->tm_wday,
-                               .month   = timeinfo->tm_mon + 1,
-                               .date    = timeinfo->tm_mday,
-                               .year    = timeinfo->tm_year + 1900 };
+    xy_hal_rtc_date_t date = { .weekday = (uint8_t)xy_civil_weekday_from_days(days),
+                               .month   = (uint8_t)month,
+                               .date    = (uint8_t)day,
+                               .year    = (uint16_t)year };
 
     if (xy_hal_rtc_set_time(rtc, &time, XY_HAL_RTC_FORMAT_BIN) != XY_HAL_OK) {
         return XY_HAL_ERROR_FAIL;

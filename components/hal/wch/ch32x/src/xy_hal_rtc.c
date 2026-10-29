@@ -227,6 +227,14 @@ xy_hal_error_t xy_hal_rtc_register_callback(void* rtc, xy_hal_rtc_event_t event,
     s_alarm_arg = arg;
     return XY_HAL_OK;
 }
+/*
+ * This part has a plain 32-bit counter, not a calendar: there is no year/month/day register to derive
+ * seconds from. The counter therefore *is* whatever the caller wrote into it, and
+ * xy_hal_rtc_set_timestamp() writes that value unchanged - so a caller that sets 1793059200 reads
+ * 1793059200 back. In other words the counter counts seconds since the epoch, which is the same
+ * meaning the other backends produce; that is the only way a timestamp can be compared across
+ * backends. The 32-bit limit holds until 2106 and is refused beyond it rather than wrapped.
+ */
 int64_t xy_hal_rtc_get_timestamp(void* rtc) {
     return valid_rtc(rtc) && s_initialized ? (int64_t)RTC_GetCounter()
                                            : (int64_t)XY_HAL_ERROR_INVALID_PARAM;

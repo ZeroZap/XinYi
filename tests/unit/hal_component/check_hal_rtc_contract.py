@@ -64,6 +64,16 @@ SELECTS_ID = re.compile(r"alarm_id\s*(?:==|!=)")
 HONOURS_FORMAT = re.compile(r"format\s*(?:==|!=)")
 REFUSES = re.compile(r"XY_HAL_(?:ERROR_)?NOT_SUPPORTED")
 BOUNDS = re.compile(r"XY_HAL_RTC_BACKUP_REGISTER_COUNT")
+# The target has no dependable notion of local time, and both of these signal failure with a value a
+# caller cannot distinguish from a real one: mktime returns -1, localtime returns NULL.
+FORBIDDEN_TIME_LIB = re.compile(r"\b(?:mktime|localtime|gmtime)\s*\(")
+# Returning a plausible-looking number that is wrong. The U5 backend did exactly this until the
+# arithmetic moved into a shared helper that host tests compare against known dates.
+APPROXIMATE_CALENDAR = re.compile(r"\*\s*365\b|\*\s*30\s*\*\s*24|\(\s*\w+\s*-\s*70\s*\)\s*\*")
+USES_CIVIL = re.compile(r"xy_civil_(?:days_from_epoch|seconds_from_epoch|from_days)")
+DERIVES_FROM_DATE = re.compile(r"xy_hal_rtc_get_date|date\.|->date")
+RAW_COUNTER = re.compile(r"RTC_GetCounter\s*\(")
+COUNTER_DOCUMENTED = re.compile(r"seconds since the epoch")
 
 LOCAL_CALL = re.compile(r"\b(\w+)\s*\(")
 
@@ -156,6 +166,34 @@ def argument_findings(source: str, name: str, entries: tuple[str, ...],
     return problems
 
 
+def timestamp_findings(source: str, name: str, raw: str | None = None) -> list[str]:
+    """A timestamp is either the epoch-based value every other backend gives, or it is refused."""
+    body = with_delegation(source, braced(source, "xy_hal_rtc_get_timestamp("))
+    if not body:
+        return []
+    problems: list[str] = []
+    if FORBIDDEN_TIME_LIB.search(body):
+        problems.append(
+            f"{name}:xy_hal_rtc_get_timestamp: uses the C time library, whose local-time dependency "
+            f"nothing sets on this target and whose error value is a valid timestamp")
+    if APPROXIMATE_CALENDAR.search(body):
+        problems.append(
+            f"{name}:xy_hal_rtc_get_timestamp: computes the calendar by approximation (365-day years "
+            f"or 30-day months), which returns a plausible number that is wrong")
+    if DERIVES_FROM_DATE.search(body) and not USES_CIVIL.search(body):
+        problems.append(
+            f"{name}:xy_hal_rtc_get_timestamp: derives seconds from the date registers without the "
+            f"shared calendar arithmetic, so this backend's timestamps differ from the others'")
+    if RAW_COUNTER.search(body) and not USES_CIVIL.search(body):
+        # A counter is a legitimate answer only if the caller is told what it counts; otherwise two
+        # backends return different things under one name.
+        if raw is None or not COUNTER_DOCUMENTED.search(raw):
+            problems.append(
+                f"{name}:xy_hal_rtc_get_timestamp: returns the hardware counter without saying what "
+                f"it counts, so its value cannot be compared with another backend's timestamp")
+    return problems
+
+
 def backup_findings(source: str, name: str) -> list[str]:
     problems: list[str] = []
     for entry in BACKUP_ENTRIES:
@@ -180,6 +218,7 @@ def findings(backends: dict[str, Path] | None = None, header: Path | None = None
                                           DISCARDS_ALARM_ID, "the alarm id"))
         problems.extend(argument_findings(source, name, FORMAT_ENTRIES, "format", HONOURS_FORMAT,
                                           DISCARDS_FORMAT, "the requested format"))
+        problems.extend(timestamp_findings(source, name, read_raw(path)))
         problems.extend(backup_findings(source, name))
 
     text = read_raw(header or HEADER)

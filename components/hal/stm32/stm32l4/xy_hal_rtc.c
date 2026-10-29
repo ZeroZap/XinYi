@@ -23,6 +23,9 @@
 #if defined(STM32L4) || defined(STM32L4xx)
 
 #include "stm32l4xx_hal.h"
+/* Shared calendar arithmetic. Included by path so it resolves in every build shape - the HAL
+ * component and the board targets do not agree on include directories. */
+#include "../../../clib/xy_clib/inc/xy_time_civil.h"
 #include <string.h>
 
 /*
@@ -128,24 +131,6 @@ static void rtc_alarm_mask(uint8_t alarm_mask, uint32_t *hal_mask, uint32_t *dat
         *date_weekday_sel = RTC_ALARMDATEWEEKDAYSEL_WEEKDAY;
     }
     *hal_mask = mask;
-}
-
-/* Days since 1970-01-01 for a civil date (proleptic Gregorian). Writing a timestamp is refused, so
- * the inverse is not needed. The U5 backend previously approximated every month as 30 days and every
- * year as 365, which is a plausible-looking answer that is wrong by weeks. */
-static int64_t days_from_civil(int year, unsigned int month, unsigned int day)
-{
-    int era;
-    unsigned int year_of_era;
-    unsigned int day_of_year;
-    unsigned int day_of_era;
-
-    year -= (month <= 2U) ? 1 : 0;
-    era = (year >= 0 ? year : year - 399) / 400;
-    year_of_era = (unsigned int)(year - era * 400);
-    day_of_year = (153U * (month + (month > 2U ? (unsigned int)-3 : 9U)) + 2U) / 5U + day - 1U;
-    day_of_era = year_of_era * 365U + year_of_era / 4U - year_of_era / 100U + day_of_year;
-    return (int64_t)era * 146097 + (int64_t)day_of_era - 719468;
 }
 
 xy_hal_error_t xy_hal_rtc_init(void *rtc)
@@ -492,7 +477,6 @@ int64_t xy_hal_rtc_get_timestamp(void *rtc)
 {
     xy_hal_rtc_time_t time = { 0 };
     xy_hal_rtc_date_t date = { 0 };
-    int64_t days;
 
     if (rtc == NULL) {
         return XY_HAL_ERROR_INVALID_PARAM;
@@ -504,9 +488,9 @@ int64_t xy_hal_rtc_get_timestamp(void *rtc)
         return XY_HAL_ERROR_NOT_INIT;
     }
 
-    days = days_from_civil((int)date.year, (unsigned int)date.month, (unsigned int)date.date);
-    return days * 86400 + (int64_t)time.hours * 3600 + (int64_t)time.minutes * 60 +
-           (int64_t)time.seconds;
+    return xy_civil_seconds_from_epoch((int)date.year, (unsigned int)date.month,
+                                       (unsigned int)date.date, (unsigned int)time.hours,
+                                       (unsigned int)time.minutes, (unsigned int)time.seconds);
 }
 
 xy_hal_error_t xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)

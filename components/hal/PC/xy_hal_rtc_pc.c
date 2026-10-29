@@ -12,6 +12,8 @@
  */
 
 #include "xy_hal_rtc.h"
+/* Shared calendar arithmetic; included by path so it resolves in every build shape. */
+#include "../../clib/xy_clib/inc/xy_time_civil.h"
 #include <stdint.h>
 #include <string.h>
 
@@ -111,8 +113,14 @@ xy_hal_error_t xy_hal_rtc_init(void *rtc)
         }
         ctx->handle = rtc;
     }
+    /* A zeroed date is not a date: month 0 and day 0 would make every timestamp meaningless. The
+     * epoch is the only start that needs no assumption. */
     memset(&ctx->time, 0, sizeof(ctx->time));
     memset(&ctx->date, 0, sizeof(ctx->date));
+    ctx->date.year = 1970U;
+    ctx->date.month = 1U;
+    ctx->date.date = 1U;
+    ctx->date.weekday = (uint8_t)xy_civil_weekday_from_days(0);
     ctx->initialized = 1U;
     return XY_HAL_OK;
 }
@@ -321,12 +329,15 @@ xy_hal_error_t xy_hal_rtc_register_callback(void *rtc, xy_hal_rtc_event_t event,
     return XY_HAL_OK;
 }
 
-/* The counter is binary seconds since midnight, and the day is not tracked: two fields a caller can
- * set and read back, which is what a host can honestly offer. */
+/* Seconds since the Unix epoch, from the date and the time of day. Counting only the seconds inside
+ * the day was the first version of this and it disagreed with every other backend's answer to the
+ * same call; one contract is worth more than a modest implementation. */
 static int64_t pc_rtc_seconds(const pc_rtc_ctx_t *ctx)
 {
-    return (int64_t)ctx->time.hours * 3600 + (int64_t)ctx->time.minutes * 60 +
-           (int64_t)ctx->time.seconds;
+    return xy_civil_seconds_from_epoch((int)ctx->date.year, (unsigned int)ctx->date.month,
+                                       (unsigned int)ctx->date.date, (unsigned int)ctx->time.hours,
+                                       (unsigned int)ctx->time.minutes,
+                                       (unsigned int)ctx->time.seconds);
 }
 
 int64_t xy_hal_rtc_get_timestamp(void *rtc)
@@ -347,14 +358,26 @@ xy_hal_error_t xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)
     if (status != XY_HAL_OK) {
         return status;
     }
-    if (timestamp < 0 || timestamp > 86399) {
-        /* The date is not part of this counter, so a value beyond one day has no meaning here and
-         * is refused rather than wrapped into tomorrow's early hours. */
+    if (timestamp < 0) {
+        /* Before the epoch is not a time this calendar can represent. */
         return XY_HAL_ERROR_INVALID_PARAM;
     }
-    ctx->time.hours = (uint8_t)(timestamp / 3600);
-    ctx->time.minutes = (uint8_t)((timestamp % 3600) / 60);
-    ctx->time.seconds = (uint8_t)(timestamp % 60);
+    {
+        int64_t days = timestamp / XY_SECONDS_PER_DAY;
+        int64_t rest = timestamp % XY_SECONDS_PER_DAY;
+        int year = 0;
+        unsigned int month = 0;
+        unsigned int day = 0;
+
+        xy_civil_from_days(days, &year, &month, &day);
+        ctx->date.year = (uint16_t)year;
+        ctx->date.month = (uint8_t)month;
+        ctx->date.date = (uint8_t)day;
+        ctx->date.weekday = (uint8_t)xy_civil_weekday_from_days(days);
+        ctx->time.hours = (uint8_t)(rest / 3600);
+        ctx->time.minutes = (uint8_t)((rest % 3600) / 60);
+        ctx->time.seconds = (uint8_t)(rest % 60);
+    }
     return XY_HAL_OK;
 }
 
@@ -372,10 +395,8 @@ void xy_hal_rtc_pc_tick(void *rtc)
     if (ctx == NULL || ctx->initialized == 0U) {
         return;
     }
-    seconds = (pc_rtc_seconds(ctx) + 1) % 86400;
-    ctx->time.hours = (uint8_t)(seconds / 3600);
-    ctx->time.minutes = (uint8_t)((seconds % 3600) / 60);
-    ctx->time.seconds = (uint8_t)(seconds % 60);
+    seconds = pc_rtc_seconds(ctx) + 1;
+    (void)xy_hal_rtc_set_timestamp(rtc, seconds);
 }
 
 /**

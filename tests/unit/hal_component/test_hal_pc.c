@@ -536,13 +536,28 @@ static void test_rtc_pc_state_and_alarms(void)
     xy_hal_rtc_alarm_irq_handler((void *)30, 'A');
     TEST_ASSERT_EQUAL_INT(1, g_rtc_alarm_events);
 
-    /* The counter is seconds of the day: set, read back, and advanced one second by the tick. */
+    /* The counter is seconds since the Unix epoch, the same answer the board backends give. */
     TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_set_timestamp((void *)30, 3661));
     TEST_ASSERT_EQUAL_INT64(3661, xy_hal_rtc_get_timestamp((void *)30));
     xy_hal_rtc_pc_tick((void *)30);
     TEST_ASSERT_EQUAL_INT64(3662, xy_hal_rtc_get_timestamp((void *)30));
     TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_rtc_set_timestamp((void *)30, -1));
-    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_rtc_set_timestamp((void *)30, 86400));
+
+    /* A timestamp past midnight moves the date with it - the day is no longer just "not tracked". */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_set_timestamp((void *)30, 86400));
+    TEST_ASSERT_EQUAL_INT64(86400, xy_hal_rtc_get_timestamp((void *)30));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_get_date((void *)30, &date_back, XY_HAL_RTC_FORMAT_BIN));
+    TEST_ASSERT_EQUAL_UINT8(2U, date_back.date);
+    TEST_ASSERT_EQUAL_UINT8(1U, date_back.month);
+    TEST_ASSERT_EQUAL_UINT16(1970U, date_back.year);
+    /* 1970-01-02 was a Friday. */
+    TEST_ASSERT_EQUAL_UINT8(5U, date_back.weekday);
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_set_timestamp((void *)30, 1793059200));
+    TEST_ASSERT_EQUAL_INT64(1793059200, xy_hal_rtc_get_timestamp((void *)30));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_get_date((void *)30, &date_back, XY_HAL_RTC_FORMAT_BIN));
+    TEST_ASSERT_EQUAL_UINT16(2026U, date_back.year);
+    TEST_ASSERT_EQUAL_UINT8(10U, date_back.month);
+    TEST_ASSERT_EQUAL_UINT8(27U, date_back.date);
 
     TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_deinit((void *)30));
     TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_rtc_get_timestamp((void *)30));

@@ -1903,6 +1903,12 @@ add_test(NAME guards_read_code_unit
 add_test(NAME clib_frame_mutations
     COMMAND python3 ${UNIT_CLIB}/mutation_check_frame.py --build-dir ${CMAKE_BINARY_DIR})
 
+# --- Test 25b: calendar arithmetic, shared by the RTC backends that read a
+#     calendar. Written because the U5 backend approximated months as 30 days. ---
+xy_add_unit_test(test_xy_time_civil clib_time_civil UNITY
+    ${UNIT_CLIB}/test_xy_time_civil.c
+)
+
 xy_add_unit_test(test_xy_frame clib_frame UNITY
     ${UNIT_CLIB}/test_xy_frame.c
     ${CLIB}/xy_frame.c

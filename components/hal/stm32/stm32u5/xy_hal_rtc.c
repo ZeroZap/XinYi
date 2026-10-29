@@ -10,6 +10,9 @@
 #if defined(STM32U5) || defined(STM32U5xx)
 
 #include "stm32u5xx_hal.h"
+/* Shared calendar arithmetic. Included by path so it resolves in every build shape - the HAL
+ * component and the board targets do not agree on include directories. */
+#include "../../../clib/xy_clib/inc/xy_time_civil.h"
 #include <string.h>
 
 /* RTC context structure */
@@ -422,16 +425,12 @@ int64_t xy_hal_rtc_get_timestamp(void *rtc)
         return XY_HAL_ERROR_FAIL;
     }
 
-    /* Simple timestamp calculation (not accounting for leap years) */
-    int64_t timestamp = 0;
-    timestamp += (int64_t)(date.year - 70) * 365 * 24 * 3600;
-    timestamp += (int64_t)(date.month - 1) * 30 * 24 * 3600;
-    timestamp += (int64_t)(date.date - 1) * 24 * 3600;
-    timestamp += (int64_t)time.hours * 3600;
-    timestamp += (int64_t)time.minutes * 60;
-    timestamp += (int64_t)time.seconds;
-
-    return timestamp;
+    /* The formula that stood here multiplied (year - 70) by 365 days and treated every month as 30,
+     * which is not a Unix timestamp at all - it lands about 1900 years away from the right answer and
+     * was returned as one. The shared calendar arithmetic is exact and is tested on the host. */
+    return xy_civil_seconds_from_epoch((int)date.year, (unsigned int)date.month,
+                                       (unsigned int)date.date, (unsigned int)time.hours,
+                                       (unsigned int)time.minutes, (unsigned int)time.seconds);
 }
 
 xy_hal_error_t xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)
