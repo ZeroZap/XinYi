@@ -449,6 +449,105 @@ static void test_timer_pc_state_and_events(void)
     TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_timer_get_counter((void *)20));
 }
 
+static int g_rtc_alarm_events;
+
+static void rtc_alarm_callback(xy_hal_rtc_event_t event, void *arg)
+{
+    (void)event; (void)arg;
+    g_rtc_alarm_events++;
+}
+
+/* Delivered by xy_hal_irq_pc.c; no public header declares it, so the test names it directly. */
+extern void xy_hal_rtc_alarm_irq_handler(void *rtc, char alarm_id);
+extern void xy_hal_rtc_pc_tick(void *rtc);
+
+static void test_rtc_pc_state_and_alarms(void)
+{
+    xy_hal_rtc_time_t time = { .hours = 12U, .minutes = 34U, .seconds = 56U, .subseconds = 0U };
+    xy_hal_rtc_time_t read_back = { 0 };
+    xy_hal_rtc_date_t date = { .weekday = 1U, .month = 10U, .date = 27U, .year = 2026U };
+    xy_hal_rtc_date_t date_back = { 0 };
+    xy_hal_rtc_alarm_t alarm_a = { 0 };
+    xy_hal_rtc_alarm_t alarm_b = { 0 };
+    xy_hal_rtc_alarm_t alarm_read = { 0 };
+    xy_hal_rtc_time_t bad_time = { .hours = 24U, .minutes = 0U, .seconds = 0U, .subseconds = 0U };
+
+    g_rtc_alarm_events = 0;
+
+    /* Nothing works before init, and the timestamp is not an exception: it returns an error code. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT,
+                      xy_hal_rtc_get_time((void *)30, &read_back, XY_HAL_RTC_FORMAT_BIN));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_rtc_set_time(
+                      (void *)30, &time, XY_HAL_RTC_FORMAT_BIN));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_rtc_enable_alarm((void *)30, 'A'));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_rtc_deinit((void *)30));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_rtc_get_timestamp((void *)30));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_init((void *)30));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_ALREADY_INIT, xy_hal_rtc_init((void *)30));
+
+    /* What was written is what is read. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_set_time((void *)30, &time, XY_HAL_RTC_FORMAT_BIN));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_get_time((void *)30, &read_back, XY_HAL_RTC_FORMAT_BIN));
+    TEST_ASSERT_EQUAL_UINT8(12U, read_back.hours);
+    TEST_ASSERT_EQUAL_UINT8(56U, read_back.seconds);
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_set_date((void *)30, &date, XY_HAL_RTC_FORMAT_BIN));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_get_date((void *)30, &date_back, XY_HAL_RTC_FORMAT_BIN));
+    TEST_ASSERT_EQUAL_UINT8(10U, date_back.month);
+    TEST_ASSERT_EQUAL_UINT16(2026U, date_back.year);
+
+    /* BCD is not produced by a backend that cannot produce it, and a bad field is not stored. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED,
+                      xy_hal_rtc_get_time((void *)30, &read_back, XY_HAL_RTC_FORMAT_BCD));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_rtc_set_time((void *)30, &bad_time, XY_HAL_RTC_FORMAT_BIN));
+
+    /* Alarm A and alarm B are different slots: this is the defect worth not repeating. */
+    alarm_a.time.hours = 7U;
+    alarm_b.time.hours = 19U;
+    alarm_a.alarm_mask = XY_HAL_RTC_ALARM_MASK_ALL;
+    alarm_b.alarm_mask = XY_HAL_RTC_ALARM_MASK_HOURS;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_rtc_enable_alarm((void *)30, 'A'));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_set_alarm((void *)30, &alarm_a, 'A'));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_set_alarm((void *)30, &alarm_b, 'B'));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_get_alarm((void *)30, &alarm_read, 'A'));
+    TEST_ASSERT_EQUAL_UINT8(7U, alarm_read.time.hours);
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_get_alarm((void *)30, &alarm_read, 'B'));
+    TEST_ASSERT_EQUAL_UINT8(19U, alarm_read.time.hours);
+    /* An initialised RTC with nothing written to an alarm answers NOT_FOUND, not the other slot. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_init((void *)31));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_FOUND, xy_hal_rtc_get_alarm((void *)31, &alarm_read, 'A'));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_deinit((void *)31));
+
+    /* An id that is not an alarm is refused, not folded into whichever alarm comes first. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_rtc_set_alarm((void *)30, &alarm_a, 'C'));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_rtc_get_alarm((void *)30, &alarm_read, 'C'));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_rtc_enable_alarm((void *)30, 'C'));
+
+    /* A registered callback is reached by the interrupt entry, and only for an enabled alarm. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_register_callback(
+                      (void *)30, XY_HAL_RTC_EVENT_ALARM_A, rtc_alarm_callback, NULL));
+    xy_hal_rtc_alarm_irq_handler((void *)30, 'A');
+    TEST_ASSERT_EQUAL_INT(0, g_rtc_alarm_events);
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_enable_alarm((void *)30, 'A'));
+    xy_hal_rtc_alarm_irq_handler((void *)30, 'A');
+    TEST_ASSERT_EQUAL_INT(1, g_rtc_alarm_events);
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_disable_alarm((void *)30, 'A'));
+    xy_hal_rtc_alarm_irq_handler((void *)30, 'A');
+    TEST_ASSERT_EQUAL_INT(1, g_rtc_alarm_events);
+
+    /* The counter is seconds of the day: set, read back, and advanced one second by the tick. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_set_timestamp((void *)30, 3661));
+    TEST_ASSERT_EQUAL_INT64(3661, xy_hal_rtc_get_timestamp((void *)30));
+    xy_hal_rtc_pc_tick((void *)30);
+    TEST_ASSERT_EQUAL_INT64(3662, xy_hal_rtc_get_timestamp((void *)30));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_rtc_set_timestamp((void *)30, -1));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_rtc_set_timestamp((void *)30, 86400));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_deinit((void *)30));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_rtc_get_timestamp((void *)30));
+}
+
 static void test_rtc_backup_register_pc_contract(void)
 {
     uint32_t value = 0xAAAAAAAAU;
@@ -488,6 +587,7 @@ int main(void)
     RUN_TEST(test_uart_i2c_spi_pc_refuses_bad_input);
     RUN_TEST(test_dma_pc_state_and_events);
     RUN_TEST(test_timer_pc_state_and_events);
+    RUN_TEST(test_rtc_pc_state_and_alarms);
     RUN_TEST(test_rtc_backup_register_pc_contract);
     RUN_TEST(test_sys_irq_control_pc_contract);
     return UNITY_END();

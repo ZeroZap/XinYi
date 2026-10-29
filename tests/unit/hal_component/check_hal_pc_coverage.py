@@ -103,13 +103,6 @@ PC_MISSING = {
         "xy_hal_pwm_set_wave_shape", "xy_hal_pwm_start", "xy_hal_pwm_stop",
         "xy_hal_pwm_sync_output",
     },
-    "rtc": {
-        "xy_hal_rtc_deinit", "xy_hal_rtc_disable_alarm", "xy_hal_rtc_enable_alarm",
-        "xy_hal_rtc_get_alarm", "xy_hal_rtc_get_date", "xy_hal_rtc_get_time",
-        "xy_hal_rtc_get_timestamp", "xy_hal_rtc_init", "xy_hal_rtc_register_callback",
-        "xy_hal_rtc_set_alarm", "xy_hal_rtc_set_date", "xy_hal_rtc_set_time",
-        "xy_hal_rtc_set_timestamp",
-    },
     "spi": {
         "xy_hal_spi_error", "xy_hal_spi_receive_dma", "xy_hal_spi_register_callback",
         "xy_hal_spi_set_cs", "xy_hal_spi_transmit_dma", "xy_hal_spi_transmit_receive_dma",

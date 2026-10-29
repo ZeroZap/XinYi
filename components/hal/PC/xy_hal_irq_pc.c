@@ -8,12 +8,14 @@
  */
 
 #include "xy_hal_dma.h"
+#include "xy_hal_rtc.h"
 #include "xy_hal_timer.h"
 
 /* Delivered by the backends; declared here rather than in a public header because no consumer
  * outside the host layer calls them. */
 void xy_hal_timer_pc_irq(void *timer);
 void xy_hal_dma_pc_irq(void *dma);
+void xy_hal_rtc_pc_irq(void *rtc, xy_hal_rtc_event_t event);
 
 void xy_hal_timer_irq_handler(void *timer)
 {
@@ -23,4 +25,10 @@ void xy_hal_timer_irq_handler(void *timer)
 void xy_hal_dma_irq_handler(void *dma)
 {
     xy_hal_dma_pc_irq(dma);
+}
+
+void xy_hal_rtc_alarm_irq_handler(void *rtc, char alarm_id)
+{
+    xy_hal_rtc_pc_irq(rtc, alarm_id == 'B' || alarm_id == 'b' ? XY_HAL_RTC_EVENT_ALARM_B
+                                                             : XY_HAL_RTC_EVENT_ALARM_A);
 }
