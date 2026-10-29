@@ -127,6 +127,32 @@ def callback_findings(source: str, name: str) -> list[str]:
     return []
 
 
+ROUTING_FIELD = re.compile(r"\bInit\.(?:Request|Channel)\b")
+COMMENT = re.compile(r"/\*[\s\S]*?\*/|//[^\n]*")
+
+
+def routing_findings(source: str, name: str, raw: str | None = None) -> list[str]:
+    """Whoever programs a transfer must say who owns the routing.
+
+    A backend that writes Init.Request or Init.Channel conditionally, or leaves it alone entirely, is
+    deciding something about peripheral routing - and a request left at zero on a DMAMUX part is
+    muxed onto another peripheral's request with no error. The note is the only thing that tells a
+    caller to fill it in; the backend that had no note was the one that silently went without.
+    """
+    # The note lives in a comment, and read_code() strips comments - this rule has to look at the
+    # text as written or it can never see the thing it asks for.
+    text = source if raw is None else raw
+    if not ROUTING_FIELD.search(source):
+        return []
+    for comment in COMMENT.findall(text):
+        if ROUTING_FIELD.search(comment.replace("hdma->Init.", "Init.")) or (
+                "Request" in comment or "Channel" in comment):
+            if "caller" in comment.lower() or "owned by" in comment.lower():
+                return []
+    return [f"{name}: programs or leaves Init.Request/Init.Channel alone without saying that routing "
+            f"is the caller's, so a transfer can be muxed onto another peripheral's request"]
+
+
 def counter_findings(source: str, name: str) -> list[str]:
     """Reading a counter from a channel that was never set up returns a plausible number."""
     body = function_body(source, "xy_hal_dma_get_counter(")
@@ -165,10 +191,12 @@ def findings(backends: dict | None = None, header: Path | None = None) -> list[s
 
     for name, path in sorted(backends.items()):
         source = source_of(path)
+        raw = read_raw(path) if isinstance(path, Path) else source
         problems.extend(config_findings(source, name))
         problems.extend(mode_findings(source, name))
         problems.extend(callback_findings(source, name))
         problems.extend(counter_findings(source, name))
+        problems.extend(routing_findings(source, name, raw))
         start_body = function_body(source, "xy_hal_dma_start(")
         if not start_body:
             problems.append(f"{name}: xy_hal_dma_start is missing")
@@ -203,6 +231,10 @@ def findings(backends: dict | None = None, header: Path | None = None) -> list[s
                 f"wait cannot be requested portably")
 
     text = read_raw(header)
+    if "owned by the caller" not in text:
+        problems.append(
+            "xy_hal_dma.h: init does not say that the channel and peripheral request are the "
+            "caller's, so a transfer can be routed to the wrong request without an error")
     if "does not enable the interrupt" not in text:
         problems.append(
             "xy_hal_dma.h: register_callback does not say that registering a callback leaves the "

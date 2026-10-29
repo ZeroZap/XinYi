@@ -159,6 +159,9 @@ xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
             return XY_HAL_ERROR_NO_RESOURCE;
         }
     }
+    /* Init.Request is owned by the caller: this part routes through DMAMUX, and a peripheral
+     * transfer that leaves Request at zero is muxed onto request zero - some other peripheral's
+     * request - without a word of complaint. Only software memory-to-memory picks its own. */
     hdma->Init.Direction = to_direction(config->direction);
     hdma->Init.PeriphInc = config->periph_incr == XY_HAL_DMA_INCR_ENABLE ? DMA_PINC_ENABLE
                                                                          : DMA_PINC_DISABLE;

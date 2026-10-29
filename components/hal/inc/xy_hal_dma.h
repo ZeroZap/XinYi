@@ -75,6 +75,12 @@ typedef void (*xy_hal_dma_callback_t)(void *dma, xy_hal_dma_event_t event,
 
 /**
  * @brief Initialize DMA
+ *
+ * The channel or stream, and the peripheral request number, are owned by the caller. This programs
+ * the shape of the transfer - direction, widths, increments, priority, mode - and nothing else. On a
+ * part with a request multiplexer (DMAMUX, and on F4 the stream's fixed channel), the caller fills
+ * that field before calling; a peripheral transfer that leaves the request at zero is routed to
+ * request zero, which belongs to some other peripheral, and the transfer simply never fires.
  * @param dma DMA channel/stream instance
  * @param config DMA configuration
  * @return 0 on success, negative on error

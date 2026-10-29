@@ -287,6 +287,43 @@ xy_hal_error_t xy_hal_dma_get_counter(void *dma)
         self.assertTrue(any("never set up" in p for p in problems))
 
 
+class RoutingOwnershipTests(unittest.TestCase):
+    STATED = """
+xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
+{
+    /* Init.Request is owned by the caller: a peripheral transfer that leaves it at zero is muxed
+     * onto another peripheral's request. */
+    hdma->Init.Direction = to_direction(config->direction);
+    if (hdma->Init.Request == 0U) {
+        hdma->Init.Request = DMA_REQUEST_SW;
+    }
+    return XY_HAL_OK;
+}
+"""
+
+    SILENT = """
+xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
+{
+    hdma->Init.Direction = to_direction(config->direction);
+    return XY_HAL_OK;
+}
+"""
+
+    def test_a_stated_boundary_passes(self):
+        problems = guard.findings(backend(self.STATED))
+        self.assertFalse(any("muxed onto" in p for p in problems))
+
+    def test_a_silent_routing_field_is_reported(self):
+        problems = guard.findings(backend(self.STATED), header=Path("/dev/null"))
+        self.assertFalse(any("stm32l4: programs or leaves" in p for p in problems))
+        problems = guard.findings(backend(self.SILENT + "/* Init.Request left alone */\n"))
+        self.assertTrue(any("routing is the caller's" in p for p in problems))
+
+    def test_a_file_without_routing_fields_is_not_asked(self):
+        problems = guard.findings(backend(CORRECT))
+        self.assertFalse(any("routing is the caller's" in p for p in problems))
+
+
 class RepositoryTests(unittest.TestCase):
     def test_every_backend_agrees(self):
         self.assertEqual(guard.findings(), [])
