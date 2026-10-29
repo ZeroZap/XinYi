@@ -66,11 +66,32 @@ static void test_thread_stub_contract(void)
     TEST_ASSERT_EQUAL_UINT32(1U, xy_os_thread_enumerate(threads, 2));
     TEST_ASSERT_EQUAL_PTR(current, threads[0]);
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_thread_yield());
-    TEST_ASSERT_EQUAL(XY_OS_ERROR, xy_os_thread_suspend(current));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_NOT_SUPPORTED, xy_os_thread_suspend(current));
     TEST_ASSERT_EQUAL_UINT32(0x80000000u, xy_os_thread_flags_set(current, 0x1));
     TEST_ASSERT_EQUAL_INT(0, xy_os_thread_flags_get());
     TEST_ASSERT_EQUAL_INT(0, xy_os_thread_flags_clear(0x1));
     TEST_ASSERT_EQUAL_UINT32(0x80000000u, xy_os_thread_flags_wait(0x1, XY_OS_FLAGS_WAIT_ANY, 0));
+}
+
+/* Suspending, resuming, re-prioritising, detaching, joining and terminating a thread all need a
+ * thread table, and this backend has one context and no scheduler. It used to answer XY_OS_ERROR -
+ * "unspecified RTOS error" - for every one of them, which reads the same as a driver fault and tells a
+ * caller nothing it can act on. The answer is that the operation does not exist here. */
+static void test_thread_operations_this_backend_cannot_do(void)
+{
+    xy_os_thread_id_t current = xy_os_thread_get_id();
+
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_NOT_SUPPORTED, xy_os_thread_suspend(current));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_NOT_SUPPORTED, xy_os_thread_resume(current));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_NOT_SUPPORTED, xy_os_thread_set_priority(current, XY_OS_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_NOT_SUPPORTED, xy_os_thread_detach(current));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_NOT_SUPPORTED, xy_os_thread_join(current));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_NOT_SUPPORTED, xy_os_thread_terminate(current));
+
+    /* The distinction is the whole point: "cannot be done here" is not "something went wrong". */
+    TEST_ASSERT_NOT_EQUAL(XY_OS_ERROR, xy_os_thread_suspend(current));
+    /* And it is not the parameter error either - the handle was fine. */
+    TEST_ASSERT_NOT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_thread_suspend(current));
 }
 
 static void test_timer_one_shot_and_reuse(void)
@@ -510,6 +531,7 @@ int main(void)
     /* Kernel / Thread / Timer */
     RUN_TEST(test_kernel_info_lock_and_ticks);
     RUN_TEST(test_thread_stub_contract);
+    RUN_TEST(test_thread_operations_this_backend_cannot_do);
     RUN_TEST(test_timer_one_shot_and_reuse);
 
     /* Mutex */

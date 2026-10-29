@@ -1882,6 +1882,12 @@ target_compile_definitions(test_trace_release PRIVATE
 
 # --- Test 25a: byte-stream framing contracts (see test_xy_frame.c for the shipped
 #     defects each case pins) ---
+add_test(NAME osal_stub_specificity
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/kernel/check_osal_stub_specificity.py)
+
+add_test(NAME osal_stub_specificity_unit
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/kernel/test_check_osal_stub_specificity.py)
+
 add_test(NAME osal_timeout_units
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/kernel/check_osal_timeout_units.py)
 

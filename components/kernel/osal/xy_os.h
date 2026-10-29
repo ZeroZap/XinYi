@@ -35,6 +35,7 @@ typedef enum {
     XY_OS_ERROR_ISR         = -6, ///< Not allowed in ISR context
     XY_OS_ERROR_INVALID_OBJ = -7, ///< Invalid object
     XY_OS_ERROR_NOT_INITIALIZED = -8, ///< OS not initialized
+    XY_OS_ERROR_NOT_SUPPORTED   = -9, ///< The operation cannot exist on this backend
     XY_OS_RESERVED              = 0x7FFFFFFF
 } xy_os_status_t;
 

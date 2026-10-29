@@ -320,7 +320,11 @@ uint32_t xy_os_thread_get_stack_space(xy_os_thread_id_t id)
 xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t id,
                                          xy_os_priority_t p)
 {
-    return XY_OS_ERROR;
+    /* This backend keeps no thread table - there is one context and no scheduler - so these
+     * operations cannot exist here. Returning XY_OS_ERROR said "something went wrong", which a
+     * caller cannot act on and cannot tell from a driver fault; the answer is that the
+     * operation does not exist on this backend. */
+    return XY_OS_ERROR_NOT_SUPPORTED;
 }
 xy_os_priority_t xy_os_thread_get_priority(xy_os_thread_id_t id)
 {
@@ -332,19 +336,35 @@ xy_os_status_t xy_os_thread_yield(void)
 }
 xy_os_status_t xy_os_thread_suspend(xy_os_thread_id_t id)
 {
-    return XY_OS_ERROR;
+    /* This backend keeps no thread table - there is one context and no scheduler - so these
+     * operations cannot exist here. Returning XY_OS_ERROR said "something went wrong", which a
+     * caller cannot act on and cannot tell from a driver fault; the answer is that the
+     * operation does not exist on this backend. */
+    return XY_OS_ERROR_NOT_SUPPORTED;
 }
 xy_os_status_t xy_os_thread_resume(xy_os_thread_id_t id)
 {
-    return XY_OS_ERROR;
+    /* This backend keeps no thread table - there is one context and no scheduler - so these
+     * operations cannot exist here. Returning XY_OS_ERROR said "something went wrong", which a
+     * caller cannot act on and cannot tell from a driver fault; the answer is that the
+     * operation does not exist on this backend. */
+    return XY_OS_ERROR_NOT_SUPPORTED;
 }
 xy_os_status_t xy_os_thread_detach(xy_os_thread_id_t id)
 {
-    return XY_OS_ERROR;
+    /* This backend keeps no thread table - there is one context and no scheduler - so these
+     * operations cannot exist here. Returning XY_OS_ERROR said "something went wrong", which a
+     * caller cannot act on and cannot tell from a driver fault; the answer is that the
+     * operation does not exist on this backend. */
+    return XY_OS_ERROR_NOT_SUPPORTED;
 }
 xy_os_status_t xy_os_thread_join(xy_os_thread_id_t id)
 {
-    return XY_OS_ERROR;
+    /* This backend keeps no thread table - there is one context and no scheduler - so these
+     * operations cannot exist here. Returning XY_OS_ERROR said "something went wrong", which a
+     * caller cannot act on and cannot tell from a driver fault; the answer is that the
+     * operation does not exist on this backend. */
+    return XY_OS_ERROR_NOT_SUPPORTED;
 }
 void xy_os_thread_exit(void)
 {
@@ -353,7 +373,11 @@ void xy_os_thread_exit(void)
 }
 xy_os_status_t xy_os_thread_terminate(xy_os_thread_id_t id)
 {
-    return XY_OS_ERROR;
+    /* This backend keeps no thread table - there is one context and no scheduler - so these
+     * operations cannot exist here. Returning XY_OS_ERROR said "something went wrong", which a
+     * caller cannot act on and cannot tell from a driver fault; the answer is that the
+     * operation does not exist on this backend. */
+    return XY_OS_ERROR_NOT_SUPPORTED;
 }
 uint32_t xy_os_thread_get_count(void)
 {
