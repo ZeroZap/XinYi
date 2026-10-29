@@ -80,9 +80,41 @@ def findings(root_cmake: str, osal_cmake: str,
     return problems
 
 
+FENCE = re.compile(r"```[^\n]*\n(.*?)```", re.S)
+DOC_COMMAND = re.compile(r"-DOSAL_BACKEND=([A-Za-z0-9_]+)")
+
+
+def doc_command_findings(docs: dict[str, str], chosen: set[str]) -> list[str]:
+    """Copy-pasteable commands in docs/design must name a backend this build accepts.
+
+    Prose may explain what is unavailable; a fenced command that a reader will paste must
+    not. Only fenced blocks are checked, so the surrounding explanation stays free.
+    """
+    problems: list[str] = []
+    for where, text in sorted(docs.items()):
+        for block in FENCE.findall(text):
+            for line in block.splitlines():
+                for value in DOC_COMMAND.findall(line):
+                    if value not in chosen:
+                        problems.append(
+                            f"{where}: a fenced command tells readers to pass "
+                            f"-DOSAL_BACKEND={value}, but this build only selects "
+                            f"{sorted(chosen)} and refuses the rest")
+    return problems
+
+
+def design_docs(root: Path = ROOT) -> dict[str, str]:
+    docs: dict[str, str] = {}
+    for path in sorted((root / "docs" / "design").rglob("*.md")):
+        docs[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8",
+                                                                errors="replace")
+    return docs
+
+
 def main() -> int:
-    problems = findings(ROOT_CMAKE.read_text(encoding="utf-8"),
-                        OSAL_CMAKE.read_text(encoding="utf-8"))
+    root_text = ROOT_CMAKE.read_text(encoding="utf-8")
+    problems = findings(root_text, OSAL_CMAKE.read_text(encoding="utf-8"))
+    problems.extend(doc_command_findings(design_docs(), selectable(root_text)))
     if problems:
         print("osal_backend_advertise failed:")
         for problem in problems:

@@ -211,16 +211,22 @@ endif()
 
 ### 使用示例
 
+后端由 Kconfig 选择，`OSAL_BACKEND` 由根 `CMakeLists.txt` 按选中的 Kconfig 选项强制设定。
+直接在命令行传 `-DOSAL_BACKEND=...` 与 Kconfig 推出的值不一致时，配置会**拒绝**并说明原因
+（守卫：`tests/unit/hal_component/check_osal_backend_advertise.py`）。
+
 ```bash
-# 裸机构建
-cmake .. -DRTOS_BACKEND=baremetal -DOSAL_BACKEND=baremetal
+# 裸机构建（默认）
+cmake .. -DHAL_PLATFORM=PC
 
-# FreeRTOS 构建
-cmake .. -DRTOS_BACKEND=freertos -DOSAL_BACKEND=freertos
-
-# RT-Thread 构建
-cmake .. -DRTOS_BACKEND=rtthread -DOSAL_BACKEND=rtthread
+# FreeRTOS 构建：Kconfig 选项才是权威
+cmake .. -DHAL_PLATFORM=STM32L4 \
+         -DKCONFIG_OVERRIDES="OSAL_BACKEND_FREERTOS=ON"
 ```
+
+RT-Thread 与 CMSIS-RTX 后端**在本构建中不可达**：`components/kernel/osal/` 里有源码和分发分支，
+但没有任何 Kconfig 符号会选择它们，直接传 `-DOSAL_BACKEND=rtthread` 会被拒绝而不是静默改用别的内核。
+它们是接线还是移除尚未决定 —— 在决定之前，上文的示例不成立。
 
 ---
 

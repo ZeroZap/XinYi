@@ -103,6 +103,9 @@ add_test(NAME stm32f4_uart_rx_irq_contract
 add_test(NAME osal_backend_advertise
     COMMAND python3 ${UNIT_HAL}/check_osal_backend_advertise.py)
 
+add_test(NAME osal_backend_advertise_unit
+    COMMAND python3 ${UNIT_HAL}/test_osal_backend_advertise.py)
+
 add_test(NAME board_irq_vectors
     COMMAND python3 ${UNIT_HAL}/check_board_irq_vectors.py)
 
