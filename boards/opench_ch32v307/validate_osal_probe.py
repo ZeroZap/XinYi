@@ -25,6 +25,7 @@ Checks:
 import argparse
 import re
 import subprocess
+import time
 import sys
 
 # The probe settles at stage 16 and stays up counting receive interrupts, so the two
@@ -73,7 +74,16 @@ SYMBOLS = (
     "xy_probe_rx_frames_ok",
     "xy_probe_rx_frames_bad",
     "xy_probe_rx_overflow",
+    "xy_probe_rx_ore",
+    "xy_probe_rx_expected",
+    "xy_probe_rx_last_index",
+    "xy_probe_rx_last_bad_index",
     "xy_probe_rx_task_period_ms",
+    "xy_probe_cmd_frames",
+    "xy_probe_cmd_status",
+    "xy_probe_cmd_addr",
+    "xy_probe_cmd_reg",
+    "xy_probe_cmd_value",
     "xTickCount",
 )
 
@@ -114,6 +124,18 @@ def read_words(openocd: str, config: str, addresses: dict[str, int], resume: boo
     return values
 
 
+def encode_frame(payload: bytes) -> bytes:
+    """STX, length, payload, checksum.
+
+    Length rather than a terminator byte: 0x03 is a perfectly ordinary counter byte, and
+    an earlier version truncated frames whose payload happened to contain it.
+    """
+    checksum = 0x5A
+    for byte in payload:
+        checksum ^= byte
+    return bytes((0x02, len(payload))) + payload + bytes((checksum,))
+
+
 def _start_writer(port: str):
     """Keep feeding bytes to the board so the receive interrupt has something to do."""
     import os
@@ -141,7 +163,8 @@ def _start_writer(port: str):
                 # only ever advances by one, so a lost byte becomes a bad frame
                 # instead of an unnoticed gap.
                 payload = b"".join(
-                    b"IRQ" + (index + i).to_bytes(4, "little") for i in range(16)
+                    encode_frame(b"I" + (index + i).to_bytes(4, "little"))
+                    for i in range(16)
                 )
                 os.write(fd, payload)
                 index += 16
@@ -158,6 +181,35 @@ def _stop_writer(writer) -> None:
     stop, thread = writer
     stop.set()
     thread.join(timeout=2)
+
+
+def judge_integrity(words: dict[str, int]) -> list[str]:
+    """Judge a quiet window: the writer has stopped, so nothing is arriving while the
+    debugger halts the core.
+
+    Reading memory halts the CPU, and every byte that arrives during a halt is lost by
+    the hardware. Judging continuity across a halt therefore measures the debugger, not
+    the firmware - two snapshots produced exactly two broken frames, one per halt.
+    """
+    errors: list[str] = []
+    if not words.get("xy_probe_rx_frames_ok"):
+        errors.append("no complete frame was reassembled from the receive interrupt")
+    if words.get("xy_probe_rx_frames_bad"):
+        errors.append(
+            f"{words.get('xy_probe_rx_frames_bad')} frames broke continuity inside a quiet "
+            "window: bytes were lost or the counter skipped"
+        )
+    if words.get("xy_probe_rx_ore"):
+        errors.append(
+            f"the receiver overran {words.get('xy_probe_rx_ore')} times: the hardware dropped "
+            "bytes before the interrupt took them"
+        )
+    if words.get("xy_probe_rx_overflow"):
+        errors.append(
+            f"the receive ring overflowed {words.get('xy_probe_rx_overflow')} times: the task "
+            "could not keep up with the interrupt"
+        )
+    return errors
 
 
 def judge(first: dict[str, int], second: dict[str, int], uart: str | None = "") -> list[str]:
@@ -203,10 +255,10 @@ def judge(first: dict[str, int], second: dict[str, int], uart: str | None = "") 
         errors.append(
             f"framed receive stalled: xy_probe_rx_frames_ok {frames_first} -> {frames_second}"
         )
-    if uart and first.get("xy_probe_rx_frames_bad"):
+    if uart and first.get("xy_probe_rx_ore"):
         errors.append(
-            f"{first.get('xy_probe_rx_frames_bad')} frames broke continuity: bytes were lost "
-            "or the counter skipped"
+            f"the receiver overran {first.get('xy_probe_rx_ore')} times: the hardware dropped "
+            "bytes before the interrupt took them"
         )
     if uart and first.get("xy_probe_rx_overflow"):
         errors.append(
@@ -277,6 +329,12 @@ def main() -> int:
     parser.add_argument("--nm", required=True)
     parser.add_argument("--settle-ms", type=int, default=4000)
     parser.add_argument(
+        "--stress-window",
+        type=float,
+        default=2.0,
+        help="seconds of uninterrupted receive traffic for the integrity check",
+    )
+    parser.add_argument(
         "--uart",
         help="serial port to write test bytes to; without it the receive-interrupt "
         "judgement cannot be made and is skipped",
@@ -304,10 +362,49 @@ def main() -> int:
     first = read_words(args.openocd, args.config, addresses, resume=True)
     subprocess.run(["sleep", "2"])
     second = read_words(args.openocd, args.config, addresses, resume=False)
+    quiet = None
     if writer is not None:
         _stop_writer(writer)
+        # Phase B: let the kernel finish delivering phase A before the counters are
+        # zeroed. Resetting first leaves phase A bytes in flight that then land in the
+        # new window with phase A indices, and the first frames of the window read as
+        # continuity breaks that never happened.
+        time.sleep(0.5)
+        # Each -c has to be its own argv element: joining them into one string made
+        # openocd ignore the whole thing, and the counters were never zeroed - the
+        # window then contained phase A and phase B both, with phase B starting at index
+        # 0 against phase A's expectation.
+        zero = []
+        for name, address in addresses.items():
+            if not name.startswith("xy_probe_rx_") or name == "xy_probe_rx_task_period_ms":
+                continue
+            value = "0xffffffff" if name == "xy_probe_rx_expected" else "0"
+            zero += ["-c", f"mww 0x{address:08x} {value}"]
+        reset = subprocess.run(
+            [args.openocd, "-f", args.config, "-c", "adapter speed 1000", "-c", "init",
+             "-c", "halt", *zero, "-c", "resume", "-c", "shutdown"],
+            capture_output=True, text=True,
+        )
+        if reset.returncode != 0:
+            raise SystemExit(f"could not zero the receive counters:\n{reset.stdout}{reset.stderr}")
+        stress = _start_writer(args.uart)
+        time.sleep(args.stress_window)
+        _stop_writer(stress)
+        time.sleep(0.3)  # let the task drain what is already in the ring
+        quiet = read_words(args.openocd, args.config,
+                           {name: address for name, address in addresses.items()
+                            if name.startswith("xy_probe_rx_")}, resume=False)
 
     errors = judge(first, second, args.uart)
+    if quiet is not None:
+        errors += judge_integrity(quiet)
+        print(
+            "quiet window: bytes={} ok={} bad={} last_index={} last_bad_index={}".format(
+                quiet.get("xy_probe_rx_irq_bytes"), quiet.get("xy_probe_rx_frames_ok"),
+                quiet.get("xy_probe_rx_frames_bad"), quiet.get("xy_probe_rx_last_index"),
+                quiet.get("xy_probe_rx_last_bad_index"),
+            )
+        )
     if errors:
         print("osal_stall_probe failed:")
         for error in errors:

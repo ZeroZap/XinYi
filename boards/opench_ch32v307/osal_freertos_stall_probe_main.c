@@ -74,6 +74,29 @@ static volatile uint32_t rx_tail;
 volatile uint32_t xy_probe_rx_frames_ok;
 volatile uint32_t xy_probe_rx_frames_bad;
 volatile uint32_t xy_probe_rx_overflow;
+
+/* Receiver overruns reported by the HAL. These are bytes the hardware lost before the
+   interrupt could take them, which is a different failure from the ring being full. */
+volatile uint32_t xy_probe_rx_ore;
+
+/* The index the next frame must carry. A plain static would be unreachable from the
+   host, which cannot then restart the stream: zeroing the counters would leave the
+   expectation from the previous window and the first frame of the new one would be
+   counted as a break. -1 means "no expectation yet". */
+volatile int32_t xy_probe_rx_expected = -1;
+
+/* The indices that broke, so a failure says where rather than only how often. */
+volatile int32_t xy_probe_rx_last_index;
+volatile int32_t xy_probe_rx_last_bad_index;
+
+/* Commands that arrive through the receive interrupt and end up as an I2C transfer:
+   the whole chain from a byte on the wire to a device register, with no step in it
+   that the application performed by hand. */
+volatile uint32_t xy_probe_cmd_frames;
+volatile uint32_t xy_probe_cmd_status;
+volatile uint32_t xy_probe_cmd_addr;
+volatile uint32_t xy_probe_cmd_reg;
+volatile uint32_t xy_probe_cmd_value;
 volatile uint32_t xy_probe_whoami;
 /* Milliseconds measured across a 256-byte UART burst (~22 ms at 115200). The
    HAL times its own waits with the same helper this uses, so a saw-tooth reading
@@ -87,6 +110,10 @@ volatile uint32_t xy_probe_uart_recv_code;
 static void rx_callback(void* instance, xy_hal_uart_event_t event, void* arg) {
     (void)instance;
     (void)arg;
+    if (event == XY_HAL_UART_EVENT_ERROR) {
+        ++xy_probe_rx_ore;
+        return;
+    }
     if (event != XY_HAL_UART_EVENT_RX_DONE)
         return;
     ++xy_probe_rx_irq_bytes;
@@ -104,48 +131,97 @@ static void rx_callback(void* instance, xy_hal_uart_event_t event, void* arg) {
     }
 }
 
-/* Frames are "IRQ" followed by a little-endian counter. Checking continuity is what
-   turns "bytes arrived" into "no byte was lost": a gap shows up as a bad frame even
-   though the byte count still looks healthy. */
+/* One framing rule for everything: 0x02 STX, a length byte, that many payload bytes,
+   then a checksum. The previous version ended frames with 0x03, which is a perfectly
+   ordinary counter byte - index 3 sent 0x03 and truncated its own frame. A delimiter
+   cannot be a byte value when the payload is binary; a length plus a checksum can. */
+#define RX_STX 0x02U
+#define RX_FRAME_MAX 16U
+
+static void handle_command(const uint8_t* frame, uint32_t len) {
+    uint8_t value = 0U;
+    /* frame[0] is the type byte: 'C', address, register, count. */
+    if (len != 4U) {
+        ++xy_probe_cmd_frames;
+        xy_probe_cmd_status = (uint32_t)(int32_t)XY_HAL_ERROR_INVALID_PARAM;
+        return;
+    }
+    xy_probe_cmd_addr = frame[1];
+    xy_probe_cmd_reg = frame[2];
+    /* The transfer goes through the same HAL call the image uses by itself; the
+       command only decides which register. */
+    xy_hal_error_t status = xy_hal_i2c_mem_read(I2C2, frame[1], frame[2], &value,
+                                                frame[3], 100U);
+    xy_probe_cmd_frames++;
+    xy_probe_cmd_status = (uint32_t)(int32_t)status;
+    xy_probe_cmd_value = value;
+}
+
+static void handle_stress(const uint8_t* frame, uint32_t len) {
+    int32_t index;
+    if (len != 5U) {
+        ++xy_probe_rx_frames_bad;
+        return;
+    }
+    index = (int32_t)(frame[1] | ((uint32_t)frame[2] << 8) |
+                      ((uint32_t)frame[3] << 16) | ((uint32_t)frame[4] << 24));
+    xy_probe_rx_last_index = index;
+    if (xy_probe_rx_expected < 0 || index == xy_probe_rx_expected) {
+        ++xy_probe_rx_frames_ok;
+    } else {
+        ++xy_probe_rx_frames_bad;
+        xy_probe_rx_last_bad_index = index;
+    }
+    xy_probe_rx_expected = index + 1;
+}
+
 static void drain_rx_frames(void) {
-    static uint8_t frame[7];
+    static uint8_t frame[RX_FRAME_MAX];
     static uint32_t have;
-    static int32_t expected = -1;
+    static uint32_t want;
 
     while (rx_tail != rx_head) {
-        frame[have++] = rx_ring[rx_tail];
+        uint8_t byte = rx_ring[rx_tail];
         rx_tail = (rx_tail + 1U) % RX_RING_SIZE;
-        if (have < sizeof(frame))
-            continue;
-        have = 0U;
-        if (frame[0] != 'I' || frame[1] != 'R' || frame[2] != 'Q') {
-            /* Resync one byte at a time instead of swallowing a whole frame:
-               otherwise a single dropped byte keeps every later frame misaligned
-               and one loss reads as a permanent failure. */
-            ++xy_probe_rx_frames_bad;
-            {
-                uint32_t keep = 0U;
-                uint32_t i;
-                for (i = 1U; i < sizeof(frame); ++i) {
-                    if (keep == 0U && frame[i] == 'I') {
-                        keep = 1U;
-                        frame[0] = frame[i];
-                    } else if (keep != 0U) {
-                        frame[keep++] = frame[i];
-                    }
-                }
-                have = keep;
+        if (want == 0U) {
+            /* A start byte is the resynchroniser, but only when nothing is being
+               assembled: 0x02 is an ordinary value inside a binary payload, and
+               treating it as a new frame start silently swallowed 285 of 2000 frames
+               whose counter happened to contain it. */
+            if (byte == RX_STX) {
+                want = 1U;
+                have = 0U;
             }
             continue;
         }
+        if (want == 1U) {
+            /* What is still to come: the payload plus the checksum. The length byte
+               itself has already been consumed here. */
+            want = (byte >= 2U && byte <= RX_FRAME_MAX - 2U) ? (uint32_t)byte + 1U : 0U;
+            continue;
+        }
+        frame[have++] = byte;
+        if (have < want)
+            continue;
+        want = 0U;
         {
-            int32_t index = (int32_t)(frame[3] | ((uint32_t)frame[4] << 8) |
-                                      ((uint32_t)frame[5] << 16) | ((uint32_t)frame[6] << 24));
-            if (expected < 0 || index == expected)
-                ++xy_probe_rx_frames_ok;
+            uint8_t sum = (uint8_t)(frame[0] ^ 0x5AU);
+            uint32_t i;
+            for (i = 1U; i + 1U < have; ++i)
+                sum ^= frame[i];
+            if ((uint8_t)(sum ^ frame[have - 1U]) != 0U) {
+                ++xy_probe_rx_frames_bad;
+                continue;
+            }
+        }
+        {
+            uint32_t length = have - 1U;  /* the payload without the checksum */
+            if (frame[0] == 'I')
+                handle_stress(frame, length);
+            else if (frame[0] == 'C')
+                handle_command(frame, length);
             else
                 ++xy_probe_rx_frames_bad;
-            expected = index + 1;
         }
     }
 }

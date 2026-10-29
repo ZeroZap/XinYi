@@ -41,6 +41,7 @@ def good_words() -> dict[str, int]:
         "xy_probe_rx_frames_ok": 5,
         "xy_probe_rx_frames_bad": 0,
         "xy_probe_rx_overflow": 0,
+        "xy_probe_rx_ore": 0,
         "xTickCount": 100,
     }
 
@@ -100,20 +101,37 @@ class ProbeJudgeTests(unittest.TestCase):
         # The whole point of framed counting: the byte counter looks fine.
         words = good_words()
         words["xy_probe_rx_frames_bad"] = 3
-        errors = probe.judge(words, ticking(), UART)
+        errors = probe.judge_integrity(words)
         self.assertTrue(any("continuity" in e for e in errors), errors)
 
     def test_a_ring_overflow_is_rejected(self) -> None:
         words = good_words()
         words["xy_probe_rx_overflow"] = 2
-        errors = probe.judge(words, ticking(), UART)
+        errors = probe.judge_integrity(words)
         self.assertTrue(any("overflowed" in e for e in errors), errors)
+
+    def test_a_receiver_overrun_is_rejected(self) -> None:
+        words = good_words()
+        words["xy_probe_rx_ore"] = 1
+        errors = probe.judge_integrity(words)
+        self.assertTrue(any("overran" in e for e in errors), errors)
 
     def test_no_complete_frame_is_rejected(self) -> None:
         words = good_words()
         words["xy_probe_rx_frames_ok"] = 0
-        errors = probe.judge(words, ticking(rx=20), UART)
+        errors = probe.judge_integrity(words)
         self.assertTrue(any("no complete frame" in e for e in errors), errors)
+
+    def test_a_clean_quiet_window_passes(self) -> None:
+        self.assertEqual(probe.judge_integrity(good_words()), [])
+
+    def test_continuity_is_not_judged_across_a_debugger_halt(self) -> None:
+        # Reading memory halts the core and the hardware loses whatever arrives then, so
+        # breaks in the growth snapshots must not be read as firmware loss - that is what
+        # the quiet window is for.
+        words = good_words()
+        words["xy_probe_rx_frames_bad"] = 4
+        self.assertEqual(probe.judge(words, ticking(), UART), [])
 
     def test_a_nak_reported_as_success_is_rejected(self) -> None:
         words = good_words()
