@@ -18,6 +18,12 @@ typedef struct {
     xy_hal_uart_callback_t callback;
     void *arg;
     uint8_t initialized;
+    /* Receive interrupt state, same names as the L4 backend so the contract guard can
+       check both without a second vocabulary. */
+    uint8_t irq_byte;
+    uint8_t pending_byte;
+    uint8_t pending_valid;
+    uint8_t irq_armed;
 } uart_ctx_t;
 
 /* Maximum UART instances - adjust based on MCU */
@@ -378,8 +384,14 @@ xy_hal_error_t xy_hal_uart_set_error_cb(void *uart,
 
 /**
  * @brief UART TX complete callback
+ *
+ * The half-complete callbacks used to report TX_DONE and RX_DONE here. For a one byte
+ * receive the half transfer never happens at all, so RX_DONE could never fire - the
+ * backend looked complete and carried nothing. Completion is reported from the completion
+ * callbacks, and the half callbacks are left to the vendor's weak no-ops rather than
+ * dressing them up as something they are not.
  */
-void HAL_UART_TxHalfCpltCallback(UART_HandleTypeDef *huart)
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
     uart_ctx_t *ctx = find_uart_ctx(huart);
     if (ctx && ctx->callback) {
@@ -390,12 +402,73 @@ void HAL_UART_TxHalfCpltCallback(UART_HandleTypeDef *huart)
 /**
  * @brief UART RX complete callback
  */
-void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     uart_ctx_t *ctx = find_uart_ctx(huart);
+
+    if (ctx != NULL) {
+        ctx->pending_byte = ctx->irq_byte;
+        ctx->pending_valid = 1U;
+    }
     if (ctx && ctx->callback) {
         ctx->callback(huart, XY_HAL_UART_EVENT_RX_DONE, ctx->arg);
     }
+    if (ctx != NULL && ctx->irq_armed != 0U) {
+        (void)HAL_UART_Receive_IT(huart, &ctx->irq_byte, 1U);
+    }
+}
+
+static xy_hal_error_t uart_it_status(HAL_StatusTypeDef status)
+{
+    if (status == HAL_OK) {
+        return XY_HAL_OK;
+    }
+    if (status == HAL_BUSY) {
+        return XY_HAL_ERROR_BUSY;
+    }
+    return XY_HAL_ERROR_IO;
+}
+
+xy_hal_error_t xy_hal_uart_enable_rx_irq(void *uart, int enable)
+{
+    uart_ctx_t *ctx = find_uart_ctx(uart);
+
+    if (uart == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (ctx == NULL || !ctx->initialized) {
+        return XY_HAL_ERROR_NOT_INIT;
+    }
+    if (enable == 0) {
+        ctx->irq_armed = 0U;
+        ctx->pending_valid = 0U;
+        return uart_it_status(HAL_UART_AbortReceive_IT((UART_HandleTypeDef *)uart));
+    }
+    ctx->irq_armed = 1U;
+    ctx->pending_valid = 0U;
+    return uart_it_status(HAL_UART_Receive_IT((UART_HandleTypeDef *)uart, &ctx->irq_byte, 1U));
+}
+
+void xy_hal_uart_irq_handler(void *uart)
+{
+    if (uart != NULL) {
+        HAL_UART_IRQHandler((UART_HandleTypeDef *)uart);
+    }
+}
+
+int xy_hal_uart_rx_byte(void *uart)
+{
+    uart_ctx_t *ctx;
+
+    if (uart == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    ctx = find_uart_ctx(uart);
+    if (ctx == NULL || ctx->pending_valid == 0U) {
+        return XY_HAL_ERROR_NOT_FOUND;
+    }
+    ctx->pending_valid = 0U;
+    return (int)ctx->pending_byte;
 }
 
 /**

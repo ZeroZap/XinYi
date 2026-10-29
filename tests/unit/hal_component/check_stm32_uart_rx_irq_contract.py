@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Source-level contract for the STM32L4 UART receive interrupt.
+"""Source-level contract for the STM32L4 / STM32U5 UART receive interrupt.
 
 The public UART header gained xy_hal_uart_enable_rx_irq / xy_hal_uart_irq_handler /
 xy_hal_uart_rx_byte when the WCH backend grew a receive interrupt. The STM32L4 backend -
@@ -15,13 +15,16 @@ evidence here is source/compile level and is labelled as such.
 
 from __future__ import annotations
 
-import re
+import argparse
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-WRAPPER = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_uart.c"
 HEADER = ROOT / "components" / "hal" / "inc" / "xy_hal_uart.h"
+TARGETS = {
+    "stm32l4": ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_uart.c",
+    "stm32u5": ROOT / "components" / "hal" / "stm32" / "stm32u5" / "xy_hal_uart.c",
+}
 
 
 def body_of(source: str, signature: str) -> str:
@@ -43,9 +46,15 @@ def body_of(source: str, signature: str) -> str:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--target", default="stm32l4", choices=sorted(TARGETS))
+    args = parser.parse_args()
+    WRAPPER = TARGETS[args.target]
+    label = f"{args.target}_uart_rx_irq_contract"
+
     failures: list[str] = []
     if not WRAPPER.is_file():
-        print(f"stm32l4_uart_rx_irq_contract failed:\n- {WRAPPER} is missing")
+        print(f"{label} failed:\n- {WRAPPER} is missing")
         return 1
 
     source = WRAPPER.read_text(encoding="utf-8")
@@ -58,7 +67,7 @@ def main() -> int:
 
     enable = body_of(source, "xy_hal_error_t xy_hal_uart_enable_rx_irq(")
     if not enable:
-        failures.append("xy_hal_uart_enable_rx_irq is not implemented for STM32L4")
+        failures.append(f"xy_hal_uart_enable_rx_irq is not implemented for {args.target}")
     else:
         if "HAL_UART_Receive_IT" not in enable:
             failures.append("enable_rx_irq does not arm the vendor receive interrupt")
@@ -81,22 +90,28 @@ def main() -> int:
         if "irq_armed" not in rx_complete or "HAL_UART_Receive_IT" not in rx_complete:
             failures.append("the completion callback does not re-arm, which makes the "
                             "receive interrupt fire exactly once")
+        # The two backends dispatch differently - one through a helper, one by calling the
+        # stored pointer - so look for either rather than encoding one backend's shape.
         stash = rx_complete.find("pending_byte")
-        dispatch = rx_complete.find("uart_callback_dispatch")
+        dispatches = [index for index in (rx_complete.find("uart_callback_dispatch"),
+                                          rx_complete.find("ctx->callback("),
+                                          rx_complete.find("context->callback("))
+                      if index >= 0]
+        dispatch = min(dispatches) if dispatches else -1
         if stash < 0 or dispatch < 0 or stash > dispatch:
             failures.append("the byte is handed over after the callback runs, so the "
                             "callback would read a stale value or none at all")
 
     rx_byte = body_of(source, "int xy_hal_uart_rx_byte(")
     if not rx_byte:
-        failures.append("xy_hal_uart_rx_byte is not implemented for STM32L4")
+        failures.append(f"xy_hal_uart_rx_byte is not implemented for {args.target}")
     elif "XY_HAL_ERROR_NOT_FOUND" not in rx_byte:
         failures.append("xy_hal_uart_rx_byte has no path for 'nothing pending', so callers "
                         "cannot tell an empty handover from a zero byte")
 
     handler = body_of(source, "void xy_hal_uart_irq_handler(")
     if not handler:
-        failures.append("xy_hal_uart_irq_handler is not implemented for STM32L4")
+        failures.append(f"xy_hal_uart_irq_handler is not implemented for {args.target}")
     elif "HAL_UART_IRQHandler" not in handler:
         failures.append("xy_hal_uart_irq_handler does not forward to the vendor handler, "
                         "so a board routing its vector through the HAL would do nothing")
@@ -109,11 +124,11 @@ def main() -> int:
                         "receive completes without ever reaching half")
 
     if failures:
-        print("stm32l4_uart_rx_irq_contract failed:")
+        print(f"{label} failed:")
         for failure in failures:
             print(f"- {failure}")
         return 1
-    print("stm32l4_uart_rx_irq_contract ok (source/compile level; no runtime evidence)")
+    print(f"{label} ok (source/compile level; no runtime evidence)")
     return 0
 
 

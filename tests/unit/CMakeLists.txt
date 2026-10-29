@@ -92,7 +92,10 @@ add_test(NAME stm32f4_dma_wrapper_contract
     WORKING_DIRECTORY ${ROOT}
 )
 add_test(NAME stm32l4_uart_rx_irq_contract
-    COMMAND python3 ${UNIT_HAL}/check_stm32l4_uart_rx_irq_contract.py)
+    COMMAND python3 ${UNIT_HAL}/check_stm32_uart_rx_irq_contract.py --target stm32l4)
+
+add_test(NAME stm32u5_uart_rx_irq_contract
+    COMMAND python3 ${UNIT_HAL}/check_stm32_uart_rx_irq_contract.py --target stm32u5)
 
 add_test(NAME stm32f4_uart_wrapper_contract
     COMMAND python3 ${UNIT_HAL}/check_stm32f4_uart_wrapper_contract.py
