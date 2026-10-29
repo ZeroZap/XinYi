@@ -980,6 +980,10 @@ uint32_t xy_os_msgqueue_get_space(xy_os_msgqueue_id_t mq_id);
 
 /**
  * @brief Reset a Message Queue to initial empty state
+ *
+ * Empties it and gives the room back; the queue stays usable and the call is not an error on an already
+ * empty queue. NO_WAIT on an empty queue answers XY_OS_ERROR_RESOURCE rather than TIMEOUT - no time was
+ * waited for, so none ran out.
  * @param[in] mq_id Message queue ID
  * @return Status code
  */

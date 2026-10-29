@@ -1144,6 +1144,10 @@ xy_os_status_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
 {
     bm_pool_t *p = (bm_pool_t *)mp_id;
     if (!p || p->magic != BM_POOL_MAGIC) return XY_OS_ERROR_PARAMETER;
+    /* Refuse while any block is still out. Deleting the pool underneath a holder leaves that holder writing
+     * into memory the pool no longer owns - the same shape as deleting a mutex somebody holds, one object
+     * over. The FreeRTOS backend has always refused this with RESOURCE. */
+    if (p->free_count != p->capacity) return XY_OS_ERROR_RESOURCE;
     p->magic = 0;
     bm_pool_pool_free(p);
     return XY_OS_OK;

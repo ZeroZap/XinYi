@@ -405,6 +405,42 @@ static void test_stale_event_flags_answer_the_way_the_board_checks(void)
     TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_event_flags_delete(ef));
 }
 
+/* reset() is documented as "back to initial empty state" and the board self-check leans on it, but nothing
+ * here had ever put anything in a queue first - resetting an empty queue is not a test of a reset. */
+static void test_msgqueue_reset_empties_a_queue_that_was_being_used(void)
+{
+    xy_os_msgqueue_id_t q = xy_os_msgqueue_new(2U, sizeof(uint32_t), NULL);
+    TEST_ASSERT_NOT_NULL(q);
+
+    uint32_t first = 0xAAAAU, second = 0xBBBBU, out = 0U;
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &first, 0U, 0U));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &second, 0U, 0U));
+    TEST_ASSERT_EQUAL_UINT32(2U, xy_os_msgqueue_get_count(q));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_os_msgqueue_get_space(q));
+
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_reset(q));
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0U, xy_os_msgqueue_get_count(q), "reset empties it");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(2U, xy_os_msgqueue_get_space(q),
+                                     "reset gives the room back, it does not shrink the queue");
+
+    /* Nothing of the old contents may come back. NO_WAIT answers RESOURCE, not TIMEOUT: nothing was waited
+     * for, so no time ran out - the queue was simply empty when asked. A finite wait that expires is the
+     * one that answers TIMEOUT. */
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_RESOURCE, xy_os_msgqueue_get(q, &out, NULL, 0U));
+
+    /* And it still works afterwards: a reset must not leave the ring in a state that only looks empty. */
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &second, 0U, 0U));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_get(q, &out, NULL, 0U));
+    TEST_ASSERT_EQUAL_UINT32(second, out);
+
+    /* Resetting twice is not an error - it is already empty. */
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_reset(q));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_reset(q));
+
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_delete(q));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_msgqueue_reset(q));
+}
+
 static void test_stale_msgqueue_answers_the_way_the_board_checks(void)
 {
     xy_os_msgqueue_id_t q = xy_os_msgqueue_new(2U, sizeof(uint32_t), NULL);
@@ -748,6 +784,26 @@ static void test_mempool_free_refuses_a_pointer_it_never_handed_out(void)
 
 /* Freeing the same block twice put it on the free-list twice, so two later allocations handed out the
  * same memory to two owners - each of them certain it was theirs alone. */
+/* The pool's blocks can be out and in use; deleting the pool underneath them leaves every holder writing
+ * into memory the pool no longer owns. The FreeRTOS backend refuses this with RESOURCE and even guards
+ * against re-entering while it deletes; the bare-metal backend freed the slot regardless. */
+static void test_mempool_refuses_deletion_while_its_blocks_are_out(void)
+{
+    xy_os_mempool_id_t mp = xy_os_mempool_new(2U, 16U, NULL);
+    TEST_ASSERT_NOT_NULL(mp);
+    void *block = xy_os_mempool_alloc(mp, 0U);
+    TEST_ASSERT_NOT_NULL(block);
+
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_RESOURCE, xy_os_mempool_delete(mp));
+    /* Refused means untouched: the block is still usable and the pool still answers. */
+    TEST_ASSERT_EQUAL_UINT32(2U, xy_os_mempool_get_capacity(mp));
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_os_mempool_get_count(mp));
+
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mempool_free(mp, block));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mempool_delete(mp));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_mempool_delete(mp));
+}
+
 static void test_mempool_double_free_is_refused(void)
 {
     xy_os_mempool_id_t mp = xy_os_mempool_new(2U, 16U, NULL);
@@ -1055,6 +1111,7 @@ int main(void)
 
     /* Event Flags */
     RUN_TEST(test_stale_event_flags_answer_the_way_the_board_checks);
+    RUN_TEST(test_msgqueue_reset_empties_a_queue_that_was_being_used);
     RUN_TEST(test_stale_msgqueue_answers_the_way_the_board_checks);
     RUN_TEST(test_event_flags_wait_options);
     RUN_TEST(test_event_flags_reserve_the_error_bit_and_refuse_empty_masks);
@@ -1076,6 +1133,7 @@ int main(void)
 
     /* Memory Pool */
     RUN_TEST(test_mempool_free_refuses_a_pointer_it_never_handed_out);
+    RUN_TEST(test_mempool_refuses_deletion_while_its_blocks_are_out);
     RUN_TEST(test_mempool_double_free_is_refused);
     RUN_TEST(test_mempool_blocks_are_pointer_aligned);
     RUN_TEST(test_mempool_dimensions_that_overflow_are_refused);
