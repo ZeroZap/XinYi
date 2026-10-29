@@ -873,9 +873,16 @@ typedef struct {
 
 /**
  * @brief Create and Initialize a Message Queue object
- * @param[in] msg_count Maximum number of messages in queue
- * @param[in] msg_size Maximum message size in bytes
- * @param[in] attr Message queue attributes (NULL for default)
+ * @param[in] msg_count Maximum number of messages in queue; must not be 0, and msg_count * msg_size
+ *            must not overflow - the bare-metal backend sized its buffer with that product and, with no
+ *            check, 65536 x 65536 wrapped to zero, so the queue was built on a 256-byte buffer while
+ *            reporting a capacity of 65536 and every put wrote past the end
+ * @param[in] msg_size Maximum message size in bytes; must not be 0
+ * @param[in] attr Message queue attributes (NULL for default). Support for caller-owned storage
+ *            (cb_mem / mq_mem) is per backend and not portable: the bare-metal backend uses it when
+ *            large enough and otherwise falls back to its own pool without saying so, while the
+ *            FreeRTOS backend refuses any attr carrying storage and answers NULL. A caller that needs
+ *            placement must check the result rather than assume the memory it supplied was used
  * @return Message queue ID or NULL on error
  */
 xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,

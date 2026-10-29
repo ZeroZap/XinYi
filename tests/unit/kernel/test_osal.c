@@ -352,6 +352,24 @@ static void test_event_flags_no_clear(void)
 
 /* ========== Message Queue ========== */
 
+/* msg_count * msg_size was computed with no overflow check. Sixteen bits each multiply to zero, so the
+ * size test passed and the queue was built on the small embedded buffer while still reporting the huge
+ * capacity and message size - every later put writes far past it. The only safe answer is to refuse the
+ * parameters. */
+static void test_msgqueue_dimensions_that_overflow_are_refused(void)
+{
+    TEST_ASSERT_NULL(xy_os_msgqueue_new(0x10000U, 0x10000U, NULL));
+    TEST_ASSERT_NULL(xy_os_msgqueue_new(0xFFFFFFFFU, 2U, NULL));
+    /* The boundary itself is still accepted. */
+    xy_os_msgqueue_id_t ok = xy_os_msgqueue_new(4U, 4U, NULL);
+    TEST_ASSERT_NOT_NULL(ok);
+    TEST_ASSERT_EQUAL_UINT32(4U, xy_os_msgqueue_get_capacity(ok));
+    xy_os_msgqueue_delete(ok);
+    /* Zero dimensions were already refused; keep that pinned so the overflow fix does not relax it. */
+    TEST_ASSERT_NULL(xy_os_msgqueue_new(0U, 4U, NULL));
+    TEST_ASSERT_NULL(xy_os_msgqueue_new(4U, 0U, NULL));
+}
+
 static void test_msgqueue_put_get(void)
 {
     xy_os_msgqueue_id_t q = xy_os_msgqueue_new(4, sizeof(uint32_t), NULL);
@@ -640,6 +658,7 @@ int main(void)
     RUN_TEST(test_event_flags_no_clear);
 
     /* Message Queue */
+    RUN_TEST(test_msgqueue_dimensions_that_overflow_are_refused);
     RUN_TEST(test_msgqueue_put_get);
     RUN_TEST(test_msgqueue_fifo_order);
     RUN_TEST(test_msgqueue_full);

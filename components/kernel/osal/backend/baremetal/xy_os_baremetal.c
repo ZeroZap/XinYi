@@ -1064,6 +1064,10 @@ xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
                                        const xy_os_msgqueue_attr_t *attr)
 {
     if (msg_count == 0 || msg_size == 0) return NULL;
+    /* The buffer size is the product, and the product overflowed: 65536 x 65536 is zero in 32 bits, so
+     * the size check below passed and the queue was built on the 256-byte embedded buffer while still
+     * reporting the huge capacity and message size. Every later put wrote far past the end of it. */
+    if (msg_count > UINT32_MAX / msg_size) return NULL;
 
     bm_mq_t *q = (attr && attr->cb_mem &&
                   attr->cb_size >= sizeof(bm_mq_t))
