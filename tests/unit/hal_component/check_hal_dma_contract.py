@@ -127,6 +127,17 @@ def callback_findings(source: str, name: str) -> list[str]:
     return []
 
 
+def counter_findings(source: str, name: str) -> list[str]:
+    """Reading a counter from a channel that was never set up returns a plausible number."""
+    body = function_body(source, "xy_hal_dma_get_counter(")
+    if not body:
+        return [f"{name}: xy_hal_dma_get_counter is missing"]
+    if NOT_INIT not in body:
+        return [f"{name}: get_counter answers a counter register for a channel that was never set "
+                f"up, so an uninitialised read is indistinguishable from a real remaining count"]
+    return []
+
+
 def config_findings(source: str, name: str) -> list[str]:
     """An out-of-range enum must be refused, not defaulted by a mapping helper."""
     body = function_body(source, "xy_hal_dma_init(")
@@ -157,6 +168,7 @@ def findings(backends: dict | None = None, header: Path | None = None) -> list[s
         problems.extend(config_findings(source, name))
         problems.extend(mode_findings(source, name))
         problems.extend(callback_findings(source, name))
+        problems.extend(counter_findings(source, name))
         start_body = function_body(source, "xy_hal_dma_start(")
         if not start_body:
             problems.append(f"{name}: xy_hal_dma_start is missing")
@@ -191,6 +203,10 @@ def findings(backends: dict | None = None, header: Path | None = None) -> list[s
                 f"wait cannot be requested portably")
 
     text = read_raw(header)
+    if "does not enable the interrupt" not in text:
+        problems.append(
+            "xy_hal_dma.h: register_callback does not say that registering a callback leaves the "
+            "interrupt line alone, so a callback that never runs looks like a broken callback")
     if "waits indefinitely" not in text:
         problems.append("xy_hal_dma.h: poll_complete's zero timeout is not documented")
     if "Number of items" not in text:

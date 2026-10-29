@@ -294,6 +294,11 @@ int xy_hal_dma_get_counter(void *dma)
     if (!dma) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
+    /* A channel that was never set up still has a counter register, and its contents look
+     * exactly like a remaining count. F4 and WCH answer NOT_INIT here. */
+    if (find_dma_ctx(dma) == NULL) {
+        return XY_HAL_ERROR_NOT_INIT;
+    }
     return (int)__HAL_DMA_GET_COUNTER((DMA_HandleTypeDef *)dma);
 }
 

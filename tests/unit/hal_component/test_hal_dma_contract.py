@@ -19,6 +19,17 @@ xy_hal_error_t xy_hal_dma_start(void *dma, uint32_t src_addr, uint32_t dst_addr,
                : XY_HAL_ERROR_FAIL;
 }
 
+int xy_hal_dma_get_counter(void *dma)
+{
+    if (dma == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (find_context(dma) == NULL) {
+        return XY_HAL_ERROR_NOT_INIT;
+    }
+    return (int)__HAL_DMA_GET_COUNTER((DMA_HandleTypeDef *)dma);
+}
+
 xy_hal_error_t xy_hal_dma_stop(void *dma)
 {
     if (find_context(dma) == NULL) {
@@ -240,6 +251,40 @@ xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
     def test_an_ignored_registration_is_reported(self):
         problems = guard.findings(backend(self.UNCHECKED))
         self.assertTrue(any("interrupt shims" in p for p in problems))
+
+
+class CounterTests(unittest.TestCase):
+    ANSWERS_NOT_INIT = """
+int xy_hal_dma_get_counter(void *dma)
+{
+    if (dma == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (find_context(dma) == NULL) {
+        return XY_HAL_ERROR_NOT_INIT;
+    }
+    return (int)__HAL_DMA_GET_COUNTER((DMA_HandleTypeDef *)dma);
+}
+"""
+
+    READS_ANY = """
+xy_hal_error_t xy_hal_dma_get_counter(void *dma)
+{
+    if (dma == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    return (int)__HAL_DMA_GET_COUNTER((DMA_HandleTypeDef *)dma);
+}
+"""
+
+    def test_a_guarded_counter_passes(self):
+        problems = guard.findings(backend(self.ANSWERS_NOT_INIT))
+        self.assertFalse(any("counter register" in p for p in problems))
+
+    def test_an_unguarded_counter_is_reported(self):
+        source = self.READS_ANY.replace("xy_hal_error_t", "int")
+        problems = guard.findings(backend(source))
+        self.assertTrue(any("never set up" in p for p in problems))
 
 
 class RepositoryTests(unittest.TestCase):

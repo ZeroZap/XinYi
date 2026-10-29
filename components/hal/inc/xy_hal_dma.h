@@ -111,6 +111,12 @@ xy_hal_error_t xy_hal_dma_stop(void *dma);
 
 /**
  * @brief Register DMA callback
+ *
+ * Registering does not enable the interrupt: this API never touches a DMA interrupt line, because
+ * arming a line whose vector table has no handler is worse than not arming it. The caller enables
+ * the channel's IRQ (on STM32, xy_hal_sys_enable_irq_num) and supplies the vector, which calls
+ * xy_hal_dma_irq_handler. A callback registered without that never runs, and nothing here can tell
+ * you.
  * @param dma DMA instance
  * @param event Event type
  * @param callback Callback function
