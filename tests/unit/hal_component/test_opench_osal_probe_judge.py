@@ -38,6 +38,9 @@ def good_words() -> dict[str, int]:
         "xy_probe_i2c_recover_code": 0,
         "xy_probe_i2c_recover_value": probe.I2C_RECOVER_VALUE,
         "xy_probe_rx_irq_bytes": 10,
+        "xy_probe_rx_frames_ok": 5,
+        "xy_probe_rx_frames_bad": 0,
+        "xy_probe_rx_overflow": 0,
         "xTickCount": 100,
     }
 
@@ -45,7 +48,8 @@ def good_words() -> dict[str, int]:
 def ticking(ticks: int = 120, rx: int = 20) -> dict[str, int]:
     """The second snapshot: a good run shows the tick count and the receive count
     strictly larger, because both are supposed to still be moving."""
-    return {"xTickCount": ticks, "xy_probe_rx_irq_bytes": rx}
+    return {"xTickCount": ticks, "xy_probe_rx_irq_bytes": rx,
+            "xy_probe_rx_frames_ok": rx // 2}
 
 
 # The receive-interrupt judgement only exists when a writer supplied bytes.
@@ -91,6 +95,25 @@ class ProbeJudgeTests(unittest.TestCase):
         words = good_words()
         words["xy_probe_rx_irq_bytes"] = 0
         self.assertEqual(probe.judge(words, ticking(rx=0), None), [])
+
+    def test_a_lost_byte_is_rejected_even_though_bytes_still_arrive(self) -> None:
+        # The whole point of framed counting: the byte counter looks fine.
+        words = good_words()
+        words["xy_probe_rx_frames_bad"] = 3
+        errors = probe.judge(words, ticking(), UART)
+        self.assertTrue(any("continuity" in e for e in errors), errors)
+
+    def test_a_ring_overflow_is_rejected(self) -> None:
+        words = good_words()
+        words["xy_probe_rx_overflow"] = 2
+        errors = probe.judge(words, ticking(), UART)
+        self.assertTrue(any("overflowed" in e for e in errors), errors)
+
+    def test_no_complete_frame_is_rejected(self) -> None:
+        words = good_words()
+        words["xy_probe_rx_frames_ok"] = 0
+        errors = probe.judge(words, ticking(rx=20), UART)
+        self.assertTrue(any("no complete frame" in e for e in errors), errors)
 
     def test_a_nak_reported_as_success_is_rejected(self) -> None:
         words = good_words()

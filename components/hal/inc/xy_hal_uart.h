@@ -159,6 +159,19 @@ xy_hal_error_t xy_hal_uart_register_callback(void *uart,
 xy_hal_error_t xy_hal_uart_enable_rx_irq(void *uart, int enable);
 
 /**
+ * @brief Take the byte the last receive interrupt delivered
+ *
+ * xy_hal_uart_irq_handler() consumes the data register itself - leaving RXNE set
+ * would re-enter the interrupt forever - so the byte is handed over here instead of
+ * being read a second time by the callback. Valid inside the
+ * XY_HAL_UART_EVENT_RX_DONE callback; consumes the stashed byte.
+ *
+ * @param uart UART instance
+ * @return The byte (0..255), or XY_HAL_ERROR_NOT_FOUND when there is none pending
+ */
+int xy_hal_uart_rx_byte(void *uart);
+
+/**
  * @brief Deliver a pending UART interrupt to the HAL
  *
  * Platform interrupt handlers call this with the instance that fired. It clears the

@@ -53,6 +53,22 @@ volatile uint32_t xy_probe_i2c_recover_value;
    ever taken data in - every judgement so far was about output - so this is the
    first evidence that the receive interrupt path exists at all. */
 volatile uint32_t xy_probe_rx_irq_bytes;
+
+/* Receive stress: the interrupt only appends to this ring and counts how often it
+   could not. The size is a budget, not a guess: at the 115200 the probe runs at, a
+   byte costs 86.8 us, so a ring of 256 covers about 22 ms of line time. The task
+   drains every 5 ms, which leaves the ring around a tenth full - the first version
+   used 64 bytes with a 10 ms task, needed 56 bytes to survive the same rate, and
+   overflowed 35 times in a two-second run. */
+#define RX_RING_SIZE 256U
+#define RX_TASK_PERIOD_MS 5
+static volatile uint8_t rx_ring[RX_RING_SIZE];
+static volatile uint32_t rx_head;
+static volatile uint32_t rx_tail;
+
+volatile uint32_t xy_probe_rx_frames_ok;
+volatile uint32_t xy_probe_rx_frames_bad;
+volatile uint32_t xy_probe_rx_overflow;
 volatile uint32_t xy_probe_whoami;
 /* Milliseconds measured across a 256-byte UART burst (~22 ms at 115200). The
    HAL times its own waits with the same helper this uses, so a saw-tooth reading
@@ -66,8 +82,67 @@ volatile uint32_t xy_probe_uart_recv_code;
 static void rx_callback(void* instance, xy_hal_uart_event_t event, void* arg) {
     (void)instance;
     (void)arg;
-    if (event == XY_HAL_UART_EVENT_RX_DONE)
-        ++xy_probe_rx_irq_bytes;
+    if (event != XY_HAL_UART_EVENT_RX_DONE)
+        return;
+    ++xy_probe_rx_irq_bytes;
+    {
+        uint32_t next = (rx_head + 1U) % RX_RING_SIZE;
+        if (next == rx_tail) {
+            ++xy_probe_rx_overflow;
+            return;
+        }
+        int byte = xy_hal_uart_rx_byte(USART1);
+        if (byte < 0)
+            return;
+        rx_ring[rx_head] = (uint8_t)byte;
+        rx_head = next;
+    }
+}
+
+/* Frames are "IRQ" followed by a little-endian counter. Checking continuity is what
+   turns "bytes arrived" into "no byte was lost": a gap shows up as a bad frame even
+   though the byte count still looks healthy. */
+static void drain_rx_frames(void) {
+    static uint8_t frame[7];
+    static uint32_t have;
+    static int32_t expected = -1;
+
+    while (rx_tail != rx_head) {
+        frame[have++] = rx_ring[rx_tail];
+        rx_tail = (rx_tail + 1U) % RX_RING_SIZE;
+        if (have < sizeof(frame))
+            continue;
+        have = 0U;
+        if (frame[0] != 'I' || frame[1] != 'R' || frame[2] != 'Q') {
+            /* Resync one byte at a time instead of swallowing a whole frame:
+               otherwise a single dropped byte keeps every later frame misaligned
+               and one loss reads as a permanent failure. */
+            ++xy_probe_rx_frames_bad;
+            {
+                uint32_t keep = 0U;
+                uint32_t i;
+                for (i = 1U; i < sizeof(frame); ++i) {
+                    if (keep == 0U && frame[i] == 'I') {
+                        keep = 1U;
+                        frame[0] = frame[i];
+                    } else if (keep != 0U) {
+                        frame[keep++] = frame[i];
+                    }
+                }
+                have = keep;
+            }
+            continue;
+        }
+        {
+            int32_t index = (int32_t)(frame[3] | ((uint32_t)frame[4] << 8) |
+                                      ((uint32_t)frame[5] << 16) | ((uint32_t)frame[6] << 24));
+            if (expected < 0 || index == expected)
+                ++xy_probe_rx_frames_ok;
+            else
+                ++xy_probe_rx_frames_bad;
+            expected = index + 1;
+        }
+    }
 }
 
 static xy_os_event_flags_id_t event_id;
@@ -247,7 +322,8 @@ static void probe_task(void* argument) {
     else
         mark("OPENCH_OSAL_PROBE_RX_IRQ_ERROR_A\r\n");
     for (;;) {
-        (void)xy_os_delay(1000);
+        drain_rx_frames();
+        (void)xy_os_delay(RX_TASK_PERIOD_MS);
     }
 }
 

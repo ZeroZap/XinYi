@@ -13,6 +13,9 @@
 static uint8_t uart_initialized[8];
 static xy_hal_uart_callback_t error_callbacks[8];
 static void* error_callback_args[8];
+/* The byte the last receive interrupt took out of the data register. */
+static uint8_t rx_byte[8];
+static uint8_t rx_byte_valid[8];
 
 /* USART1..UART8 have their own interrupt vectors on this part; the index mirrors
    the order uart_index() uses. */
@@ -234,10 +237,10 @@ void xy_hal_uart_irq_handler(void* instance) {
         /* Reading the data register is what clears RXNE; the byte is handed to the
            callback rather than buffered here, so the HAL owns no queue and the
            application decides what to do under interrupt. */
-        uint8_t byte = (uint8_t)(USART_ReceiveData(instance) & 0xFFU);
+        rx_byte[index] = (uint8_t)(USART_ReceiveData(instance) & 0xFFU);
+        rx_byte_valid[index] = 1U;
         if (error_callbacks[index] != NULL)
             error_callbacks[index](instance, XY_HAL_UART_EVENT_RX_DONE, error_callback_args[index]);
-        (void)byte;
     }
     if (USART_GetITStatus(instance, USART_IT_ORE) != RESET) {
         USART_ClearITPendingBit(instance, USART_IT_ORE);
@@ -257,6 +260,18 @@ xy_hal_error_t xy_hal_uart_register_callback(void* instance, xy_hal_uart_callbac
     error_callback_args[index] = arg;
     return XY_HAL_OK;
 }
+int xy_hal_uart_rx_byte(void* instance) {
+    int index = uart_index(instance);
+    if (index < 0)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    if (uart_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
+    if (rx_byte_valid[index] == 0U)
+        return XY_HAL_ERROR_NOT_FOUND;
+    rx_byte_valid[index] = 0U;
+    return (int)rx_byte[index];
+}
+
 int xy_hal_uart_available(void* instance) {
     int index = uart_index(instance);
     if (index < 0)

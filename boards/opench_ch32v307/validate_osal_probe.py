@@ -70,6 +70,9 @@ SYMBOLS = (
     "xy_probe_i2c_recover_code",
     "xy_probe_i2c_recover_value",
     "xy_probe_rx_irq_bytes",
+    "xy_probe_rx_frames_ok",
+    "xy_probe_rx_frames_bad",
+    "xy_probe_rx_overflow",
     "xTickCount",
 )
 
@@ -113,16 +116,35 @@ def read_words(openocd: str, config: str, addresses: dict[str, int], resume: boo
 def _start_writer(port: str):
     """Keep feeding bytes to the board so the receive interrupt has something to do."""
     import os
+    import termios
     import threading
 
     stop = threading.Event()
 
     def run() -> None:
         fd = os.open(port, os.O_WRONLY | os.O_NOCTTY)
+        # Raw mode is not optional: in the default cooked settings the line
+        # discipline rewrites 0x0A as CR LF, which corrupts any binary payload -
+        # counter bytes 0x0A and 0x0D never arrive as themselves.
+        attrs = termios.tcgetattr(fd)
+        attrs[0] = 0  # iflag: no input translation
+        attrs[1] = 0  # oflag: no output translation
+        attrs[2] = termios.CS8 | termios.CREAD | termios.CLOCAL
+        attrs[3] = 0  # lflag: no echo, no canonical mode
+        attrs[4] = attrs[5] = termios.B115200
+        termios.tcsetattr(fd, termios.TCSANOW, attrs)
+        index = 0
         try:
             while not stop.is_set():
-                os.write(fd, b"IRQTEST-0123456789ABCDEF")
-                stop.wait(0.15)
+                # "IRQ" + a little-endian counter: the image checks that the counter
+                # only ever advances by one, so a lost byte becomes a bad frame
+                # instead of an unnoticed gap.
+                payload = b"".join(
+                    b"IRQ" + (index + i).to_bytes(4, "little") for i in range(16)
+                )
+                os.write(fd, payload)
+                index += 16
+                stop.wait(0.02)
         finally:
             os.close(fd)
 
@@ -171,6 +193,24 @@ def judge(first: dict[str, int], second: dict[str, int], uart: str | None = "") 
         errors.append(
             f"the receive interrupt stopped: xy_probe_rx_irq_bytes {rx_first} -> {rx_second} "
             "(a stale value cannot pass for a live interrupt)"
+        )
+    frames_first = first.get("xy_probe_rx_frames_ok") or 0
+    frames_second = second.get("xy_probe_rx_frames_ok") or 0
+    if uart and frames_first == 0:
+        errors.append("no complete frame was reassembled from the receive interrupt")
+    if uart and frames_second <= frames_first:
+        errors.append(
+            f"framed receive stalled: xy_probe_rx_frames_ok {frames_first} -> {frames_second}"
+        )
+    if uart and first.get("xy_probe_rx_frames_bad"):
+        errors.append(
+            f"{first.get('xy_probe_rx_frames_bad')} frames broke continuity: bytes were lost "
+            "or the counter skipped"
+        )
+    if uart and first.get("xy_probe_rx_overflow"):
+        errors.append(
+            f"the receive ring overflowed {first.get('xy_probe_rx_overflow')} times: the task "
+            "could not keep up with the interrupt"
         )
     if first.get("xy_probe_i2c_nak_code") != I2C_NOT_FOUND_CODE:
         errors.append(
