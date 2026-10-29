@@ -32,7 +32,10 @@ xy_hal_error_t xy_hal_dma_poll_complete(void *dma, uint32_t timeout)
     if (((DMA_HandleTypeDef *)dma)->State == HAL_DMA_STATE_RESET) {
         return XY_HAL_ERROR_NOT_INIT;
     }
-    return XY_HAL_OK;
+    return HAL_DMA_PollForTransfer((DMA_HandleTypeDef *)dma, HAL_DMA_FULL_TRANSFER,
+                                   timeout == 0U ? HAL_MAX_DELAY : timeout) == HAL_OK
+               ? XY_HAL_OK
+               : XY_HAL_ERROR_TIMEOUT;
 }
 """
 
@@ -75,6 +78,45 @@ class HeaderTests(unittest.TestCase):
         problems = guard.findings(backend(CORRECT), header=Path("/dev/null"))
         self.assertTrue(any("count of items" in p for p in problems))
         self.assertTrue(any("item counter limit" in p for p in problems))
+
+
+class ZeroTimeoutTests(unittest.TestCase):
+    POLL_VENDOR = """
+xy_hal_error_t xy_hal_dma_poll_complete(void *dma, uint32_t timeout)
+{
+    if (find_context(dma) == NULL) {
+        return XY_HAL_ERROR_NOT_INIT;
+    }
+    HAL_StatusTypeDef st = HAL_DMA_PollForTransfer((DMA_HandleTypeDef *)dma,
+                                                   HAL_DMA_FULL_TRANSFER, %s);
+    return st == HAL_OK ? XY_HAL_OK : XY_HAL_ERROR_TIMEOUT;
+}
+"""
+    POLL_LOOP = """
+xy_hal_error_t xy_hal_dma_poll_complete(void* dma, uint32_t timeout) {
+    if (!contexts[index].initialized)
+        return XY_HAL_ERROR_NOT_INIT;
+    start = dma_tick_ms();
+    while (DMA_GetFlagStatus(complete_flag) == RESET) {
+        if (timeout != 0U && (dma_tick_ms() - start) >= timeout)
+            return XY_HAL_ERROR_TIMEOUT;
+    }
+    return XY_HAL_OK;
+}
+"""
+
+    def test_a_translated_timeout_passes(self):
+        source = self.POLL_VENDOR % "timeout == 0U ? HAL_MAX_DELAY : timeout" + CORRECT
+        self.assertEqual(guard.findings(backend(source)), [])
+
+    def test_a_bare_timeout_is_reported(self):
+        source = self.POLL_VENDOR % "timeout"
+        problems = guard.findings(backend(source))
+        self.assertTrue(any("unchanged" in p for p in problems))
+
+    def test_an_explicit_zero_test_is_accepted(self):
+        problems = guard.findings(backend(self.POLL_LOOP))
+        self.assertFalse(any("zero timeout" in p for p in problems))
 
 
 class RepositoryTests(unittest.TestCase):

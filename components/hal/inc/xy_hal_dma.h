@@ -131,7 +131,10 @@ int xy_hal_dma_get_counter(void *dma);
 /**
  * @brief Poll for DMA transfer completion
  * @param dma DMA instance
- * @param timeout Timeout in milliseconds
+ * @param timeout Milliseconds to wait; 0 waits indefinitely. HAL's own poll treats 0 as an
+ *        immediate timeout and spells an unbounded wait HAL_MAX_DELAY, so each STM32 backend
+ *        translates at that boundary - passing the caller's value straight through made the
+ *        same argument block forever on the WCH part and fail at once on the STM32 parts.
  * @return 0 on success, negative on error/timeout
  */
 xy_hal_error_t xy_hal_dma_poll_complete(void *dma, uint32_t timeout);

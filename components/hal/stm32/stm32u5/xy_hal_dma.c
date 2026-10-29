@@ -280,9 +280,11 @@ xy_hal_error_t xy_hal_dma_poll_complete(void *dma, uint32_t timeout)
     if (ctx == NULL || !ctx->initialized) {
         return XY_HAL_ERROR_NOT_INIT;
     }
-    HAL_StatusTypeDef st = HAL_DMA_PollForTransfer((DMA_HandleTypeDef *)dma,
-                                                   HAL_DMA_FULL_TRANSFER,
-                                                   timeout);
+    HAL_StatusTypeDef st = /* The public contract spells an unbounded wait as 0; HAL spells it HAL_MAX_DELAY
+  * and returns HAL_TIMEOUT at once for 0. Passing the caller's value through made the
+  * same argument wait forever on WCH and fail immediately here. */
+ HAL_DMA_PollForTransfer((DMA_HandleTypeDef *)dma, HAL_DMA_FULL_TRANSFER,
+                        timeout == 0U ? HAL_MAX_DELAY : timeout);
     if (st == HAL_OK) {
         return XY_HAL_OK;
     }

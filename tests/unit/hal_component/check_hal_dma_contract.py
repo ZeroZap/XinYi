@@ -37,6 +37,11 @@ BACKENDS = {
 REFUSES_ZERO = re.compile(r"data_len\s*==\s*0U?")
 CAPS_COUNT = re.compile(r"data_len\s*>\s*(?:0xFFFFU?|UINT16_MAX|65535U?)")
 NOT_INIT = "XY_HAL_ERROR_NOT_INIT"
+# Either translation of "0 waits forever": HAL's own sentinel, or an explicit zero test.
+UNBOUNDED_WAIT = re.compile(r"HAL_MAX_DELAY|timeout\s*!=\s*0U?")
+# The vendor poll taking the caller's value unchanged - which means 0 fails at once.
+BARE_TIMEOUT = re.compile(
+    r"PollForTransfer\s*\([^;]*?,\s*timeout\s*\)", re.S)
 
 
 def function_body(source: str, signature: str) -> str:
@@ -87,7 +92,23 @@ def findings(backends: dict | None = None, header: Path | None = None) -> list[s
                     f"{name}: {entry.rstrip('(')} does not answer an uninitialised channel with "
                     f"NOT_INIT, so 'never set up' looks like a vendor failure")
 
+    for name, path in sorted(backends.items()):
+        source = source_of(path)
+        body = function_body(source, "xy_hal_dma_poll_complete(")
+        if not body:
+            continue
+        if BARE_TIMEOUT.search(body):
+            problems.append(
+                f"{name}: poll_complete hands the caller's timeout to the vendor poll unchanged, so "
+                f"0 means an immediate timeout here and an unbounded wait on WCH")
+        elif not UNBOUNDED_WAIT.search(body):
+            problems.append(
+                f"{name}: poll_complete never states what a zero timeout means, so an unbounded "
+                f"wait cannot be requested portably")
+
     text = read_raw(header)
+    if "waits indefinitely" not in text:
+        problems.append("xy_hal_dma.h: poll_complete's zero timeout is not documented")
     if "Number of items" not in text:
         problems.append(
             "xy_hal_dma.h: data_len is not documented as a count of items of the configured width")
