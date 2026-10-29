@@ -430,12 +430,17 @@ Use the bounded capture helper after the board or independent USB-TTL adapter ap
 
 ```text
 python3 boards/pandora_stm32l475/capture_uart.py \
-  --device /dev/ttyACM0 \
+  --device /dev/ttyUSB0 \
   --timeout 6 \
   --firmware-commit <exact-flashed-commit> \
   --output build/pandora-runtime/uart.log \
   --metadata build/pandora-runtime/capture.json
 ```
+
+`/dev/ttyUSB0` is the CP2102, which is the board's console. The ST-Link virtual COM port is not: the
+blocker section above is what capturing from it looks like. Once the helper has opened the device and
+discarded any bytes left from an earlier run it prints `LISTENING device=... timeout=...`, so an operator -
+or a script - can tell when it is actually watching instead of inferring it from elapsed time.
 
 The helper exits nonzero and records `NO_DATA_TIMEOUT`, `DEVICE_OPEN_FAILED`, `CAPTURE_IO_FAILED`, or
 `CAPTURE_CONTENT_MISMATCH` rather than creating false runtime evidence. Captured bytes only receive
