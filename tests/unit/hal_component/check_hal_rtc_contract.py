@@ -37,7 +37,7 @@ BACKENDS = {
 # How many of the public entries each backend defines today. Not a target - a record. An entry gained
 # fails the guard until the number is raised, and an entry lost fails it because it dropped.
 PINNED_COVERAGE = {
-    "stm32l4": 2,
+    "stm32l4": 15,
     "stm32u5": 15,
     "stm32f4": 13,
     "wch": 15,

@@ -12,6 +12,16 @@
 #define HAL_QSPI_MODULE_ENABLED
 #define HAL_RCC_MODULE_ENABLED
 #define HAL_RTC_MODULE_ENABLED
+
+/* LSE is 32.768 kHz on this board: (127 + 1) * (255 + 1) = 32768, so the calendar ticks at 1 Hz.
+ * This is the HAL configuration the Pandora build actually includes, so the choice belongs here; the
+ * RTC wrapper carries a matching fallback so it also builds outside a board. */
+#ifndef RTC_ASYNCH_PREDIV
+#define RTC_ASYNCH_PREDIV 127U
+#endif
+#ifndef RTC_SYNCH_PREDIV
+#define RTC_SYNCH_PREDIV 255U
+#endif
 #define HAL_SPI_MODULE_ENABLED
 #define HAL_TIM_MODULE_ENABLED
 #define HAL_UART_MODULE_ENABLED
