@@ -1078,9 +1078,12 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
                                   const void *msg_ptr, uint8_t msg_prio,
                                   uint32_t timeout)
 {
-    (void)msg_prio;
     bm_mq_t *q = (bm_mq_t *)mq_id;
     if (!q || q->magic != BM_QUEUE_MAGIC || !msg_ptr) return XY_OS_ERROR_PARAMETER;
+    /* No backend implements priority ordering, and a FIFO queue cannot preserve a priority contract -
+     * so a non-zero priority is refused rather than silently ignored. The FreeRTOS backend has always
+     * done this; this one accepted it, which meant the same call succeeded here and failed there. */
+    if (msg_prio != 0U) return XY_OS_ERROR_PARAMETER;
 
     uint32_t deadline = (timeout == XY_OS_WAIT_FOREVER)
                         ? 0xFFFFFFFFu

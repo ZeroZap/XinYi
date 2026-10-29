@@ -353,13 +353,14 @@ static void test_msgqueue_full(void)
     uint32_t v = 1;
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &v, 0, 0));
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &v, 0, 0));
-    /* Full — timeout=0 must not block */
-    xy_os_status_t s = xy_os_msgqueue_put(q, &v, 0, 0);
-    if (s == XY_OS_ERROR_RESOURCE) {
-        TEST_ASSERT_EQUAL(XY_OS_ERROR_RESOURCE, s);
-    } else {
-        TEST_ASSERT_EQUAL(XY_OS_ERROR_TIMEOUT, s);
-    }
+    /* Full and told not to wait: that is a resource condition, not a timeout - nothing was waited
+     * for. This assertion used to accept either code, which is how the two backends disagreed without
+     * anybody noticing. */
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_RESOURCE, xy_os_msgqueue_put(q, &v, 0, 0));
+    /* A finite wait cannot be exercised here: this backend polls xy_tick_get(), and on the host
+     * nothing advances the tick, so any timeout above zero spins forever. That is a property of the
+     * backend worth knowing - its waits depend entirely on an external tick source - but it belongs in
+     * the contract, not in a test that would hang the suite. */
     xy_os_msgqueue_delete(q);
 }
 
@@ -368,12 +369,10 @@ static void test_msgqueue_empty_get(void)
     xy_os_msgqueue_id_t q = xy_os_msgqueue_new(2, sizeof(uint32_t), NULL);
     TEST_ASSERT_NOT_NULL(q);
     uint32_t out = 0;
-    xy_os_status_t s = xy_os_msgqueue_get(q, &out, NULL, 0);
-    if (s == XY_OS_ERROR_RESOURCE) {
-        TEST_ASSERT_EQUAL(XY_OS_ERROR_RESOURCE, s);
-    } else {
-        TEST_ASSERT_EQUAL(XY_OS_ERROR_TIMEOUT, s);
-    }
+    /* Empty and told not to wait: nothing was waited for, so it is not a timeout. */
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_RESOURCE, xy_os_msgqueue_get(q, &out, NULL, 0));
+    /* The waited-for variant is documented as XY_OS_ERROR_TIMEOUT but cannot be run here; see the
+     * note in test_msgqueue_full. */
     xy_os_msgqueue_delete(q);
 }
 
@@ -409,24 +408,35 @@ static void test_msgqueue_binary_fixed_size_message(void)
     xy_os_msgqueue_delete(q);
 }
 
-static void test_msgqueue_priority_is_ignored_fifo_contract(void)
+/* No backend implements priority ordering and a FIFO queue cannot preserve a priority contract, so a
+ * non-zero priority is refused rather than silently dropped. This test used to assert the opposite -
+ * that the value was ignored and the message queued - while the FreeRTOS backend refused the same
+ * call and a guard required it to. Two contracts for one API, each with its own test. The one with a
+ * stated reason wins: a caller that believes messages are ordered by priority hears nothing when they
+ * are not. */
+static void test_msgqueue_priority_is_refused_contract(void)
 {
     xy_os_msgqueue_id_t q = xy_os_msgqueue_new(2, sizeof(uint32_t), NULL);
     TEST_ASSERT_NOT_NULL(q);
 
     uint32_t low = 1;
     uint32_t high = 2;
-    uint8_t prio = 0xA5;
     uint32_t out = 0;
+    uint8_t prio = 0xA5;
 
-    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &low, 1, 0));
-    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &high, 255, 0));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_msgqueue_put(q, &low, 1, 0));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_msgqueue_put(q, &high, 255, 0));
+    /* Nothing was queued by either refused call. */
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_os_msgqueue_get_count(q));
+
+    /* Zero means "no priority" and is the only accepted value; the queue is FIFO. */
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &low, 0, 0));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &high, 0, 0));
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_get(q, &out, &prio, 0));
     TEST_ASSERT_EQUAL_UINT32(low, out);
     TEST_ASSERT_EQUAL_UINT8(0U, prio);
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_get(q, &out, &prio, 0));
     TEST_ASSERT_EQUAL_UINT32(high, out);
-    TEST_ASSERT_EQUAL_UINT8(0U, prio);
     xy_os_msgqueue_delete(q);
 }
 
@@ -596,7 +606,7 @@ int main(void)
     RUN_TEST(test_msgqueue_empty_get);
     RUN_TEST(test_msgqueue_reset);
     RUN_TEST(test_msgqueue_binary_fixed_size_message);
-    RUN_TEST(test_msgqueue_priority_is_ignored_fifo_contract);
+    RUN_TEST(test_msgqueue_priority_is_refused_contract);
     RUN_TEST(test_msgqueue_static_cb_and_storage);
 
     /* Memory Pool */

@@ -155,7 +155,7 @@ def main() -> int:
         "return XY_OS_ERROR_TIMEOUT;",
         "pdstatus_to_xy_wait(xSemaphoreTake(context->mutex, ticks))",
         "pdstatus_to_xy_wait(xSemaphoreTake(s, ticks))",
-        "pdstatus_to_xy_wait(xQueueSendToBack(q, msg_ptr, ticks))",
+        "result = xQueueSendToBack(q, msg_ptr, ticks)",
         "result = xQueueReceive(q, msg_ptr, ticks)",
         "pdstatus_to_xy_wait(result)",
     ):

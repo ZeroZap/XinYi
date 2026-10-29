@@ -1554,13 +1554,17 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
     QueueHandle_t q;
     TickType_t ticks;
+    BaseType_t result;
 
     if (!freertos_find_msgqueue_context(context) || !context->queue || !msg_ptr ||
         msg_prio != 0U ||
         !freertos_timeout_to_ticks(timeout, &ticks))
         return XY_OS_ERROR_PARAMETER;
     q = context->queue;
-    return pdstatus_to_xy_wait(xQueueSendToBack(q, msg_ptr, ticks));
+    result = xQueueSendToBack(q, msg_ptr, ticks);
+    if (result != pdPASS && ticks == 0U)
+        return XY_OS_ERROR_RESOURCE;
+    return pdstatus_to_xy_wait(result);
 }
 
 xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
@@ -1578,6 +1582,11 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
     result = xQueueReceive(q, msg_ptr, ticks);
     if (result == pdPASS && msg_prio)
         *msg_prio = 0;
+    /* Nothing was waited for, so "nothing there" is a resource condition rather than a timeout. The
+     * bare-metal backend has always drawn that line; this one reported both as a timeout, so the same
+     * call returned different codes depending on the backend. */
+    if (result != pdPASS && ticks == 0U)
+        return XY_OS_ERROR_RESOURCE;
     return pdstatus_to_xy_wait(result);
 }
 

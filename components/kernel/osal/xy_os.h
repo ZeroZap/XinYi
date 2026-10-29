@@ -870,9 +870,14 @@ const char *xy_os_msgqueue_get_name(xy_os_msgqueue_id_t mq_id);
  * @brief Put a message into a Message Queue
  * @param[in] mq_id Message queue ID
  * @param[in] msg_ptr Message pointer
- * @param[in] msg_prio Message priority
+ * @param[in] msg_prio Must be 0. No backend implements priority ordering and a FIFO queue cannot
+ *            preserve a priority contract, so a non-zero value is refused with
+ *            XY_OS_ERROR_PARAMETER rather than silently queued out of order. An earlier test in this
+ *            tree asserted the opposite for the bare-metal backend while a guard required the refusal
+ *            for FreeRTOS; the refusal is the contract
  * @param[in] timeout Ticks to wait; XY_OS_NO_WAIT to poll once, XY_OS_WAIT_FOREVER to block
- * @return Status code
+ * @return XY_OS_OK; XY_OS_ERROR_RESOURCE when the queue is full and XY_OS_NO_WAIT asked for no wait;
+ *         XY_OS_ERROR_TIMEOUT when a wait elapsed without room; XY_OS_ERROR_PARAMETER on a bad handle
  */
 xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
                                   const void *msg_ptr, uint8_t msg_prio,
@@ -882,10 +887,11 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
  * @brief Get a message from a Message Queue or timeout if queue is empty
  * @param[in] mq_id Message queue ID
  * @param[out] msg_ptr Pointer to buffer for message
- * @param[out] msg_prio Pointer to buffer for message priority (NULL if not
- * needed)
+ * @param[out] msg_prio Always receives 0 - priority ordering is not implemented (NULL if not needed)
  * @param[in] timeout Ticks to wait; XY_OS_NO_WAIT to poll once, XY_OS_WAIT_FOREVER to block
- * @return Status code
+ * @return XY_OS_OK; XY_OS_ERROR_RESOURCE when the queue is empty and XY_OS_NO_WAIT asked for no
+ *         wait; XY_OS_ERROR_TIMEOUT when a wait elapsed with nothing arriving; XY_OS_ERROR_PARAMETER
+ *         on a bad handle
  */
 xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
                                   uint8_t *msg_prio, uint32_t timeout);
