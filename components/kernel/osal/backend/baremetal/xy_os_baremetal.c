@@ -587,12 +587,23 @@ const char *xy_os_timer_get_name(xy_os_timer_id_t id)
     if (!id || (uintptr_t)id > 8) {
         return NULL;
     }
+    /* An uncreated slot used to answer the made-up name "timer" - a query answering about an object that
+     * is not there, the same shape as the thread queries that all reported the main thread. */
+    if (!s_timers[(uintptr_t)id - 1].callback) {
+        return NULL;
+    }
     return s_timers[(uintptr_t)id - 1].name[0] ? s_timers[(uintptr_t)id - 1].name : "timer";
 }
 
 xy_os_status_t xy_os_timer_start(xy_os_timer_id_t id, uint32_t ticks)
 {
     if (!id || (uintptr_t)id > 8) {
+        return XY_OS_ERROR_PARAMETER;
+    }
+    /* A handle is a slot index, so being in range says nothing about whether a timer exists there. Without
+     * this a stale id started a software timer with no callback: it never fired and the call still
+     * answered OK. The FreeRTOS backend looks the handle up in its context table and answers PARAMETER. */
+    if (!s_timers[(uintptr_t)id - 1].callback) {
         return XY_OS_ERROR_PARAMETER;
     }
 
@@ -623,6 +634,9 @@ xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t id)
     if (!id || (uintptr_t)id > 8) {
         return XY_OS_ERROR_PARAMETER;
     }
+    if (!s_timers[(uintptr_t)id - 1].callback) {
+        return XY_OS_ERROR_PARAMETER;
+    }
     
     baremetal_timer_ctx_t *ctx = &s_timers[(uintptr_t)id - 1];
     if (ctx->sw_timer_id) {
@@ -643,6 +657,11 @@ uint32_t xy_os_timer_is_running(xy_os_timer_id_t id)
 xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t id)
 {
     if (!id || (uintptr_t)id > 8) {
+        return XY_OS_ERROR_PARAMETER;
+    }
+    /* Deleting twice answered OK, which is the whole false-success family again: the second call did
+     * nothing and said it worked. */
+    if (!s_timers[(uintptr_t)id - 1].callback) {
         return XY_OS_ERROR_PARAMETER;
     }
     

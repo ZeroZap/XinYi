@@ -173,6 +173,32 @@ static void test_periodic_timer_fires_once_per_interval(void)
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_timer_delete(t));
 }
 
+/* Timer handles are slot indices, so "valid" was only ever "in range". A timer that was deleted, or
+ * never created, still answered OK to start and stop and delete, and get_name invented the name "timer"
+ * for it. The FreeRTOS backend looks the handle up in its context table and answers PARAMETER.
+ *
+ * One timer only: this test runs last and touches a single slot, because filling the pool perturbs other
+ * cases that leave state behind. */
+static void timer_callback_for_stale(void *arg)
+{
+    (void)arg;
+}
+
+static void test_timer_entries_refuse_a_handle_that_was_never_created(void)
+{
+    xy_os_timer_id_t id = xy_os_timer_new(timer_callback_for_stale, XY_OS_TIMER_ONCE, NULL, NULL);
+    TEST_ASSERT_NOT_NULL(id);
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_timer_delete(id));
+
+    /* The id is stale now: nothing was created there any more. */
+    TEST_ASSERT_EQUAL_MESSAGE(XY_OS_ERROR_PARAMETER, xy_os_timer_start(id, 3U),
+                              "a deleted timer is not a timer anymore");
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_timer_stop(id));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_timer_delete(id));
+    TEST_ASSERT_NULL(xy_os_timer_get_name(id));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_os_timer_is_running(id));
+}
+
 static void test_timer_expires_after_the_ticks_it_was_given(void)
 {
     int arg = 7;
@@ -1011,6 +1037,7 @@ int main(void)
     RUN_TEST(test_start_and_stop_does_not_exhaust_the_timer_pool);
     RUN_TEST(test_periodic_timer_fires_once_per_interval);
     RUN_TEST(test_timer_expires_after_the_ticks_it_was_given);
+    RUN_TEST(test_timer_entries_refuse_a_handle_that_was_never_created);
     RUN_TEST(test_timer_one_shot_and_reuse);
 
     /* Mutex */

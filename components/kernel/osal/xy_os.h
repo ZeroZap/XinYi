@@ -533,7 +533,8 @@ const char *xy_os_timer_get_name(xy_os_timer_id_t timer_id);
  * @brief Start or restart a timer
  * @param[in] timer_id Timer ID
  * @param[in] ticks Time ticks value
- * @return Status code
+ * @return Status code; XY_OS_ERROR_PARAMETER for a handle that is not a live timer, including one this
+ *         timer was deleted from - a handle is an opaque id, not something to re-use after delete
  */
 xy_os_status_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks);
 
