@@ -34,11 +34,10 @@ elseif(HAL_PLATFORM STREQUAL "STM32F4")
     # Wrappers whose signatures still drift from the current public HAL
     # contracts.  They are excluded explicitly (never silently) until the
     # migration slice lands; re-adding one without fixing it fails the build.
-    set(XY_HAL_F4_DEFERRED_SOURCES
-        xy_hal_timer.c)
-    # Literal filters are authoritative (the build-contract guard parses them),
-    # so a wrapper can never be "listed as deferred" without being excluded.
-    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_timer\.c$")
+    # Empty: xy_hal_rtc.c and xy_hal_timer.c were both repaired and are built
+    # now.  The variable stays so that deferring a wrapper again is a visible,
+    # guard-checked decision rather than an unexplained exclusion.
+    set(XY_HAL_F4_DEFERRED_SOURCES)
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
         STM32F4

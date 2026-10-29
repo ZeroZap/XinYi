@@ -40,9 +40,7 @@ GUARD = "STM32_HAL_ENABLED"
 # out left a braced block at file scope, and four HAL calls had their last
 # argument commented away.  Recording the shrink here is the point of the set:
 # the built surface is a decision, and this makes it a visible one.
-EXPECTED_F4_DEFERRED = {
-    "xy_hal_timer.c",
-}
+EXPECTED_F4_DEFERRED: set[str] = set()
 
 # STM32F4 wrappers the STM32L4 branch deliberately does not build: the F4
 # implementation uses F4-only peripheral contracts (ADC->CCR, 3-cycle sample
