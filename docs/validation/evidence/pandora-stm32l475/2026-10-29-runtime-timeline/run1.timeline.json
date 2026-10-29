@@ -1,0 +1,621 @@
+{
+  "banner_seen": true,
+  "baudrate": 115200,
+  "capture_sha256": "18576c0b11f7ab7a9f4354136213047364c2f5141dd86ef65f12aba6015dbec2",
+  "captured_at_utc": "2026-10-28T22:40:18.468789+00:00",
+  "captured_bytes": 3559,
+  "device": "/dev/ttyUSB0",
+  "first_line_ms": 1.098,
+  "last_line_ms": 3278.124,
+  "line_count": 151,
+  "lines": [
+    {
+      "t_ms": 1.098,
+      "text": "PANDORA STM32L475VE XINYI OSAL FREERTOS READY"
+    },
+    {
+      "t_ms": 6.157,
+      "text": "FIRMWARE_COMMIT 6ed9c8e997c71a30972c5df1ccbe45629e74ed89"
+    },
+    {
+      "t_ms": 8.195,
+      "text": "OSAL_STRESS_READY"
+    },
+    {
+      "t_ms": 12.149,
+      "text": "OSAL_PRE_SCHEDULER_HAL_TICK 4"
+    },
+    {
+      "t_ms": 14.127,
+      "text": "OSAL_TIM6_IRQ_TAKE"
+    },
+    {
+      "t_ms": 36.239,
+      "text": "OSAL_TASK_HAL_TICK_DELTA 20"
+    },
+    {
+      "t_ms": 38.226,
+      "text": "OSAL_MUTEX_FAST"
+    },
+    {
+      "t_ms": 39.138,
+      "text": "OSAL_TASK_FAST"
+    },
+    {
+      "t_ms": 41.131,
+      "text": "OSAL_QUEUE_SEND"
+    },
+    {
+      "t_ms": 42.227,
+      "text": "OSAL_EVENT_SET"
+    },
+    {
+      "t_ms": 43.203,
+      "text": "OSAL_IPC_SEND"
+    },
+    {
+      "t_ms": 45.154,
+      "text": "OSAL_PM_TICK"
+    },
+    {
+      "t_ms": 46.14,
+      "text": "OSAL_SEM_TAKE"
+    },
+    {
+      "t_ms": 48.198,
+      "text": "OSAL_EVENT_WAIT"
+    },
+    {
+      "t_ms": 49.223,
+      "text": "OSAL_QUEUE_RECV"
+    },
+    {
+      "t_ms": 51.226,
+      "text": "OSAL_DEVICE_LOOKUP"
+    },
+    {
+      "t_ms": 53.227,
+      "text": "[I] OSAL_TRACE_DELIVER"
+    },
+    {
+      "t_ms": 55.2,
+      "text": "OSAL_IPC_DELIVER"
+    },
+    {
+      "t_ms": 56.228,
+      "text": "OSAL_MUTEX_SLOW"
+    },
+    {
+      "t_ms": 57.238,
+      "text": "OSAL_TASK_SLOW"
+    },
+    {
+      "t_ms": 276.213,
+      "text": "OSAL_IPC_SATURATED"
+    },
+    {
+      "t_ms": 278.207,
+      "text": "OSAL_IPC_RECOVERED"
+    },
+    {
+      "t_ms": 280.153,
+      "text": "OSAL_IPC_HANDLER_REJECTED"
+    },
+    {
+      "t_ms": 283.237,
+      "text": "OSAL_IPC_HANDLER_RECOVERED"
+    },
+    {
+      "t_ms": 285.228,
+      "text": "OSAL_RESOURCE_EXHAUSTED"
+    },
+    {
+      "t_ms": 388.232,
+      "text": "OSAL_BLOCKING_TIMEOUT_OK"
+    },
+    {
+      "t_ms": 390.173,
+      "text": "OSAL_RESOURCE_RECOVERED"
+    },
+    {
+      "t_ms": 392.227,
+      "text": "OSAL_RESOURCE_DELETED"
+    },
+    {
+      "t_ms": 394.198,
+      "text": "OSAL_LIFECYCLE_REINIT"
+    },
+    {
+      "t_ms": 565.23,
+      "text": "OSAL_MUTEX_FAST"
+    },
+    {
+      "t_ms": 566.2,
+      "text": "OSAL_TASK_FAST"
+    },
+    {
+      "t_ms": 568.202,
+      "text": "OSAL_QUEUE_SEND"
+    },
+    {
+      "t_ms": 569.39,
+      "text": "OSAL_EVENT_SET"
+    },
+    {
+      "t_ms": 571.223,
+      "text": "OSAL_IPC_SEND"
+    },
+    {
+      "t_ms": 572.147,
+      "text": "OSAL_PM_TICK"
+    },
+    {
+      "t_ms": 573.203,
+      "text": "OSAL_SEM_TAKE"
+    },
+    {
+      "t_ms": 575.226,
+      "text": "OSAL_EVENT_WAIT"
+    },
+    {
+      "t_ms": 576.151,
+      "text": "OSAL_QUEUE_RECV"
+    },
+    {
+      "t_ms": 578.222,
+      "text": "OSAL_DEVICE_LOOKUP"
+    },
+    {
+      "t_ms": 580.22,
+      "text": "[I] OSAL_TRACE_DELIVER"
+    },
+    {
+      "t_ms": 582.218,
+      "text": "OSAL_IPC_DELIVER"
+    },
+    {
+      "t_ms": 583.137,
+      "text": "OSAL_MUTEX_SLOW"
+    },
+    {
+      "t_ms": 585.177,
+      "text": "OSAL_TASK_SLOW"
+    },
+    {
+      "t_ms": 798.2,
+      "text": "PANDORA_DMA_MEM2MEM_OK"
+    },
+    {
+      "t_ms": 801.249,
+      "text": "PANDORA_DMA_IRQ_CALLBACK_OK"
+    },
+    {
+      "t_ms": 803.128,
+      "text": "PANDORA_DMA_STOP_RECOVERY_OK"
+    },
+    {
+      "t_ms": 806.204,
+      "text": "PANDORA_W25Q128_JEDEC_ID_OK"
+    },
+    {
+      "t_ms": 842.231,
+      "text": "PANDORA_W25Q128_ERASE_WRITE_READ_OK"
+    },
+    {
+      "t_ms": 845.206,
+      "text": "PANDORA_W25Q128_PERSISTENCE_STAGED"
+    },
+    {
+      "t_ms": 849.203,
+      "text": "PANDORA_W25Q128_PERSISTENCE_RECOVERED"
+    },
+    {
+      "t_ms": 852.22,
+      "text": "PANDORA_W25Q128_QUAD_READ_OK"
+    },
+    {
+      "t_ms": 888.229,
+      "text": "PANDORA_W25Q128_QUAD_PROGRAM_OK"
+    },
+    {
+      "t_ms": 924.178,
+      "text": "PANDORA_W25Q128_FOTA_DOWNLOAD_CRC_OK"
+    },
+    {
+      "t_ms": 970.209,
+      "text": "OSAL_TIM6_IRQ_TIMEOUT_EXPECTED"
+    },
+    {
+      "t_ms": 1068.499,
+      "text": "OSAL_ISR_TAKE"
+    },
+    {
+      "t_ms": 1104.173,
+      "text": "OSAL_MUTEX_FAST"
+    },
+    {
+      "t_ms": 1106.218,
+      "text": "OSAL_TASK_FAST"
+    },
+    {
+      "t_ms": 1108.128,
+      "text": "OSAL_QUEUE_SEND"
+    },
+    {
+      "t_ms": 1110.198,
+      "text": "OSAL_EVENT_SET"
+    },
+    {
+      "t_ms": 1112.237,
+      "text": "OSAL_IPC_SEND"
+    },
+    {
+      "t_ms": 1114.228,
+      "text": "OSAL_PM_TICK"
+    },
+    {
+      "t_ms": 1578.223,
+      "text": "OSAL_MULTI_CONSUMER_0_TAKE"
+    },
+    {
+      "t_ms": 1581.216,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 1587.169,
+      "text": "OSAL_MULTI_CONSUMER_0_TAKE"
+    },
+    {
+      "t_ms": 1590.224,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 1596.226,
+      "text": "OSAL_MULTI_CONSUMER_0_TAKE"
+    },
+    {
+      "t_ms": 1600.235,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 1605.228,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 1611.212,
+      "text": "OSAL_MULTI_CONSUMER_0_TAKE"
+    },
+    {
+      "t_ms": 1615.219,
+      "text": "PANDORA_W25Q128_FOTA_FULL_IMAGE_OK"
+    },
+    {
+      "t_ms": 1617.194,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 1621.214,
+      "text": "PANDORA_FOTA_BOOTABLE_CANDIDATE_VALIDATED"
+    },
+    {
+      "t_ms": 1624.219,
+      "text": "PANDORA_W25Q128_MCU_RESET_STAGED"
+    },
+    {
+      "t_ms": 1638.167,
+      "text": "PANDORA STM32L475VE XINYI OSAL FREERTOS READY"
+    },
+    {
+      "t_ms": 1643.222,
+      "text": "FIRMWARE_COMMIT 6ed9c8e997c71a30972c5df1ccbe45629e74ed89"
+    },
+    {
+      "t_ms": 1644.225,
+      "text": "OSAL_STRESS_READY"
+    },
+    {
+      "t_ms": 1649.231,
+      "text": "OSAL_PRE_SCHEDULER_HAL_TICK 4"
+    },
+    {
+      "t_ms": 1651.163,
+      "text": "OSAL_TIM6_IRQ_TAKE"
+    },
+    {
+      "t_ms": 1673.627,
+      "text": "OSAL_TASK_HAL_TICK_DELTA 20"
+    },
+    {
+      "t_ms": 1674.504,
+      "text": "OSAL_MUTEX_FAST"
+    },
+    {
+      "t_ms": 1676.492,
+      "text": "OSAL_TASK_FAST"
+    },
+    {
+      "t_ms": 1677.474,
+      "text": "OSAL_QUEUE_SEND"
+    },
+    {
+      "t_ms": 1679.124,
+      "text": "OSAL_EVENT_SET"
+    },
+    {
+      "t_ms": 1680.142,
+      "text": "OSAL_IPC_SEND"
+    },
+    {
+      "t_ms": 1681.477,
+      "text": "OSAL_PM_TICK"
+    },
+    {
+      "t_ms": 1682.224,
+      "text": "OSAL_SEM_TAKE"
+    },
+    {
+      "t_ms": 1684.502,
+      "text": "OSAL_EVENT_WAIT"
+    },
+    {
+      "t_ms": 1686.498,
+      "text": "OSAL_QUEUE_RECV"
+    },
+    {
+      "t_ms": 1687.497,
+      "text": "OSAL_DEVICE_LOOKUP"
+    },
+    {
+      "t_ms": 1689.205,
+      "text": "[I] OSAL_TRACE_DELIVER"
+    },
+    {
+      "t_ms": 1691.168,
+      "text": "OSAL_IPC_DELIVER"
+    },
+    {
+      "t_ms": 1693.508,
+      "text": "OSAL_MUTEX_SLOW"
+    },
+    {
+      "t_ms": 1694.501,
+      "text": "OSAL_TASK_SLOW"
+    },
+    {
+      "t_ms": 1913.229,
+      "text": "OSAL_IPC_SATURATED"
+    },
+    {
+      "t_ms": 1914.252,
+      "text": "OSAL_IPC_RECOVERED"
+    },
+    {
+      "t_ms": 1917.648,
+      "text": "OSAL_IPC_HANDLER_REJECTED"
+    },
+    {
+      "t_ms": 1919.476,
+      "text": "OSAL_IPC_HANDLER_RECOVERED"
+    },
+    {
+      "t_ms": 1922.177,
+      "text": "OSAL_RESOURCE_EXHAUSTED"
+    },
+    {
+      "t_ms": 2024.469,
+      "text": "OSAL_BLOCKING_TIMEOUT_OK"
+    },
+    {
+      "t_ms": 2027.492,
+      "text": "OSAL_RESOURCE_RECOVERED"
+    },
+    {
+      "t_ms": 2029.219,
+      "text": "OSAL_RESOURCE_DELETED"
+    },
+    {
+      "t_ms": 2031.202,
+      "text": "OSAL_LIFECYCLE_REINIT"
+    },
+    {
+      "t_ms": 2201.527,
+      "text": "OSAL_MUTEX_FAST"
+    },
+    {
+      "t_ms": 2203.291,
+      "text": "OSAL_TASK_FAST"
+    },
+    {
+      "t_ms": 2204.155,
+      "text": "OSAL_QUEUE_SEND"
+    },
+    {
+      "t_ms": 2206.216,
+      "text": "OSAL_EVENT_SET"
+    },
+    {
+      "t_ms": 2207.205,
+      "text": "OSAL_IPC_SEND"
+    },
+    {
+      "t_ms": 2208.216,
+      "text": "OSAL_PM_TICK"
+    },
+    {
+      "t_ms": 2210.219,
+      "text": "OSAL_SEM_TAKE"
+    },
+    {
+      "t_ms": 2211.115,
+      "text": "OSAL_EVENT_WAIT"
+    },
+    {
+      "t_ms": 2213.122,
+      "text": "OSAL_QUEUE_RECV"
+    },
+    {
+      "t_ms": 2215.148,
+      "text": "OSAL_DEVICE_LOOKUP"
+    },
+    {
+      "t_ms": 2217.202,
+      "text": "[I] OSAL_TRACE_DELIVER"
+    },
+    {
+      "t_ms": 2218.223,
+      "text": "OSAL_IPC_DELIVER"
+    },
+    {
+      "t_ms": 2220.152,
+      "text": "OSAL_MUTEX_SLOW"
+    },
+    {
+      "t_ms": 2221.21,
+      "text": "OSAL_TASK_SLOW"
+    },
+    {
+      "t_ms": 2435.21,
+      "text": "PANDORA_DMA_MEM2MEM_OK"
+    },
+    {
+      "t_ms": 2437.213,
+      "text": "PANDORA_DMA_IRQ_CALLBACK_OK"
+    },
+    {
+      "t_ms": 2440.137,
+      "text": "PANDORA_DMA_STOP_RECOVERY_OK"
+    },
+    {
+      "t_ms": 2444.21,
+      "text": "PANDORA_W25Q128_MCU_RESET_RECOVERED"
+    },
+    {
+      "t_ms": 2446.132,
+      "text": "PANDORA_W25Q128_JEDEC_ID_OK"
+    },
+    {
+      "t_ms": 2484.157,
+      "text": "PANDORA_W25Q128_ERASE_WRITE_READ_OK"
+    },
+    {
+      "t_ms": 2487.204,
+      "text": "PANDORA_W25Q128_PERSISTENCE_STAGED"
+    },
+    {
+      "t_ms": 2491.216,
+      "text": "PANDORA_W25Q128_PERSISTENCE_RECOVERED"
+    },
+    {
+      "t_ms": 2494.176,
+      "text": "PANDORA_W25Q128_QUAD_READ_OK"
+    },
+    {
+      "t_ms": 2528.215,
+      "text": "PANDORA_W25Q128_QUAD_PROGRAM_OK"
+    },
+    {
+      "t_ms": 2565.157,
+      "text": "PANDORA_W25Q128_FOTA_DOWNLOAD_CRC_OK"
+    },
+    {
+      "t_ms": 2607.144,
+      "text": "OSAL_TIM6_IRQ_TIMEOUT_EXPECTED"
+    },
+    {
+      "t_ms": 2706.208,
+      "text": "OSAL_ISR_TAKE"
+    },
+    {
+      "t_ms": 2741.204,
+      "text": "OSAL_MUTEX_FAST"
+    },
+    {
+      "t_ms": 2743.205,
+      "text": "OSAL_TASK_FAST"
+    },
+    {
+      "t_ms": 2746.225,
+      "text": "OSAL_QUEUE_SEND"
+    },
+    {
+      "t_ms": 2747.139,
+      "text": "OSAL_EVENT_SET"
+    },
+    {
+      "t_ms": 2749.169,
+      "text": "OSAL_IPC_SEND"
+    },
+    {
+      "t_ms": 2751.223,
+      "text": "OSAL_PM_TICK"
+    },
+    {
+      "t_ms": 3216.17,
+      "text": "OSAL_MULTI_CONSUMER_0_TAKE"
+    },
+    {
+      "t_ms": 3218.175,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 3225.23,
+      "text": "OSAL_MULTI_CONSUMER_0_TAKE"
+    },
+    {
+      "t_ms": 3228.207,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 3234.132,
+      "text": "OSAL_MULTI_CONSUMER_0_TAKE"
+    },
+    {
+      "t_ms": 3238.215,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 3242.218,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 3248.13,
+      "text": "OSAL_MULTI_CONSUMER_0_TAKE"
+    },
+    {
+      "t_ms": 3252.177,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 3258.178,
+      "text": "OSAL_MULTI_CONSUMER_0_TAKE"
+    },
+    {
+      "t_ms": 3262.154,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 3268.228,
+      "text": "OSAL_MULTI_CONSUMER_0_TAKE"
+    },
+    {
+      "t_ms": 3272.199,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    },
+    {
+      "t_ms": 3274.204,
+      "text": "OSAL_MUTEX_FAST"
+    },
+    {
+      "t_ms": 3275.228,
+      "text": "OSAL_TASK_FAST"
+    },
+    {
+      "t_ms": 3278.124,
+      "text": "OSAL_MULTI_CONSUMER_1_TAKE"
+    }
+  ],
+  "record_type": "xinyi-pandora-stm32l475-runtime-timeline-capture",
+  "requested_seconds": 70.0,
+  "reset_command": "st-flash reset",
+  "status": "CAPTURED"
+}

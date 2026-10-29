@@ -1,0 +1,5 @@
+image rtos-final-part2.bin size=10604 sha256=77f06ce0ec9875d3 target=application@0x8008000
+readback span_identical=true observed_sha256=77f06ce0ec9875d3 erased_tail=1680 unexpected_changes=0
+restore_command=tools/pandora_hil_state.py restore --snapshot docs/validation/evidence/pandora-stm32l475/2026-10-29-runtime-timeline/pandora-state-mid5 --yes
+log=docs/validation/evidence/pandora-stm32l475/2026-10-29-runtime-timeline/pandora-state-mid5/program.json
+program_ok

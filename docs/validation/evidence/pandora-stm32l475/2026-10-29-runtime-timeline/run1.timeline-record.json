@@ -1,0 +1,146 @@
+{
+  "banner_markers": 2,
+  "capture_sha256": "18576c0b11f7ab7a9f4354136213047364c2f5141dd86ef65f12aba6015dbec2",
+  "captured_at_utc": "2026-10-28T22:40:18.468789+00:00",
+  "captured_bytes": 3559,
+  "cycle_count": 4,
+  "cycles": [
+    {
+      "end_ms": 57.238,
+      "index": 1,
+      "start_ms": 39.138,
+      "wall_ms": 18.1
+    },
+    {
+      "end_ms": 585.177,
+      "index": 2,
+      "start_ms": 57.238,
+      "wall_ms": 527.939
+    },
+    {
+      "end_ms": 1694.501,
+      "index": 3,
+      "start_ms": 585.177,
+      "wall_ms": 1109.324
+    },
+    {
+      "end_ms": 2221.21,
+      "index": 4,
+      "start_ms": 1694.501,
+      "wall_ms": 526.709
+    }
+  ],
+  "delay_window_count": 6,
+  "delay_windows": [
+    {
+      "excess_ms": 20.076,
+      "from_ms": 45.154,
+      "requested_ms": 500.0,
+      "to_ms": 565.23,
+      "wall_ms": 520.076
+    },
+    {
+      "excess_ms": 32.026,
+      "from_ms": 572.147,
+      "requested_ms": 500.0,
+      "to_ms": 1104.173,
+      "wall_ms": 532.026
+    },
+    {
+      "excess_ms": 60.276,
+      "from_ms": 1114.228,
+      "requested_ms": 500.0,
+      "to_ms": 1674.504,
+      "wall_ms": 560.276
+    },
+    {
+      "excess_ms": 20.05,
+      "from_ms": 1681.477,
+      "requested_ms": 500.0,
+      "to_ms": 2201.527,
+      "wall_ms": 520.05
+    },
+    {
+      "excess_ms": 32.988,
+      "from_ms": 2208.216,
+      "requested_ms": 500.0,
+      "to_ms": 2741.204,
+      "wall_ms": 532.988
+    },
+    {
+      "excess_ms": 22.981,
+      "from_ms": 2751.223,
+      "requested_ms": 500.0,
+      "to_ms": 3274.204,
+      "wall_ms": 522.981
+    }
+  ],
+  "device": "/dev/ttyUSB0",
+  "failures": [],
+  "firmware_commit": "6ed9c8e997c71a30972c5df1ccbe45629e74ed89",
+  "first_line_ms": 1.098,
+  "identity_markers": 2,
+  "interpretation": "delay_window excess_ms is wall time inside a window that asks for a fixed number of kernel ticks, minus the requested duration. It measures that the ticks did not arrive on time; it does not by itself attribute the delay to the logger and is not a latency, jitter or throughput measurement.",
+  "largest_gaps": [
+    {
+      "after": "OSAL_PM_TICK",
+      "before": "OSAL_MULTI_CONSUMER_0_TAKE",
+      "gap_ms": 464.947
+    },
+    {
+      "after": "OSAL_PM_TICK",
+      "before": "OSAL_MULTI_CONSUMER_0_TAKE",
+      "gap_ms": 463.995
+    },
+    {
+      "after": "OSAL_TASK_SLOW",
+      "before": "OSAL_IPC_SATURATED",
+      "gap_ms": 218.975
+    },
+    {
+      "after": "OSAL_TASK_SLOW",
+      "before": "OSAL_IPC_SATURATED",
+      "gap_ms": 218.728
+    },
+    {
+      "after": "OSAL_TASK_SLOW",
+      "before": "PANDORA_DMA_MEM2MEM_OK",
+      "gap_ms": 214.0
+    },
+    {
+      "after": "OSAL_TASK_SLOW",
+      "before": "PANDORA_DMA_MEM2MEM_OK",
+      "gap_ms": 213.023
+    },
+    {
+      "after": "OSAL_LIFECYCLE_REINIT",
+      "before": "OSAL_MUTEX_FAST",
+      "gap_ms": 171.032
+    },
+    {
+      "after": "OSAL_LIFECYCLE_REINIT",
+      "before": "OSAL_MUTEX_FAST",
+      "gap_ms": 170.325
+    }
+  ],
+  "last_line_ms": 3278.124,
+  "line_count": 151,
+  "max_cycle_ms": 1500.0,
+  "not_evidence_for": [
+    "kernel tick loss attribution (needs firmware-side counters)",
+    "interrupt latency, scheduler jitter or throughput",
+    "PM system sleep/wake (no charger IC on this board)",
+    "FOTA confirm branch, endurance, power-loss or brownout",
+    "STM32U5 runtime"
+  ],
+  "observed_window_ms": 3277.026,
+  "record_type": "xinyi-pandora-stm32l475-runtime-timeline",
+  "recorded_at_utc": "2026-10-28T22:40:24.333631+00:00",
+  "requested_delay_ms": 500.0,
+  "requested_seconds": 70.0,
+  "scope": "host-side arrival timeline of the Pandora OSAL runtime marker stream: per-cycle wall time, marker-to-marker gaps, and excess wall time inside known xy_os_delay() windows",
+  "slowest_cycle_ms": 1109.324,
+  "status": "TIMELINE_MEASURED",
+  "verdict": "CYCLE_WALL_WITHIN_BOUND",
+  "worst_delay_excess_ms": 60.276
+}

@@ -1,0 +1,256 @@
+{
+  "banner_markers": 2,
+  "capture_sha256": "8ed2522489349b1ce1f7a02eec61d8f6033dd8f47e7175fd2d1449e2825e74af",
+  "captured_at_utc": "2026-10-28T22:48:06.812726+00:00",
+  "captured_bytes": 7412,
+  "cycle_count": 13,
+  "cycles": [
+    {
+      "end_ms": 57.75,
+      "index": 1,
+      "start_ms": 39.779,
+      "wall_ms": 17.971
+    },
+    {
+      "end_ms": 585.771,
+      "index": 2,
+      "start_ms": 57.75,
+      "wall_ms": 528.021
+    },
+    {
+      "end_ms": 1708.867,
+      "index": 3,
+      "start_ms": 585.771,
+      "wall_ms": 1123.096
+    },
+    {
+      "end_ms": 2235.768,
+      "index": 4,
+      "start_ms": 1708.867,
+      "wall_ms": 526.901
+    },
+    {
+      "end_ms": 3340.789,
+      "index": 5,
+      "start_ms": 2235.768,
+      "wall_ms": 1105.021
+    },
+    {
+      "end_ms": 3864.748,
+      "index": 6,
+      "start_ms": 3340.789,
+      "wall_ms": 523.959
+    },
+    {
+      "end_ms": 4409.736,
+      "index": 7,
+      "start_ms": 3864.748,
+      "wall_ms": 544.988
+    },
+    {
+      "end_ms": 4928.751,
+      "index": 8,
+      "start_ms": 4409.736,
+      "wall_ms": 519.015
+    },
+    {
+      "end_ms": 5447.679,
+      "index": 9,
+      "start_ms": 4928.751,
+      "wall_ms": 518.928
+    },
+    {
+      "end_ms": 5965.701,
+      "index": 10,
+      "start_ms": 5447.679,
+      "wall_ms": 518.022
+    },
+    {
+      "end_ms": 6484.716,
+      "index": 11,
+      "start_ms": 5965.701,
+      "wall_ms": 519.015
+    },
+    {
+      "end_ms": 7003.7,
+      "index": 12,
+      "start_ms": 6484.716,
+      "wall_ms": 518.984
+    },
+    {
+      "end_ms": 7521.997,
+      "index": 13,
+      "start_ms": 7003.7,
+      "wall_ms": 518.297
+    }
+  ],
+  "delay_window_count": 14,
+  "delay_windows": [
+    {
+      "excess_ms": 21.005,
+      "from_ms": 44.746,
+      "requested_ms": 500.0,
+      "to_ms": 565.751,
+      "wall_ms": 521.005
+    },
+    {
+      "excess_ms": 31.261,
+      "from_ms": 572.771,
+      "requested_ms": 500.0,
+      "to_ms": 1104.032,
+      "wall_ms": 531.261
+    },
+    {
+      "excess_ms": 75.02,
+      "from_ms": 1113.755,
+      "requested_ms": 500.0,
+      "to_ms": 1688.775,
+      "wall_ms": 575.02
+    },
+    {
+      "excess_ms": 19.721,
+      "from_ms": 1696.063,
+      "requested_ms": 500.0,
+      "to_ms": 2215.784,
+      "wall_ms": 519.721
+    },
+    {
+      "excess_ms": 32.998,
+      "from_ms": 2222.776,
+      "requested_ms": 500.0,
+      "to_ms": 2755.774,
+      "wall_ms": 532.998
+    },
+    {
+      "excess_ms": 23.282,
+      "from_ms": 2765.768,
+      "requested_ms": 500.0,
+      "to_ms": 3289.05,
+      "wall_ms": 523.282
+    },
+    {
+      "excess_ms": 40.047,
+      "from_ms": 3301.737,
+      "requested_ms": 500.0,
+      "to_ms": 3841.784,
+      "wall_ms": 540.047
+    },
+    {
+      "excess_ms": 38.298,
+      "from_ms": 3851.778,
+      "requested_ms": 500.0,
+      "to_ms": 4390.076,
+      "wall_ms": 538.298
+    },
+    {
+      "excess_ms": 12.028,
+      "from_ms": 4396.746,
+      "requested_ms": 500.0,
+      "to_ms": 4908.774,
+      "wall_ms": 512.028
+    },
+    {
+      "excess_ms": 12.114,
+      "from_ms": 4915.686,
+      "requested_ms": 500.0,
+      "to_ms": 5427.8,
+      "wall_ms": 512.114
+    },
+    {
+      "excess_ms": 11.001,
+      "from_ms": 5434.787,
+      "requested_ms": 500.0,
+      "to_ms": 5945.788,
+      "wall_ms": 511.001
+    },
+    {
+      "excess_ms": 12.03,
+      "from_ms": 5952.739,
+      "requested_ms": 500.0,
+      "to_ms": 6464.769,
+      "wall_ms": 512.03
+    },
+    {
+      "excess_ms": 12.005,
+      "from_ms": 6471.756,
+      "requested_ms": 500.0,
+      "to_ms": 6983.761,
+      "wall_ms": 512.005
+    },
+    {
+      "excess_ms": 12.0,
+      "from_ms": 6990.761,
+      "requested_ms": 500.0,
+      "to_ms": 7502.761,
+      "wall_ms": 512.0
+    }
+  ],
+  "device": "/dev/ttyUSB0",
+  "failures": [],
+  "firmware_commit": "01456fb44d453f5ecbc9bec8c9cf003947a1d32b",
+  "first_line_ms": 1.692,
+  "identity_markers": 2,
+  "interpretation": "delay_window excess_ms is wall time inside a window that asks for a fixed number of kernel ticks, minus the requested duration. It measures that the ticks did not arrive on time; it does not by itself attribute the delay to the logger and is not a latency, jitter or throughput measurement.",
+  "largest_gaps": [
+    {
+      "after": "OSAL_TASK_SLOW",
+      "before": "OSAL_MUTEX_FAST",
+      "gap_ms": 499.061
+    },
+    {
+      "after": "OSAL_TASK_SLOW",
+      "before": "OSAL_MUTEX_FAST",
+      "gap_ms": 499.049
+    },
+    {
+      "after": "OSAL_PM_TICK",
+      "before": "OSAL_MULTI_CONSUMER_0_TAKE",
+      "gap_ms": 464.035
+    },
+    {
+      "after": "OSAL_PM_TICK",
+      "before": "OSAL_MULTI_CONSUMER_0_TAKE",
+      "gap_ms": 464.006
+    },
+    {
+      "after": "OSAL_TASK_SLOW",
+      "before": "OSAL_ISR_TAKE",
+      "gap_ms": 425.015
+    },
+    {
+      "after": "OSAL_TIM6_IRQ_TAKE",
+      "before": "OSAL_ISR_TAKE",
+      "gap_ms": 406.006
+    },
+    {
+      "after": "OSAL_TASK_SLOW",
+      "before": "OSAL_TIM6_IRQ_TAKE",
+      "gap_ms": 381.042
+    },
+    {
+      "after": "OSAL_TIM6_IRQ_TAKE",
+      "before": "OSAL_ISR_TAKE",
+      "gap_ms": 333.023
+    }
+  ],
+  "last_line_ms": 7917.754,
+  "line_count": 339,
+  "max_cycle_ms": 1500.0,
+  "not_evidence_for": [
+    "kernel tick loss attribution (needs firmware-side counters)",
+    "interrupt latency, scheduler jitter or throughput",
+    "PM system sleep/wake (no charger IC on this board)",
+    "FOTA confirm branch, endurance, power-loss or brownout",
+    "STM32U5 runtime"
+  ],
+  "observed_window_ms": 7916.062,
+  "record_type": "xinyi-pandora-stm32l475-runtime-timeline",
+  "recorded_at_utc": "2026-10-28T22:48:06.890134+00:00",
+  "requested_delay_ms": 500.0,
+  "requested_seconds": 80.0,
+  "scope": "host-side arrival timeline of the Pandora OSAL runtime marker stream: per-cycle wall time, marker-to-marker gaps, and excess wall time inside known xy_os_delay() windows",
+  "slowest_cycle_ms": 1123.096,
+  "status": "TIMELINE_MEASURED",
+  "verdict": "CYCLE_WALL_WITHIN_BOUND",
+  "worst_delay_excess_ms": 75.02
+}

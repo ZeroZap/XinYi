@@ -1,0 +1,5 @@
+image rtos-part1.bin size=32768 sha256=68ce4ecd2305f4da target=bootloader@0x8000000
+readback span_identical=true observed_sha256=68ce4ecd2305f4da erased_tail=0 unexpected_changes=0
+restore_command=tools/pandora_hil_state.py restore --snapshot docs/validation/evidence/pandora-stm32l475/2026-10-29-runtime-timeline/pandora-state-pre --yes
+log=docs/validation/evidence/pandora-stm32l475/2026-10-29-runtime-timeline/pandora-state-pre/program.json
+program_ok

@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "tool": "tools/pandora_hil_program.py",
+  "board": "pandora_stm32l475",
+  "created_utc": "2026-10-28T22:46:38+00:00",
+  "image": {
+    "path": "docs/validation/evidence/pandora-stm32l475/2026-10-29-runtime-timeline/rtos-final-part2.bin",
+    "size": 10604,
+    "sha256": "77f06ce0ec9875d3535b2e847b1415e25e918d8b751114b8c2002f6a4648649d",
+    "address": "0x8008000",
+    "region": "application"
+  },
+  "readback": {
+    "span_identical": true,
+    "first_diff": null,
+    "observed_sha256": "77f06ce0ec9875d3535b2e847b1415e25e918d8b751114b8c2002f6a4648649d",
+    "erased_tail": 1680,
+    "unexpected_changes": 0,
+    "unexpected_first": null
+  },
+  "reset": false,
+  "drift": [],
+  "drift_stable": true,
+  "drift_samples": 0,
+  "drift_seconds": 0.0,
+  "drift_window": {
+    "settle": 3.0,
+    "stable_for": 3.0,
+    "poll": 0.5,
+    "max_wait": 20.0
+  },
+  "restore_command": "tools/pandora_hil_state.py restore --snapshot docs/validation/evidence/pandora-stm32l475/2026-10-29-runtime-timeline/pandora-state-mid5 --yes"
+}

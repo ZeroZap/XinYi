@@ -23,6 +23,53 @@
   仍缺失；SPI/I2S/DMA 无实板取证；自旋标定 `/8` 为经验值未验证；NVIC 优先级在 HAL 内固定
   为 1/0，无 API 可调。
 
+### 2026-10-29 Pandora runtime timeline measured — the "unreproducible timeline" was two silent halts
+
+- S6-148 left one open question with a source-level hypothesis: `uart_text()` holds interrupts off
+  for the whole blocking send (~1.7 ms per line at 115200), so the kernel tick is masked while
+  logging and the same image "sometimes" advanced only 2–4 fast/slow cycles in 70 s. New
+  `boards/pandora_stm32l475/validate_runtime_timeline.py` (`capture`/`analyze`, CTest
+  `pandora_runtime_timeline`, 11 cases incl. a real PTY window) puts the timebase **outside** the
+  board — host arrival offsets per line — and reports per-cycle wall time, the largest
+  marker-to-marker gaps, and the excess wall time of windows whose only firmware work is a known
+  `xy_os_delay()`. The image cannot time itself without changing the marker vocabulary the other
+  validators pin, which is why this had only ever been inferred.
+- The hypothesis is refuted: with all logging in place the 500-tick delay windows measure
+  500–575 ms of wall time, and after the fixes the largest gap in a 90 s capture is the intended
+  499 ms delay. What looked like a slow timeline was the image **halting** (no error marker, no
+  reset): 3.28 s, then 7.9 s, into the chain.
+- Halt 1 (`5cbcfd24`): `fail()` now records `__LINE__` in `xy_image_failed_line` before spinning.
+  The image has ~100 `fail()` sites and most print nothing first, so a stop was indistinguishable
+  from a board whose UART went quiet. The RAM read then named **line 588**: `xy_os_semaphore_release()`
+  returned `XY_OS_ERROR_RESOURCE` because the binary "data ready" semaphore was already signalled —
+  a legitimate producer-ahead-of-consumer race, since the queue (not the hint) carries the item.
+- Halt 2 (`01456fb4`): the image accepts exactly that overflow (counting it in
+  `os_semaphore_redundant_releases`) and keeps every other status fatal. `run3` then completed the
+  PM block and `OSAL_MULTI_PRODUCER_OK`, and stopped at 7.9 s in
+  `vApplicationStackOverflowHook` with task name `osal-isr` — a name shared by two different tasks
+  because they were created from one attribute literal.
+- Halt 3 (`7e59e90c`): each ISR-side task owns its attribute — `osal-ipc-isr` gets 1536 B for the
+  broker/queue path, the wake consumer goes to 1024 B — and the runtime guard pins both so a
+  shared-attribute regression fails the policy test instead of the board.
+- Accepted run (`run4`, image 43420 B, embedded `7e59e90c…`, two snapshot-gated spans
+  `span_identical=true unexpected_changes=0`): 90 s / 49814 B / 2783 lines, **171** fast/slow
+  cycles, `OSAL_PM_INIT_REFUSED 4294967295` → `OSAL_PM_CHARGER_BOUNDARY_OK` → 32 ×
+  `OSAL_PM_HAL_SLEEP_CYCLE` → `OSAL_PM_HAL_SLEEP_REPEAT_OK`, `OSAL_MULTI_PRODUCER_OK`, 32 ISR
+  stream deliveries, zero error/mismatch markers; post-mortem RAM `xy_image_failed = 0` (still
+  running when the window closed — the 12 × 44 s IPC ISR stress phase is longer than 90 s).
+  `validate_pm_sleep_capture.py` on the same capture re-issues
+  **`B1_PM_CHARGER_FAILCLOSED_HAL_SLEEP_PASS`**, so S6-148's PM boundary verdict now rests on a
+  deterministically paced image. Board restored byte-exactly (`verify_ok regions=5`,
+  `762c4a75…`/`d35e2e9a…`).
+- Evidence path: `boards/pandora_stm32l475/validate_runtime_timeline.py`,
+  `tests/unit/kernel/test_runtime_timeline.py`, `boards/pandora_stm32l475/rtos_main.c`,
+  `tests/unit/kernel/check_pandora_freertos_runtime.py`,
+  `docs/validation/evidence/pandora-stm32l475/2026-10-29-runtime-timeline/`. Host `make test-unit`
+  304/304; PC/STM32L4 (incl. the board target)/STM32U5 builds; `git diff --check`.
+- Boundaries: host arrival time is a wall clock, so this measures *when* time went and how large
+  the delay-window excess is — not kernel tick loss, interrupt latency, scheduler jitter or
+  throughput. One board, one image per run, 70–90 s windows. No PM system sleep (no charger IC),
+  no power, no STOP/STANDBY/SHUTDOWN, no FOTA confirm branch, no endurance or power-loss claim.
 
 ### 2026-10-28 Pandora AHT10 canonical owner + board runtime (B1)
 
