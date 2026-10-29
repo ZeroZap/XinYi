@@ -10,16 +10,22 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
 
-DEFAULT_OPENOCD = Path(
+# OpenOCD comes from PATH when it is there, so this tool is not pinned to the machine it was written on (the
+# vendor default below is a Windows install of MounRiver Studio). The vendor paths stay as the fallback
+# because that is what those machines rely on.
+_VENDOR_MRS_ROOT = Path("D:/MounRiver/MounRiver_Studio2")
+_VENDOR_OPENOCD = Path(
     "D:/MounRiver/MounRiver_Studio2/resources/app/resources/win32/"
     "components/WCH/OpenOCD/OpenOCD/bin/openocd.exe"
 )
-DEFAULT_MRS_ROOT = Path("D:/MounRiver/MounRiver_Studio2")
+DEFAULT_OPENOCD = Path(shutil.which("openocd")) if shutil.which("openocd") else _VENDOR_OPENOCD
+DEFAULT_MRS_ROOT = _VENDOR_MRS_ROOT
 FLASH_ADDRESS = 0x00000000
 
 
