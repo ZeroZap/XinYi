@@ -444,6 +444,13 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options,
  * while two other backends answered 0 for "no thread flags exist here", which is what "no flags are
  * set" also looks like. Zero is a valid answer and therefore cannot be the error.
  */
+/**
+ * @brief Sentinel returned instead of a flag word when the call fails
+ *
+ * Callers are expected to compare against this constant, which is why it has to be the value every backend
+ * returns. Handing back a vendor's own error encoding instead (CMSIS answers 0xFFFFFFFE, which reads as
+ * "every flag set") makes the failure invisible to code that checks this constant.
+ */
 #define XY_OS_THREAD_FLAGS_ERROR 0x80000000U ///< Returned instead of a flag word when the call fails
 
 /* The event-group entries return a flag word for the same reason and carry the same reserved bit, and

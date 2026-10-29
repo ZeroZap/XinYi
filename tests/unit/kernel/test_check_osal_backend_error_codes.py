@@ -12,7 +12,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import check_osal_backend_error_codes as guard  # noqa: E402
 
-SAME = """\
+# A realistic backend carries at least one flag-word entry, and the guard treats a tree with none as a
+# broken walk rather than as a clean result.
+FLAG_ENTRY = """\
+uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef)
+{
+    if (!ef) return XY_OS_EVENT_FLAGS_ERROR;
+    return 0U;
+}
+
+"""
+
+SAME = FLAG_ENTRY + """\
 static xy_os_status_t helper(BaseType_t s)
 {
     if (s == 0) return XY_OS_ERROR_TIMEOUT;
@@ -26,7 +37,7 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t q, void *m, uint32_t *p, u
 }
 """
 
-DIFFERENT = """\
+DIFFERENT = FLAG_ENTRY + """\
 xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t q, void *m, uint32_t *p, uint32_t t)
 {
     if (!q) return XY_OS_ERROR_PARAMETER;
@@ -83,6 +94,54 @@ class CensusTests(unittest.TestCase):
             d.mkdir(parents=True)
             (d / "xy_os_x.c").write_text(SAME)
             problems = guard.findings(Path(tmp), ("baremetal", "freertos"), pinned={})
+            self.assertEqual(1, len(problems))
+            self.assertIn("walk is broken", problems[0])
+
+
+SENTINEL_OK = """\
+uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef)
+{
+    if (!ef) return XY_OS_EVENT_FLAGS_ERROR;
+    return 0U;
+}
+"""
+
+SENTINEL_VENDOR = """\
+uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef)
+{
+    return vendor_get(ef);
+}
+"""
+
+
+class SentinelTests(unittest.TestCase):
+    def tree(self, tmp: str, files: dict[str, str]) -> Path:
+        root = Path(tmp)
+        for backend, source in files.items():
+            d = root / backend
+            d.mkdir(parents=True, exist_ok=True)
+            (d / "xy_os_x.c").write_text(source)
+        return root
+
+    def test_a_backend_that_uses_the_sentinel_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual([], guard.sentinel_findings(self.tree(tmp, {"bm": SENTINEL_OK}), pinned={}))
+
+    def test_a_vendor_error_encoding_is_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            problems = guard.sentinel_findings(self.tree(tmp, {"bm": SENTINEL_VENDOR}), pinned={})
+            self.assertEqual(1, len(problems))
+            self.assertIn("xy_os_event_flags_get", problems[0])
+
+    def test_a_pinned_backend_is_skipped_but_still_counted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = self.tree(tmp, {"bm": SENTINEL_OK, "vendor": SENTINEL_VENDOR})
+            self.assertEqual([], guard.sentinel_findings(tree, pinned={"vendor": "unbuildable"}))
+
+    def test_a_tree_with_no_flag_entries_says_the_walk_is_broken(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            problems = guard.sentinel_findings(self.tree(tmp, {"bm": "int f(void)\n{\n    return 0;\n}\n"}),
+                                               pinned={})
             self.assertEqual(1, len(problems))
             self.assertIn("walk is broken", problems[0])
 

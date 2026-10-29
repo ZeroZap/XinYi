@@ -68,6 +68,35 @@ PINNED = {
 }
 
 
+#: Entries whose return value IS the flag word, so a failure can only be reported through the sentinel the
+#: header names. A backend that returns its vendor's own error encoding instead is undetectable to a caller
+#: that checks the documented constant - and the vendor encodings are not obviously errors: CMSIS returns
+#: 0xFFFFFFFE, which reads as "every flag is set".
+FLAG_ENTRIES = {
+    "xy_os_event_flags_get": "EVENT",
+    "xy_os_event_flags_set": "EVENT",
+    "xy_os_event_flags_clear": "EVENT",
+    "xy_os_event_flags_wait": "EVENT",
+    "xy_os_thread_flags_get": "THREAD",
+    "xy_os_thread_flags_set": "THREAD",
+    "xy_os_thread_flags_clear": "THREAD",
+    "xy_os_thread_flags_wait": "THREAD",
+}
+
+#: backend -> why none of its flag-word entries can answer with the OSAL sentinel.
+PINNED_SENTINEL = {
+    "cmsis_rtx":
+        "compiled by no target in this build; every one of its flag entries returns the CMSIS value "
+        "directly, so a failure arrives as osFlagsError* (0xFFFFFFEx) and a caller comparing against "
+        "XY_OS_EVENT_FLAGS_ERROR never sees it - fixable only together with a build that can check it",
+    "rtthread":
+        "compiled by no target in this build; same as cmsis_rtx - the RT-Thread return value is passed "
+        "through and the OSAL sentinel never appears",
+    "rtx5":
+        "orphaned backend (no OSAL_BACKEND branch names it); same as cmsis_rtx",
+}
+
+
 def functions(source: str) -> dict[str, str]:
     """name -> body, for every function definition in a backend file."""
     found: dict[str, str] = {}
@@ -123,6 +152,39 @@ def findings(backend_dir: Path = BACKENDS, compared: tuple[str, str] = COMPARED,
     for entry in sorted(pinned):
         if entry not in shared:
             problems.append(f"{entry} is pinned but is not an entry both backends define - the pin is stale")
+    problems.extend(sentinel_findings(backend_dir))
+    return problems
+
+
+def sentinel_findings(backend_dir: Path = BACKENDS,
+                      pinned: dict[str, str] | None = None) -> list[str]:
+    """Every backend's flag-word entries must be able to answer with the header's sentinel."""
+    pinned = PINNED_SENTINEL if pinned is None else pinned
+    problems: list[str] = []
+    examined = 0
+    for backend_dir_path in sorted(p for p in backend_dir.iterdir() if p.is_dir()):
+        backend = backend_dir_path.name
+        merged: dict[str, str] = {}
+        for path in sorted(backend_dir_path.glob("xy_os_*.c")):
+            merged.update(functions(read_code(path)))
+        present = [entry for entry in FLAG_ENTRIES if entry in merged]
+        examined += len(present)
+        missing = [entry for entry in present
+                   if f"XY_OS_{FLAG_ENTRIES[entry]}_FLAGS_ERROR" not in refusals(merged, merged[entry])]
+        if not missing:
+            continue
+        if backend in pinned:
+            continue
+        problems.append(
+            f"{backend}: {len(missing)} flag-word entries cannot answer with the OSAL sentinel "
+            f"({', '.join(sorted(missing)[:4])}{', ...' if len(missing) > 4 else ''}) - a caller checking "
+            f"the documented constant will not see the failure")
+    # Counting what was *examined*, not what was missing: a tree where every backend uses the sentinel is
+    # the healthy case, and an alarm keyed on "nothing was missing" fires exactly then. This shape - finding
+    # zero problems versus having looked at zero things - has now cost time four times in this layer.
+    if examined == 0:
+        problems.append("no backend defines a flag-word entry - the sentinel walk is broken")
+    return problems
     return problems
 
 
@@ -133,8 +195,9 @@ def main() -> int:
         for problem in problems:
             print(f"- {problem}")
         return 1
-    print(f"osal_backend_error_codes ok (comparing {' vs '.join(COMPARED)}; "
-          f"{len(PINNED)} entries pinned as allowed to differ)")
+    print(f"osal_backend_error_codes ok (comparing {' vs '.join(COMPARED)}; {len(PINNED)} entries pinned as "
+          f"allowed to differ; {len(FLAG_ENTRIES)} flag-word entries checked for the OSAL sentinel, "
+          f"{len(PINNED_SENTINEL)} backends pinned)")
     return 0
 
 
