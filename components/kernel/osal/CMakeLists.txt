@@ -15,10 +15,16 @@ project(xy_osal C)
 # ==================== Backend Selection ====================
 
 set(OSAL_BACKEND "baremetal" CACHE STRING "OSAL backend selection")
-set_property(CACHE OSAL_BACKEND PROPERTY STRINGS baremetal freertos rtthread cmsis_rtx)
 
-# Validate backend selection. Canonical backend names are:
-# baremetal, freertos, rtthread, cmsis_rtx.
+# Only the backends the root build can actually select are advertised here. The root
+# Kconfig choice is authoritative and forces OSAL_BACKEND to match it, so offering rtthread
+# and cmsis_rtx in the cache dropdown only invites a selection that cannot take effect.
+# Those two backends exist as sources and their dispatch branches are kept below, but they
+# are unreachable from this build; check_osal_backend_advertise.py enforces that the
+# advertised set, the selectable set and the dispatch branches agree.
+set_property(CACHE OSAL_BACKEND PROPERTY STRINGS baremetal freertos)
+
+# Backends that are compiled nowhere: selecting them is refused by the root build.
 set(OSAL_BACKEND_OPTIONS baremetal freertos rtthread cmsis_rtx)
 if(NOT OSAL_BACKEND IN_LIST OSAL_BACKEND_OPTIONS)
     message(FATAL_ERROR "Invalid OSAL backend: ${OSAL_BACKEND}. Valid values: ${OSAL_BACKEND_OPTIONS}")

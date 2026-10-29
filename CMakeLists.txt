@@ -129,6 +129,12 @@ endif()
 # Keep the generated root selection authoritative for both the OSAL adapter and
 # its matching kernel. The default remains bare-metal; FreeRTOS is intentionally
 # limited to supported STM32 and pinned WCH SDK configurations.
+# Capture any value that was selected directly (command line or an older cache) before the
+# Kconfig-derived choice overwrites it. Replacing it silently would leave the build running a
+# backend nobody asked for, and the first symptom would be a test suite that passes against
+# the wrong kernel - so this refuses instead. See check_osal_backend_advertise.py.
+get_property(_xy_osal_backend_requested CACHE OSAL_BACKEND PROPERTY VALUE)
+
 if(CONFIG_OSAL_BACKEND_FREERTOS)
     if(NOT HAL_PLATFORM STREQUAL "STM32U5" AND
        NOT HAL_PLATFORM STREQUAL "STM32L4" AND
@@ -143,6 +149,16 @@ elseif(CONFIG_OSAL_BACKEND_BAREMETAL)
     set(RTOS_BACKEND "none" CACHE STRING "RTOS backend selection" FORCE)
 else()
     message(FATAL_ERROR "KERNEL_OSAL requires exactly one supported OSAL backend")
+endif()
+
+if(DEFINED _xy_osal_backend_requested AND NOT _xy_osal_backend_requested STREQUAL ""
+   AND NOT "${_xy_osal_backend_requested}" STREQUAL "${OSAL_BACKEND}")
+    message(FATAL_ERROR
+        "OSAL_BACKEND=${_xy_osal_backend_requested} was selected, but this build derives the "
+        "OSAL backend from Kconfig and is using ${OSAL_BACKEND}. The request cannot take "
+        "effect, and quietly substituting a different kernel would make every downstream "
+        "result ambiguous. Select the backend through Kconfig "
+        "(CONFIG_OSAL_BACKEND_FREERTOS / CONFIG_OSAL_BACKEND_BAREMETAL) instead.")
 endif()
 
 # =============================================================================
