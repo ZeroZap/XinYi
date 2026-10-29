@@ -59,6 +59,9 @@ def main() -> int:
         "PANDORA_BOOT_ATTEMPT_ERROR",
         "PANDORA_BOOT_CANDIDATE_CONFIRMED",
         "PANDORA_BOOT_CONFIRM_ERROR",
+        # The confirm slot is cleared when an install replaces the image; a request that
+        # could not be cleared halts with its own marker instead of silently continuing.
+        "PANDORA_BOOT_CONFIRM_REQUEST_ERROR",
         "PANDORA_BOOT_ROLLBACK_REQUIRED",
         "PANDORA_BOOT_NO_VALID_IMAGE",
         "PANDORA_BOOT_INSTALL_ERROR",

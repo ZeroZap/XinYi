@@ -19,6 +19,13 @@ extern "C" {
  *     -> jump to application
  *
  * Any failing step halts before the next one runs; nothing here jumps on failure.
+ *
+ * The confirm slot is scoped to one install cycle. install_once() reporting a write
+ * clears it, because the only writer of a request is the application - which by
+ * definition runs after its own install, so a request present at install time belongs
+ * to the image that was just replaced. Without that clear, a single stale request
+ * would confirm every later candidate on its first boot and bypass the attempt budget
+ * (PANDORA_BOOT_CONFIRM_REQUEST_ERROR reports a slot that could not be cleared).
  */
 
 #define PANDORA_FOTA_CONFIRM_REQUEST_MAGIC 0x46525132U

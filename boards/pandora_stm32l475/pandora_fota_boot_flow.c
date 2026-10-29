@@ -47,6 +47,24 @@ static int flow_install(const pandora_fota_boot_flow_ops_t *ops) {
     }
     flow_mark(ops, installed != 0 ? "PANDORA_BOOT_CANDIDATE_INSTALLED\r\n"
                                   : "PANDORA_BOOT_CANDIDATE_ALREADY_INSTALLED\r\n");
+    if (installed == 0) {
+        return 0;
+    }
+    /*
+     * The confirm request is written by the application, and an application only runs
+     * after its own install. A request that is already in the slot when install_once()
+     * replaces the execution image therefore was written by the image that just got
+     * replaced - it cannot refer to the candidate that replaced it. Honouring it would
+     * confirm the new image on its first boot, before it ever ran, and skip the whole
+     * boot-attempt budget the budget exists to enforce. Discard it with the install.
+     *
+     * An acknowledgement from an earlier cycle is cleared by the same write, so the
+     * slot always describes the current install cycle instead of accumulating.
+     */
+    if (ops->rtc_backup_write(PANDORA_FOTA_RTC_SLOT_CONFIRM, 0U) != 0) {
+        flow_mark(ops, "PANDORA_BOOT_CONFIRM_REQUEST_ERROR\r\n");
+        return -1;
+    }
     return 0;
 }
 

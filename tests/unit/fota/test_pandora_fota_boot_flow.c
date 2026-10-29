@@ -242,6 +242,12 @@ static void test_attempt_path_reports_already_installed(void) {
 
 static void test_confirm_request_confirms_and_acknowledges_without_attempt(void) {
     pandora_fota_boot_flow_ops_t ops = make_ops();
+    /*
+     * The request is read on the boot after the install: this image was installed by an
+     * earlier boot and has now been running long enough to ask for confirmation. A boot
+     * that also writes the image discards the request instead (see the discard tests).
+     */
+    install_wrote = 0;
     rtc_slots[PANDORA_FOTA_RTC_SLOT_CONFIRM] = PANDORA_FOTA_CONFIRM_REQUEST_MAGIC;
 
     TEST_ASSERT_EQUAL_INT(PANDORA_FOTA_BOOT_OUTCOME_JUMP, pandora_fota_boot_flow_run(&ops));
@@ -330,6 +336,7 @@ static void test_exhausted_attempts_halt_with_rollback_marker(void) {
 
 static void test_confirm_failure_halts_before_ack_write(void) {
     pandora_fota_boot_flow_ops_t ops = make_ops();
+    install_wrote = 0;
     rtc_slots[PANDORA_FOTA_RTC_SLOT_CONFIRM] = PANDORA_FOTA_CONFIRM_REQUEST_MAGIC;
     confirm_result = -1;
 
@@ -345,14 +352,69 @@ static void test_confirm_failure_halts_before_ack_write(void) {
 
 static void test_confirm_ack_write_failure_halts_before_confirm_marker(void) {
     pandora_fota_boot_flow_ops_t ops = make_ops();
+    install_wrote = 0;
     rtc_slots[PANDORA_FOTA_RTC_SLOT_CONFIRM] = PANDORA_FOTA_CONFIRM_REQUEST_MAGIC;
     rtc_write_fail_slot = (int)PANDORA_FOTA_RTC_SLOT_CONFIRM;
 
     TEST_ASSERT_EQUAL_INT(PANDORA_FOTA_BOOT_OUTCOME_HALT, pandora_fota_boot_flow_run(&ops));
     TEST_ASSERT_EQUAL_INT(1, (int)event_count_of(EV_CONFIRM));
     TEST_ASSERT_EQUAL_UINT(1U, marker_count);
-    TEST_ASSERT_EQUAL_INT(0, marker_index("PANDORA_BOOT_CANDIDATE_INSTALLED\r\n"));
+    TEST_ASSERT_EQUAL_INT(0, marker_index("PANDORA_BOOT_CANDIDATE_ALREADY_INSTALLED\r\n"));
     TEST_ASSERT_EQUAL_INT(-1, marker_index("PANDORA_BOOT_CANDIDATE_CONFIRMED\r\n"));
+}
+
+static void test_a_replaced_image_cannot_leave_its_request_behind(void) {
+    /*
+     * The regression: the app stages a new candidate, its reset handshake leaves a
+     * request in the slot, and the next boot installs that candidate. Before the fix the
+     * bootloader read the request and confirmed an image that had never executed once,
+     * which also skipped the three-attempt budget in one step.
+     */
+    pandora_fota_boot_flow_ops_t ops = make_ops();
+    rtc_slots[PANDORA_FOTA_RTC_SLOT_CONFIRM] = PANDORA_FOTA_CONFIRM_REQUEST_MAGIC;
+
+    TEST_ASSERT_EQUAL_INT(PANDORA_FOTA_BOOT_OUTCOME_JUMP, pandora_fota_boot_flow_run(&ops));
+    TEST_ASSERT_EQUAL_INT(0, (int)event_count_of(EV_CONFIRM));
+    TEST_ASSERT_EQUAL_INT(1, (int)event_count_of(EV_ATTEMPT));
+    TEST_ASSERT_EQUAL_UINT32(0U, rtc_slots[PANDORA_FOTA_RTC_SLOT_CONFIRM]);
+    TEST_ASSERT_EQUAL_UINT(2U, marker_count);
+    TEST_ASSERT_EQUAL_INT(-1, marker_index("PANDORA_BOOT_CANDIDATE_CONFIRMED\r\n"));
+    TEST_ASSERT_EQUAL_INT(1, marker_index("PANDORA_BOOT_ATTEMPT_COMMITTED\r\n"));
+}
+
+static void test_an_install_clears_the_previous_acknowledgement(void) {
+    pandora_fota_boot_flow_ops_t ops = make_ops();
+    rtc_slots[PANDORA_FOTA_RTC_SLOT_CONFIRM] = PANDORA_FOTA_CONFIRM_ACK_MAGIC;
+
+    TEST_ASSERT_EQUAL_INT(PANDORA_FOTA_BOOT_OUTCOME_JUMP, pandora_fota_boot_flow_run(&ops));
+    TEST_ASSERT_EQUAL_UINT32(0U, rtc_slots[PANDORA_FOTA_RTC_SLOT_CONFIRM]);
+    TEST_ASSERT_EQUAL_INT(0, (int)event_count_of(EV_CONFIRM));
+    TEST_ASSERT_EQUAL_INT(1, (int)event_count_of(EV_ATTEMPT));
+}
+
+static void test_the_request_is_cleared_before_the_slot_is_read(void) {
+    pandora_fota_boot_flow_ops_t ops = make_ops();
+
+    TEST_ASSERT_EQUAL_INT(PANDORA_FOTA_BOOT_OUTCOME_JUMP, pandora_fota_boot_flow_run(&ops));
+    TEST_ASSERT_EQUAL_INT(1, (int)event_count_of(EV_RTC_WRITE(PANDORA_FOTA_RTC_SLOT_CONFIRM)));
+    TEST_ASSERT_TRUE(event_position(EV_INSTALL) <
+                     event_position(EV_RTC_WRITE(PANDORA_FOTA_RTC_SLOT_CONFIRM)));
+    TEST_ASSERT_TRUE(event_position(EV_RTC_WRITE(PANDORA_FOTA_RTC_SLOT_CONFIRM)) <
+                     event_position(EV_RTC_READ(PANDORA_FOTA_RTC_SLOT_CONFIRM)));
+}
+
+static void test_a_request_that_cannot_be_cleared_halts_before_the_decision(void) {
+    pandora_fota_boot_flow_ops_t ops = make_ops();
+    rtc_slots[PANDORA_FOTA_RTC_SLOT_CONFIRM] = PANDORA_FOTA_CONFIRM_REQUEST_MAGIC;
+    rtc_write_fail_slot = (int)PANDORA_FOTA_RTC_SLOT_CONFIRM;
+
+    TEST_ASSERT_EQUAL_INT(PANDORA_FOTA_BOOT_OUTCOME_HALT, pandora_fota_boot_flow_run(&ops));
+    TEST_ASSERT_EQUAL_INT(0, (int)event_count_of(EV_CONFIRM));
+    TEST_ASSERT_EQUAL_INT(0, (int)event_count_of(EV_ATTEMPT));
+    TEST_ASSERT_EQUAL_INT(0, (int)event_count_of(EV_RTC_READ(PANDORA_FOTA_RTC_SLOT_CONFIRM)));
+    TEST_ASSERT_EQUAL_UINT(2U, marker_count);
+    TEST_ASSERT_EQUAL_INT(0, marker_index("PANDORA_BOOT_CANDIDATE_INSTALLED\r\n"));
+    TEST_ASSERT_EQUAL_INT(1, marker_index("PANDORA_BOOT_CONFIRM_REQUEST_ERROR\r\n"));
 }
 
 static void test_restage_runs_between_validation_and_install_only_once(void) {
@@ -448,6 +510,10 @@ int main(void) {
     RUN_TEST(test_exhausted_attempts_halt_with_rollback_marker);
     RUN_TEST(test_confirm_failure_halts_before_ack_write);
     RUN_TEST(test_confirm_ack_write_failure_halts_before_confirm_marker);
+    RUN_TEST(test_a_replaced_image_cannot_leave_its_request_behind);
+    RUN_TEST(test_an_install_clears_the_previous_acknowledgement);
+    RUN_TEST(test_the_request_is_cleared_before_the_slot_is_read);
+    RUN_TEST(test_a_request_that_cannot_be_cleared_halts_before_the_decision);
     RUN_TEST(test_restage_runs_between_validation_and_install_only_once);
     RUN_TEST(test_restage_authorization_failure_halts_before_install);
     RUN_TEST(test_restage_read_failure_halts_before_authorization);

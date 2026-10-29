@@ -189,6 +189,31 @@ class RollbackChainTests(unittest.TestCase):
         self.assertFalse(result["frames"][0]["jump"])
 
 
+class ConfirmRequestErrorTests(unittest.TestCase):
+    """The slot-clear failure is a decision, not an unknown marker.
+
+    `pandora_fota_boot_flow` clears the confirm slot when it installs a candidate, and
+    halts with its own marker when that write fails. A validator whose vocabulary did
+    not include the marker would reject the very capture that reports the halt, so the
+    run could only be explained by reading the source.
+    """
+
+    MARKER = "PANDORA_BOOT_CONFIRM_REQUEST_ERROR"
+
+    def test_the_clear_failure_is_accepted_as_a_halt(self):
+        result = analyze(encode(frame(boot.INSTALLED, self.MARKER, jump=False)))
+        self.assertEqual(result["status"], "BOOTLOADER_CHAIN_REVIEW_CANDIDATE")
+        self.assertEqual(result["chain"], "HALT_ERROR")
+        self.assertEqual(result["terminal"], "halt_error")
+        self.assertEqual(result["frames"][0]["decision"], self.MARKER)
+        self.assertEqual(result["failures"], [])
+
+    def test_the_clear_failure_still_requires_an_install_marker(self):
+        result = analyze(encode(frame(None, self.MARKER, jump=False)))
+        self.assertEqual(result["status"], "BOOTLOADER_CHAIN_VALIDATION_FAILED")
+        self.assertTrue(any("without an install marker" in item for item in result["failures"]))
+
+
 class StructuralFailureTests(unittest.TestCase):
     def test_attempt_without_jump_is_rejected(self):
         result = analyze(encode(frame(boot.INSTALLED, boot.ATTEMPT, jump=False)))
