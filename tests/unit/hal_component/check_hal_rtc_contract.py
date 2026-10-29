@@ -39,7 +39,7 @@ BACKENDS = {
 PINNED_COVERAGE = {
     "stm32l4": 15,
     "stm32u5": 15,
-    "stm32f4": 13,
+    "stm32f4": 15,
     "wch": 15,
     "pc": 15,
 }

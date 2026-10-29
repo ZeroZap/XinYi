@@ -301,4 +301,36 @@ xy_hal_error_t xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)
     return XY_HAL_OK;
 }
 
+/*
+ * Backup registers. The STM32L4 wrapper is the reference here: the same pair of calls, the same
+ * bounds check, and the backup-domain access enabled before a write. Reading needs no unlock;
+ * writing does, and forgetting it silently drops the value while returning success - which is why
+ * this was left to the backend that has the domain wiring right rather than invented again.
+ */
+xy_hal_error_t xy_hal_rtc_backup_read(uint32_t index, uint32_t *value)
+{
+    RTC_HandleTypeDef backup_rtc = { 0 };
+
+    if (value == NULL || index >= XY_HAL_RTC_BACKUP_REGISTER_COUNT) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    backup_rtc.Instance = RTC;
+    *value = HAL_RTCEx_BKUPRead(&backup_rtc, index);
+    return XY_HAL_OK;
+}
+
+xy_hal_error_t xy_hal_rtc_backup_write(uint32_t index, uint32_t value)
+{
+    RTC_HandleTypeDef backup_rtc = { 0 };
+
+    if (index >= XY_HAL_RTC_BACKUP_REGISTER_COUNT) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    backup_rtc.Instance = RTC;
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWR_EnableBkUpAccess();
+    HAL_RTCEx_BKUPWrite(&backup_rtc, index, value);
+    return XY_HAL_OK;
+}
+
 #endif /* STM32_HAL_ENABLED */
