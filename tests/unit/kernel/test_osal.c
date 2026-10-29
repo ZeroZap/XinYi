@@ -94,6 +94,41 @@ static void test_thread_operations_this_backend_cannot_do(void)
     TEST_ASSERT_NOT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_thread_suspend(current));
 }
 
+/* Every other handle check in this backend answers XY_OS_ERROR_PARAMETER; the three timer entries
+ * were the exception, answering the unspecified error instead, so the same misuse had two answers
+ * inside one file. */
+static void test_timer_handle_misuse_is_a_parameter_error(void)
+{
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_timer_start(NULL, 10U));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_timer_stop(NULL));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_timer_delete(NULL));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_timer_start((xy_os_timer_id_t)99, 10U));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_timer_stop((xy_os_timer_id_t)99));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_timer_delete((xy_os_timer_id_t)99));
+}
+
+/* The software-timer pool holds sixteen entries and xy_os_timer_start creates one per call. A stop
+ * that drops the id without releasing the entry leaks it, so an application that starts and stops a
+ * timer in a loop - the ordinary way to use one - dies after sixteen cycles, with the unspecified
+ * error as the only clue. Twenty cycles is more than the pool has, on purpose. */
+static void test_start_and_stop_does_not_exhaust_the_timer_pool(void)
+{
+    int arg = 0;
+    xy_os_timer_attr_t attr = { .name = "pool" };
+    xy_os_timer_id_t timer = xy_os_timer_new(test_timer_callback, XY_OS_TIMER_ONCE, &arg, &attr);
+
+    TEST_ASSERT_NOT_NULL(timer);
+    for (int cycle = 0; cycle < 20; ++cycle) {
+        TEST_ASSERT_EQUAL_MESSAGE(XY_OS_OK, xy_os_timer_start(timer, 100U), "a start after a stop");
+        TEST_ASSERT_EQUAL_MESSAGE(XY_OS_OK, xy_os_timer_stop(timer), "a stop");
+    }
+    /* Starting twice without stopping leaks the first entry in the same way. */
+    for (int cycle = 0; cycle < 20; ++cycle) {
+        TEST_ASSERT_EQUAL_MESSAGE(XY_OS_OK, xy_os_timer_start(timer, 100U), "a repeated start");
+    }
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_timer_delete(timer));
+}
+
 static void test_timer_one_shot_and_reuse(void)
 {
     int arg = 123;
@@ -532,6 +567,8 @@ int main(void)
     RUN_TEST(test_kernel_info_lock_and_ticks);
     RUN_TEST(test_thread_stub_contract);
     RUN_TEST(test_thread_operations_this_backend_cannot_do);
+    RUN_TEST(test_timer_handle_misuse_is_a_parameter_error);
+    RUN_TEST(test_start_and_stop_does_not_exhaust_the_timer_pool);
     RUN_TEST(test_timer_one_shot_and_reuse);
 
     /* Mutex */

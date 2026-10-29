@@ -45,6 +45,41 @@ class StubTests(unittest.TestCase):
         self.assertEqual([], guard.stub_findings(source, "bm"))
 
 
+class LocalRejectionTests(unittest.TestCase):
+    """A backend's own check knows why it refused; the unspecified code throws that away."""
+
+    def test_a_local_rejection_with_the_unspecified_code_is_named(self):
+        source = ("xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t id)\n{\n"
+                  "    if (!id) {\n        return XY_OS_ERROR;\n    }\n    return XY_OS_OK;\n}\n")
+        problems = guard.local_check_findings(source, "bm", {}, {})
+        self.assertEqual(1, len(problems))
+        self.assertIn("xy_os_timer_stop", problems[0])
+
+    def test_the_same_check_with_a_specific_code_passes(self):
+        source = ("xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t id)\n{\n"
+                  "    if (!id) {\n        return XY_OS_ERROR_PARAMETER;\n    }\n"
+                  "    return XY_OS_OK;\n}\n")
+        self.assertEqual([], guard.local_check_findings(source, "bm", {}, {}))
+
+    def test_a_vendor_result_is_not_a_local_check(self):
+        """A failure reported by the vendor is genuinely unspecified at this layer."""
+        source = ("xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t id)\n{\n"
+                  "    if (xSemaphoreGive(m) != pdPASS) {\n        return XY_OS_ERROR;\n    }\n"
+                  "    return XY_OS_OK;\n}\n")
+        self.assertEqual([], guard.local_check_findings(source, "ft", {}, {}))
+
+    def test_a_pinned_site_passes(self):
+        source = ("xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t id)\n{\n"
+                  "    if (!m->locked) { return XY_OS_ERROR; }\n    return XY_OS_OK;\n}\n")
+        sites = {("bm", "xy_os_mutex_release"): "pinned"}
+        self.assertEqual([], guard.local_check_findings(source, "bm", {}, sites))
+
+    def test_a_pinned_backend_is_skipped_whole(self):
+        source = ("xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t id)\n{\n"
+                  "    if (!id) { return XY_OS_ERROR; }\n    return XY_OS_OK;\n}\n")
+        self.assertEqual([], guard.local_check_findings(source, "rtthread", {"rtthread": "unbuildable"}, {}))
+
+
 class RealTreeTests(unittest.TestCase):
     def test_the_walk_reaches_the_backends(self):
         found = list(guard.BACKENDS.glob("*/xy_os_*.c"))

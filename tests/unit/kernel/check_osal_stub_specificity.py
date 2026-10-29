@@ -27,6 +27,45 @@ ROOT = Path(__file__).resolve().parents[3]
 BACKENDS = ROOT / "components" / "kernel" / "osal" / "backend"
 
 DEFINITION = re.compile(r"^[A-Za-z_][\w \t\*]*\b(xy_os_\w+)\s*\([^;{]*\)\s*$", re.M)
+#: An if() that decides from values the backend already holds, rather than from a vendor call's
+#: result. When such a check rejects the call, the reason is known and the code can say it.
+VENDOR_CALL = re.compile(r"\b(?:x[A-Z]\w+|os[A-Z]\w+|rt_\w+|vTask\w+|HAL_\w+)")
+LOCAL_IF = re.compile(r"\bif\s*\(([^)]*)\)")
+BARE_RETURN = re.compile(r"return\s+XY_OS_ERROR\s*;")
+
+#: How far past an if() to look for the rejection. Enough for `{ unlock(); return X; }`, short enough
+#: not to attribute a later, unrelated rejection to this check.
+WINDOW = 200
+
+#: Backends whose local rejections still answer with the unspecified error. Pinned per backend rather
+#: than per function: neither of these compiles in any target, so the edits cannot be verified here,
+#: and enumerating the sites would rot the moment one more is added elsewhere in the file.
+PINNED_UNSPECIFIED = {
+    "rtthread": "compiled by no target in this build (see check_osal_backend_advertise.py), so a "
+                "change here would be an edit nothing can compile or run",
+    "rtx5": "orphaned: no OSAL_BACKEND branch names this directory, as above",
+}
+
+DEFINITION = re.compile(r"^[A-Za-z_][\w \t\*]*\b(xy_os_\w+)\s*\([^;{]*\)\s*$", re.M)
+#: An if() that decides from values the backend already holds, rather than from a vendor call's
+#: result. When such a check rejects the call, the reason is known and the code can say it.
+VENDOR_CALL = re.compile(r"\b(?:x[A-Z]\w+|os[A-Z]\w+|rt_\w+|vTask\w+|HAL_\w+)")
+LOCAL_IF = re.compile(r"\bif\s*\(([^)]*)\)")
+BARE_RETURN = re.compile(r"return\s+XY_OS_ERROR\s*;")
+
+#: How far past an if() to look for the rejection. Enough for `{ unlock(); return X; }`, short enough
+#: not to attribute a later, unrelated rejection to this check.
+WINDOW = 200
+
+#: Sites that reject a local check with the unspecified error and are still right to. Each needs a
+#: reason that would survive review, not a shrug.
+#: Individual sites inside a backend that is compiled, where the unspecified answer is still right.
+PINNED_SITES = {
+    ("baremetal", "xy_os_mutex_release"):
+        "releasing a mutex this context does not hold. FreeRTOS reaches the same answer through "
+        "xSemaphoreGive returning pdFAIL, and no mapping separates that from its other failures - "
+        "changing only this side would turn one honest uncertainty into two behaviours",
+}
 BARE_UNSPECIFIED = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)?return\s+XY_OS_ERROR\s*;\s*\}$")
 
 
@@ -44,6 +83,38 @@ def stub_findings(source: str, name: str) -> list[str]:
     return problems
 
 
+def local_check_findings(source: str, name: str,
+                         pinned: dict[str, str] | None = None,
+                         sites: dict[tuple[str, str], str] | None = None) -> list[str]:
+    """A rejection decided from local state can name its reason; the unspecified code names nothing."""
+    pinned = PINNED_UNSPECIFIED if pinned is None else pinned
+    sites = PINNED_SITES if sites is None else sites
+    problems: list[str] = []
+    rejecting = [match.group(1) for match in DEFINITION.finditer(source)
+                 if local_rejection(braced_body(source[match.end():]) or "")]
+    rejecting = [function for function in rejecting if (name, function) not in sites]
+    if name in pinned:
+        if not rejecting:
+            problems.append(f"{name}: pinned as answering local rejections with the unspecified error, "
+                            f"but none is left - the pin is stale ({pinned[name]})")
+        return problems
+    for function in rejecting:
+        problems.append(
+            f"{name}:{function}: rejects a call after a check of its own state and answers with "
+            f"XY_OS_ERROR, which says nothing about why")
+    return problems
+
+
+def local_rejection(body: str) -> bool:
+    """True when a decision the backend makes on its own values is answered with a bare XY_OS_ERROR."""
+    for match in LOCAL_IF.finditer(body):
+        if VENDOR_CALL.search(match.group(1)):
+            continue
+        if BARE_RETURN.search(body[match.end():match.end() + WINDOW]):
+            return True
+    return False
+
+
 def findings(backend_dir: Path = BACKENDS) -> list[str]:
     problems: list[str] = []
     inspected = 0
@@ -51,6 +122,7 @@ def findings(backend_dir: Path = BACKENDS) -> list[str]:
         source = read_code(path)
         inspected += len(DEFINITION.findall(source))
         problems.extend(stub_findings(source, path.parent.name))
+        problems.extend(local_check_findings(source, path.parent.name))
     if not inspected:
         problems.append("no function definitions were found - the walk is broken")
     return problems
@@ -66,7 +138,8 @@ def main() -> int:
             print(f"- {problem}")
         return 1
     print(f"osal_stub_specificity ok ({inspected} definitions across "
-          f"{len(list(BACKENDS.glob('*/xy_os_*.c')))} backends, none a bare unspecified return)")
+          f"{len(list(BACKENDS.glob('*/xy_os_*.c')))} backends, "
+          f"none a bare unspecified return, no unpinned local rejection)")
     return 0
 
 

@@ -574,24 +574,35 @@ const char *xy_os_timer_get_name(xy_os_timer_id_t id)
 xy_os_status_t xy_os_timer_start(xy_os_timer_id_t id, uint32_t ticks)
 {
     if (!id || (uintptr_t)id > 8) {
-        return XY_OS_ERROR;
+        return XY_OS_ERROR_PARAMETER;
     }
-    
+
     baremetal_timer_ctx_t *ctx = &s_timers[(uintptr_t)id - 1];
     uint8_t periodic = (ctx->type == XY_OS_TIMER_PERIODIC) ? 1 : 0;
-    
+
+    /* Starting an already-started timer used to create a second software timer and overwrite the id
+     * of the first, which stayed running with nothing pointing at it. Sixteen slots, so an
+     * application that restarts a timer without stopping it first - a common way to feed a watchdog -
+     * exhausted the pool and every later start failed with "unspecified RTOS error". */
+    if (ctx->sw_timer_id) {
+        xy_timer_sw_delete(ctx->sw_timer_id);
+        ctx->sw_timer_id = 0;
+    }
+
     ctx->sw_timer_id = xy_timer_sw_create(ticks, timer_sw_callback, ctx, periodic);
     if (ctx->sw_timer_id == XY_TIMER_SW_INVALID_ID) {
-        return XY_OS_ERROR;
+        /* The only way this fails is the pool being empty, which is a resource condition rather than
+         * an unspecified fault. */
+        return XY_OS_ERROR_RESOURCE;
     }
-    
+
     return XY_OS_OK;
 }
 
 xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t id)
 {
     if (!id || (uintptr_t)id > 8) {
-        return XY_OS_ERROR;
+        return XY_OS_ERROR_PARAMETER;
     }
     
     baremetal_timer_ctx_t *ctx = &s_timers[(uintptr_t)id - 1];
@@ -613,7 +624,7 @@ uint32_t xy_os_timer_is_running(xy_os_timer_id_t id)
 xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t id)
 {
     if (!id || (uintptr_t)id > 8) {
-        return XY_OS_ERROR;
+        return XY_OS_ERROR_PARAMETER;
     }
     
     baremetal_timer_ctx_t *ctx = &s_timers[(uintptr_t)id - 1];
