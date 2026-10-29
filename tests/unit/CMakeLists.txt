@@ -106,6 +106,12 @@ add_test(NAME osal_backend_advertise
 add_test(NAME osal_backend_advertise_unit
     COMMAND python3 ${UNIT_HAL}/test_osal_backend_advertise.py)
 
+add_test(NAME hal_pc_coverage
+    COMMAND python3 ${UNIT_HAL}/check_hal_pc_coverage.py)
+
+add_test(NAME hal_pc_coverage_unit
+    COMMAND python3 ${UNIT_HAL}/test_hal_pc_coverage.py)
+
 add_test(NAME hal_dma_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_dma_contract.py)
 

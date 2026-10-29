@@ -49,6 +49,7 @@ REGISTRY = (
     "tests/unit/hal_component/check_board_irq_vectors.py",
     "tests/unit/hal_component/check_error_code_alignment.py",
     "tests/unit/hal_component/check_hal_uart_blocking_contract.py",
+    "tests/unit/hal_component/check_hal_pc_coverage.py",
     "tests/unit/hal_component/check_hal_dma_contract.py",
     "tests/unit/hal_component/check_hal_timer_irq_contract.py",
     "tests/unit/hal_component/check_hal_stub_returns.py",
