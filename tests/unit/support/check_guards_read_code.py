@@ -47,6 +47,8 @@ REGISTRY = (
     "tests/unit/fota/test_pandora_fota_bootloader_layout.py",
     "tests/unit/hal_component/check_board_irq_vectors.py",
     "tests/unit/hal_component/check_error_code_alignment.py",
+    "tests/unit/hal_component/check_hal_uart_blocking_contract.py",
+    "tests/unit/hal_component/check_hal_i2c_address_convention.py",
     "tests/unit/hal_component/check_hal_platform_build_contract.py",
     "tests/unit/hal_component/check_opench_osal_hal_usage.py",
     "tests/unit/hal_component/check_pandora_stm32l475_board.py",
@@ -105,9 +107,6 @@ EXEMPTIONS = {
         "reads the OSAL CMakeLists and checks third-party headers exist",
     "tests/unit/check_pandora_release_sbom.py":
         "reads JSON policy/records and linker .map listings to hash release inputs",
-    "tests/unit/hal_component/check_hal_uart_blocking_contract.py":
-        "PENDING: new guard from the parallel UART receive-contract slice; it still reads raw "
-        "text and registers here when that slice lands",
 }
 
 
@@ -155,6 +154,12 @@ def guard_files(root: Path) -> list[Path]:
 def findings(root: Path = ROOT, registry=REGISTRY, exemptions=EXEMPTIONS) -> list[str]:
     problems: list[str] = []
     present = {path.relative_to(root).as_posix(): path for path in guard_files(root)}
+
+    for entry in sorted({entry for entry in registry if registry.count(entry) > 1}):
+        problems.append(
+            f"{entry}: listed {registry.count(entry)} times in the registry - a repeated entry "
+            f"runs one guard twice and hides that the other one was never added"
+        )
 
     for entry in registry:
         path = present.get(entry)

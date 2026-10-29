@@ -75,6 +75,11 @@ class GuardsReadCodeTest(unittest.TestCase):
         problems = findings(self.root, (entry,), {})
         self.assertTrue(any("never calls read_code" in p for p in problems), problems)
 
+    def test_a_repeated_registration_is_reported(self) -> None:
+        entry = self.write("check_twice.py", CLEAN)
+        problems = findings(self.root, (entry, entry), {})
+        self.assertTrue(any("listed 2 times" in p for p in problems), problems)
+
     def test_a_stale_registration_is_reported(self) -> None:
         problems = findings(self.root, ("tests/unit/hal/check_gone.py",), {})
         self.assertTrue(any("file is gone" in p for p in problems), problems)
