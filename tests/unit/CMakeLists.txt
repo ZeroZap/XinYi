@@ -1803,6 +1803,9 @@ target_compile_definitions(test_trace_release PRIVATE
 
 # --- Test 25a: byte-stream framing contracts (see test_xy_frame.c for the shipped
 #     defects each case pins) ---
+add_test(NAME error_code_alignment
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/hal_component/check_error_code_alignment.py)
+
 add_test(NAME support_source_scan
     COMMAND python3 ${UNIT_SUPPORT}/test_source_scan.py)
 

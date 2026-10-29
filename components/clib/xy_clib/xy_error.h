@@ -2,9 +2,17 @@
  * @file xy_error.h
  * @brief XinYi canonical error code definitions
  *
- * Single source of truth for error codes. Numerically aligned with
- * xy_hal_error.h (-1..-13) and xy_device_error.h (which already aliases
- * these values via #defines).
+ * Single source of truth for error codes, and it says this because it is checked:
+ * tests/unit/hal_component/check_error_code_alignment.py compares every name shared with
+ * xy_hal_error.h and xy_device_error.h and fails on any difference.
+ *
+ * The rule: a name that also exists in xy_hal_error.h carries the HAL number, because the
+ * HAL is the layer underneath and its header is included by the others. Names that only
+ * exist here are numbered after the HAL range, which is why they start at -15.
+ *
+ * This header used to claim alignment while thirteen of fifteen shared names disagreed -
+ * XY_ERROR_NOT_SUPPORTED was -3, the same number as XY_HAL_ERROR_TIMEOUT. Anything that
+ * compared a HAL status against a clib code for that kind of failure got a wrong answer.
  *
  * Layering:
  *   - xy_hal_error.h     -> HAL return type (xy_hal_error_t enum)
@@ -29,23 +37,23 @@ typedef enum {
     XY_OK                    =  0,
     XY_ERROR                 = -1,
     XY_ERROR_INVALID_PARAM   = -2,
-    XY_ERROR_NOT_SUPPORTED   = -3,
-    XY_ERROR_TIMEOUT         = -4,
-    XY_ERROR_BUSY            = -5,
-    XY_ERROR_NO_MEMORY       = -6,
-    XY_ERROR_IO              = -7,
-    XY_ERROR_NOT_INIT        = -8,
-    XY_ERROR_ALREADY_INIT    = -9,
-    XY_ERROR_NO_RESOURCE     = -10,
-    XY_ERROR_FAIL            = -11,
-    XY_ERROR_NO_DATA         = -12,
-    XY_ERROR_OVERFLOW        = -13,
-    XY_ERROR_UNDERFLOW       = -14,
-    XY_ERROR_CRC             = -15,
-    XY_ERROR_CHECKSUM        = -16,
-    XY_ERROR_AUTH            = -17,
-    XY_ERROR_ACCESS_DENIED   = -18,
-    XY_ERROR_NOT_FOUND       = -19,
+    XY_ERROR_NOT_SUPPORTED   = -5,
+    XY_ERROR_TIMEOUT         = -3,
+    XY_ERROR_BUSY            = -4,
+    XY_ERROR_NO_MEMORY       = -7,
+    XY_ERROR_IO              = -9,
+    XY_ERROR_NOT_INIT        = -13,
+    XY_ERROR_ALREADY_INIT    = -14,
+    XY_ERROR_NO_RESOURCE     = -8,
+    XY_ERROR_FAIL            = -10,
+    XY_ERROR_NO_DATA         = -15,
+    XY_ERROR_OVERFLOW        = -12,
+    XY_ERROR_UNDERFLOW       = -16,
+    XY_ERROR_CRC             = -11,
+    XY_ERROR_CHECKSUM        = -17,
+    XY_ERROR_AUTH            = -18,
+    XY_ERROR_ACCESS_DENIED   = -19,
+    XY_ERROR_NOT_FOUND       = -6,
     XY_ERROR_INVALID_STATE   = -20,
     XY_ERROR_INVALID_SIZE    = -21,
     XY_ERROR_INVALID_ADDR    = -22,
