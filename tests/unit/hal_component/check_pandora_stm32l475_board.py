@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_hash_code, read_raw  # noqa: E402
 BOARD = ROOT / "boards" / "pandora_stm32l475"
 RECORD = ROOT / "docs" / "validation" / "xinyi-pandora-stm32l475-board-smoke-record.md"
 EVIDENCE = ROOT / "docs" / "validation" / "evidence" / "pandora-stm32l475" / "2026-09-03"
@@ -427,10 +427,10 @@ def main() -> None:
         "HAL_I2C_Master_Receive",
         "dev_addr << 1",
     )
-    hal_cmake = read_raw(ROOT / "components" / "hal" / "CMakeLists.txt")
+    hal_cmake = read_hash_code(ROOT / "components" / "hal" / "CMakeLists.txt")
     assert 'stm32/stm32l4/xy_hal_i2c.c' in hal_cmake
     assert 'stm32/stm32l4/xy_hal_wdg.c' in hal_cmake
-    board_cmake = read_raw(BOARD / "CMakeLists.txt")
+    board_cmake = read_hash_code(BOARD / "CMakeLists.txt")
     assert "components/hal/stm32/stm32f4/xy_hal_wdg.c" not in board_cmake
     assert "components/hal/stm32/stm32l4/xy_hal_wdg.c" in board_cmake
     # The software-I2C owner now defines the same xy_hal_i2c_* symbols as the
@@ -553,7 +553,7 @@ def main() -> None:
             assert forbidden not in source, (
                 f"{sensor_owner} still depends on the legacy sensor wrapper: {forbidden}"
             )
-    board_cmake_text = read_raw(BOARD / "CMakeLists.txt")
+    board_cmake_text = read_hash_code(BOARD / "CMakeLists.txt")
     for legacy_wrapper in ("sensor_ap3216c.c", "sensor_icm20608.c"):
         assert legacy_wrapper not in board_cmake_text, (
             f"board CMakeLists.txt still links the legacy wrapper {legacy_wrapper}"

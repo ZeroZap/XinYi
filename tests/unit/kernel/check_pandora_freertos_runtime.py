@@ -4,7 +4,7 @@
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_hash_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT / "boards" / "pandora_stm32l475"
@@ -23,7 +23,7 @@ PC_SYS = ROOT / "components" / "hal" / "PC" / "xy_hal_pc.c"
 
 def main() -> int:
     errors: list[str] = []
-    cmake = read_raw(CMAKE)
+    cmake = read_hash_code(CMAKE)
 
     for path, label in (
         (MAIN, "runtime main"),

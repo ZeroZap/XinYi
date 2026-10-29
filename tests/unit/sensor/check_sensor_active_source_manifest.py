@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_hash_code, read_raw  # noqa: E402
 import re
 import sys
 
@@ -99,10 +99,10 @@ def main() -> int:
     manifest = read_raw(MANIFEST)
     tracker = read_raw(TRACKER)
     audit_plan = read_raw(AUDIT_PLAN)
-    sensor_cmake = read_raw(SENSOR_CMAKE)
-    drivers_cmake = read_raw(DRIVERS_CMAKE)
-    unit_cmake = read_raw(UNIT_CMAKE)
-    smart_hygrometer_cmake = read_raw(SMART_HYGROMETER_CMAKE)
+    sensor_cmake = read_hash_code(SENSOR_CMAKE)
+    drivers_cmake = read_hash_code(DRIVERS_CMAKE)
+    unit_cmake = read_hash_code(UNIT_CMAKE)
+    smart_hygrometer_cmake = read_hash_code(SMART_HYGROMETER_CMAKE)
     smart_hygrometer_main = read_code(SMART_HYGROMETER_MAIN)
 
     legacy = sorted((ROOT / "components" / "sensor" / "sensors").glob("sensor_*.c"))

@@ -12,7 +12,11 @@ each non-default branch to fail closed when its headers are absent.
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 CMAKE = ROOT / "components" / "kernel" / "osal" / "CMakeLists.txt"
@@ -47,7 +51,7 @@ def backend_block(text: str, backend: str) -> str:
 
 def main() -> int:
     errors: list[str] = []
-    text = CMAKE.read_text(encoding="utf-8")
+    text = read_hash_code(CMAKE)
 
     for backend, rel_header in HEADERS.items():
         block = backend_block(text, backend)

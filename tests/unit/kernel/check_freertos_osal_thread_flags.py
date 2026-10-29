@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_hash_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BACKEND = ROOT / "components/kernel/osal/backend/freertos/xy_os_freertos.c"
@@ -16,7 +16,7 @@ def main() -> int:
     source = read_code(BACKEND)
     raw = read_raw(BACKEND)
     public_api = read_code(PUBLIC_API)
-    board_cmake = read_raw(ROOT / "boards/opench_ch32v307/CMakeLists.txt")
+    board_cmake = read_hash_code(ROOT / "boards/opench_ch32v307/CMakeLists.txt")
     board_semaphore = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_semaphore_lifecycle_main.c")
     board_mutex = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_mutex_lifecycle_main.c")
     board_queue = read_code(ROOT / "boards/opench_ch32v307/osal_freertos_queue_lifecycle_main.c")

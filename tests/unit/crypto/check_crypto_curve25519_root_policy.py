@@ -10,8 +10,12 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 CRYPTO_CMAKE = ROOT / "components" / "crypto" / "CMakeLists.txt"
@@ -34,7 +38,7 @@ def require(condition: bool, message: str, errors: list[str]) -> None:
 
 
 def registered_crypto_ctests() -> set[str]:
-    text = UNIT_CMAKE.read_text(encoding="utf-8")
+    text = read_hash_code(UNIT_CMAKE)
     names = set(re.findall(r"xy_add_unit_test\(\s*\S+\s+(crypto_[A-Za-z0-9_]+)\s+UNITY", text))
     names.update(re.findall(r"add_test\(\s*NAME\s+(crypto_[A-Za-z0-9_]+)", text))
     return names
@@ -49,7 +53,7 @@ def find_algorithm(data: dict[str, Any], algorithm_id: str) -> dict[str, Any] | 
 
 def validate() -> list[str]:
     errors: list[str] = []
-    cmake_text = CRYPTO_CMAKE.read_text(encoding="utf-8")
+    cmake_text = read_hash_code(CRYPTO_CMAKE)
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     source_map_text = SOURCE_MAP.read_text(encoding="utf-8")
     proposal_text = PROPOSAL.read_text(encoding="utf-8")

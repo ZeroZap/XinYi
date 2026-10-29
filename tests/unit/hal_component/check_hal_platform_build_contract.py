@@ -21,7 +21,7 @@ import re
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 HAL = ROOT / "components" / "hal"
@@ -131,7 +131,7 @@ def guarded_sources(directory: Path) -> set[str]:
 
 
 def main() -> int:
-    text = read_raw(HAL_CMAKE)
+    text = read_hash_code(HAL_CMAKE)
     f4 = branch_body(text, "STM32F4")
     l4 = branch_body(text, "STM32L4")
 

@@ -30,7 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
 
-from source_scan import code_only_hash  # noqa: E402
+from source_scan import code_only_hash, read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 ROOT_CMAKE = ROOT / "CMakeLists.txt"
@@ -240,22 +240,22 @@ def design_docs(root: Path = ROOT) -> dict[str, str]:
 
 
 def main() -> int:
-    root_text = ROOT_CMAKE.read_text(encoding="utf-8")
-    osal_text = OSAL_CMAKE.read_text(encoding="utf-8")
+    root_text = read_hash_code(ROOT_CMAKE)
+    osal_text = read_hash_code(OSAL_CMAKE)
     problems = findings(root_text, osal_text)
     problems.extend(directory_findings(dispatched(osal_text), UNREACHABLE, ORPHANED,
                                        backend_directories(OSAL_CMAKE.parent)))
     # The parsed Kconfig is the root one: the parser reads that file and follows no source directive.
     problems.extend(undefined_symbol_findings(
-        KERNEL_CMAKE.read_text(encoding="utf-8") + "\n" + osal_text,
-        ROOT_KCONFIG.read_text(encoding="utf-8")))
+        read_hash_code(KERNEL_CMAKE) + "\n" + osal_text,
+        read_hash_code(ROOT_KCONFIG)))
     problems.extend(doc_command_findings(design_docs(), selectable(root_text)))
     if problems:
         print("osal_backend_advertise failed:")
         for problem in problems:
             print(f"- {problem}")
         return 1
-    print(f"osal_backend_advertise ok (advertised=selectable={sorted(selectable(ROOT_CMAKE.read_text(encoding='utf-8')))}, "
+    print(f"osal_backend_advertise ok (advertised=selectable={sorted(selectable(root_text))}, "
           f"unreachable={sorted(UNREACHABLE)}, orphaned={sorted(ORPHANED)}, "
           f"undefined-symbols={len(PINNED_UNDEFINED_SYMBOLS)})")
     return 0

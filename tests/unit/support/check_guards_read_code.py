@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Guards that judge C source have to read code, and this says which ones do.
+"""Guards that judge source text have to read code, and this says which ones do.
 
 source_scan.read_code() strips comments before a guard looks for a symbol. The defect it
 fixes runs in both directions, and only one of them is loud:
@@ -25,6 +25,15 @@ The C-file test is a name map, not full parsing: a variable is treated as C when
 statement assigning it mentions a .c/.h/.ld literal. A path assembled at runtime (f-strings,
 glob results) is not resolved - that is the boundary, and it is why a registration is still
 a human decision rather than something this can infer.
+
+The second half is the `#` syntax, and it needs no registry: a guard that decides which
+target is registered, which branch is taken, or which option the root build can set is
+answered by a commented-out line exactly as well as by a live one. Any read of CMake,
+Kconfig or Makefile text through read_raw()/.read_text() is reported, whatever file it is
+in, because there is no legitimate reason to see that text with the comments still in it
+except one: a rule that requires a rationale to have been *written down* is a rule about a
+comment. That case is allowed only where the line says so - `read_raw(X)  # prose: <why>` -
+and a file whose subject is generated output says it once, in HASH_PROSE, with its reason.
 """
 
 from __future__ import annotations
@@ -39,6 +48,18 @@ SUPPORT = Path(__file__).resolve().parent
 C_SUFFIX = re.compile(r"\.(?:c|h|ld)\b")
 C_LITERAL = re.compile(r'"[^"]*\.(?:c|h|ld)"')
 ASSIGN = re.compile(r"^\s*([A-Za-z_]\w*)\s*=", re.M)
+
+# CMake, Kconfig and Makefile text: what read_hash_code() is for.
+HASH_TEXT = re.compile(r"CMakeLists\.txt|\.cmake\b|\.mk\b|Kconfig")
+HASH_LITERAL = re.compile(r'"[^"]*(?:CMakeLists\.txt|\.cmake|\.mk|Kconfig)[^"]*"')
+READ_RAW = re.compile(r"read_raw\(\s*([A-Za-z_]\w*)?")
+READ_TEXT = re.compile(r"\b([A-Za-z_]\w*)\.read_text\(")
+# A file that picks files by name is reading the ones it picked, whatever the variable is
+# called: `cmakes[str(path)] = read_raw(path)` inside `if name == "CMakeLists.txt"` is a CMake
+# read that no literal on the line reveals.
+WALK_MATCH = re.compile(r'==\s*"CMakeLists\.txt"|endswith\(\s*"(?:\.cmake|CMakeLists\.txt|Kconfig)"\s*\)')
+PROSE_MARK = "# prose:"
+PROSE_MIN = 12
 
 # Guards that decide something by looking at C source.
 REGISTRY = (
@@ -124,6 +145,14 @@ EXEMPTIONS = {
         "reads JSON policy/records and linker .map listings to hash release inputs",
 }
 
+# Files whose subject *is* generated output, where a `#` line is the product rather than a
+# comment. Same rule as EXEMPTIONS: no entry without a reason.
+HASH_PROSE = {
+    "tests/test_kconfig_parser.py":
+        "asserts on the generated config.cmake/autoconf.h text, where a comment line is output "
+        "of the generator under test rather than a comment in a build file",
+}
+
 
 def c_variables(text: str) -> set[str]:
     """Names assigned in a statement that mentions a C-file literal."""
@@ -135,6 +164,52 @@ def c_variables(text: str) -> set[str]:
         if match:
             names.add(match.group(1))
     return names
+
+
+def hash_variables(text: str) -> set[str]:
+    """Names assigned in a statement that mentions a CMake/Kconfig/Makefile literal."""
+    names: set[str] = set()
+    for line in text.splitlines():
+        if not HASH_LITERAL.search(line):
+            continue
+        match = ASSIGN.match(line)
+        if match:
+            names.add(match.group(1))
+    return names
+
+
+def hash_read_violations(text: str) -> list[str]:
+    """CMake/Kconfig reads that keep the comments, without saying why they must."""
+    names = hash_variables(text)
+    picks_by_name = bool(WALK_MATCH.search(text))
+    problems: list[str] = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        raw = READ_RAW.search(line)
+        text_call = READ_TEXT.search(line)
+        has_text = ".read_text(" in line
+        if not (raw or has_text):
+            continue
+        receiver = raw.group(1) if raw else (text_call.group(1) if text_call else None)
+        if not (picks_by_name or HASH_LITERAL.search(line) or (receiver and receiver in names)):
+            continue
+        if PROSE_MARK in line:
+            reason = line.split(PROSE_MARK, 1)[1].strip()
+            if len(reason) >= PROSE_MIN:
+                continue
+            problems.append(
+                f"line {number}: takes the prose exception without stating a reason - a line "
+                f"that must see comments has to say what it is looking for"
+            )
+            continue
+        how = "read_raw()" if raw else ".read_text()"
+        literal = HASH_LITERAL.search(line)
+        what = f"{receiver} " if receiver else (f"{literal.group(0)} " if literal else "")
+        problems.append(
+            f"line {number}: reads {what}CMake/Kconfig text through {how} - a commented-out "
+            f"branch or target satisfies it; use read_hash_code(), or state the reason with "
+            f"`# prose:`"
+        )
+    return problems
 
 
 def c_read_violations(text: str) -> list[str]:
@@ -166,7 +241,11 @@ def guard_files(root: Path) -> list[Path]:
     return files
 
 
-def findings(root: Path = ROOT, registry=REGISTRY, exemptions=EXEMPTIONS) -> list[str]:
+def findings(root: Path = ROOT, registry=REGISTRY, exemptions=EXEMPTIONS,
+             hash_prose: dict[str, str] | None = None) -> list[str]:
+    # hash_prose defaults to empty rather than to HASH_PROSE so a synthetic tree is not judged
+    # against the real one's exemptions; main() passes the real table.
+    hash_prose = {} if hash_prose is None else hash_prose
     problems: list[str] = []
     present = {path.relative_to(root).as_posix(): path for path in guard_files(root)}
 
@@ -207,11 +286,25 @@ def findings(root: Path = ROOT, registry=REGISTRY, exemptions=EXEMPTIONS) -> lis
                 f"exemption with a reason - register it and read code, or state why not"
             )
 
+    for name, reason in hash_prose.items():
+        if not reason.strip():
+            problems.append(
+                f"{name}: exempted from the hash-read rule without a stated reason")
+        if name not in present:
+            problems.append(f"{name}: exempted from the hash-read rule but the file is gone")
+
+    for name, path in present.items():
+        if name in hash_prose:
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for violation in hash_read_violations(text):
+            problems.append(f"{name}: {violation}")
+
     return problems
 
 
 def main() -> int:
-    problems = findings()
+    problems = findings(hash_prose=HASH_PROSE)
     if problems:
         print("guards_read_code failed:")
         for problem in problems:
@@ -219,7 +312,8 @@ def main() -> int:
         return 1
     print(
         f"guards_read_code ok registered={len(REGISTRY)} exempted={len(EXEMPTIONS)} "
-        f"(reads C through read_code, names the choice at every site)"
+        f"prose_files={len(HASH_PROSE)} (reads C through read_code, CMake/Kconfig through "
+        f"read_hash_code, names the exception at every site)"
     )
     for entry in sorted(EXEMPTIONS):
         print(f"  exempt: {entry}")

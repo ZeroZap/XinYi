@@ -31,7 +31,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import code_only, read_code, read_raw  # noqa: E402
+from source_scan import code_only, read_code, read_hash_code  # noqa: E402
 
 VECTOR = re.compile(r"void\s+([A-Z][A-Z0-9_]*_IRQHandler)\s*\(\s*void\s*\)", re.M)
 
@@ -191,7 +191,7 @@ def walk_sources(root: Path):
             path = Path(dirpath) / name
             if name == "CMakeLists.txt" or name.endswith(".cmake"):
                 try:
-                    cmakes[str(path)] = read_raw(path)
+                    cmakes[str(path)] = read_hash_code(path)
                 except OSError:
                     continue
             elif name.endswith(".c"):
@@ -250,7 +250,7 @@ def scan_repository(root: Path = ROOT) -> list[str]:
         for source in sources.values():
             vectors.update(vectors_in(code_only(source)))
         cmake = board / "CMakeLists.txt"
-        cmake_text = read_raw(cmake) if cmake.is_file() else ""
+        cmake_text = read_hash_code(cmake) if cmake.is_file() else ""
         findings.extend(arming_findings(sources, vectors,
                                         "XY_HAL_UART_PROVIDE_IRQ_VECTORS" in cmake_text,
                                         board.name))

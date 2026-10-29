@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT / "boards" / "pandora_stm32l475"
@@ -16,7 +16,7 @@ def require(text: str, token: str) -> None:
 
 
 def main() -> int:
-    cmake = read_raw(BOARD / "CMakeLists.txt")
+    cmake = read_hash_code(BOARD / "CMakeLists.txt")
     linker = read_code(BOARD / "STM32L475VETX_BOOTLOADER.ld")
     boot = read_code(BOARD / "fota_bootloader_main.c")
     boot_flow = read_code(BOARD / "pandora_fota_boot_flow.c")

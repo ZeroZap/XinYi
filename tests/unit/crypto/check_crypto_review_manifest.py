@@ -11,8 +11,12 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST_PATH = ROOT / "components" / "crypto" / "crypto_review_manifest.json"
@@ -149,7 +153,7 @@ def _require(condition: bool, message: str, errors: list[str]) -> None:
 
 def _registered_crypto_ctests() -> set[str]:
     """Return crypto-related CTest names declared in tests/unit/CMakeLists.txt."""
-    cmake_text = UNIT_CMAKE_PATH.read_text(encoding="utf-8")
+    cmake_text = read_hash_code(UNIT_CMAKE_PATH)
     names = set(re.findall(r"xy_add_unit_test\(\s*\S+\s+(crypto_[A-Za-z0-9_]+)\s+UNITY", cmake_text))
     names.update(re.findall(r"add_test\(\s*NAME\s+(crypto_[A-Za-z0-9_]+)", cmake_text))
     return names
@@ -163,7 +167,7 @@ def _crypto_root_target_sources() -> set[str]:
     If crypto root ownership changes to an explicit list or a different glob, this check should
     fail until the ownership map/manifest guard is updated in the same slice.
     """
-    cmake_text = CRYPTO_CMAKE_PATH.read_text(encoding="utf-8")
+    cmake_text = read_hash_code(CRYPTO_CMAKE_PATH)
     glob_pattern = r'file\(\s*GLOB\s+CRYPTO_SOURCES\s+"src/\*\.c"\s*\)'
     _require_messages: list[str] = []
     _require(
@@ -201,7 +205,7 @@ def _crypto_root_target_sources() -> set[str]:
             _require_messages,
         )
         if target_cmake.exists():
-            target_cmake_text = target_cmake.read_text(encoding="utf-8")
+            target_cmake_text = read_hash_code(target_cmake)
             _require(
                 re.search(rf"add_library\(\s*{target_name}\s+STATIC[\s\S]*\b{re.escape(target_source)}\b", target_cmake_text) is not None,
                 f"root runtime subdirectory target {target_name} must build source {target_source}",

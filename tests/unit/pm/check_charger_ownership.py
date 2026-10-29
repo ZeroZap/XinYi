@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_hash_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 DRIVER = ROOT / "components" / "drivers" / "power" / "charger"
@@ -39,7 +39,7 @@ def main() -> int:
         return 1
 
     readme = read_raw(README)
-    unit_cmake = read_raw(UNIT_CMAKE)
+    unit_cmake = read_hash_code(UNIT_CMAKE)
     framework = read_code(FRAMEWORK)
     header = read_code(HEADER)
     require("${DRV}/power/charger/xy_bq25620.c" in unit_cmake,

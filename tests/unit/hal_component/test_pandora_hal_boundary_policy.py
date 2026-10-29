@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_hash_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT / "boards" / "pandora_stm32l475"
@@ -51,7 +51,7 @@ def assert_host_clock_contract() -> None:
     ):
         assert token in contract, f"{HOST_CONTRACT.relative_to(ROOT)} missing {token!r}"
 
-    cmake = read_raw(UNIT_CMAKE)
+    cmake = read_hash_code(UNIT_CMAKE)
     anchor = "xy_add_unit_test(test_pandora_platform_startup pandora_platform_startup UNITY"
     start = cmake.find(anchor)
     assert start >= 0, "tests/unit/CMakeLists.txt does not register the startup host contract"

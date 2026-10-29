@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code  # noqa: E402
+from source_scan import read_code, read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 DECISION = ROOT / "docs" / "validation" / "reference-rtos-decision.md"
@@ -87,7 +87,7 @@ def main() -> int:
     tracker = TRACKER.read_text(encoding="utf-8")
     audit_plan = AUDIT_PLAN.read_text(encoding="utf-8")
     evidence = EVIDENCE.read_text(encoding="utf-8")
-    osal_cmake = OSAL_CMAKE.read_text(encoding="utf-8")
+    osal_cmake = read_hash_code(OSAL_CMAKE)
     backend_comparison = BACKEND_COMPARISON.read_text(encoding="utf-8")
     freertos_readme = FREERTOS_README.read_text(encoding="utf-8")
     kernel_readme = KERNEL_README.read_text(encoding="utf-8")
@@ -98,9 +98,9 @@ def main() -> int:
     development_priority = DEVELOPMENT_PRIORITY.read_text(encoding="utf-8")
     component_index = COMPONENT_INDEX.read_text(encoding="utf-8")
     osal_introduction = OSAL_INTRODUCTION.read_text(encoding="utf-8")
-    root_kconfig = ROOT_KCONFIG.read_text(encoding="utf-8")
-    root_cmake = ROOT_CMAKE.read_text(encoding="utf-8")
-    third_party_cmake = THIRD_PARTY_CMAKE.read_text(encoding="utf-8")
+    root_kconfig = read_hash_code(ROOT_KCONFIG)
+    root_cmake = read_hash_code(ROOT_CMAKE)
+    third_party_cmake = read_hash_code(THIRD_PARTY_CMAKE)
 
     for token in (
         "FreeRTOS",

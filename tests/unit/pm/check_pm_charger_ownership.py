@@ -6,7 +6,7 @@ import re
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 PM_CHARGER = ROOT / "components" / "pm" / "src" / "xy_charger.c"
@@ -23,8 +23,8 @@ def main() -> int:
     errors = []
     charger = read_code(PM_CHARGER)
     platform = read_code(PM_PLATFORM)
-    unit_cmake = read_raw(UNIT_CMAKE)
-    pandora_cmake = read_raw(PANDORA_CMAKE)
+    unit_cmake = read_hash_code(UNIT_CMAKE)
+    pandora_cmake = read_hash_code(PANDORA_CMAKE)
 
     for symbol in ("xy_charger_hw_enable", "xy_charger_hw_disable"):
         if definitions(charger, symbol) != 0:

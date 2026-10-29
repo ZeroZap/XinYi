@@ -9,8 +9,12 @@ security/provenance approval language.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST_PATH = ROOT / "tests" / "unit" / "crypto" / "crypto_benchmark_manifest.json"
@@ -124,7 +128,7 @@ def validate() -> list[str]:
     manifest = load_json(MANIFEST_PATH)
     review_manifest = load_json(REVIEW_MANIFEST_PATH)
     proposal_text = PROPOSAL_PATH.read_text(encoding="utf-8")
-    unit_cmake_text = UNIT_CMAKE_PATH.read_text(encoding="utf-8")
+    unit_cmake_text = read_hash_code(UNIT_CMAKE_PATH)
     manifest_text = MANIFEST_PATH.read_text(encoding="utf-8")
     historical_boot_crypto_text = HISTORICAL_BOOT_CRYPTO_PATH.read_text(encoding="utf-8")
     historical_25519_doc_texts = {

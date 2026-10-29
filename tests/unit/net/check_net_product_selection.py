@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_hash_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -19,8 +19,8 @@ def require(condition: bool, message: str, errors: list[str]) -> None:
 
 def validate() -> list[str]:
     errors: list[str] = []
-    kconfig = read_raw(ROOT / "Kconfig")
-    cmake = read_raw(ROOT / "components/net/CMakeLists.txt")
+    kconfig = read_hash_code(ROOT / "Kconfig")
+    cmake = read_hash_code(ROOT / "components/net/CMakeLists.txt")
     umbrella = read_code(ROOT / "components/net/inc/xy_net.h")
     readme = read_raw(ROOT / "components/net/README.md")
 

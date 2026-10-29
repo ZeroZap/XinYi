@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw
+from source_scan import read_code, read_hash_code, read_raw
 
 BACKEND = Path("components") / "xy_backend.c"
 CMAKE = Path("components") / "CMakeLists.txt"
@@ -30,7 +30,7 @@ CMAKE = Path("components") / "CMakeLists.txt"
 
 def main() -> int:
     source = read_code(BACKEND)
-    cmake = read_raw(CMAKE)
+    cmake = read_hash_code(CMAKE)
     return 0 if "HAL_Init(" in source and "xy_backend.c" in cmake else 1
 '''
 
@@ -66,7 +66,7 @@ class GuardsReadCodeTest(unittest.TestCase):
 
     def test_a_registered_guard_without_the_import_is_reported(self) -> None:
         entry = self.write("check_noimport.py", CLEAN.replace(
-            'from source_scan import read_code, read_raw\n', ""))
+            'from source_scan import read_code, read_hash_code, read_raw\n', ""))
         problems = findings(self.root, (entry,), {})
         self.assertTrue(any("does not import source_scan" in p for p in problems), problems)
 
@@ -74,6 +74,61 @@ class GuardsReadCodeTest(unittest.TestCase):
         entry = self.write("check_nostrip.py", CLEAN.replace("read_code(BACKEND)", "read_raw(BACKEND)"))
         problems = findings(self.root, (entry,), {})
         self.assertTrue(any("never calls read_code" in p for p in problems), problems)
+
+    def test_a_hash_variable_read_through_read_raw_is_reported(self) -> None:
+        entry = self.write("check_cmake_raw.py", CLEAN.replace(
+            "read_hash_code(CMAKE)", "read_raw(CMAKE)"))
+        problems = findings(self.root, (entry,), {})
+        self.assertTrue(any("CMAKE" in p and "read_raw" in p for p in problems), problems)
+
+    def test_a_hash_literal_inside_read_raw_is_reported(self) -> None:
+        entry = self.write("check_kconfig_raw.py", CLEAN.replace(
+            "    cmake = read_hash_code(CMAKE)\n", '    cmake = read_raw(Path("Kconfig"))\n'))
+        problems = findings(self.root, (entry,), {})
+        self.assertTrue(any("Kconfig" in p for p in problems), problems)
+
+    def test_a_hash_read_through_read_text_is_reported(self) -> None:
+        entry = self.write("check_cmake_literal.py", CLEAN.replace(
+            "    cmake = read_hash_code(CMAKE)\n",
+            '    cmake = Path("components/CMakeLists.txt").read_text()\n'))
+        problems = findings(self.root, (entry,), {})
+        self.assertTrue(any("CMakeLists.txt" in p and "read_text" in p for p in problems),
+                        problems)
+
+    def test_a_hash_read_with_a_stated_reason_is_allowed(self) -> None:
+        entry = self.write("check_prose.py", CLEAN.replace(
+            "read_hash_code(CMAKE)",
+            "read_raw(CMAKE)  # prose: the rule requires a rationale comment to be present"))
+        self.assertEqual([], findings(self.root, (entry,), {}))
+
+    def test_a_hash_read_with_an_empty_reason_is_reported(self) -> None:
+        entry = self.write("check_prose_empty.py", CLEAN.replace(
+            "read_hash_code(CMAKE)", "read_raw(CMAKE)  # prose:"))
+        problems = findings(self.root, (entry,), {})
+        self.assertTrue(any("stating a reason" in p for p in problems), problems)
+
+    def test_a_hash_file_that_is_prose_throughout_can_be_exempt(self) -> None:
+        entry = self.write("check_generated.py", CLEAN.replace(
+            "read_hash_code(CMAKE)", "read_raw(CMAKE)"))
+        reason = {entry: "asserts on the generated cmake output, which is the product"}
+        self.assertEqual([], findings(self.root, (entry,), {}, reason))
+
+    def test_a_hash_file_exemption_without_a_reason_is_reported(self) -> None:
+        entry = self.write("check_generated.py", CLEAN.replace(
+            "read_hash_code(CMAKE)", "read_raw(CMAKE)"))
+        problems = findings(self.root, (entry,), {}, {entry: "   "})
+        self.assertTrue(any("stated reason" in p for p in problems), problems)
+
+    def test_a_walk_that_classifies_cmake_files_is_still_a_hash_read(self) -> None:
+        # `read_raw(path)` inside `if name == "CMakeLists.txt"` names nothing on its own line.
+        entry = self.write("check_walk.py", CLEAN.replace(
+            "    cmake = read_hash_code(CMAKE)\n",
+            "    cmake = \"\"\n"
+            "    for name in (\"CMakeLists.txt\",):\n"
+            "        if name == \"CMakeLists.txt\":\n"
+            "            cmake = read_raw(CMAKE)\n"))
+        problems = findings(self.root, (entry,), {})
+        self.assertTrue(any("read_raw" in p for p in problems), problems)
 
     def test_a_repeated_registration_is_reported(self) -> None:
         entry = self.write("check_twice.py", CLEAN)

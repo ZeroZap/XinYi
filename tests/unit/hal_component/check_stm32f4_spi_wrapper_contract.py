@@ -26,7 +26,7 @@ import re
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_hash_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = ROOT / "components" / "hal" / "stm32" / "stm32f4" / "xy_hal_spi.c"
@@ -109,7 +109,7 @@ def main() -> int:
     if "#ifdef STM32_HAL_ENABLED" not in raw:
         errors.append("STM32F4 SPI wrapper must be wrapped in #ifdef STM32_HAL_ENABLED")
     deferred = re.search(r"set\(XY_HAL_F4_DEFERRED_SOURCES(.*?)\)",
-                         read_raw(HAL_CMAKE), re.S)
+                         read_hash_code(HAL_CMAKE), re.S)
     if deferred and "xy_hal_spi.c" in deferred.group(1):
         errors.append(
             "STM32F4 branch still lists xy_hal_spi.c as contract-deferred; the migrated wrapper "
