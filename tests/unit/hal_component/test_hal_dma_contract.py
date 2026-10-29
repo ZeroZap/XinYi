@@ -119,6 +119,53 @@ xy_hal_error_t xy_hal_dma_poll_complete(void* dma, uint32_t timeout) {
         self.assertFalse(any("zero timeout" in p for p in problems))
 
 
+class ConfigValidationTests(unittest.TestCase):
+    VALIDATING = """
+static int dma_config_valid(const xy_hal_dma_config_t *config)
+{
+    if (config->direction > XY_HAL_DMA_DIR_MEM_TO_MEM) return 0;
+    if (config->mode > XY_HAL_DMA_MODE_CIRCULAR) return 0;
+    if (config->priority > XY_HAL_DMA_PRIORITY_VERY_HIGH) return 0;
+    if (config->periph_width > XY_HAL_DMA_WIDTH_WORD) return 0;
+    if (config->mem_width > XY_HAL_DMA_WIDTH_WORD) return 0;
+    if (config->periph_incr > XY_HAL_DMA_INCR_ENABLE) return 0;
+    if (config->mem_incr > XY_HAL_DMA_INCR_ENABLE) return 0;
+    return 1;
+}
+
+xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
+{
+    if (dma == NULL || config == NULL || !dma_config_valid(config)) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    return XY_HAL_OK;
+}
+"""
+
+    def test_validation_through_a_helper_passes(self):
+        problems = guard.findings(backend(self.VALIDATING))
+        self.assertFalse(any("out-of-range" in p for p in problems))
+
+    def test_an_unvalidated_field_is_reported(self):
+        source = self.VALIDATING.replace(
+            "    if (config->mem_width > XY_HAL_DMA_WIDTH_WORD) return 0;\n", "")
+        problems = guard.findings(backend(source))
+        self.assertTrue(any("mem_width" in p and "out-of-range" in p for p in problems))
+
+    def test_a_config_never_examined_is_reported(self):
+        source = """
+xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
+{
+    if (dma == NULL || config == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    return XY_HAL_OK;
+}
+"""
+        problems = guard.findings(backend(source))
+        self.assertTrue(any("direction" in p for p in problems))
+
+
 class RepositoryTests(unittest.TestCase):
     def test_every_backend_agrees(self):
         self.assertEqual(guard.findings(), [])

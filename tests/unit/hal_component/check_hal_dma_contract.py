@@ -37,6 +37,12 @@ BACKENDS = {
 REFUSES_ZERO = re.compile(r"data_len\s*==\s*0U?")
 CAPS_COUNT = re.compile(r"data_len\s*>\s*(?:0xFFFFU?|UINT16_MAX|65535U?)")
 NOT_INIT = "XY_HAL_ERROR_NOT_INIT"
+# Each enum in the config is mapped through a helper with a `default:` branch, so an out-of-range
+# value is not an error - it becomes a concrete hardware setting. Refusing the config is the only
+# thing that stops a typo from changing the transfer shape.
+CONFIG_FIELDS = ("direction", "mode", "priority", "periph_width", "mem_width", "periph_incr",
+                 "mem_incr")
+LOCAL_CALL = re.compile(r"\b(\w+)\s*\(")
 # Either translation of "0 waits forever": HAL's own sentinel, or an explicit zero test.
 UNBOUNDED_WAIT = re.compile(r"HAL_MAX_DELAY|timeout\s*!=\s*0U?")
 # The vendor poll taking the caller's value unchanged - which means 0 fails at once.
@@ -62,6 +68,45 @@ def function_body(source: str, signature: str) -> str:
     return ""
 
 
+def function_body_local(source: str, signature: str) -> str:
+    return function_body(source, signature)
+
+
+def local_definitions(source: str) -> dict[str, str]:
+    names = set(re.findall(r"^static\s+\w[\w\s\*]*?\b(\w+)\s*\(", source, re.M))
+    return {name: function_body(source, name + "(") for name in names}
+
+
+def with_delegation(body: str, definitions: dict[str, str]) -> str:
+    seen: list[str] = []
+    for _ in range(2):
+        added = False
+        for name in LOCAL_CALL.findall(body):
+            if name in definitions and name not in seen:
+                seen.append(name)
+                body += "\n" + definitions[name]
+                added = True
+        if not added:
+            break
+    return body
+
+
+def config_findings(source: str, name: str) -> list[str]:
+    """An out-of-range enum must be refused, not defaulted by a mapping helper."""
+    body = function_body(source, "xy_hal_dma_init(")
+    if not body:
+        return []
+    resolved = with_delegation(body, local_definitions(source))
+    problems: list[str] = []
+    missing = [field for field in CONFIG_FIELDS
+               if not re.search(rf"\b{field}\s*(?:>=|>)\s*\w", resolved)]
+    if missing:
+        problems.append(
+            f"{name}: init does not refuse an out-of-range config field ({', '.join(missing)}); "
+            f"the mapping helpers default instead, so a typo silently changes the transfer")
+    return problems
+
+
 def source_of(value) -> str:
     return read_code(value) if isinstance(value, Path) else value
 
@@ -73,6 +118,7 @@ def findings(backends: dict | None = None, header: Path | None = None) -> list[s
 
     for name, path in sorted(backends.items()):
         source = source_of(path)
+        problems.extend(config_findings(source, name))
         start_body = function_body(source, "xy_hal_dma_start(")
         if not start_body:
             problems.append(f"{name}: xy_hal_dma_start is missing")

@@ -124,12 +124,28 @@ static uint32_t to_mem_alignment(xy_hal_dma_width_t width)
     }
 }
 
+/* Every enum in the config is mapped through a helper whose default branch is a real setting, so
+ * an out-of-range value does not fail - it becomes byte width, or low priority, or a direction the
+ * caller did not ask for, and the transfer runs that way. F4 refuses these; this is the same check
+ * for this backend. */
+static int dma_config_valid(const xy_hal_dma_config_t *config)
+{
+    if (config->direction > XY_HAL_DMA_DIR_MEM_TO_MEM) return 0;
+    if (config->mode > XY_HAL_DMA_MODE_CIRCULAR) return 0;
+    if (config->priority > XY_HAL_DMA_PRIORITY_VERY_HIGH) return 0;
+    if (config->periph_width > XY_HAL_DMA_WIDTH_WORD) return 0;
+    if (config->mem_width > XY_HAL_DMA_WIDTH_WORD) return 0;
+    if (config->periph_incr > XY_HAL_DMA_INCR_ENABLE) return 0;
+    if (config->mem_incr > XY_HAL_DMA_INCR_ENABLE) return 0;
+    return 1;
+}
+
 xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
 {
     DMA_HandleTypeDef *hdma;
     dma_ctx_t *context;
 
-    if (dma == NULL || config == NULL) {
+    if (dma == NULL || config == NULL || !dma_config_valid(config)) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     hdma = (DMA_HandleTypeDef *)dma;
