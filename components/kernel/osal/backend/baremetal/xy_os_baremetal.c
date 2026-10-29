@@ -864,14 +864,20 @@ xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count,
                                          uint32_t initial_count,
                                          const xy_os_semaphore_attr_t *attr)
 {
+    /* max_count 0 used to mean "unlimited" here and "refuse" on FreeRTOS, and an initial_count above
+     * max_count was clamped here and refused there - one call, two different objects. Nothing documents
+     * an unlimited semaphore, and clamping tells the caller it got the count it asked for when it did
+     * not. Both are refused, as the queue refuses a priority it cannot honour. */
+    if (max_count == 0U || initial_count > max_count) return NULL;
+
     bm_sem_t *s = (attr && attr->cb_mem &&
                    attr->cb_size >= sizeof(bm_sem_t))
                   ? (bm_sem_t *)attr->cb_mem : bm_sem_alloc();
     if (!s) return NULL;
     memset(s, 0, sizeof(*s));
     s->magic     = BM_SEM_MAGIC;
-    s->max_count = max_count ? max_count : 0xFFFFFFFFu;
-    s->count     = (initial_count <= s->max_count) ? initial_count : s->max_count;
+    s->max_count = max_count;
+    s->count     = initial_count;
     if (attr && attr->name)
         strncpy(s->name, attr->name, XY_OS_BM_NAME_LEN - 1);
     return (xy_os_semaphore_id_t)s;

@@ -721,8 +721,11 @@ typedef struct {
 
 /**
  * @brief Create and Initialize a Semaphore object
- * @param[in] max_count Maximum number of available tokens
- * @param[in] initial_count Initial number of available tokens
+ * @param[in] max_count Maximum number of available tokens; 0 is refused rather than read as unlimited -
+ *            the bare-metal backend used to make that assumption, and an unlimited semaphore is a
+ *            different object from the one the caller described
+ * @param[in] initial_count Initial number of available tokens; more than max_count is refused, not
+ *            clamped, because a clamp tells the caller it got the count it asked for
  * @param[in] attr Semaphore attributes (NULL for default)
  * @return Semaphore ID or NULL on error
  */

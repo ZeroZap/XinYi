@@ -289,6 +289,33 @@ static void test_mutex_external_cb(void)
 
 /* ========== Semaphore ========== */
 
+/* max_count 0 meant "unlimited" on this backend and "refuse" on FreeRTOS, and an initial_count above
+ * max_count was silently clamped here and refused there. Two backends, two objects from one call: the
+ * caller asking for 10 tokens of a 2-token semaphore was handed 2 and told nothing.
+ *
+ * Refused here too, the same way xy_os_msgqueue_new refuses a priority it cannot honour: a silent clamp
+ * tells the caller it got what it asked for. */
+static void test_semaphore_refuses_counts_it_cannot_honour(void)
+{
+    /* Zero maximum is not "unlimited" - nothing documents that, and FreeRTOS refuses it. */
+    TEST_ASSERT_NULL(xy_os_semaphore_new(0U, 0U, NULL));
+    TEST_ASSERT_NULL(xy_os_semaphore_new(0U, 5U, NULL));
+
+    /* More initial tokens than the maximum is a contradiction, not something to round down. */
+    TEST_ASSERT_NULL(xy_os_semaphore_new(2U, 10U, NULL));
+
+    /* The boundary itself still works, at both ends. */
+    xy_os_semaphore_id_t empty = xy_os_semaphore_new(2U, 0U, NULL);
+    TEST_ASSERT_NOT_NULL(empty);
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_os_semaphore_get_count(empty));
+    xy_os_semaphore_delete(empty);
+
+    xy_os_semaphore_id_t full = xy_os_semaphore_new(2U, 2U, NULL);
+    TEST_ASSERT_NOT_NULL(full);
+    TEST_ASSERT_EQUAL_UINT32(2U, xy_os_semaphore_get_count(full));
+    xy_os_semaphore_delete(full);
+}
+
 static void test_semaphore_basic(void)
 {
     xy_os_semaphore_id_t s = xy_os_semaphore_new(3, 3, NULL);
@@ -900,6 +927,7 @@ int main(void)
     RUN_TEST(test_mutex_external_cb);
 
     /* Semaphore */
+    RUN_TEST(test_semaphore_refuses_counts_it_cannot_honour);
     RUN_TEST(test_semaphore_basic);
     RUN_TEST(test_semaphore_timeout);
     RUN_TEST(test_semaphore_max_count);
