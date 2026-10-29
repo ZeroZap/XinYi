@@ -933,8 +933,19 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
 {
     if (block_count == 0 || block_size == 0) return NULL;
 
-    /* block must be large enough to hold a pointer for the free-list */
+    /* A block has to hold a pointer for the free-list, and it has to hold it *aligned*: with a stride
+     * of 9 the next block's link lands at offset 9, which is an unaligned store - tolerated on
+     * Cortex-M, a fault on the RISC-V core this project also targets. The FreeRTOS backend rounds its
+     * stride up to pointer alignment for the same reason. */
     uint32_t bsz = (block_size < sizeof(void *)) ? (uint32_t)sizeof(void *) : block_size;
+    uint32_t remainder = bsz % (uint32_t)sizeof(void *);
+    if (remainder != 0U) bsz += (uint32_t)sizeof(void *) - remainder;
+
+    /* The region size is the product of the stride, and computing it without a check wrapped
+     * 0x10000000 x 16 to zero: the 256-byte embedded region then looked large enough and the pool
+     * reported a capacity of 0x10000000 blocks of 16 bytes, a free-list walking straight out of its
+     * own storage. The host test segfaulted on the next allocation from it. */
+    if (block_count > UINT32_MAX / bsz) return NULL;
 
     bm_pool_t *p = (attr && attr->cb_mem &&
                     attr->cb_size >= sizeof(bm_pool_t))

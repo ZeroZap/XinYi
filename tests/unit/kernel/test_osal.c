@@ -525,6 +525,50 @@ static void test_msgqueue_static_cb_and_storage(void)
 
 /* ========== Memory Pool ========== */
 
+/* The same product as the message queue, computed the same way and with the same absence of a check:
+ * block_count * block_size wrapped to zero, the embedded region looked big enough, and the pool
+ * reported a capacity it could never hold. Fixing the queue alone left the sibling broken. */
+/* Blocks carry a free-list pointer inside them, and the stride was block_size (rounded up only to
+ * sizeof(void *), never to an alignment). Nine-byte blocks therefore put the next block's link at
+ * offset 9, and writing a pointer there is an unaligned store - tolerated on Cortex-M, a fault on the
+ * RISC-V core this project also targets. The FreeRTOS backend rounds the stride up to pointer alignment
+ * for exactly this reason, so the same pool works there and faults here. */
+static void test_mempool_blocks_are_pointer_aligned(void)
+{
+    xy_os_mempool_id_t mp = xy_os_mempool_new(4U, 9U, NULL);
+    TEST_ASSERT_NOT_NULL(mp);
+
+    const uintptr_t align = (uintptr_t)sizeof(void *);
+    void *first = xy_os_mempool_alloc(mp, 0U);
+    void *second = xy_os_mempool_alloc(mp, 0U);
+    TEST_ASSERT_NOT_NULL(first);
+    TEST_ASSERT_NOT_NULL(second);
+    /* Every block the pool hands out must be able to hold a pointer at its own address. */
+    TEST_ASSERT_EQUAL_UINT32(0U, (uint32_t)((uintptr_t)first % align));
+    TEST_ASSERT_EQUAL_UINT32(0U, (uint32_t)((uintptr_t)second % align));
+    /* And the reported block size is the stride it actually uses, which is at least the request. */
+    TEST_ASSERT_TRUE(xy_os_mempool_get_block_size(mp) >= 9U);
+    TEST_ASSERT_EQUAL_UINT32(0U, (uint32_t)(xy_os_mempool_get_block_size(mp) % align));
+    xy_os_mempool_free(mp, first);
+    xy_os_mempool_free(mp, second);
+    xy_os_mempool_delete(mp);
+}
+
+static void test_mempool_dimensions_that_overflow_are_refused(void)
+{
+    TEST_ASSERT_NULL(xy_os_mempool_new(0x10000000U, 16U, NULL));
+    TEST_ASSERT_NULL(xy_os_mempool_new(0xFFFFFFFFU, 4U, NULL));
+    /* An ordinary pool still works, and its reported size is what it can really hold. */
+    xy_os_mempool_id_t ok = xy_os_mempool_new(8U, 16U, NULL);
+    TEST_ASSERT_NOT_NULL(ok);
+    TEST_ASSERT_EQUAL_UINT32(8U, xy_os_mempool_get_capacity(ok));
+    TEST_ASSERT_EQUAL_UINT32(16U, xy_os_mempool_get_block_size(ok));
+    xy_os_mempool_delete(ok);
+    /* Zero dimensions stay refused. */
+    TEST_ASSERT_NULL(xy_os_mempool_new(0U, 16U, NULL));
+    TEST_ASSERT_NULL(xy_os_mempool_new(8U, 0U, NULL));
+}
+
 static void test_mempool_alloc_free(void)
 {
     xy_os_mempool_id_t mp = xy_os_mempool_new(4, 16, NULL);
@@ -669,6 +713,8 @@ int main(void)
     RUN_TEST(test_msgqueue_static_cb_and_storage);
 
     /* Memory Pool */
+    RUN_TEST(test_mempool_blocks_are_pointer_aligned);
+    RUN_TEST(test_mempool_dimensions_that_overflow_are_refused);
     RUN_TEST(test_mempool_alloc_free);
     RUN_TEST(test_mempool_exhaust);
     RUN_TEST(test_mempool_cycle);
