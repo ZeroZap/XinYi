@@ -52,6 +52,7 @@ REGISTRY = (
     "tests/unit/hal_component/check_hal_pc_coverage.py",
     "tests/unit/hal_component/check_hal_dma_contract.py",
     "tests/unit/hal_component/check_hal_timer_irq_contract.py",
+    "tests/unit/kernel/check_osal_backend_uniqueness.py",
     "tests/unit/hal_component/check_hal_stub_returns.py",
     "tests/unit/hal_component/check_hal_spi_contract.py",
     "tests/unit/hal_component/check_hal_rtc_contract.py",

@@ -144,7 +144,7 @@ static xy_os_kernel_state_t s_state   = XY_OS_KERNEL_INACTIVE;
  * @brief Get bare-metal platform information
  * @return Platform description string
  */
-const char *xy_os_baremetal_get_platform(void)
+static const char *baremetal_get_platform(void)
 {
     #if defined(XY_OS_BAREMETAL_PLATFORM)
         return XY_OS_BAREMETAL_PLATFORM;
@@ -171,7 +171,7 @@ xy_os_status_t xy_os_kernel_get_info(xy_os_version_t *version, char *id_buf,
     if (id_buf && id_size > 0) {
         /* Include platform information in kernel ID */
         int written = snprintf(id_buf, id_size, "Baremetal (%s)", 
-                               xy_os_baremetal_get_platform());
+                               baremetal_get_platform());
         if (written < 0 || (uint32_t)written >= id_size) {
             /* Fallback if buffer too small */
             strncpy(id_buf, "Baremetal", id_size - 1);
