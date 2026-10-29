@@ -1,5 +1,54 @@
 # XinYi 组件证据台账
 
+### 2026-10-29 Pandora AP3216C + ICM20608 canonical owners: first board runtime (B1)
+
+- S6-116 replaced the onboard AP3216C (U8) and ICM20608 (U6) board owners with canonical
+  `xy_ap3216c` / `xy_icm20608` instances and stated plainly that **the owner switch itself had no
+  runtime evidence**; the 2026-10-28 AHT10 record closed that gap for U7 only. Both images were
+  rebuilt from `7ecc522c…` and checked at the artifact level first: `arm-none-eabi-nm` shows
+  `pandora_ap3216c_owner_{init,read_reg,read_raw,sample}` + `xy_ap3216c_init` and
+  `pandora_icm20608_owner_{init,read_reg,read_raw,sample}` + `xy_icm20608_init_i2c`, with **zero**
+  `sensor_*` symbols in either ELF, and both embed `FIRMWARE_COMMIT 7ecc522c…`.
+- New `boards/pandora_stm32l475/capture_window.py` — a capture window that makes no judgement.
+  The two validators only analyze a file, and the images print their banner immediately after
+  reset, so the port must be opened and flushed *before* `st-flash reset`; that ordering was
+  previously duplicated in three capture paths (`capture_uart.py` is welded to the smoke image's
+  banner). Exit codes are transport-only and fail closed: `0` bytes captured, `2` empty window,
+  `3` device unavailable (and no capture file written), `RESET_FAILED` is a failure.
+- CTest `pandora_capture_window` (6 cases, pty pair): pre-reset bytes must not enter the window,
+  open happens before reset, empty window still writes the evidence record, missing device writes
+  no capture, a failed reset command is not a silent success, and the recorded sha256 matches the
+  file. Suite 337 → 338.
+- Board runtime, two gated writes from a snapshot whose hashes matched the 2026-10-28 baseline
+  byte-for-byte (`762c4a75…` bootloader, `d35e2e9a…` application, `f47a8ec3…` journal,
+  `118f9c6f…` board_reserved, RTC zero): AP3216C image 11324 B `e98b781d…` at `0x08000000`
+  (`span_identical=true erased_tail=964 unexpected_changes=0`), then ICM20608 image 10412 B
+  `be58fb11…` (`erased_tail=1864 unexpected_changes=0`). UART opened and flushed before
+  `st-flash reset` for each.
+- Verdicts from real bytes: **`AP3216C_HW_I2C3_B1`** (4040 B, 53 samples / 41 unique, no error
+  markers, `PS_raw` 135–163, `IR_raw` 0–512, `ALS_lux` 0 — no stimulus was applied, so no response
+  is claimed; the ordered markers include the deliberate `0x7F` NACK and its recovery at `0x1E`)
+  and **`ICM20608_B1_REVIEW_CANDIDATE`** (6168 B, `WHO_AM_I=0xAE`, 43 samples with 44 register
+  rows and 43 raw rows, accel magnitude 1001.3–1004.3 mg, `|gyro| ≤ 1 dps`; bus scan saw
+  `0x10`, `0x1E`, `0x68` — `0x10` is not attributed here).
+- Negative controls on those same real captures, so the judgements are not decoration: ICM bytes
+  judged as AP3216C → `AP3216C_HW_I2C3_VALIDATION_FAILED` (8 failures), AP3216C bytes judged as
+  ICM → `CONTENT_MISMATCH` (7), and the AP3216C capture judged against a different commit → 1
+  failure naming the missing `FIRMWARE_COMMIT`. Identity is bound to the bytes, not to a caption.
+- Evidence path: `docs/validation/evidence/pandora-stm32l475/2026-10-29-sensor-owner-runtime/`
+  (`notes.md`, both raw logs, both judgements, three `negative-*.json`, `pandora-state-s0/s1` with
+  their `program.json`); `boards/pandora_stm32l475/capture_window.py`;
+  `tests/unit/sensor/test_pandora_capture_window.py`; `tests/unit/CMakeLists.txt`. Post-run
+  `verify` against snapshot `s1` showed **only** the bootloader region changed
+  (application/journal/board_reserved/RTC identical) and `restore` + `verify_ok regions=5`
+  returned the board byte-exactly to the pre-run state.
+- Boundaries: one board, two bounded 6 s windows, no controlled stimulus on either part (no light
+  step for ALS, no motion for the IMU). No response time, accuracy, calibration, thermal, soak or
+  endurance claim; the ICM magnitude is a still-room gravity reading, not a reference. I2C3 timing
+  margins, external pull-ups and bus recovery are not covered; the resident bootloader was
+  temporarily replaced by the validation images and restored byte-exactly, which is a flash
+  statement and not evidence about the bootloader's own behaviour.
+
 ### 2026-10-29 Pandora 复位原因：寄存器、解码掩码、归因名三者互校（含板级 RED）
 
 - **证据等级**：实板运行时（Pandora STM32L475VE，CP2102 `/dev/ttyUSB0` 115200 8N1，捕获先开再

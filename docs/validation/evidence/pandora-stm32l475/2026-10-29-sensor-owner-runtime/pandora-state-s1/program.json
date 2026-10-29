@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "tool": "tools/pandora_hil_program.py",
+  "board": "pandora_stm32l475",
+  "created_utc": "2026-10-29T08:49:37+00:00",
+  "image": {
+    "path": "build/pandora-owner-hil/boards/pandora_stm32l475/pandora_stm32l475_icm20608.bin",
+    "size": 10412,
+    "sha256": "be58fb11298ae83de1c36881e36f1101b89c217e6211bde3b0ea41ab107a7bec",
+    "address": "0x8000000",
+    "region": "bootloader"
+  },
+  "readback": {
+    "span_identical": true,
+    "first_diff": null,
+    "observed_sha256": "be58fb11298ae83de1c36881e36f1101b89c217e6211bde3b0ea41ab107a7bec",
+    "erased_tail": 1864,
+    "unexpected_changes": 0,
+    "unexpected_first": null
+  },
+  "reset": false,
+  "drift": [],
+  "drift_stable": true,
+  "drift_samples": 0,
+  "drift_seconds": 0.0,
+  "drift_window": {
+    "settle": 3.0,
+    "stable_for": 3.0,
+    "poll": 0.5,
+    "max_wait": 20.0
+  },
+  "restore_command": "tools/pandora_hil_state.py restore --snapshot docs/validation/evidence/pandora-stm32l475/2026-10-29-sensor-owner-runtime/pandora-state-s1 --yes"
+}

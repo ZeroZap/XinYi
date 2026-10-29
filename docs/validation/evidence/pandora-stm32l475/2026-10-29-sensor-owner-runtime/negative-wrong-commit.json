@@ -1,0 +1,12 @@
+{
+  "address_7bit": "0x1E",
+  "bus": "HW_I2C3 SCL=PC0 SDA=PC1",
+  "failures": [
+    "missing or out-of-order marker: FIRMWARE_COMMIT 0718c5bb6a2b3a1a0f4b9b3f9e8d0d3d3f6f9f5c"
+  ],
+  "firmware_commit": "0718c5bb6a2b3a1a0f4b9b3f9e8d0d3d3f6f9f5c",
+  "non_ascii_byte_count": 0,
+  "sample_count": 53,
+  "status": "AP3216C_HW_I2C3_VALIDATION_FAILED",
+  "unique_sample_count": 39
+}

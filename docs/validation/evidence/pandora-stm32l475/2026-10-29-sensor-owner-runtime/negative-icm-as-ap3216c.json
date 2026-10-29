@@ -1,0 +1,19 @@
+{
+  "address_7bit": "0x1E",
+  "bus": "HW_I2C3 SCL=PC0 SDA=PC1",
+  "failures": [
+    "missing or out-of-order marker: PANDORA AP3216C SENSOR READY",
+    "missing or out-of-order marker: AP3216C_BUS=HW_I2C3 SCL=PC0 SDA=PC1 ADDR=0x1E",
+    "missing or out-of-order marker: AP3216C_HW_I2C_READY",
+    "missing or out-of-order marker: AP3216C_NACK_OBSERVED ADDR=0x7F",
+    "missing or out-of-order marker: AP3216C_NACK_RECOVERED ADDR=0x1E",
+    "missing or out-of-order marker: AP3216C_CONFIG=0x03 MODE=ALS_PS",
+    "missing or out-of-order marker: AP3216C_DIAG ",
+    "sample count 0 < 10"
+  ],
+  "firmware_commit": "7ecc522c39f930cc59fc161ce1bdf8efba07b010",
+  "non_ascii_byte_count": 0,
+  "sample_count": 0,
+  "status": "AP3216C_HW_I2C3_VALIDATION_FAILED",
+  "unique_sample_count": 0
+}

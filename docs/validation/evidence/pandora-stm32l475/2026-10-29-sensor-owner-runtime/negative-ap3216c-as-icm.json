@@ -1,0 +1,19 @@
+{
+  "status": "CONTENT_MISMATCH",
+  "failures": [
+    "missing or out-of-order marker: PANDORA ICM20608 SENSOR READY",
+    "missing or out-of-order marker: I2C3_PINS SCL=PC0 SDA=PC1",
+    "missing or out-of-order marker: PANDORA_I2C3_INIT_DONE",
+    "missing or out-of-order marker: PANDORA_I2C3_SCAN_DONE count=",
+    "missing ICM20608_WHO_AM_I_RAW",
+    "no decoded samples",
+    "no register block"
+  ],
+  "samples": 0,
+  "register_rows": 0,
+  "raw_rows": 0,
+  "whoami": [],
+  "accel_magnitude_mg": [],
+  "firmware_commit": "7ecc522c39f930cc59fc161ce1bdf8efba07b010",
+  "bytes_captured": 4040
+}
