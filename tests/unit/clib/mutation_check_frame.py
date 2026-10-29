@@ -8,14 +8,18 @@ The source is restored in a finally block - leaving a mutated framer behind in a
 would be a far worse outcome than a failed test.
 """
 
+import argparse
 import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-SRC = Path(__file__).resolve().parents[3] / "components" / "clib" / "xy_clib" / "xy_frame.c"
-BUILD_DIR = Path(__file__).resolve().parents[3] / "build" / "tests" / "unit"
+ROOT = Path(__file__).resolve().parents[3]
+SRC = ROOT / "components" / "clib" / "xy_clib" / "xy_frame.c"
+# The build directory is passed in by CTest: hard-coding it worked in this checkout and
+# failed instantly in the clean-checkout test, which builds somewhere else entirely.
+DEFAULT_BUILD_DIR = ROOT / "build" / "tests" / "unit"
 
 MUTATIONS = {
     "0x02 mid-payload restarts the frame": (
@@ -55,18 +59,26 @@ MUTATIONS = {
 }
 
 
-def build_and_run() -> tuple[bool, str]:
+def build_and_run(build_dir: Path) -> tuple[bool, str]:
     build = subprocess.run(
-        ["cmake", "--build", str(BUILD_DIR), "--target", "test_xy_frame"],
+        ["cmake", "--build", str(build_dir), "--target", "test_xy_frame"],
         capture_output=True, text=True,
     )
     if build.returncode != 0:
         return False, "build failed"
-    result = subprocess.run([str(BUILD_DIR / "test_xy_frame")], capture_output=True, text=True)
+    binary = build_dir / "test_xy_frame"
+    if not binary.is_file():
+        return False, f"test_xy_frame is not in {build_dir}"
+    result = subprocess.run([str(binary)], capture_output=True, text=True)
     return result.returncode == 0, result.stdout
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--build-dir", default=str(DEFAULT_BUILD_DIR))
+    args = parser.parse_args()
+    build_dir = Path(args.build_dir)
+
     if not SRC.is_file():
         print(f"mutation check needs {SRC}")
         return 1
@@ -81,7 +93,7 @@ def main() -> int:
                 print(f"!! anchor missing for: {name}")
                 continue
             SRC.write_text(original.replace(old, new, 1))
-            passed, output = build_and_run()
+            passed, output = build_and_run(build_dir)
             failures = [line.split(":")[1] for line in output.splitlines() if ":FAIL:" in line]
             if passed:
                 print(f"MISSED  {name}")
@@ -92,7 +104,7 @@ def main() -> int:
         SRC.write_text(original)
         backup.unlink(missing_ok=True)
 
-    passed, _ = build_and_run()
+    passed, _ = build_and_run(build_dir)
     print(f"\n{caught}/{len(MUTATIONS)} mutations caught; restored source passes: {passed}")
     return 0 if caught == len(MUTATIONS) and passed else 1
 
