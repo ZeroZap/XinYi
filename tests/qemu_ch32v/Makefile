@@ -7,11 +7,16 @@
 #   make test                # build and run non-interactive tests
 #   make clean
 
-WCH_TOOLCHAIN_BIN ?= /usr/share/MRS2/MRS-linux-x64/resources/app/resources/linux/components/WCH/Toolchain/RISC-V Embedded GCC15/bin
+# PATH first, MRS install second, so this file is not pinned to the machine it was written on.
+WCH_TOOLCHAIN_BIN ?= $(firstword $(patsubst %/riscv32-wch-elf-gcc,%,$(wildcard $(shell command -v riscv32-wch-elf-gcc 2>/dev/null))) \
+    "/usr/share/MRS2/MRS-linux-x64/resources/app/resources/linux/components/WCH/Toolchain/RISC-V Embedded GCC15/bin")
 CC      := $(WCH_TOOLCHAIN_BIN)/riscv32-wch-elf-gcc
 SIZE    := $(WCH_TOOLCHAIN_BIN)/riscv32-wch-elf-size
 
-QEMU_UNIFIED_RISCV32 ?= /home/eugene/Tools/qemu-unified-10.2.2/bin/qemu-system-riscv32
+# The unified QEMU build carrying the ch32v307 machine is a local artifact; when it is absent the test
+# falls back to whatever qemu-system-riscv32 is on PATH, which will not know that machine.
+QEMU_UNIFIED_RISCV32 ?= $(firstword $(wildcard $(HOME)/Tools/qemu-unified-10.2.2/bin/qemu-system-riscv32) \
+    /home/eugene/Tools/qemu-unified-10.2.2/bin/qemu-system-riscv32)
 QEMU         ?= $(if $(wildcard $(QEMU_UNIFIED_RISCV32)),$(QEMU_UNIFIED_RISCV32),qemu-system-riscv32)
 QEMU_MACHINE ?= ch32v307
 QEMU_TIMEOUT ?= 10

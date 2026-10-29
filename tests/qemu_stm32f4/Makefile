@@ -10,11 +10,17 @@
 #   make test                # build and run the non-interactive tests
 #   make clean               # remove all built ELFs
 
-TOOLCHAIN_PATH ?= /home/eugene/Tools/arm-gnu-toolchain/bin
+# Ask PATH first so the test runs on a machine that is not this one; fall back to where this project's
+# toolchain was installed here.
+TOOLCHAIN_PATH ?= $(patsubst %/arm-none-eabi-gcc,%,$(firstword $(wildcard /usr/bin/arm-none-eabi-gcc) \
+    $(shell command -v arm-none-eabi-gcc 2>/dev/null) /home/eugene/Tools/arm-gnu-toolchain/bin/arm-none-eabi-gcc))
 CC      := $(TOOLCHAIN_PATH)/arm-none-eabi-gcc
 SIZE    := $(TOOLCHAIN_PATH)/arm-none-eabi-size
 
-QEMU_UNIFIED_ARM ?= /home/eugene/Tools/qemu-unified-10.2.2/bin/qemu-system-arm
+# The unified QEMU build carrying this machine is a local artifact; when it is absent the test falls back
+# to whatever qemu-system-arm is on PATH.
+QEMU_UNIFIED_ARM ?= $(firstword $(wildcard $(HOME)/Tools/qemu-unified-10.2.2/bin/qemu-system-arm) \
+    /home/eugene/Tools/qemu-unified-10.2.2/bin/qemu-system-arm)
 QEMU         ?= $(if $(wildcard $(QEMU_UNIFIED_ARM)),$(QEMU_UNIFIED_ARM),qemu-system-arm)
 QEMU_MACHINE ?= olimex-stm32-h405
 QEMU_TIMEOUT ?= 10

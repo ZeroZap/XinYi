@@ -175,6 +175,40 @@ def shown(path: Path, root: Path) -> str:
         return path.as_posix()
 
 
+#: Makefile test targets no workflow runs, and why. A target listed here is a gap that is known; a target
+#: absent from this table and from every workflow is a gap nobody noticed.
+CI_EXEMPT = {
+    "test": "aggregate target; it only calls the targets below",
+    "test-unit": "run by CI as ctest --test-dir build/tests/unit, which is the same thing",
+    "test-tools": "147 host tool tests; no workflow runs them - CI would pass without them today",
+    "test-qemu": "needs arm-none-eabi-gcc and qemu-system-arm, neither installed by any workflow",
+    "test-qemu-ch32v": "needs a locally built QEMU with the ch32v307 machine and the WCH RISC-V toolchain",
+}
+
+
+def ci_coverage_findings(makefile: Path | None = None, workflows: list[Path] | None = None,
+                         exempt: dict[str, str] | None = None) -> list[str]:
+    """Every Makefile test target must be run by a workflow, or be listed as a known gap."""
+    exempt = CI_EXEMPT if exempt is None else exempt
+    makefile = makefile or (ROOT / "Makefile")
+    workflows = workflows if workflows is not None else sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+    ci = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in workflows)
+    targets = [line.split(":")[0] for line in makefile.read_text(encoding="utf-8").split("\n")
+               if line[:1].isalpha() and ":" in line and not line.startswith("\t")
+               and line.split(":")[0].startswith("test")]
+
+    problems: list[str] = []
+    for target in targets:
+        if target in exempt or target in ci:
+            continue
+        problems.append(
+            f"{target}: a Makefile test target that no workflow names and that is not listed in CI_EXEMPT - "
+            f"it is a gate only for whoever remembers to type it")
+    if not targets:
+        problems.append("no Makefile test targets were found - the walk is broken")
+    return problems
+
+
 def findings(root: Path = GUARDS, files: list[Path] | None = None) -> list[str]:
     problems: list[str] = []
     inspected = 0
@@ -199,7 +233,7 @@ def findings(root: Path = GUARDS, files: list[Path] | None = None) -> list[str]:
 def main() -> int:
     # Two independent questions, so each has its own function and its own tests: names bound once, and test
     # files that actually run something.
-    problems = findings() + entry_point_findings() + registration_findings()
+    problems = findings() + entry_point_findings() + registration_findings() + ci_coverage_findings()
     if problems:
         print("guard_module_hygiene failed:")
         for problem in problems:

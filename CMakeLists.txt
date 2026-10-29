@@ -12,28 +12,57 @@ if(NOT HAL_PLATFORM STREQUAL "PC")
 
     set(CMAKE_SYSTEM_NAME Generic)
 
+    # The compiler comes from PATH when it is there, so a checkout configures on any machine. The absolute
+    # paths below are where this project's toolchains happen to live on the machine it was set up on; they
+    # are kept as a fallback because that is what those machines rely on, but they are no longer the default
+    # a stranger inherits - configuring elsewhere used to fail with "/home/eugene/.../gcc: not found", which
+    # says nothing about what to do.
     if(HAL_PLATFORM STREQUAL "WCH")
         # WCH CH32V — RISC-V 32-bit, MRS-bundled toolchain (riscv32-wch-elf-).
         set(CMAKE_SYSTEM_PROCESSOR riscv)
-        set(TOOLCHAIN_PATH
-            "/usr/share/MRS2/MRS-linux-x64/resources/app/resources/linux/components/WCH/Toolchain/RISC-V Embedded GCC15/bin"
-            CACHE PATH "WCH RISC-V toolchain bin directory")
         set(_TC_PREFIX "riscv32-wch-elf")
+        set(_XY_WCH_MRS_BIN
+            "/usr/share/MRS2/MRS-linux-x64/resources/app/resources/linux/components/WCH/Toolchain/RISC-V Embedded GCC15/bin")
+        find_program(_XY_WCH_GCC ${_TC_PREFIX}-gcc)
+        if(_XY_WCH_GCC)
+            get_filename_component(_XY_WCH_BIN "${_XY_WCH_GCC}" DIRECTORY)
+        elseif(EXISTS "${_XY_WCH_MRS_BIN}/${_TC_PREFIX}-gcc")
+            set(_XY_WCH_BIN "${_XY_WCH_MRS_BIN}")
+        else()
+            set(_XY_WCH_BIN "")
+        endif()
+        set(TOOLCHAIN_PATH "${_XY_WCH_BIN}"
+            CACHE PATH "WCH RISC-V toolchain bin directory")
     else()
         # STM32 / HC32 — ARM Cortex-M family, arm-none-eabi-gcc.
         set(CMAKE_SYSTEM_PROCESSOR arm)
-        set(TOOLCHAIN_PATH "/home/eugene/Tools/arm-gnu-toolchain/bin"
-            CACHE PATH "arm-none-eabi toolchain bin directory")
         set(_TC_PREFIX "arm-none-eabi")
+        find_program(_XY_ARM_GCC ${_TC_PREFIX}-gcc)
+        if(_XY_ARM_GCC)
+            get_filename_component(_XY_ARM_BIN "${_XY_ARM_GCC}" DIRECTORY)
+        elseif(EXISTS "$ENV{HOME}/Tools/arm-gnu-toolchain/bin/${_TC_PREFIX}-gcc")
+            set(_XY_ARM_BIN "$ENV{HOME}/Tools/arm-gnu-toolchain/bin")
+        else()
+            set(_XY_ARM_BIN "")
+        endif()
+        set(TOOLCHAIN_PATH "${_XY_ARM_BIN}"
+            CACHE PATH "arm-none-eabi toolchain bin directory")
     endif()
 
-    set(CMAKE_C_COMPILER   "${TOOLCHAIN_PATH}/${_TC_PREFIX}-gcc"     CACHE FILEPATH "" FORCE)
-    set(CMAKE_ASM_COMPILER "${TOOLCHAIN_PATH}/${_TC_PREFIX}-gcc"     CACHE FILEPATH "" FORCE)
-    set(CMAKE_AR           "${TOOLCHAIN_PATH}/${_TC_PREFIX}-ar"      CACHE FILEPATH "" FORCE)
-    set(CMAKE_RANLIB       "${TOOLCHAIN_PATH}/${_TC_PREFIX}-ranlib"  CACHE FILEPATH "" FORCE)
-    set(CMAKE_SIZE         "${TOOLCHAIN_PATH}/${_TC_PREFIX}-size"    CACHE FILEPATH "" FORCE)
-    set(CMAKE_OBJCOPY      "${TOOLCHAIN_PATH}/${_TC_PREFIX}-objcopy" CACHE FILEPATH "" FORCE)
-    set(CMAKE_OBJDUMP      "${TOOLCHAIN_PATH}/${_TC_PREFIX}-objdump" CACHE FILEPATH "" FORCE)
+    # Empty means "let CMake find the compiler on PATH"; a non-empty value is a directory that needs the
+    # separator appended. Building "${TOOLCHAIN_PATH}/gcc" unconditionally would produce a leading slash.
+    set(_XY_TOOLCHAIN_PREFIX "")
+    if(TOOLCHAIN_PATH)
+        set(_XY_TOOLCHAIN_PREFIX "${TOOLCHAIN_PATH}/")
+    endif()
+
+    set(CMAKE_C_COMPILER   "${_XY_TOOLCHAIN_PREFIX}${_TC_PREFIX}-gcc"     CACHE FILEPATH "" FORCE)
+    set(CMAKE_ASM_COMPILER "${_XY_TOOLCHAIN_PREFIX}${_TC_PREFIX}-gcc"     CACHE FILEPATH "" FORCE)
+    set(CMAKE_AR           "${_XY_TOOLCHAIN_PREFIX}${_TC_PREFIX}-ar"      CACHE FILEPATH "" FORCE)
+    set(CMAKE_RANLIB       "${_XY_TOOLCHAIN_PREFIX}${_TC_PREFIX}-ranlib"  CACHE FILEPATH "" FORCE)
+    set(CMAKE_SIZE         "${_XY_TOOLCHAIN_PREFIX}${_TC_PREFIX}-size"    CACHE FILEPATH "" FORCE)
+    set(CMAKE_OBJCOPY      "${_XY_TOOLCHAIN_PREFIX}${_TC_PREFIX}-objcopy" CACHE FILEPATH "" FORCE)
+    set(CMAKE_OBJDUMP      "${_XY_TOOLCHAIN_PREFIX}${_TC_PREFIX}-objdump" CACHE FILEPATH "" FORCE)
 
     set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
     set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)

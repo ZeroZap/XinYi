@@ -122,6 +122,45 @@ class EntryPointTests(unittest.TestCase):
             self.assertIn("walk is broken", problems[0])
 
 
+class CiCoverageTests(unittest.TestCase):
+    """A test target only the author types is a gate for whoever remembers."""
+
+    MAKE = "test\n\t@true\n\ntest-orphan:\n\t@true\n"
+    CI = "run: make test\n"
+
+    def run_ci(self, ci_text: str, exempt: dict | None = None) -> list[str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            make = Path(tmp) / "Makefile"
+            make.write_text(self.MAKE)
+            workflow = Path(tmp) / "wf.yml"
+            workflow.write_text(ci_text)
+            return guard.ci_coverage_findings(make, [workflow], exempt if exempt is not None else {})
+
+    def test_a_target_no_workflow_runs_is_named(self):
+        problems = self.run_ci(self.CI)
+        self.assertEqual(1, len(problems))
+        self.assertIn("test-orphan", problems[0])
+
+    def test_a_target_a_workflow_names_passes(self):
+        self.assertEqual([], self.run_ci("run: make test test-orphan\n"))
+
+    def test_an_exempt_target_passes(self):
+        self.assertEqual([], self.run_ci(self.CI, {"test-orphan": "needs local hardware"}))
+
+    def test_no_targets_at_all_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            make = Path(tmp) / "Makefile"
+            make.write_text("all:\n\t@true\n")
+            problems = guard.ci_coverage_findings(make, [], {})
+            self.assertEqual(1, len(problems))
+            self.assertIn("walk is broken", problems[0])
+
+    def test_the_real_tree_exempts_every_gap(self):
+        self.assertEqual([], [
+            problem for problem in guard.ci_coverage_findings()
+            if "no workflow names" in problem])
+
+
 class RegistrationTests(unittest.TestCase):
     """A test file no target names is a test that never runs."""
 
