@@ -91,11 +91,25 @@ elseif(OSAL_BACKEND STREQUAL "rtthread")
         XY_OS_BACKEND_RTTHREAD
         USE_RTTHREAD
     )
+    # The vendored RT-Thread tree sits one level deeper than the other backends,
+    # and the backend needs a rtconfig.h this repository does not ship. Both facts
+    # used to be invisible: the include path named a directory that does not exist,
+    # which gcc skips silently, so the backend compiled to an empty object rather
+    # than failing.
+    set(XY_RTTHREAD_ROOT ${CMAKE_SOURCE_DIR}/third_party/rt-thread/rt-thread)
     set(OSAL_BACKEND_INCLUDES
         ${OSAL_INCLUDE_DIRS}
-        # RT-Thread headers from third_party
-        ${CMAKE_SOURCE_DIR}/third_party/rt-thread/include
+        ${XY_RTTHREAD_ROOT}/include
     )
+    if(NOT EXISTS ${XY_RTTHREAD_ROOT}/include/rtthread.h)
+        message(FATAL_ERROR
+            "RT-Thread backend selected but ${XY_RTTHREAD_ROOT}/include/rtthread.h is missing")
+    endif()
+    if(NOT EXISTS ${XY_RTTHREAD_ROOT}/rtconfig.h AND NOT EXISTS ${CMAKE_SOURCE_DIR}/third_party/rt-config/rtconfig.h)
+        message(FATAL_ERROR
+            "RT-Thread backend selected but there is no rtconfig.h: rtthread.h includes it "
+            "unconditionally. Ship one for this project before enabling this backend.")
+    endif()
     message(STATUS "XY OSAL: Using RT-Thread backend")
 
 elseif(OSAL_BACKEND STREQUAL "cmsis_rtx")
@@ -106,11 +120,18 @@ elseif(OSAL_BACKEND STREQUAL "cmsis_rtx")
         XY_OS_BACKEND_CMSIS_RTX
         USE_CMSIS_RTX
     )
+    # The vendored directory is third_party/CMSIS-RTX/CMSIS-RTX/Include: upper case
+    # and nested. The old path was wrong in both respects, and Linux is case
+    # sensitive, so it could never have resolved.
+    set(XY_CMSIS_RTX_ROOT ${CMAKE_SOURCE_DIR}/third_party/CMSIS-RTX/CMSIS-RTX)
     set(OSAL_BACKEND_INCLUDES
         ${OSAL_INCLUDE_DIRS}
-        # CMSIS-RTX headers from third_party
-        ${CMAKE_SOURCE_DIR}/third_party/cmsis-rtx/Include
+        ${XY_CMSIS_RTX_ROOT}/Include
     )
+    if(NOT EXISTS ${XY_CMSIS_RTX_ROOT}/Include/rtx_os.h)
+        message(FATAL_ERROR
+            "CMSIS-RTX backend selected but ${XY_CMSIS_RTX_ROOT}/Include/rtx_os.h is missing")
+    endif()
     message(STATUS "XY OSAL: Using CMSIS-RTX backend")
 
 else()
