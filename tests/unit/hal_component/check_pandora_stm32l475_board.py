@@ -30,11 +30,28 @@ EXTERNAL_RESET_LOG_SHA256 = "bf244d5557a6834108e97c712c8015cf8f6da0d3d6972f8db01
 EXTERNAL_RESET_FIRMWARE_COMMIT = "960f68b0fc9e97d26c4bb13720af439513639a92"
 
 
+def shown(path: Path) -> str:
+    """A path for a message. `relative_to` raises on anything outside the repo, and an error
+    message that raises instead of reporting the error hides the original finding."""
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def require(path: Path, *needles: str) -> None:
-    assert path.is_file(), f"missing {path.relative_to(ROOT)}"
-    text = path.read_text(encoding="utf-8")
+    """The board must do this in code, not merely mention it.
+
+    Reading the raw file let a comment satisfy a contract: `// TODO: call
+    xy_hal_sensor_register` passed a check that the call exists. Comments are stripped first
+    so a needle has to be code. String literals survive, because a symbol someone typed into
+    one is still a symbol.
+    """
+    assert path.is_file(), f"missing {shown(path)}"
+    text = code_only(path.read_text(encoding="utf-8"))
     for needle in needles:
-        assert needle in text, f"{path.relative_to(ROOT)} missing {needle!r}"
+        assert needle in text, (f"{shown(path)} missing {needle!r} in code "
+                                f"(a comment mentioning it does not satisfy this)")
 
 
 def function_body(text: str, signature: str) -> str:
@@ -76,7 +93,7 @@ def board_target_sources(cmake_text: str) -> dict[str, set[str]]:
 
 
 def require_sha256(path: Path, expected: str, normalized_expected: str | None = None) -> bytes:
-    assert path.is_file(), f"missing {path.relative_to(ROOT)}"
+    assert path.is_file(), f"missing {shown(path)}"
     content = path.read_bytes()
     actual = hashlib.sha256(content).hexdigest()
     if actual != expected:
@@ -163,7 +180,7 @@ def main() -> None:
         "HAL_GetUIDw0",
         "RCC->CSR",
     )
-    fota_bootloader = (BOARD / "fota_bootloader_main.c").read_text(encoding="utf-8")
+    fota_bootloader = code_only((BOARD / "fota_bootloader_main.c").read_text(encoding="utf-8"))
     assert "xy_hal_sys_deinit()" in fota_bootloader
     assert "HAL_DeInit(" not in fota_bootloader
     require(
@@ -267,7 +284,7 @@ def main() -> None:
         "rtos_main.c",
     )
     for board_entry in init_entries:
-        entry = (BOARD / board_entry).read_text(encoding="utf-8")
+        entry = code_only((BOARD / board_entry).read_text(encoding="utf-8"))
         assert "xy_hal_sys_init()" in entry, f"{board_entry} missing canonical SYS init"
         assert "HAL_Init(" not in entry, f"{board_entry} bypasses canonical SYS init HAL"
         assert "pandora_platform_startup()" in entry, (
@@ -297,13 +314,13 @@ def main() -> None:
         "rtos_handlers.c",
     )
     for board_entry in tick_entries:
-        entry = (BOARD / board_entry).read_text(encoding="utf-8")
+        entry = code_only((BOARD / board_entry).read_text(encoding="utf-8"))
         assert "xy_hal_sys_tick_irq_handler" in entry, (
             f"{board_entry} missing canonical SysTick dispatch"
         )
         assert "HAL_IncTick(" not in entry, f"{board_entry} owns vendor SysTick dispatch"
     for board_entry in delay_entries[1:]:
-        entry = (BOARD / board_entry).read_text(encoding="utf-8")
+        entry = code_only((BOARD / board_entry).read_text(encoding="utf-8"))
         for required in (
             "xy_hal_uart_init",
             "xy_hal_uart_send",
@@ -319,21 +336,21 @@ def main() -> None:
             "HAL_GetTick(",
         ):
             assert forbidden not in code_only(entry), f"{board_entry} bypasses canonical XinYi HAL: {forbidden}"
-    smoke_entry = (BOARD / "main.c").read_text(encoding="utf-8")
+    smoke_entry = code_only((BOARD / "main.c").read_text(encoding="utf-8"))
     assert "xy_hal_delay_ms" in smoke_entry
     assert "HAL_Delay(" not in smoke_entry
     for sensor_entry in ("sensor_ap3216c_main.c", "sensor_icm20608_main.c"):
-        entry = (BOARD / sensor_entry).read_text(encoding="utf-8")
+        entry = code_only((BOARD / sensor_entry).read_text(encoding="utf-8"))
         assert "xy_hal_sys_get_tick_count" in entry
         assert "HAL_GetTick(" not in entry
     for fota_entry in ("fota_bootloader_main.c", "fota_candidate_programmer_main.c"):
-        entry = (BOARD / fota_entry).read_text(encoding="utf-8")
+        entry = code_only((BOARD / fota_entry).read_text(encoding="utf-8"))
         for required in ("xy_hal_uart_init", "xy_hal_uart_send", "xy_hal_gpio_init"):
             assert required in entry, f"{fota_entry} missing canonical HAL call {required}"
         for forbidden in ("HAL_UART_Init(", "HAL_UART_Transmit(", "HAL_GPIO_Init("):
             assert forbidden not in code_only(entry), f"{fota_entry} bypasses canonical XinYi HAL: {forbidden}"
     for primary_entry in ("main.c", "rtos_main.c"):
-        entry = (BOARD / primary_entry).read_text(encoding="utf-8")
+        entry = code_only((BOARD / primary_entry).read_text(encoding="utf-8"))
         for required in (
             "xy_hal_uart_init",
             "xy_hal_uart_send",
@@ -348,7 +365,7 @@ def main() -> None:
             "HAL_GPIO_TogglePin(",
         ):
             assert forbidden not in code_only(entry), f"{primary_entry} bypasses canonical XinYi HAL: {forbidden}"
-    rtos_entry = (BOARD / "rtos_main.c").read_text(encoding="utf-8")
+    rtos_entry = code_only((BOARD / "rtos_main.c").read_text(encoding="utf-8"))
     assert "uart1.Instance = USART1;" in rtos_entry
     assert "xy_hal_sys_software_reset" in rtos_entry
     assert "NVIC_SystemReset" not in rtos_entry
@@ -375,7 +392,7 @@ def main() -> None:
     uart_body = function_body(rtos_entry, "static void uart_text(")
     assert "xy_image_last_marker = text;" in uart_body
     for backup_entry in ("rtos_main.c", "fota_bootloader_main.c"):
-        entry = (BOARD / backup_entry).read_text(encoding="utf-8")
+        entry = code_only((BOARD / backup_entry).read_text(encoding="utf-8"))
         for required in ("xy_hal_rtc_backup_read", "xy_hal_rtc_backup_write"):
             assert required in entry, f"{backup_entry} missing canonical RTC backup call {required}"
         for forbidden in ("HAL_PWR_EnableBkUpAccess", "RTC->BKP"):
@@ -425,7 +442,7 @@ def main() -> None:
             f"{target} compiles both pandora_soft_i2c.c and the STM32L4 handle-based "
             "I2C backend; the xy_hal_i2c_* definitions would collide"
         )
-    board_i2c = (BOARD / "pandora_hw_i2c.c").read_text(encoding="utf-8")
+    board_i2c = code_only((BOARD / "pandora_hw_i2c.c").read_text(encoding="utf-8"))
     assert "HAL_I2C_Master_Transmit" not in board_i2c
     assert "HAL_I2C_Master_Receive" not in board_i2c
     assert "xy_hal_gpio_init" in board_i2c
@@ -598,7 +615,7 @@ def main() -> None:
         "FOTA_AUTOMATIC_ROLLBACK_COMMITTED",
         "FOTA_METADATA_FLASH_OK",
     )
-    smoke_entry = (BOARD / "main.c").read_text(encoding="utf-8")
+    smoke_entry = code_only((BOARD / "main.c").read_text(encoding="utf-8"))
     assert "HAL_IWDG_Init(" not in smoke_entry
     # Reset-cause attribution is a contract with host coverage in pandora_sys.c.
     # An inline bit chain in the entry point is how a brownout boot got reported
