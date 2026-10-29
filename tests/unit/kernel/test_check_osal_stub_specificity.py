@@ -108,6 +108,34 @@ class FalseSuccessTests(unittest.TestCase):
         self.assertEqual([], guard.false_success_findings(source, "bm"))
 
 
+class ConstantQueryTests(unittest.TestCase):
+    """A query answering a constant is indistinguishable from a working one."""
+
+    def test_a_bare_null_query_is_named(self):
+        source = "xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t id)\n{\n    (void)id;\n    return NULL;\n}\n"
+        problems = guard.constant_query_findings(source, "bm", {})
+        self.assertEqual(1, len(problems))
+        self.assertIn("xy_os_mutex_get_owner", problems[0])
+
+    def test_a_bare_zero_query_is_named(self):
+        source = "uint32_t xy_os_thread_get_count(void)\n{\n    return 0U;\n}\n"
+        self.assertEqual(1, len(guard.constant_query_findings(source, "bm", {})))
+
+    def test_a_query_that_reads_state_passes(self):
+        source = ("xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t id)\n{\n"
+                  "    bm_mutex_t *m = (bm_mutex_t *)id;\n    return m->locked ? m->owner : NULL;\n}\n")
+        self.assertEqual([], guard.constant_query_findings(source, "bm", {}))
+
+    def test_a_pinned_reason_is_accepted(self):
+        source = "uint32_t xy_os_thread_get_count(void)\n{\n    return 0U;\n}\n"
+        sites = {("ft", "xy_os_thread_get_count"): "deliberate: kernel-global inventory is not ours"}
+        self.assertEqual([], guard.constant_query_findings(source, "ft", sites))
+
+    def test_a_non_osal_function_is_left_alone(self):
+        source = "int bm_helper(void)\n{\n    return 0;\n}\n"
+        self.assertEqual([], guard.constant_query_findings(source, "bm", {}))
+
+
 class RealTreeTests(unittest.TestCase):
     def test_the_walk_reaches_the_backends(self):
         found = list(guard.BACKENDS.glob("*/xy_os_*.c"))

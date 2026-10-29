@@ -34,6 +34,11 @@ DEFINITION = re.compile(r"^[A-Za-z_][\w \t\*]*\b(xy_os_\w+)\s*\([^;{]*\)\s*$", r
 FLAG_WORD_ENTRY = re.compile(r"^xy_os_thread_flags_")
 BARE_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$")
 
+#: A query answered with a constant looks exactly like a real answer: NULL is "no owner" or "not
+#: found", 0 is "no flags" or "zero bytes". Only a stub can answer a query with nothing else.
+BARE_NULL = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+NULL\s*;\s*\}$")
+BARE_CONST_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$")
+
 VENDOR_CALL = re.compile(r"\b(?:x[A-Z]\w+|os[A-Z]\w+|rt_\w+|vTask\w+|HAL_\w+)")
 LOCAL_IF = re.compile(r"\bif\s*\(([^)]*)\)")
 BARE_RETURN = re.compile(r"return\s+XY_OS_ERROR\s*;")
@@ -59,6 +64,11 @@ DEFINITION = re.compile(r"^[A-Za-z_][\w \t\*]*\b(xy_os_\w+)\s*\([^;{]*\)\s*$", r
 FLAG_WORD_ENTRY = re.compile(r"^xy_os_thread_flags_")
 BARE_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$")
 
+#: A query answered with a constant looks exactly like a real answer: NULL is "no owner" or "not
+#: found", 0 is "no flags" or "zero bytes". Only a stub can answer a query with nothing else.
+BARE_NULL = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+NULL\s*;\s*\}$")
+BARE_CONST_ZERO = re.compile(r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+0U?\s*;\s*\}$")
+
 VENDOR_CALL = re.compile(r"\b(?:x[A-Z]\w+|os[A-Z]\w+|rt_\w+|vTask\w+|HAL_\w+)")
 LOCAL_IF = re.compile(r"\bif\s*\(([^)]*)\)")
 BARE_RETURN = re.compile(r"return\s+XY_OS_ERROR\s*;")
@@ -69,6 +79,26 @@ WINDOW = 200
 
 #: Sites that reject a local check with the unspecified error and are still right to. Each needs a
 #: reason that would survive review, not a shrug.
+#: Queries that must answer a constant because that is the honest answer, with the reason.
+PINNED_CONSTANT_QUERIES = {
+    ("baremetal", "xy_os_thread_new"):
+        "there is one context and no scheduler, so failing to create a thread is the correct answer and "
+        "NULL is how this API reports it - a refusal, not a placeholder",
+    ("baremetal", "xy_os_thread_get_stack_size"):
+        "this backend has no per-thread stack bookkeeping, and the OSAL has no portable way to ask the "
+        "main stack's size; the header now says 0 means unknown",
+    ("baremetal", "xy_os_thread_get_stack_space"):
+        "same: nothing to measure without per-thread stacks; the header says 0 means unknown",
+    ("rtthread", "xy_os_thread_get_stack_space"): "backend compiled by no target in this build",
+    ("freertos", "xy_os_thread_get_count"):
+        "deliberate: FreeRTOS offers kernel-global task inventory, which would include tasks this "
+        "adapter does not own; counting them would report threads the caller never created",
+    ("freertos", "xy_os_thread_enumerate"):
+        "deliberate: enumerating kernel-global handles would publish tasks this adapter never made, and "
+        "NULL placeholders for the ones it cannot resolve",
+    ("cmsis_rtx", "xy_os_thread_get_count"): "backend compiled by no target in this build",
+}
+
 #: Individual sites inside a backend that is compiled, where the unspecified answer is still right.
 PINNED_SITES = {
     ("baremetal", "xy_os_mutex_release"):
@@ -132,6 +162,29 @@ def false_success_findings(source: str, name: str) -> list[str]:
     return problems
 
 
+def constant_query_findings(source: str, name: str,
+                            sites: dict[tuple[str, str], str] | None = None) -> list[str]:
+    """A query whose whole body is a constant answer cannot be told from a working one."""
+    sites = PINNED_CONSTANT_QUERIES if sites is None else sites
+    problems: list[str] = []
+    for match in DEFINITION.finditer(source):
+        function = match.group(1)
+        if not function.startswith("xy_os_"):
+            continue
+        body = braced_body(source[match.end():])
+        if not body:
+            continue
+        flat = re.sub(r"\s+", " ", body).strip()
+        if not (BARE_NULL.match(flat) or BARE_CONST_ZERO.match(flat)):
+            continue
+        if (name, function) in sites:
+            continue
+        problems.append(
+            f"{name}:{function}: answers a constant and nothing else, which a caller cannot tell from a "
+            f"real answer; either report the state or take a pin with the reason")
+    return problems
+
+
 def local_rejection(body: str) -> bool:
     """True when a decision the backend makes on its own values is answered with a bare XY_OS_ERROR."""
     for match in LOCAL_IF.finditer(body):
@@ -151,6 +204,7 @@ def findings(backend_dir: Path = BACKENDS) -> list[str]:
         problems.extend(stub_findings(source, path.parent.name))
         problems.extend(local_check_findings(source, path.parent.name))
         problems.extend(false_success_findings(source, path.parent.name))
+        problems.extend(constant_query_findings(source, path.parent.name))
     if not inspected:
         problems.append("no function definitions were found - the walk is broken")
     return problems
@@ -167,7 +221,7 @@ def main() -> int:
         return 1
     print(f"osal_stub_specificity ok ({inspected} definitions across "
           f"{len(list(BACKENDS.glob('*/xy_os_*.c')))} backends, "
-          f"none a bare unspecified return, no unpinned local rejection, no false flag success)")
+          f"none a bare unspecified return, no unpinned local rejection, no false flag success, no constant-only query)")
     return 0
 
 

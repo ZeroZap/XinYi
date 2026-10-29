@@ -55,6 +55,7 @@ typedef struct {
     char             name[XY_OS_BM_NAME_LEN];
     volatile uint32_t locked;      /* 0 = free, 1 = held */
     volatile uint32_t rec_count;   /* recursive lock depth */
+    void            *owner;        /* who holds it, as xy_os_thread_get_id reports it */
     uint32_t         attr_bits;
 } bm_mutex_t;
 

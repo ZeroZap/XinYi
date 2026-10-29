@@ -792,6 +792,7 @@ xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
         if (!m->locked) {
             m->locked    = 1;
             m->rec_count = 1;
+            m->owner     = xy_os_thread_get_id();
             bm_exit_critical(irq);
             return XY_OS_OK;
         }
@@ -819,15 +820,20 @@ xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
     } else {
         m->rec_count = 0;
         m->locked    = 0;
+        m->owner     = NULL;
     }
     bm_exit_critical(irq);
     return XY_OS_OK;
 }
 
+/* It used to return NULL whatever the mutex was doing, so a deadlock check built on it was told that a
+ * held mutex was free. This backend has one context, so the owner is always that context - but "held by
+ * the one context" and "free" are different answers and now they are different. */
 xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
 {
-    (void)mutex_id;
-    return NULL;
+    bm_mutex_t *m = (bm_mutex_t *)mutex_id;
+    if (!m || m->magic != BM_MUTEX_MAGIC) return NULL;
+    return m->locked ? (xy_os_thread_id_t)m->owner : NULL;
 }
 
 xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)

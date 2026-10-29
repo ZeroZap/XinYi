@@ -679,7 +679,10 @@ xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id);
 /**
  * @brief Get Thread which owns a Mutex object
  * @param[in] mutex_id Mutex ID
- * @return Thread ID or NULL
+ * @return The owning thread's ID, or NULL when the mutex is free or the handle is not a mutex. On a
+ *         backend without a scheduler the owner is that one context - still not NULL, because "held by
+ *         the only context" and "free" are different answers. This used to answer NULL in every state
+ *         on the bare-metal backend, which told a deadlock check that a held mutex was free
  */
 xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id);
 

@@ -615,6 +615,42 @@ static void test_mempool_dimensions_that_overflow_are_refused(void)
     TEST_ASSERT_NULL(xy_os_mempool_new(8U, 0U, NULL));
 }
 
+/* get_owner() was a stub that returned NULL whatever the state of the mutex, so a deadlock check or an
+ * assertion built on it was told "nobody holds this" about a mutex that was held. Nothing tested it. */
+static void test_mutex_reports_its_owner(void)
+{
+    xy_os_mutex_id_t m = xy_os_mutex_new(NULL);
+    TEST_ASSERT_NOT_NULL(m);
+
+    /* Free: no owner. */
+    TEST_ASSERT_NULL(xy_os_mutex_get_owner(m));
+
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_acquire(m, 0U));
+    TEST_ASSERT_EQUAL_PTR(xy_os_thread_get_id(), xy_os_mutex_get_owner(m));
+    TEST_ASSERT_NOT_NULL(xy_os_mutex_get_owner(m));
+
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_release(m));
+    TEST_ASSERT_NULL(xy_os_mutex_get_owner(m));
+
+    /* A handle that is not a mutex answers NULL rather than reading through it. */
+    TEST_ASSERT_NULL(xy_os_mutex_get_owner(NULL));
+
+    /* A recursive mutex keeps its owner until the last release. */
+    xy_os_mutex_attr_t attr = { .attr_bits = XY_OS_MUTEX_RECURSIVE, .name = "rec" };
+    xy_os_mutex_id_t r = xy_os_mutex_new(&attr);
+    TEST_ASSERT_NOT_NULL(r);
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_acquire(r, 0U));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_acquire(r, 0U));
+    TEST_ASSERT_EQUAL_PTR(xy_os_thread_get_id(), xy_os_mutex_get_owner(r));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_release(r));
+    TEST_ASSERT_EQUAL_PTR(xy_os_thread_get_id(), xy_os_mutex_get_owner(r));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_release(r));
+    TEST_ASSERT_NULL(xy_os_mutex_get_owner(r));
+
+    xy_os_mutex_delete(r);
+    xy_os_mutex_delete(m);
+}
+
 static void test_mempool_alloc_free(void)
 {
     xy_os_mempool_id_t mp = xy_os_mempool_new(4, 16, NULL);
@@ -763,6 +799,7 @@ int main(void)
     RUN_TEST(test_mempool_double_free_is_refused);
     RUN_TEST(test_mempool_blocks_are_pointer_aligned);
     RUN_TEST(test_mempool_dimensions_that_overflow_are_refused);
+    RUN_TEST(test_mutex_reports_its_owner);
     RUN_TEST(test_mempool_alloc_free);
     RUN_TEST(test_mempool_exhaust);
     RUN_TEST(test_mempool_cycle);
