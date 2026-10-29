@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import read_code, read_raw, with_delegation  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 HEADER = ROOT / "components" / "hal" / "inc" / "xy_hal_uart.h"
@@ -36,6 +36,8 @@ BACKENDS = {
     "stm32u5": ROOT / "components/hal/stm32/stm32u5/xy_hal_uart.c",
     "stm32f4": ROOT / "components/hal/stm32/stm32f4/xy_hal_uart.c",
     "wch": ROOT / "components/hal/wch/ch32x/src/xy_hal_uart.c",
+    # The host backend models the same contract; it must be held to it too.
+    "pc": ROOT / "components/hal/PC/xy_hal_uart_pc.c",
 }
 
 FUNCTIONS = ("xy_hal_uart_send(", "xy_hal_uart_recv(")
@@ -89,7 +91,13 @@ def loop_body(body: str) -> str:
     return ""
 
 
-def body_findings(body: str, where: str) -> list[str]:
+# A backend that never blocks has no deadline to split, and the honest way to say so is to
+# discard the value where it would be used and write down why. The reason has to come from the raw
+# text: read_code strips comments, so a comment-based rule cannot use the code view.
+NEVER_BLOCKS = re.compile(r"never blocks")
+
+
+def body_findings(body: str, where: str, raw: str | None = None) -> list[str]:
     problems: list[str] = []
     if not body:
         return [f"{where}: missing"]
@@ -112,8 +120,12 @@ def body_findings(body: str, where: str) -> list[str]:
             f"longer than the documented budget")
 
     if not (VENDOR_TAKES_TIMEOUT.search(body) or DERIVED.search(body)):
-        problems.append(f"{where}: the timeout is neither handed to the vendor once nor turned "
-                        f"into a remaining budget; the transfer has no single deadline")
+        blocked = "(void)timeout" in body and raw is not None and NEVER_BLOCKS.search(raw)
+        if not blocked:
+            problems.append(
+                f"{where}: the timeout is neither handed to the vendor once nor turned into a "
+                f"remaining budget, and nothing says which - a backend that never blocks has to "
+                f"discard the value and say why, with read_code stripping the note")
 
     if inner and DERIVED.search(inner):
         wait = re.search(r"\b\w*wait\w*\s*\(", inner)
@@ -148,9 +160,10 @@ def findings(backends: dict[str, Path] | None = None, header: Path | None = None
     problems = header_findings(read_raw(header))
     for name, path in sorted(backends.items()):
         text = read_code(path)
+        raw = read_raw(path)
         for function in FUNCTIONS:
-            problems.extend(body_findings(function_body(text, function),
-                                          f"{name}:{function.rstrip('(')}"))
+            body = with_delegation(text, function_body(text, function))
+            problems.extend(body_findings(body, f"{name}:{function.rstrip('(')}", raw))
     return problems
 
 

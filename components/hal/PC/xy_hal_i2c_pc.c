@@ -10,6 +10,7 @@
  */
 
 #include "xy_hal_i2c.h"
+#include <stdint.h>
 #include <string.h>
 
 #define PC_I2C_SLOTS 4U
@@ -70,7 +71,7 @@ static xy_hal_error_t pc_i2c_check_transfer(const void *hi2c, uint16_t dev_addr,
     if (dev_addr > 0x7FU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
-    if (len == 0U || len > 0xFFFFU) {
+    if (len == 0U || len > UINT16_MAX) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     return XY_HAL_OK;
@@ -125,7 +126,7 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void *hi2c, uint16_t dev_addr,
 {
     xy_hal_error_t status = pc_i2c_check_transfer(hi2c, dev_addr, len);
 
-    (void)timeout; /* milliseconds; nothing here blocks */
+    (void)timeout; /* milliseconds; the simulated bus never blocks */
     if (status != XY_HAL_OK) {
         return status;
     }

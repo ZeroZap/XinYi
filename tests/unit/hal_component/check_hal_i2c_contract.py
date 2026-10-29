@@ -32,7 +32,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
-from source_scan import read_code, read_raw  # noqa: E402
+from source_scan import braced_body, read_code, read_raw, with_delegation  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 HEADER = ROOT / "components" / "hal" / "inc" / "xy_hal_i2c.h"
@@ -41,6 +41,9 @@ BACKENDS = {
     "stm32l4": ROOT / "components/hal/stm32/stm32l4/xy_hal_i2c.c",
     "stm32u5": ROOT / "components/hal/stm32/stm32u5/xy_hal_i2c.c",
     "wch": ROOT / "components/hal/wch/ch32x/src/xy_hal_i2c.c",
+    # The host backend models the same contract; it must be held to it too, or a host test
+    # proves something no board would do.
+    "pc": ROOT / "components/hal/PC/xy_hal_i2c_pc.c",
 }
 
 # Every vendor entry point that receives a device address.
@@ -327,7 +330,10 @@ def findings(backends: dict[str, Path] | None = None, header: Path | None = None
             body = function_body(text, function)
             if not body:
                 continue  # not every backend implements every entry point
-            problems.extend(body_findings(body, f"{name}:{function.rstrip('(')}"))
+            # Follow one hop: the host backend validates in a helper, and a guard that reads only the
+            # entry point's own lines calls that "not validated".
+            problems.extend(body_findings(with_delegation(text, body),
+                                          f"{name}:{function.rstrip('(')}"))
     return problems
 
 

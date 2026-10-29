@@ -29,6 +29,8 @@ negative in the direction that matters, so the states are tracked explicitly.
 
 from __future__ import annotations
 
+import re
+
 from pathlib import Path
 
 
@@ -102,3 +104,63 @@ def read_raw(path: str | Path) -> str:
     `#`-comment stripper belongs next to this function, not inside the guards.
     """
     return Path(path).read_text(encoding="utf-8", errors="replace")
+
+
+# One hop of delegation, shared so every guard means the same thing by it.
+#
+# A guard that only reads an entry point's own lines marks a correct backend as broken the moment the
+# check moves into a helper - `pc_i2c_check_transfer()` validated the address, and the guard still
+# said "the address range is not validated". Each guard grew its own copy of this logic once already;
+# the second copy is where the two answers start to differ.
+
+_LOCAL_STATIC = re.compile(r"^static\s+[^;{=]*?\b(\w+)\s*\(", re.M)
+_LOCAL_CALL = re.compile(r"\b(\w+)\s*\(")
+
+
+def braced_body(source: str, budget: int = 40000) -> str:
+    """The braced block starting at the first `{` in `source` (which begins at a signature)."""
+    brace = source.find("{")
+    if brace < 0:
+        return ""
+    depth = 0
+    for index in range(brace, min(len(source), brace + budget)):
+        if source[index] == "{":
+            depth += 1
+        elif source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return source[brace:index + 1]
+    return ""
+
+
+def local_definitions(source: str) -> dict[str, str]:
+    """Every file-local function in `source`, keyed by name, as braced bodies."""
+    definitions: dict[str, str] = {}
+    for match in _LOCAL_STATIC.finditer(source):
+        body = braced_body(source[match.start():])
+        if body:
+            definitions[match.group(1)] = body
+    return definitions
+
+
+def with_delegation(source: str, body: str, hops: int = 1) -> str:
+    """`body` plus the bodies of file-local helpers it calls, `hops` deep.
+
+    The result answers "does this entry point, directly or through one helper, do X" - which is the
+    question the guards actually mean. Returning `body` unchanged when the source has no local
+    definitions keeps callers from having to branch.
+    """
+    definitions = local_definitions(source)
+    if not definitions:
+        return body
+    seen: set[str] = set()
+    for _ in range(max(0, hops)):
+        added = False
+        for name in _LOCAL_CALL.findall(body):
+            if name in definitions and name not in seen:
+                seen.add(name)
+                body = body + "\n" + definitions[name]
+                added = True
+        if not added:
+            break
+    return body

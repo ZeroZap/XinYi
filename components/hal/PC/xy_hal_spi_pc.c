@@ -9,6 +9,7 @@
  */
 
 #include "xy_hal_spi.h"
+#include <stdint.h>
 #include <string.h>
 
 #define PC_SPI_SLOTS 4U
@@ -70,7 +71,7 @@ static xy_hal_error_t pc_spi_check_transfer(const void *hspi, size_t len)
     }
     /* `len` is bytes. On a 16-bit bus the items are words, so an odd byte count cannot be one
      * transfer - the real backends refuse it rather than moving half a frame. */
-    if (len == 0U || len > 0xFFFFU) {
+    if (len == 0U || len > UINT16_MAX) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     if (ctx->config.datasize == XY_HAL_SPI_DATASIZE_16BIT && (len % 2U) != 0U) {
@@ -121,7 +122,7 @@ xy_hal_error_t xy_hal_spi_transmit(void *hspi, const uint8_t *data, size_t len, 
 {
     xy_hal_error_t status = pc_spi_check_transfer(hspi, len);
 
-    (void)timeout; /* milliseconds; nothing here blocks */
+    (void)timeout; /* milliseconds; the simulated bus never blocks */
     if (status != XY_HAL_OK) {
         return status;
     }

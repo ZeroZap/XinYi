@@ -36,6 +36,8 @@ BACKENDS = {
     "stm32u5": ROOT / "components/hal/stm32/stm32u5/xy_hal_spi.c",
     "stm32f4": ROOT / "components/hal/stm32/stm32f4/xy_hal_spi.c",
     "wch": ROOT / "components/hal/wch/ch32x/src/xy_hal_spi.c",
+    # The host backend models the same contract and programs no vendor data size at all.
+    "pc": ROOT / "components/hal/PC/xy_hal_spi_pc.c",
 }
 
 ENTRY_POINTS = (
@@ -128,6 +130,9 @@ def validation_findings(body: str, where: str, hal_backed: bool) -> list[str]:
     return problems
 
 
+REFUSES_PARTIAL_FRAME = re.compile(r"%\s*2U?\s*\)\s*!=\s*0U?|&\s*1U\s*\)\s*!=\s*0U?")
+
+
 def sixteen_bit_findings(source: str, where: str) -> list[str]:
     """A backend may convert 16-bit frames or refuse the mode - but not ignore which it is.
 
@@ -142,6 +147,11 @@ def sixteen_bit_findings(source: str, where: str) -> list[str]:
         return [f"{where}: programs a 16-bit data size but never converts the byte count into "
                 f"frames, so each byte goes out as its own 16-bit frame"]
     if not programms and not refuses:
+        # A backend with no vendor data-size register - the host one - has nothing to program. What
+        # it can still get wrong is accepting a count that is not whole frames, so that refusal is
+        # the shape it must show.
+        if REFUSES_PARTIAL_FRAME.search(source):
+            return []
         return [f"{where}: neither converts 16-bit frames nor refuses the mode, so a 16-bit "
                 f"request is accepted and silently sent as bytes"]
     return []

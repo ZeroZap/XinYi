@@ -10,6 +10,7 @@
  */
 
 #include "xy_hal_uart.h"
+#include <stdint.h>
 #include <string.h>
 
 #define PC_UART_SLOTS 4U
@@ -73,7 +74,7 @@ static xy_hal_error_t pc_uart_check_transfer(const void *huart, size_t len)
         return XY_HAL_ERROR_NOT_INIT;
     }
     /* Same limit the real backends apply: the transfer count lands in a 16-bit field. */
-    if (len == 0U || len > 0xFFFFU) {
+    if (len == 0U || len > UINT16_MAX) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     return XY_HAL_OK;
