@@ -191,7 +191,9 @@ xy_hal_error_t xy_hal_dma_start(void *dma, uint32_t src_addr, uint32_t dst_addr,
     dma_ctx_t *context;
     HAL_StatusTypeDef status;
 
-    if (hdma == NULL || data_len == 0U) {
+    /* DMA_SxNDTR holds 16 bits: a larger item count is truncated by the hardware and the
+     * transfer stops early with no error anywhere. The WCH backend has always refused it. */
+    if (hdma == NULL || data_len == 0U || data_len > 0xFFFFU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     context = find_context(dma);
@@ -212,7 +214,12 @@ xy_hal_error_t xy_hal_dma_stop(void *dma)
     if (dma == NULL) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
-    return HAL_DMA_Abort((DMA_HandleTypeDef *)dma) == HAL_OK ? XY_HAL_OK : XY_HAL_ERROR_FAIL;
+    /* U5 and F4 answer an uninitialised channel with NOT_INIT; this one used to report the
+     * vendor abort failure instead, so "never set up" and "abort failed" looked the same. */
+    if (find_context(dma) == NULL) {
+        return XY_HAL_ERROR_NOT_INIT;
+    }
+    return HAL_DMA_Abort((DMA_HandleTypeDef *)dma) == XY_HAL_OK ? XY_HAL_OK : XY_HAL_ERROR_FAIL;
 }
 
 xy_hal_error_t xy_hal_dma_register_callback(void *dma, xy_hal_dma_event_t event,

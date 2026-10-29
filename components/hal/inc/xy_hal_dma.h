@@ -93,7 +93,10 @@ xy_hal_error_t xy_hal_dma_deinit(void *dma);
  * @param dma DMA instance
  * @param src_addr Source address
  * @param dst_addr Destination address
- * @param data_len Data length
+ * @param data_len Number of items to move, not bytes: one item is periph_width/mem_width wide,
+ *        so a word transfer of four uint32 words passes 4. Must be non-zero and at most 0xFFFF,
+ *        the width of the hardware item counter - a larger count is refused rather than
+ *        truncated, because a truncated count moves part of the buffer and reports success.
  * @return 0 on success, negative on error
  */
 xy_hal_error_t xy_hal_dma_start(void *dma, uint32_t src_addr, uint32_t dst_addr,

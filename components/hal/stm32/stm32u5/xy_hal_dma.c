@@ -211,7 +211,9 @@ xy_hal_error_t xy_hal_dma_deinit(void *dma)
 xy_hal_error_t xy_hal_dma_start(void *dma, uint32_t src_addr, uint32_t dst_addr,
                                 size_t data_len)
 {
-    if (!dma || data_len == 0) {
+    /* DMA_SxNDTR holds 16 bits: a larger item count is truncated by the hardware and the
+     * transfer stops early with no error anywhere. The WCH backend has always refused it. */
+    if (!dma || data_len == 0 || data_len > 0xFFFFU) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     dma_ctx_t *ctx = find_dma_ctx(dma);
