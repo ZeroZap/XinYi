@@ -43,6 +43,13 @@ NOT_INIT = "XY_HAL_ERROR_NOT_INIT"
 CONFIG_FIELDS = ("direction", "mode", "priority", "periph_width", "mem_width", "periph_incr",
                  "mem_incr")
 LOCAL_CALL = re.compile(r"\b(\w+)\s*\(")
+# A mode written as a constant while the config validator accepts that mode: the caller's choice is
+# silently replaced. Either honour the flag or refuse it.
+CONSTANT_NORMAL_MODE = re.compile(r"Init\.Mode\s*=\s*DMA_NORMAL\s*;")
+REFUSES_CIRCULAR = re.compile(r"XY_HAL_DMA_MODE_CIRCULAR[\s\S]{0,200}?XY_HAL_ERROR_NOT_SUPPORTED")
+# A vendor callback registration whose result nobody looks at.
+UNCHECKED_REGISTRATION = re.compile(
+    r"(?<![=!]=)\s*HAL_DMA_RegisterCallback\s*\(", re.M)
 # Either translation of "0 waits forever": HAL's own sentinel, or an explicit zero test.
 UNBOUNDED_WAIT = re.compile(r"HAL_MAX_DELAY|timeout\s*!=\s*0U?")
 # The vendor poll taking the caller's value unchanged - which means 0 fails at once.
@@ -91,6 +98,35 @@ def with_delegation(body: str, definitions: dict[str, str]) -> str:
     return body
 
 
+def mode_findings(source: str, name: str) -> list[str]:
+    """Circular mode must be honoured or refused, never replaced by normal mode."""
+    body = function_body(source, "xy_hal_dma_init(")
+    resolved = with_delegation(body, local_definitions(source)) if body else ""
+    if not resolved:
+        return []
+    if CONSTANT_NORMAL_MODE.search(resolved) and not REFUSES_CIRCULAR.search(source):
+        return [f"{name}: init writes a constant normal mode while accepting circular mode, so a "
+                f"caller that asks for circular gets a normal transfer and success"]
+    return []
+
+
+def callback_findings(source: str, name: str) -> list[str]:
+    """A failed vendor registration leaves every registered callback unreachable.
+
+    The statement around each call decides it: `if (HAL_DMA_RegisterCallback(...) != HAL_OK)` or an
+    assignment looks at the result, a bare call statement does not. Reading only the token before the
+    call marks the checked shape as unchecked - it did, on all three backends.
+    """
+    for match in UNCHECKED_REGISTRATION.finditer(source):
+        line_start = source.rfind("\n", 0, match.start()) + 1
+        end = source.find(";", match.end())
+        statement = source[line_start:end if end > 0 else len(source)]
+        if "HAL_OK" not in statement:
+            return [f"{name}: HAL_DMA_RegisterCallback result is ignored, so the interrupt shims may "
+                    f"be absent while init reports success and callbacks never fire"]
+    return []
+
+
 def config_findings(source: str, name: str) -> list[str]:
     """An out-of-range enum must be refused, not defaulted by a mapping helper."""
     body = function_body(source, "xy_hal_dma_init(")
@@ -119,6 +155,8 @@ def findings(backends: dict | None = None, header: Path | None = None) -> list[s
     for name, path in sorted(backends.items()):
         source = source_of(path)
         problems.extend(config_findings(source, name))
+        problems.extend(mode_findings(source, name))
+        problems.extend(callback_findings(source, name))
         start_body = function_body(source, "xy_hal_dma_start(")
         if not start_body:
             problems.append(f"{name}: xy_hal_dma_start is missing")

@@ -186,7 +186,13 @@ xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
     }
 
     hdma->Init.Priority             = to_priority(config->priority);
-    hdma->Init.Mode                 = DMA_NORMAL;  /* CIRCULAR → linked-list, not handled */
+    /* Circular transfers on this part are expressed as a linked list, which this wrapper does not
+     * build. Writing DMA_NORMAL regardless meant a caller that asked for circular got a normal
+     * transfer back with XY_HAL_OK; L4 and F4 honour the flag. */
+    if (config->mode == XY_HAL_DMA_MODE_CIRCULAR) {
+        return XY_HAL_ERROR_NOT_SUPPORTED;
+    }
+    hdma->Init.Mode                 = DMA_NORMAL;
     hdma->Init.BlkHWRequest         = DMA_BREQ_SINGLE_BURST;
     hdma->Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0 |
                                         DMA_DEST_ALLOCATED_PORT0;
@@ -196,10 +202,14 @@ xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
         return XY_HAL_ERROR_FAIL;
     }
 
-    /* Wire shims so HAL_DMA_IRQHandler dispatches to per-channel callbacks. */
-    HAL_DMA_RegisterCallback(hdma, HAL_DMA_XFER_CPLT_CB_ID,     dma_cb_complete);
-    HAL_DMA_RegisterCallback(hdma, HAL_DMA_XFER_HALFCPLT_CB_ID, dma_cb_half);
-    HAL_DMA_RegisterCallback(hdma, HAL_DMA_XFER_ERROR_CB_ID,    dma_cb_error);
+    /* Wire shims so HAL_DMA_IRQHandler dispatches to per-channel callbacks. The results are
+     * checked: an unregistered shim means every callback a caller registers afterwards is
+     * unreachable, and init would still be reporting success. */
+    if (HAL_DMA_RegisterCallback(hdma, HAL_DMA_XFER_CPLT_CB_ID, dma_cb_complete) != HAL_OK ||
+        HAL_DMA_RegisterCallback(hdma, HAL_DMA_XFER_HALFCPLT_CB_ID, dma_cb_half) != HAL_OK ||
+        HAL_DMA_RegisterCallback(hdma, HAL_DMA_XFER_ERROR_CB_ID, dma_cb_error) != HAL_OK) {
+        return XY_HAL_ERROR_FAIL;
+    }
 
     ctx->hdma        = hdma;
     memset(ctx->callbacks, 0, sizeof(ctx->callbacks));

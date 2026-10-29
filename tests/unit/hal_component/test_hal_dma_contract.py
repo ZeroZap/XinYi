@@ -166,6 +166,82 @@ xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
         self.assertTrue(any("direction" in p for p in problems))
 
 
+class ModeTests(unittest.TestCase):
+    HONOURS = """
+xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
+{
+    if (dma == NULL || config == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    hdma->Init.Mode = to_mode(config->mode);
+    return XY_HAL_OK;
+}
+"""
+
+    SILENT_NORMAL = """
+xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
+{
+    if (dma == NULL || config == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    hdma->Init.Mode = DMA_NORMAL;
+    return XY_HAL_OK;
+}
+"""
+
+    REFUSED = """
+xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
+{
+    if (config->mode == XY_HAL_DMA_MODE_CIRCULAR) {
+        return XY_HAL_ERROR_NOT_SUPPORTED;
+    }
+    hdma->Init.Mode = DMA_NORMAL;
+    return XY_HAL_OK;
+}
+"""
+
+    def test_a_mapped_mode_passes(self):
+        problems = guard.findings(backend(self.HONOURS))
+        self.assertFalse(any("circular" in p for p in problems))
+
+    def test_a_silent_normal_mode_is_reported(self):
+        problems = guard.findings(backend(self.SILENT_NORMAL))
+        self.assertTrue(any("constant normal mode" in p for p in problems))
+
+    def test_refusing_circular_is_accepted(self):
+        problems = guard.findings(backend(self.REFUSED))
+        self.assertFalse(any("constant normal mode" in p for p in problems))
+
+
+class CallbackRegistrationTests(unittest.TestCase):
+    CHECKED = """
+xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
+{
+    if (HAL_DMA_RegisterCallback(hdma, HAL_DMA_XFER_CPLT_CB_ID, dma_cb_complete) != HAL_OK ||
+        HAL_DMA_RegisterCallback(hdma, HAL_DMA_XFER_ERROR_CB_ID, dma_cb_error) != HAL_OK) {
+        return XY_HAL_ERROR_FAIL;
+    }
+    return XY_HAL_OK;
+}
+"""
+
+    UNCHECKED = """
+xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
+{
+    HAL_DMA_RegisterCallback(hdma, HAL_DMA_XFER_CPLT_CB_ID, dma_cb_complete);
+    return XY_HAL_OK;
+}
+"""
+
+    def test_a_checked_registration_passes(self):
+        problems = guard.findings(backend(self.CHECKED))
+        self.assertFalse(any("RegisterCallback" in p for p in problems))
+
+    def test_an_ignored_registration_is_reported(self):
+        problems = guard.findings(backend(self.UNCHECKED))
+        self.assertTrue(any("interrupt shims" in p for p in problems))
+
+
 class RepositoryTests(unittest.TestCase):
     def test_every_backend_agrees(self):
         self.assertEqual(guard.findings(), [])
