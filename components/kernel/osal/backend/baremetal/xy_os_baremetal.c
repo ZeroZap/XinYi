@@ -860,6 +860,11 @@ xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
 {
     bm_mutex_t *m = (bm_mutex_t *)mutex_id;
     if (!m || m->magic != BM_MUTEX_MAGIC) return XY_OS_ERROR_PARAMETER;
+    /* Refuse while it is held. Deleting it here cleared the magic and returned the slot to the pool, and
+     * the holder would then release into memory that a later mutex now owns - the free-list slot gets
+     * reused and somebody else's object is corrupted. The openCH mutex self-check asserts RESOURCE for
+     * this from the FreeRTOS backend on hardware, so the answer was already decided. */
+    if (m->locked) return XY_OS_ERROR_RESOURCE;
     m->magic = 0;
     bm_mutex_pool_free(m);
     return XY_OS_OK;

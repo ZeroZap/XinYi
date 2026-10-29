@@ -811,6 +811,35 @@ static void test_thread_queries_answer_about_the_id_they_were_given(void)
  * inheritance - was handed an ordinary one and never told. The FreeRTOS backend refuses every bit except
  * RECURSIVE, and this is the same rule: honour what you can, refuse the rest, do not silently downgrade.
  * The header advertised both flags without saying that no backend implements them. */
+/* From the openCH mutex self-check, which asserts these against the FreeRTOS backend on hardware: a
+ * mutex that is held cannot be deleted, an acquire that cannot succeed in NO_WAIT time answers TIMEOUT
+ * rather than RESOURCE, and a stale handle answers PARAMETER everywhere. */
+static void test_mutex_while_held_answers_the_way_the_board_checks(void)
+{
+    xy_os_mutex_id_t m = xy_os_mutex_new(NULL);
+    TEST_ASSERT_NOT_NULL(m);
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_acquire(m, 0U));
+
+    TEST_ASSERT_EQUAL_MESSAGE(XY_OS_ERROR_RESOURCE, xy_os_mutex_delete(m),
+                              "a held mutex cannot be deleted");
+    TEST_ASSERT_EQUAL_MESSAGE(XY_OS_ERROR_TIMEOUT, xy_os_mutex_acquire(m, 0U),
+                              "a non-recursive mutex that is taken is a timeout, not a resource error");
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_release(m));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mutex_delete(m));
+
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_mutex_acquire(m, 0U));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_mutex_release(m));
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_mutex_delete(m));
+}
+
+/* Zero is not "no flags to set", it is a caller that has nothing to say - the board expects the error
+ * sentinel rather than a silent success. */
+static void test_thread_flags_refuse_an_empty_set(void)
+{
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_THREAD_FLAGS_ERROR, xy_os_thread_flags_set(NULL, 0U));
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_THREAD_FLAGS_ERROR, xy_os_thread_flags_clear(0U));
+}
+
 static void test_mutex_refuses_attribute_bits_it_cannot_honour(void)
 {
     xy_os_mutex_attr_t robust = { .attr_bits = XY_OS_MUTEX_ROBUST, .name = "robust" };
@@ -1024,6 +1053,8 @@ int main(void)
     RUN_TEST(test_mempool_blocks_are_pointer_aligned);
     RUN_TEST(test_mempool_dimensions_that_overflow_are_refused);
     RUN_TEST(test_thread_queries_answer_about_the_id_they_were_given);
+    RUN_TEST(test_mutex_while_held_answers_the_way_the_board_checks);
+    RUN_TEST(test_thread_flags_refuse_an_empty_set);
     RUN_TEST(test_mutex_refuses_attribute_bits_it_cannot_honour);
     RUN_TEST(test_mutex_reports_its_owner);
     RUN_TEST(test_mempool_alloc_free);

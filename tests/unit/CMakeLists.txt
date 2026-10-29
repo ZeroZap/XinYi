@@ -1882,11 +1882,11 @@ target_compile_definitions(test_trace_release PRIVATE
 
 # --- Test 25a: byte-stream framing contracts (see test_xy_frame.c for the shipped
 #     defects each case pins) ---
-add_test(NAME osal_mempool_free_contract
-    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/kernel/check_osal_mempool_free_contract.py)
+add_test(NAME osal_refusal_coverage
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/kernel/check_osal_refusal_coverage.py)
 
-add_test(NAME osal_mempool_free_contract_unit
-    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/kernel/test_check_osal_mempool_free_contract.py)
+add_test(NAME osal_refusal_coverage_unit
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/kernel/test_check_osal_refusal_coverage.py)
 
 add_test(NAME osal_attr_flag_values
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/kernel/check_osal_attr_flag_values.py)
