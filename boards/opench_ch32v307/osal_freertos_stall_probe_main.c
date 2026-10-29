@@ -1,5 +1,6 @@
 #include "ch32v30x.h"
 #include "xy_hal_gpio.h"
+#include "xy_frame.h"
 #include "xy_hal_i2c.h"
 #include "xy_hal_time.h"
 #include "xy_hal_uart.h"
@@ -138,33 +139,34 @@ static void rx_callback(void* instance, xy_hal_uart_event_t event, void* arg) {
 #define RX_STX 0x02U
 #define RX_FRAME_MAX 16U
 
-static void handle_command(const uint8_t* frame, uint32_t len) {
+static void handle_command(const xy_frame_t* frame) {
     uint8_t value = 0U;
-    /* frame[0] is the type byte: 'C', address, register, count. */
-    if (len != 4U) {
+    /* payload[0..2] is address, register, count. */
+    if (frame->length != 3U) {
         ++xy_probe_cmd_frames;
         xy_probe_cmd_status = (uint32_t)(int32_t)XY_HAL_ERROR_INVALID_PARAM;
         return;
     }
-    xy_probe_cmd_addr = frame[1];
-    xy_probe_cmd_reg = frame[2];
-    /* The transfer goes through the same HAL call the image uses by itself; the
-       command only decides which register. */
-    xy_hal_error_t status = xy_hal_i2c_mem_read(I2C2, frame[1], frame[2], &value,
-                                                frame[3], 100U);
-    xy_probe_cmd_frames++;
-    xy_probe_cmd_status = (uint32_t)(int32_t)status;
-    xy_probe_cmd_value = value;
+    xy_probe_cmd_addr = frame->payload[0];
+    xy_probe_cmd_reg = frame->payload[1];
+    {
+        xy_hal_error_t status = xy_hal_i2c_mem_read(I2C2, frame->payload[0], frame->payload[1],
+                                                    &value, frame->payload[2], 100U);
+        xy_probe_cmd_frames++;
+        xy_probe_cmd_status = (uint32_t)(int32_t)status;
+        xy_probe_cmd_value = value;
+    }
 }
 
-static void handle_stress(const uint8_t* frame, uint32_t len) {
+static void handle_stress(const xy_frame_t* frame) {
     int32_t index;
-    if (len != 5U) {
+    /* payload[0..3] is a little-endian counter. */
+    if (frame->length != 4U) {
         ++xy_probe_rx_frames_bad;
         return;
     }
-    index = (int32_t)(frame[1] | ((uint32_t)frame[2] << 8) |
-                      ((uint32_t)frame[3] << 16) | ((uint32_t)frame[4] << 24));
+    index = (int32_t)(frame->payload[0] | ((uint32_t)frame->payload[1] << 8) |
+                      ((uint32_t)frame->payload[2] << 16) | ((uint32_t)frame->payload[3] << 24));
     xy_probe_rx_last_index = index;
     if (xy_probe_rx_expected < 0 || index == xy_probe_rx_expected) {
         ++xy_probe_rx_frames_ok;
@@ -175,54 +177,33 @@ static void handle_stress(const uint8_t* frame, uint32_t len) {
     xy_probe_rx_expected = index + 1;
 }
 
-static void drain_rx_frames(void) {
-    static uint8_t frame[RX_FRAME_MAX];
-    static uint32_t have;
-    static uint32_t want;
+/* Framing lives in xy_frame: it is the same code the host tests exercise, including the
+   cases that went wrong here first - a 0x03 terminator truncating the frame that carried
+   index 3, and a 0x02 inside the payload being read as a new frame start, which ate 285
+   of 2000 frames. Reimplementing it in the image would have let the tested version and
+   the running version drift apart. */
+static xy_frame_decoder_t rx_decoder;
 
+static void drain_rx_frames(void) {
     while (rx_tail != rx_head) {
         uint8_t byte = rx_ring[rx_tail];
+        xy_frame_t frame;
+        int result;
+
         rx_tail = (rx_tail + 1U) % RX_RING_SIZE;
-        if (want == 0U) {
-            /* A start byte is the resynchroniser, but only when nothing is being
-               assembled: 0x02 is an ordinary value inside a binary payload, and
-               treating it as a new frame start silently swallowed 285 of 2000 frames
-               whose counter happened to contain it. */
-            if (byte == RX_STX) {
-                want = 1U;
-                have = 0U;
-            }
+        result = xy_frame_decode_byte(&rx_decoder, byte, &frame);
+        if (result == XY_FRAME_REJECTED) {
+            ++xy_probe_rx_frames_bad;
             continue;
         }
-        if (want == 1U) {
-            /* What is still to come: the payload plus the checksum. The length byte
-               itself has already been consumed here. */
-            want = (byte >= 2U && byte <= RX_FRAME_MAX - 2U) ? (uint32_t)byte + 1U : 0U;
+        if (result != XY_FRAME_COMPLETE)
             continue;
-        }
-        frame[have++] = byte;
-        if (have < want)
-            continue;
-        want = 0U;
-        {
-            uint8_t sum = (uint8_t)(frame[0] ^ 0x5AU);
-            uint32_t i;
-            for (i = 1U; i + 1U < have; ++i)
-                sum ^= frame[i];
-            if ((uint8_t)(sum ^ frame[have - 1U]) != 0U) {
-                ++xy_probe_rx_frames_bad;
-                continue;
-            }
-        }
-        {
-            uint32_t length = have - 1U;  /* the payload without the checksum */
-            if (frame[0] == 'I')
-                handle_stress(frame, length);
-            else if (frame[0] == 'C')
-                handle_command(frame, length);
-            else
-                ++xy_probe_rx_frames_bad;
-        }
+        if (frame.type == (uint8_t)'I')
+            handle_stress(&frame);
+        else if (frame.type == (uint8_t)'C')
+            handle_command(&frame);
+        else
+            ++xy_probe_rx_frames_bad;
     }
 }
 

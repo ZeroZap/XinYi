@@ -1432,9 +1432,11 @@ add_executable(opench_ch32v307_osal_freertos_stall_probe_smoke
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
-        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c)
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c
+        ${CMAKE_SOURCE_DIR}/components/clib/xy_clib/xy_frame.c)
     target_include_directories(opench_ch32v307_osal_freertos_stall_probe_smoke PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/components/clib/xy_clib/inc
         ${CMAKE_SOURCE_DIR}/components/hal/inc
         ${CMAKE_SOURCE_DIR}/components/kernel/osal
         ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc

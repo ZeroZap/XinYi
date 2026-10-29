@@ -1798,6 +1798,16 @@ target_compile_definitions(test_trace_release PRIVATE
     XY_LOG_DYNAMIC_FILTER=1
 )
 
+# --- Test 25a: byte-stream framing contracts (see test_xy_frame.c for the shipped
+#     defects each case pins) ---
+add_test(NAME clib_frame_mutations
+    COMMAND python3 ${UNIT_CLIB}/mutation_check_frame.py)
+
+xy_add_unit_test(test_xy_frame clib_frame UNITY
+    ${UNIT_CLIB}/test_xy_frame.c
+    ${CLIB}/xy_frame.c
+)
+
 # --- Test 25: CLIB common/string/stdio/ring-buffer contracts ---
 xy_add_unit_test(test_clib clib_component UNITY
     ${UNIT_CLIB}/test_clib_core.c
