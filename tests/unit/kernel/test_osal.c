@@ -697,7 +697,11 @@ static void test_mempool_double_free_is_refused(void)
     void *block = xy_os_mempool_alloc(mp, 0U);
     TEST_ASSERT_NOT_NULL(block);
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mempool_free(mp, block));
-    TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_mempool_free(mp, block));
+    /* RESOURCE, not PARAMETER: the pointer is a perfectly good block, it is just not available - it is
+     * already on the free list. The openCH board self-check asserts this code from the FreeRTOS backend
+     * and gives the two conditions separate markers, so the distinction is deliberate and the bare-metal
+     * backend had been made to disagree with it. */
+    TEST_ASSERT_EQUAL(XY_OS_ERROR_RESOURCE, xy_os_mempool_free(mp, block));
 
     /* And the two allocations that follow are different memory. */
     void *first = xy_os_mempool_alloc(mp, 0U);

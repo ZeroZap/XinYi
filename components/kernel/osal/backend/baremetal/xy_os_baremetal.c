@@ -1069,7 +1069,11 @@ xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
     for (void *it = p->free_list; it != NULL; it = *(void **)it) {
         if (it == block) {
             bm_exit_critical(irq);
-            return XY_OS_ERROR_PARAMETER;
+            /* RESOURCE, not PARAMETER: the block is the pool's own and correctly aligned, it is simply
+             * not available. The FreeRTOS backend reports RESOURCE here and PARAMETER for a pointer the
+             * pool never handed out, and the openCH self-check keeps those two apart with separate
+             * markers - a distinction worth keeping rather than flattening. */
+            return XY_OS_ERROR_RESOURCE;
         }
     }
 

@@ -33,7 +33,7 @@ CMSIS = """\
 class FlagValueTests(unittest.TestCase):
     def make_tree(self, tmp: str, osal: str = OSAL, cmsis: list[str] | None = None) -> Path:
         root = Path(tmp)
-        (root / "components" / "kernel" / "osal").mkdir(parents=True)
+        (root / "components" / "kernel" / "osal").mkdir(parents=True, exist_ok=True)
         (root / "components" / "kernel" / "osal" / "xy_os.h").write_text(osal)
         for index, text in enumerate(cmsis if cmsis is not None else [CMSIS]):
             d = root / "vendor" / f"copy{index}"
@@ -58,19 +58,22 @@ class FlagValueTests(unittest.TestCase):
             problems = guard.findings(self.make_tree(tmp))
             self.assertEqual([], problems)
 
-    def test_vendor_copies_that_disagree_are_named_before_anything_else(self):
+    def test_a_vendor_copy_that_contradicts_the_standard_is_named(self):
         other = CMSIS.replace("0x00000008U", "0x00000004U")
         with tempfile.TemporaryDirectory() as tmp:
-            problems = guard.findings(self.make_tree(tmp, cmsis=[CMSIS, other]))
+            problems = guard.findings(self.make_tree(tmp, cmsis=[other]))
             self.assertEqual(1, len(problems))
-            self.assertIn("disagree", problems[0])
+            self.assertIn("osMutexRobust", problems[0])
 
-    def test_a_missing_cmsis_header_says_the_walk_is_broken(self):
+    def test_a_tree_without_the_vendor_headers_still_checks_the_flags(self):
+        """The MCU/ trees are untracked, so a clean checkout has no cmsis_os2.h at all. The values come
+        from the standard; still comparing them is the whole point."""
         with tempfile.TemporaryDirectory() as tmp:
-            root = self.make_tree(tmp, cmsis=[])
-            problems = guard.findings(root)
+            self.assertEqual([], guard.findings(self.make_tree(tmp, cmsis=[])))
+            drifted = OSAL.replace("0x00000008U", "0x00000010U")
+            problems = guard.findings(self.make_tree(tmp, osal=drifted, cmsis=[]))
             self.assertEqual(1, len(problems))
-            self.assertIn("walk is broken", problems[0])
+            self.assertIn("XY_OS_MUTEX_ROBUST", problems[0])
 
     def test_a_flag_that_disappeared_is_a_stale_pin(self):
         osal = OSAL.replace("#define XY_OS_MUTEX_ROBUST       0x00000008U\n", "")

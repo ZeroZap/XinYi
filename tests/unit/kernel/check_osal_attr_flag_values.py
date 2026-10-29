@@ -6,16 +6,17 @@
 silently get a different mutex. Nothing checked the correspondence until now; it was a coincidence that
 looked like a design.
 
-The check reads every `cmsis_os2.h` in the tree rather than naming one, because the vendor trees each
-carry a copy: if they disagree with each other, the pass-through has no single meaning and that is worth
-knowing before comparing it to anything.
+The values are not read from the tree. The vendor `MCU/` directories that carry `cmsis_os2.h` are
+untracked - zero of them are in git - so a clean checkout has none of them, and the first version of this
+guard failed there with "the walk is broken" while passing in a developer tree. The CMSIS-RTOS2 numbers
+are a published standard, so they are stated here, and any vendor copy that happens to be on disk is
+cross-checked against them: a copy that disagrees is worth knowing about, but its absence is not an error.
 """
 
 from __future__ import annotations
 
 import re
 import sys
-from functools import lru_cache
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
@@ -23,6 +24,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
 from source_scan import read_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
+
+#: CMSIS-RTOS2 attribute values (from the standard, cross-checked against the copies under MCU/ during
+#: the audit). These are the authority; the tree is not.
+CMSIS_VALUES = {
+    "osThreadDetached": 0x00000000,
+    "osThreadJoinable": 0x00000001,
+    "osMutexRecursive": 0x00000001,
+    "osMutexPrioInherit": 0x00000002,
+    "osMutexRobust": 0x00000008,
+}
 
 #: OSAL flag -> the CMSIS constant the cmsis_rtx backend forwards it to.
 PAIRS = {
@@ -54,45 +65,38 @@ def osal_flags(root: Path = ROOT) -> dict[str, int]:
     return defines(root / "components" / "kernel" / "osal" / "xy_os.h")
 
 
-def findings(root: Path = ROOT, pairs: dict[str, str] | None = None) -> list[str]:
+def findings(root: Path = ROOT, pairs: dict[str, str] | None = None,
+             cmsis: dict[str, int] | None = None) -> list[str]:
     pairs = PAIRS if pairs is None else pairs
+    cmsis = CMSIS_VALUES if cmsis is None else cmsis
     problems: list[str] = []
 
-    header_files = headers(root)
-    if not header_files:
-        return ["no cmsis_os2.h was found in the tree - the walk is broken"]
-
-    # What does each vendor copy say? They are all supposed to describe the same standard.
-    consensus: dict[str, int] = {}
-    disagreeing: dict[str, set[int]] = {}
-    for path in header_files:
+    # Bonus: if vendor copies are present, they must agree with the standard values used above. They are
+    # untracked, so their absence says nothing.
+    for path in headers(root):
         values = defines(path)
-        for cmsis in set(pairs.values()):
-            if cmsis in values:
-                consensus.setdefault(cmsis, values[cmsis])
-                disagreeing.setdefault(cmsis, set()).add(values[cmsis])
-    for cmsis, seen in sorted(disagreeing.items()):
-        if len(seen) > 1:
-            problems.append(
-                f"{cmsis}: the cmsis_os2.h copies in this tree disagree ({sorted(hex(v) for v in seen)}), "
-                f"so a verbatim pass-through has no single meaning")
+        for name, value in values.items():
+            if name in cmsis and cmsis[name] != value:
+                problems.append(
+                    f"{path.relative_to(root).as_posix()}: defines {name} as {hex(value)} but CMSIS-RTOS2 "
+                    f"says {hex(cmsis[name])}")
     if problems:
         return problems
 
     osal = osal_flags(root)
     checked = 0
-    for flag, cmsis in pairs.items():
+    for flag, name in sorted(pairs.items()):
         if flag not in osal:
             problems.append(f"{flag} is no longer defined in xy_os.h - the pin here is stale")
             continue
-        if cmsis not in consensus:
-            problems.append(f"{cmsis} is not defined by any cmsis_os2.h in this tree - the pin is stale")
+        if name not in cmsis:
+            problems.append(f"{name} has no value stated in this guard - the pin is stale")
             continue
         checked += 1
-        if osal[flag] != consensus[cmsis]:
+        if osal[flag] != cmsis[name]:
             problems.append(
-                f"{flag} is {hex(osal[flag])} but {cmsis} is {hex(consensus[cmsis])}: the cmsis_rtx "
-                f"backend forwards this value verbatim, so the two meanings have come apart")
+                f"{flag} is {hex(osal[flag])} but {name} is {hex(cmsis[name])}: the cmsis_rtx backend "
+                f"forwards this value verbatim, so the two meanings have come apart")
     if checked == 0 and not problems:
         problems.append("no flag pair was compared - the walk is broken")
     return problems
@@ -106,8 +110,9 @@ def main() -> int:
             print(f"- {problem}")
         return 1
     osal = osal_flags()
-    print(f"osal_attr_flag_values ok ({len(PAIRS)} attribute flags match the CMSIS values that "
-          f"cmsis_rtx forwards them to; read from {len(headers())} cmsis_os2.h copies)")
+    vendor = len(headers())
+    print(f"osal_attr_flag_values ok ({len(PAIRS)} attribute flags match the CMSIS-RTOS2 values that "
+          f"cmsis_rtx forwards them to; vendor copies cross-checked: {vendor})")
     for flag, cmsis in sorted(PAIRS.items()):
         print(f"  {flag} = {hex(osal[flag])} = {cmsis}")
     return 0
