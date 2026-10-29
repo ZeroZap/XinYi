@@ -83,9 +83,15 @@ test-unit:
 	@echo "=========================================="
 	@echo "  PC unit tests ($(UNIT_DIR))"
 	@echo "=========================================="
-	@cmake -B $(UNIT_BUILD_DIR) -S $(UNIT_DIR) >/dev/null
-	@cmake --build $(UNIT_BUILD_DIR) -j$(JOBS) >/dev/null
-	@cd $(UNIT_BUILD_DIR) && ctest --output-on-failure
+	@mkdir -p $(UNIT_BUILD_DIR)
+	@# Two sessions share this tree, and this target configures, builds and runs inside one directory: a
+	# second run rebuilding test binaries while the first is executing them produces failures that name
+	# guards nobody changed, and they look exactly like real regressions. Serialise it instead - a lock that
+	# is waited on costs a few minutes, a false red costs a debugging session.
+	@flock -w 3600 $(CURDIR)/$(UNIT_BUILD_DIR)/.test-unit.lock bash -c 'set -e; \
+	  cmake -B $(UNIT_BUILD_DIR) -S $(UNIT_DIR) >/dev/null; \
+	  cmake --build $(UNIT_BUILD_DIR) -j$(JOBS) >/dev/null; \
+	  cd $(UNIT_BUILD_DIR) && ctest --output-on-failure'
 
 # Host-side tool tests (z-serial, HIL harnesses); no target toolchain or hardware needed.
 test-tools:
