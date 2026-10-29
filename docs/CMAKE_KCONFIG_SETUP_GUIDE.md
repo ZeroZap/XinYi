@@ -274,8 +274,8 @@ cat build/config.h  # 查看生成的配置头文件
 ### 3. 构建测试
 
 ```bash
-make VERBOSE=1  # 详细编译输出
-ctest --output-on-failure  # 运行测试
+make test-unit  # 构建并运行单元测试（内部就是 ctest --output-on-failure）
+cmake --build build/pc --verbose  # 详细编译输出（root Makefile 不读 VERBOSE）
 ```
 
 ---

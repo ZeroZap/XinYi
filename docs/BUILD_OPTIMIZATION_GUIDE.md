@@ -131,8 +131,10 @@ cmake --build . -j$(nproc)
 # 使用 time 命令
 time make -j9
 
-# 查看每个文件编译时间
-make -j9 VERBOSE=1
+# 查看每个文件编译时间：root Makefile 不读 VERBOSE（它只把 -j$(JOBS) 交给 cmake），
+# 要看逐文件的编译命令与耗时，得直接问 cmake 的 --verbose
+time make JOBS=9
+time cmake --build build/pc --verbose -j"$(nproc)"
 ```
 
 ### 内存使用
@@ -153,8 +155,8 @@ watch -n 1 free -h
 make clean
 make -j9
 
-# 查看详细错误
-make VERBOSE=1
+# 查看详细错误：root Makefile 不读 VERBOSE，直接让 cmake 打开 verbose
+cmake --build build/pc --verbose
 ```
 
 ### 链接错误

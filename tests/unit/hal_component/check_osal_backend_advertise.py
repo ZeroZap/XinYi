@@ -28,7 +28,10 @@ the rule. The same question is asked of the platform variable: a command must na
 build reads (HAL_PLATFORM, not PLATFORM) with a value the configure step accepts, because a wrong
 variable is dropped without a word and builds the default platform instead. And of `make` targets:
 the build documents taught `menuconfig`, `make crypto`, `make install` and `make flash`, none of
-which the root Makefile defines - a reader pasting one gets `No rule to make target`.
+which the root Makefile defines - a reader pasting one gets `No rule to make target`. Of `make`
+variables, the same question again: `make VERBOSE=1` asks for detailed output and the root recipe,
+which is `cmake --build <dir> -j$(JOBS)`, never names VERBOSE - so the word is dropped and the
+reader's build looks exactly as terse as before.
 """
 
 from __future__ import annotations
@@ -360,12 +363,103 @@ OTHER_MAKEFILE = re.compile(r"(?:^|\s)-(?:C|f)(?=\s|$)")
 DIRECTORY_CHANGE = re.compile(r"(?:^|[;&|]\s*|\s)(?:cd|pushd)\s+\S")
 TARGET_NAME = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*$")
 REDIRECT = re.compile(r"[<>|]")
+#: A variable assignment in the Makefile itself: `?=`, `:=`, `::=`, `+=` or a plain `=` that is not
+#: the `==` of some comparison. Rule lines (`all: build`) do not match, and neither do recipes.
+MAKEFILE_ASSIGNMENT = re.compile(
+    r"^(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*(?:\?=|::=|:=|\+=|=(?!=))", re.M)
+#: A variable the Makefile dereferences with `$(NAME)` or `${NAME}`.
+MAKEFILE_REFERENCE = re.compile(
+    r"\$(?:\((?P<paren>[A-Za-z_][A-Za-z0-9_]*)\)|\{(?P<brace>[A-Za-z_][A-Za-z0-9_]*)\})")
+VARIABLE_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def makefile_targets(text: str) -> set[str]:
     """Every target the Makefile defines a rule for."""
     return {match.group("name") for match in MAKEFILE_RULE.finditer(text)
             if TARGET_NAME.match(match.group("name"))}
+
+
+def makefile_variables(text: str) -> set[str]:
+    """Every variable the Makefile either sets or dereferences.
+
+    A command-line assignment only means something if the Makefile reads it: it overrides an
+    assignment the file makes, and a variable the file dereferences but never defaults is still
+    honoured from the command line. A name in neither place is dropped without a word - make
+    accepts it, exports it to shells that never run, and the build behaves exactly as before.
+    """
+    names = {match.group("name") for match in MAKEFILE_ASSIGNMENT.finditer(text)}
+    for match in MAKEFILE_REFERENCE.finditer(text):
+        names.add(match.group("paren") or match.group("brace"))
+    return names
+
+
+def unquoted_tokens(rest: str) -> list[str]:
+    """Split a command line into arguments, keeping quoted text inside one token.
+
+    `KCONFIG_OVERRIDES="A=ON; B=OFF"` is a single value: the `B=OFF` in it is data handed to the
+    build, not a variable name of its own.
+    """
+    tokens: list[str] = []
+    current = ""
+    quote = ""
+    for char in rest:
+        if quote:
+            if char == quote:
+                quote = ""
+            current += char
+        elif char in "\"'":
+            quote = char
+            current += char
+        elif char.isspace():
+            if current:
+                tokens.append(current)
+                current = ""
+        else:
+            current += char
+    if current:
+        tokens.append(current)
+    return tokens
+
+
+def requested_variables(rest: str) -> list[str]:
+    """The `VAR=value` arguments on a `make` command line, in order.
+
+    Options and shell expansions are not variables: `make -j8` and `make VAR=$(nproc)` pass no
+    assignment a reader can be misled by. `VAR+=x` and `VAR?=x` are judged as `VAR`.
+    """
+    names: list[str] = []
+    for token in unquoted_tokens(rest):
+        if REDIRECT.search(token):
+            break
+        if token.startswith("-") or "=" not in token or "$" in token:
+            continue
+        name = token.split("=", 1)[0].rstrip("+?:")
+        if VARIABLE_NAME.match(name):
+            names.append(name)
+    return names
+
+
+def judged_make_commands(docs: dict[str, str]):
+    """Every `make` line whose namespace can only be the root Makefile's.
+
+    A block that changed directory, or a command that names another Makefile with `-C`/`-f`, is
+    reading a different file - CMake's generated one does define library targets and does honour
+    `VERBOSE`. Both `make` rules below judge exactly this set, so they cannot drift apart.
+    """
+    for where, text in sorted(docs.items()):
+        if where in PROPOSAL_DOCUMENTS:
+            continue
+        for block in fenced_blocks(text):
+            moved = False
+            for line in code_only_hash(block).splitlines():
+                stripped = line.strip()
+                if DIRECTORY_CHANGE.search(stripped):
+                    moved = True
+                    continue
+                command = MAKE_COMMAND.match(stripped)
+                if command is None or moved or OTHER_MAKEFILE.search(stripped):
+                    continue
+                yield where, command.group("rest") or ""
 
 
 def requested_targets(rest: str) -> list[str]:
@@ -396,24 +490,33 @@ def make_target_findings(docs: dict[str, str], targets: set[str]) -> list[str]:
     other Makefile, and `-C`/`-f` say so explicitly.
     """
     problems: list[str] = []
-    for where, text in sorted(docs.items()):
-        if where in PROPOSAL_DOCUMENTS:
-            continue
-        for block in fenced_blocks(text):
-            moved = False
-            for line in code_only_hash(block).splitlines():
-                stripped = line.strip()
-                if DIRECTORY_CHANGE.search(stripped):
-                    moved = True
-                    continue
-                command = MAKE_COMMAND.match(stripped)
-                if command is None or moved or OTHER_MAKEFILE.search(stripped):
-                    continue
-                for name in requested_targets(command.group("rest") or ""):
-                    if name not in targets:
-                        problems.append(
-                            f"{where}: a fenced command runs `make {name}`, but the root "
-                            f"Makefile defines no such target (`make help` lists the real ones)")
+    for where, rest in judged_make_commands(docs):
+        for name in requested_targets(rest):
+            if name not in targets:
+                problems.append(
+                    f"{where}: a fenced command runs `make {name}`, but the root "
+                    f"Makefile defines no such target (`make help` lists the real ones)")
+    return problems
+
+
+def make_variable_findings(docs: dict[str, str], variables: set[str]) -> list[str]:
+    """A fenced `make VAR=value` must name a variable the root Makefile reads.
+
+    `make VERBOSE=1` was this repository's answer to "how do I see the compile commands". The root
+    recipe is `cmake --build <dir> -j$(JOBS)`, so make hands VERBOSE to a shell that never mentions
+    it and the build prints what it always printed; the reader concludes the flag does not do much.
+    The same line *inside* the build directory is fine - that is CMake's own Makefile, which is
+    where `--verbose` ends up exporting VERBOSE anyway.
+    """
+    problems: list[str] = []
+    for where, rest in judged_make_commands(docs):
+        for name in requested_variables(rest):
+            if name in variables:
+                continue
+            problems.append(
+                f"{where}: a fenced command passes `make {name}=...`, but the root Makefile "
+                f"neither sets nor reads {name} - make drops it without a word (`make help` lists "
+                f"the variables that do something)")
     return problems
 
 
@@ -430,7 +533,9 @@ def main() -> int:
     docs = reader_docs()
     problems.extend(doc_command_findings(docs, selectable(root_text)))
     problems.extend(platform_command_findings(docs))
-    problems.extend(make_target_findings(docs, makefile_targets(read_hash_code(ROOT_MAKEFILE))))
+    makefile = read_hash_code(ROOT_MAKEFILE)
+    problems.extend(make_target_findings(docs, makefile_targets(makefile)))
+    problems.extend(make_variable_findings(docs, makefile_variables(makefile)))
     if problems:
         print("osal_backend_advertise failed:")
         for problem in problems:

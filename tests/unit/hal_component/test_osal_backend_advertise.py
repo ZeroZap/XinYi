@@ -394,6 +394,104 @@ $(BUILD_DIR)/CMakeCache.txt:
         self.assertEqual(guard.make_target_findings(docs, targets), [])
 
 
+class MakeVariableTests(unittest.TestCase):
+    """A fenced `make VAR=value` must name a variable the root Makefile reads."""
+
+    MAKEFILE = """
+HAL_PLATFORM ?= PC
+JOBS ?= $(shell nproc)
+KCONFIG_OVERRIDES ?=
+_BUILD_TYPE := $(BUILD_TYPE)
+VERBOSE_SAFE = no
+all: $(BUILD_ROOT)/CMakeCache.txt
+\t@cmake --build $(BUILD_ROOT) -j$(JOBS)
+test-unit:
+\t@echo test
+"""
+
+    def variables(self) -> set[str]:
+        return guard.makefile_variables(self.MAKEFILE)
+
+    def test_a_variable_the_makefile_sets_passes(self):
+        docs = {"README.md": "```bash\nmake HAL_PLATFORM=STM32U5\n```\n"}
+        self.assertEqual(guard.make_variable_findings(docs, self.variables()), [])
+
+    def test_a_variable_the_makefile_only_dereferences_passes(self):
+        """`BUILD_TYPE` is read but never assigned here; the command line is the only source."""
+        docs = {"README.md": "```bash\nmake BUILD_TYPE=debug\n```\n"}
+        self.assertEqual(guard.make_variable_findings(docs, self.variables()), [])
+
+    def test_a_variable_the_makefile_never_mentions_is_reported(self):
+        """`make VERBOSE=1` is the real one: the root recipe never names it, so nothing changes."""
+        docs = {"README.md": "```bash\nmake VERBOSE=1\n```\n"}
+        problems = guard.make_variable_findings(docs, self.variables())
+        self.assertEqual(len(problems), 1)
+        self.assertIn("make VERBOSE=...", problems[0])
+
+    def test_an_option_before_the_variable_does_not_hide_it(self):
+        docs = {"README.md": "```bash\nmake -j9 VERBOSE=1\n```\n"}
+        self.assertEqual(len(guard.make_variable_findings(docs, self.variables())), 1)
+
+    def test_an_assignment_together_with_a_target_is_judged(self):
+        docs = {"README.md": "```bash\nmake HAL_PLATFORM=STM32U5 VERBOSE=1 configure\n```\n"}
+        problems = guard.make_variable_findings(docs, self.variables())
+        self.assertEqual(len(problems), 1)
+        self.assertIn("VERBOSE", problems[0])
+
+    def test_equals_signs_inside_a_quoted_value_are_data(self):
+        """`KCONFIG_OVERRIDES="A=ON; B=OFF"` hands two settings over; it names no variable `B`."""
+        docs = {"README.md": '```bash\nmake configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON; '
+                             'FOTA_ENABLED=ON"\n```\n'}
+        self.assertEqual(guard.make_variable_findings(docs, self.variables()), [])
+
+    def test_plus_and_question_assignments_are_judged_as_the_name(self):
+        """`VERBOSE+=1` parses as the variable `VERBOSE`, not as a name with a `+` in it."""
+        docs = {"README.md": "```bash\nmake VERBOSE+=1\nmake VERBOSE?=1\n```\n"}
+        problems = guard.make_variable_findings(docs, self.variables())
+        self.assertEqual(len(problems), 2)
+        for problem in problems:
+            self.assertIn("make VERBOSE=...", problem)
+
+    def test_a_shell_expansion_is_not_an_assignment(self):
+        docs = {"README.md": "```bash\nmake JOBS=$(nproc)\n```\n"}
+        self.assertEqual(guard.make_variable_findings(docs, self.variables()), [])
+
+    def test_a_commented_out_command_is_not_an_instruction(self):
+        docs = {"README.md": "```bash\n# make VERBOSE=1   <- the root Makefile ignores it\n```\n"}
+        self.assertEqual(guard.make_variable_findings(docs, self.variables()), [])
+
+    def test_a_block_that_changed_directory_is_not_the_root_makefile(self):
+        """CMake's generated Makefile honours VERBOSE; the root one does not."""
+        docs = {"README.md": "```bash\ncd build/pc\nmake VERBOSE=1\n```\n"}
+        self.assertEqual(guard.make_variable_findings(docs, self.variables()), [])
+
+    def test_make_dash_c_names_another_makefile(self):
+        docs = {"README.md": "```bash\nmake -C build/pc VERBOSE=1\n```\n"}
+        self.assertEqual(guard.make_variable_findings(docs, self.variables()), [])
+
+    def test_a_redirection_ends_the_argument_list(self):
+        docs = {"README.md": "```bash\nmake VERBOSE=1 2>&1 | tee log\n```\n"}
+        self.assertEqual(len(guard.make_variable_findings(docs, self.variables())), 1)
+
+    def test_a_proposal_document_is_not_an_instruction(self):
+        where = sorted(guard.PROPOSAL_DOCUMENTS)[0]
+        docs = {where: "```bash\nmake VERBOSE=1\n```\n"}
+        self.assertEqual(guard.make_variable_findings(docs, self.variables()), [])
+
+    def test_the_root_makefile_parser_finds_its_variables(self):
+        variables = guard.makefile_variables(guard.read_hash_code(guard.ROOT_MAKEFILE))
+        self.assertIn("HAL_PLATFORM", variables)
+        self.assertIn("JOBS", variables)
+        self.assertIn("BUILD_DIR", variables)
+        self.assertNotIn("VERBOSE", variables)
+
+    def test_the_real_reader_docs_pass(self):
+        docs = guard.reader_docs()
+        self.assertTrue(docs)
+        variables = guard.makefile_variables(guard.read_hash_code(guard.ROOT_MAKEFILE))
+        self.assertEqual(guard.make_variable_findings(docs, variables), [])
+
+
 class FencedBlockTests(unittest.TestCase):
     def test_a_four_backtick_fence_is_not_closed_by_three(self):
         """A block that quotes a fenced example keeps its content instead of ending inside it."""
