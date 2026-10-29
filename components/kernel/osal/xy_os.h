@@ -404,6 +404,20 @@ uint32_t xy_os_thread_enumerate(xy_os_thread_id_t *thread_array,
 /* ==================== Thread Flags ==================== */
 
 /**
+ * @brief Thread flags: a per-thread notification word
+ *
+ * These four entries are not implemented by a backend that has no scheduler. There is no per-thread
+ * scheduler state to hold a notification value in, so the bare-metal backend answers
+ * XY_OS_THREAD_FLAGS_ERROR from set, clear, get and wait alike - for every argument, including the valid
+ * ones. A caller cannot tell that apart from a rejected flag word, because the return type is the word
+ * itself rather than a status.
+ *
+ * Implement it there and the difference stops being visible: the flag word is a word, so "these flags are
+ * not set" and "this backend has no thread flags" would both read as zero for a caller that ignores the
+ * sentinel. Refusing is the honest answer until there is state to answer from.
+ */
+
+/**
  * @brief Set the specified thread flags of a thread
  * @param[in] thread_id Thread ID
  * @param[in] flags Flags to set

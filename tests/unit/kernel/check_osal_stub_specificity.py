@@ -204,6 +204,45 @@ def false_success_findings(source: str, name: str) -> list[str]:
     return problems
 
 
+#: A flag-word entry that always answers the sentinel refuses everything, including the calls a working
+#: backend would answer. That is the honest answer where there is no state to answer from - but it is also
+#: indistinguishable from an entry nobody got round to implementing, so it has to be named here.
+BARE_SENTINEL = re.compile(
+    r"^\{\s*(?:\(void\)\s*\w+\s*;\s*)*return\s+(?:\(uint32_t\)\s*)?XY_OS_(?:THREAD|EVENT)_FLAGS_ERROR\s*;\s*\}$")
+
+PINNED_FLAG_REFUSALS = {
+    ("baremetal", "xy_os_thread_flags_set"):
+        "no scheduler, so there is no per-thread notification word to set",
+    ("baremetal", "xy_os_thread_flags_clear"):
+        "no scheduler, so there is no per-thread notification word to clear",
+    ("baremetal", "xy_os_thread_flags_get"):
+        "no scheduler, so there is no per-thread notification word to read",
+    ("baremetal", "xy_os_thread_flags_wait"):
+        "no scheduler, so there is nothing to wait on and no word to wait for",
+}
+
+
+def flag_word_refusal_findings(source: str, name: str,
+                               pins: dict[tuple[str, str], str] | None = None) -> list[str]:
+    """An entry that refuses everything must be named as unimplemented, not pass as a refusal."""
+    pins = PINNED_FLAG_REFUSALS if pins is None else pins
+    problems: list[str] = []
+    for match in DEFINITION.finditer(source):
+        entry = match.group(1)
+        if not FLAG_WORD_ENTRY.match(entry):
+            continue
+        body = braced_body(source[match.end():])
+        if not body or not BARE_SENTINEL.match(re.sub(r"\s+", " ", body).strip()):
+            continue
+        if (name, entry) in pins:
+            continue
+        problems.append(
+            f"{name}:{entry}: answers the sentinel whatever the input is - a refusal this broad is an "
+            f"unimplemented entry and the caller cannot tell it from a rejected flag word; name it in "
+            f"PINNED_FLAG_REFUSALS with the reason, or implement it")
+    return problems
+
+
 def api_version_findings(source: str, name: str,
                          sites: dict[tuple[str, str], str] | None = None) -> list[str]:
     """The reported API version must be the adapter's, not a number typed into the backend."""
@@ -286,6 +325,7 @@ def findings(backend_dir: Path = BACKENDS) -> list[str]:
         problems.extend(stub_findings(source, path.parent.name))
         problems.extend(local_check_findings(source, path.parent.name))
         problems.extend(false_success_findings(source, path.parent.name))
+        problems.extend(flag_word_refusal_findings(source, path.parent.name))
         problems.extend(constant_query_findings(source, path.parent.name))
         problems.extend(unread_parameter_findings(source, path.parent.name))
         problems.extend(api_version_findings(source, path.parent.name))

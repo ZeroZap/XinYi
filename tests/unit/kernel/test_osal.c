@@ -914,6 +914,26 @@ static void test_mutex_while_held_answers_the_way_the_board_checks(void)
     TEST_ASSERT_EQUAL(XY_OS_ERROR_PARAMETER, xy_os_mutex_delete(m));
 }
 
+/* The header now says this plainly, and it is worth a test so that implementing thread flags on the
+ * bare-metal backend later has to change a test that states what the boundary was. */
+static void test_thread_flags_are_absent_without_a_scheduler(void)
+{
+    xy_os_thread_id_t self = xy_os_thread_get_id();
+    TEST_ASSERT_NOT_NULL(self);
+
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_THREAD_FLAGS_ERROR, xy_os_thread_flags_set(self, 0x01U));
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_THREAD_FLAGS_ERROR, xy_os_thread_flags_get());
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_THREAD_FLAGS_ERROR, xy_os_thread_flags_clear(0x01U));
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_THREAD_FLAGS_ERROR,
+                             xy_os_thread_flags_wait(0x01U, XY_OS_FLAGS_WAIT_ALL, 0U));
+    TEST_ASSERT_EQUAL_UINT32(XY_OS_THREAD_FLAGS_ERROR,
+                             xy_os_thread_flags_wait(0x01U, XY_OS_FLAGS_NO_CLEAR, XY_OS_NO_WAIT));
+
+    /* The sentinel is distinguishable from a flag word because bit 31 is not available as a flag: a
+     * refused call can never be mistaken for "all flags set". */
+    TEST_ASSERT_EQUAL_UINT32(0x80000000U, XY_OS_THREAD_FLAGS_ERROR);
+}
+
 /* Zero is not "no flags to set", it is a caller that has nothing to say - the board expects the error
  * sentinel rather than a silent success. */
 static void test_thread_flags_refuse_an_empty_set(void)
@@ -1139,6 +1159,7 @@ int main(void)
     RUN_TEST(test_mempool_dimensions_that_overflow_are_refused);
     RUN_TEST(test_thread_queries_answer_about_the_id_they_were_given);
     RUN_TEST(test_mutex_while_held_answers_the_way_the_board_checks);
+    RUN_TEST(test_thread_flags_are_absent_without_a_scheduler);
     RUN_TEST(test_thread_flags_refuse_an_empty_set);
     RUN_TEST(test_mutex_refuses_attribute_bits_it_cannot_honour);
     RUN_TEST(test_mutex_reports_its_owner);

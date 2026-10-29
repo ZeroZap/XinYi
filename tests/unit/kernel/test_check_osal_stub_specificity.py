@@ -193,5 +193,55 @@ class RealTreeTests(unittest.TestCase):
         self.assertEqual([], guard.findings())
 
 
+class FlagWordRefusalTests(unittest.TestCase):
+    """A flag-word entry that refuses everything must be named, not silently counted as a refusal."""
+
+    STUB = """\
+uint32_t xy_os_thread_flags_get(void)
+{
+    return XY_OS_THREAD_FLAGS_ERROR;
+}
+"""
+
+    WITH_CAST = """\
+uint32_t xy_os_thread_flags_wait(uint32_t f, uint32_t o, uint32_t t)
+{
+    (void)f;
+    (void)o;
+    (void)t;
+    return (uint32_t)XY_OS_THREAD_FLAGS_ERROR;
+}
+"""
+
+    REAL = """\
+uint32_t xy_os_thread_flags_get(void)
+{
+    return s_flags;
+}
+"""
+
+    def test_an_unpinned_all_refusal_is_named(self):
+        problems = guard.flag_word_refusal_findings(self.STUB, "bm", pins={})
+        self.assertEqual(1, len(problems))
+        self.assertIn("xy_os_thread_flags_get", problems[0])
+
+    def test_parameter_casts_do_not_hide_it(self):
+        problems = guard.flag_word_refusal_findings(self.WITH_CAST, "bm", pins={})
+        self.assertEqual(1, len(problems))
+        self.assertIn("xy_os_thread_flags_wait", problems[0])
+
+    def test_a_pinned_entry_is_skipped(self):
+        self.assertEqual([], guard.flag_word_refusal_findings(
+            self.STUB, "bm", pins={("bm", "xy_os_thread_flags_get"): "no scheduler"}))
+
+    def test_a_real_implementation_is_not_flagged(self):
+        self.assertEqual([], guard.flag_word_refusal_findings(self.REAL, "bm", pins={}))
+
+    def test_the_real_tree_pins_every_refusal(self):
+        self.assertEqual([], [
+            problem for problem in guard.findings()
+            if "answers the sentinel whatever the input is" in problem])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
