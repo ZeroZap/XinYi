@@ -29,6 +29,12 @@ typedef struct {
     UART_HandleTypeDef *handle;
     xy_hal_uart_callback_t callback;
     void *callback_arg;
+    /* Receive interrupt state, same field names as the L4 and U5 backends so a single
+       contract guard can check all three. */
+    uint8_t irq_byte;
+    uint8_t pending_byte;
+    uint8_t pending_valid;
+    uint8_t irq_armed;
 } xy_hal_uart_context_t;
 
 static xy_hal_uart_context_t uart_contexts[XY_HAL_UART_MAX_INSTANCES];
@@ -171,6 +177,17 @@ static xy_hal_error_t uart_config_check(const xy_hal_uart_config_t *config)
     return XY_HAL_OK;
 }
 
+static xy_hal_error_t uart_it_status(HAL_StatusTypeDef status)
+{
+    if (status == HAL_OK) {
+        return XY_HAL_OK;
+    }
+    if (status == HAL_BUSY) {
+        return XY_HAL_ERROR_BUSY;
+    }
+    return XY_HAL_ERROR_IO;
+}
+
 xy_hal_error_t xy_hal_uart_init(void *uart, const xy_hal_uart_config_t *config)
 {
     UART_HandleTypeDef *handle = (UART_HandleTypeDef *)uart;
@@ -285,10 +302,40 @@ xy_hal_error_t xy_hal_uart_recv_dma(void *uart, uint8_t *data, size_t len)
  */
 xy_hal_error_t xy_hal_uart_enable_rx_irq(void *uart, int enable)
 {
-    (void)uart;
-    (void)enable;
+    xy_hal_uart_context_t *context;
 
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    if (uart == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    context = uart_context_find(uart);
+    if (context == NULL) {
+        return XY_HAL_ERROR_NOT_INIT;
+    }
+
+    if (enable == 0) {
+        context->irq_armed = 0U;
+        context->pending_valid = 0U;
+        return uart_it_status(HAL_UART_AbortReceive_IT((UART_HandleTypeDef *)uart));
+    }
+
+    context->irq_armed = 1U;
+    context->pending_valid = 0U;
+    return uart_it_status(HAL_UART_Receive_IT((UART_HandleTypeDef *)uart, &context->irq_byte, 1U));
+}
+
+int xy_hal_uart_rx_byte(void *uart)
+{
+    xy_hal_uart_context_t *context;
+
+    if (uart == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    context = uart_context_find(uart);
+    if (context == NULL || context->pending_valid == 0U) {
+        return XY_HAL_ERROR_NOT_FOUND;
+    }
+    context->pending_valid = 0U;
+    return (int)context->pending_byte;
 }
 
 /*
@@ -298,7 +345,9 @@ xy_hal_error_t xy_hal_uart_enable_rx_irq(void *uart, int enable)
  */
 void xy_hal_uart_irq_handler(void *uart)
 {
-    (void)uart;
+    if (uart != NULL) {
+        HAL_UART_IRQHandler((UART_HandleTypeDef *)uart);
+    }
 }
 
 xy_hal_error_t xy_hal_uart_register_callback(void *uart, xy_hal_uart_callback_t callback,
@@ -373,7 +422,16 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *handle)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *handle)
 {
+    xy_hal_uart_context_t *context = uart_context_find(handle);
+
+    if (context != NULL) {
+        context->pending_byte = context->irq_byte;
+        context->pending_valid = 1U;
+    }
     uart_callback_dispatch(handle, XY_HAL_UART_EVENT_RX_DONE);
+    if (context != NULL && context->irq_armed != 0U) {
+        (void)HAL_UART_Receive_IT(handle, &context->irq_byte, 1U);
+    }
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *handle)

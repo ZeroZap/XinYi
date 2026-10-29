@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Source-level contract for the STM32L4 / STM32U5 UART receive interrupt.
+"""Source-level contract for the STM32 F4 / L4 / U5 UART receive interrupt.
 
 The public UART header gained xy_hal_uart_enable_rx_irq / xy_hal_uart_irq_handler /
 xy_hal_uart_rx_byte when the WCH backend grew a receive interrupt. The STM32L4 backend -
@@ -24,6 +24,7 @@ HEADER = ROOT / "components" / "hal" / "inc" / "xy_hal_uart.h"
 TARGETS = {
     "stm32l4": ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_uart.c",
     "stm32u5": ROOT / "components" / "hal" / "stm32" / "stm32u5" / "xy_hal_uart.c",
+    "stm32f4": ROOT / "components" / "hal" / "stm32" / "stm32f4" / "xy_hal_uart.c",
 }
 
 
