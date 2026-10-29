@@ -44,6 +44,7 @@ ASSIGN = re.compile(r"^\s*([A-Za-z_]\w*)\s*=", re.M)
 REGISTRY = (
     "tests/test_osal_backend_contract.py",
     "tests/unit/display/check_pandora_st7789_board.py",
+    "tests/unit/fota/test_pandora_fota_bootloader_capture.py",
     "tests/unit/fota/test_pandora_fota_bootloader_layout.py",
     "tests/unit/hal_component/check_board_irq_vectors.py",
     "tests/unit/hal_component/check_error_code_alignment.py",

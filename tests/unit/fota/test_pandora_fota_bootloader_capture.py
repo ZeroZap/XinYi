@@ -4,6 +4,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import struct
 import subprocess
 import sys
@@ -14,8 +15,10 @@ import unittest
 ROOT = Path(__file__).resolve().parents[3]
 BOARDS = ROOT / "boards" / "pandora_stm32l475"
 sys.path.insert(0, str(BOARDS))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
 
 import validate_fota_bootloader_capture as boot  # noqa: E402
+from source_scan import read_code  # noqa: E402
 
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
 SCRIPT = BOARDS / "validate_fota_bootloader_capture.py"
@@ -212,6 +215,77 @@ class ConfirmRequestErrorTests(unittest.TestCase):
         result = analyze(encode(frame(None, self.MARKER, jump=False)))
         self.assertEqual(result["status"], "BOOTLOADER_CHAIN_VALIDATION_FAILED")
         self.assertTrue(any("without an install marker" in item for item in result["failures"]))
+
+
+class SilentHaltMarkerTests(unittest.TestCase):
+    """A halt must name the board operation that failed.
+
+    Three halt paths in ``pandora_fota_boot_flow`` printed nothing: the confirm slot read,
+    the acknowledgement write and both restage slot accesses. A boot frame that ends after
+    ``CANDIDATE_INSTALLED`` is indistinguishable from a capture that stopped mid-frame, and
+    ``_frames()`` rejects it - so the validator reported a truncated capture instead of the
+    failing step. Each marker below is the difference between the two readings.
+    """
+
+    AFTER_INSTALL = (
+        "PANDORA_BOOT_CONFIRM_STATE_ERROR",
+        "PANDORA_BOOT_CONFIRM_ACK_ERROR",
+    )
+    BEFORE_INSTALL = (
+        "PANDORA_BOOT_RESTAGE_STATE_ERROR",
+        "PANDORA_BOOT_RESTAGE_DONE_ERROR",
+    )
+
+    def test_each_new_marker_is_a_known_halting_decision(self):
+        for marker in self.AFTER_INSTALL + self.BEFORE_INSTALL:
+            with self.subTest(marker=marker):
+                self.assertIn(marker, boot.HALTING_DECISIONS)
+                self.assertIn(marker, boot.ERROR_MARKERS)
+
+    def test_the_confirm_slot_failures_are_accepted_as_halts_after_install(self):
+        for marker in self.AFTER_INSTALL:
+            with self.subTest(marker=marker):
+                result = analyze(encode(frame(boot.INSTALLED, marker, jump=False)))
+                self.assertEqual(result["status"], "BOOTLOADER_CHAIN_REVIEW_CANDIDATE")
+                self.assertEqual(result["chain"], "HALT_ERROR")
+                self.assertEqual(result["frames"][0]["decision"], marker)
+
+    def test_a_confirm_slot_failure_without_an_install_marker_is_rejected(self):
+        for marker in self.AFTER_INSTALL:
+            with self.subTest(marker=marker):
+                result = analyze(encode(frame(None, marker, jump=False)))
+                self.assertEqual(result["status"], "BOOTLOADER_CHAIN_VALIDATION_FAILED")
+                self.assertTrue(
+                    any("without an install marker" in item for item in result["failures"])
+                )
+
+    def test_the_restage_failures_are_accepted_before_any_install(self):
+        for marker in self.BEFORE_INSTALL:
+            with self.subTest(marker=marker):
+                result = analyze(encode(frame(None, marker, jump=False)))
+                self.assertEqual(result["status"], "BOOTLOADER_CHAIN_REVIEW_CANDIDATE")
+                self.assertEqual(result["chain"], "HALT_ERROR")
+
+    def test_a_restage_failure_is_not_claimed_after_an_install(self):
+        """The restage gate runs before install_once(), so an install marker first would
+        describe a sequence the flow owner cannot produce."""
+        for marker in self.BEFORE_INSTALL:
+            with self.subTest(marker=marker):
+                self.assertNotIn(marker, boot.INSTALL_BEFORE_DECISION)
+
+
+class MarkerVocabularyTests(unittest.TestCase):
+    def test_every_marker_the_flow_emits_is_in_the_known_vocabulary(self):
+        text = read_code(BOARDS / "pandora_fota_boot_flow.c")
+        emitted = set(re.findall(r'"(PANDORA_BOOT_[A-Z0-9_]+)', text))
+        self.assertTrue(emitted, "no markers found in the flow source")
+        known = set(boot.DECISIONS) | set(boot.INSTALL_MARKERS) | {boot.JUMP, boot.RESTAGE_AUTHORIZED}
+        self.assertEqual(
+            set(),
+            emitted - known,
+            "the flow emits markers the capture validator would reject as 'unknown boot "
+            "marker', so its own halt report would be judged a broken capture",
+        )
 
 
 class StructuralFailureTests(unittest.TestCase):

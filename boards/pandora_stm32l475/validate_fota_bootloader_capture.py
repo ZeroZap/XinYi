@@ -48,6 +48,14 @@ HALTING_DECISIONS = (
     "PANDORA_BOOT_ATTEMPT_ERROR",
     "PANDORA_BOOT_CONFIRM_ERROR",
     "PANDORA_BOOT_CONFIRM_REQUEST_ERROR",
+    # The confirm slot's read and acknowledgement write are separate steps from the
+    # journal commit, and each halts with its own marker.
+    "PANDORA_BOOT_CONFIRM_STATE_ERROR",
+    "PANDORA_BOOT_CONFIRM_ACK_ERROR",
+    # The reviewed-restage gate runs before install_once(), so its two slot failures
+    # are halts that legitimately carry no install marker.
+    "PANDORA_BOOT_RESTAGE_STATE_ERROR",
+    "PANDORA_BOOT_RESTAGE_DONE_ERROR",
     "PANDORA_BOOT_INIT_ERROR",
     "PANDORA_BOOT_RESTAGE_AUTHORIZATION_ERROR",
     NO_VALID_IMAGE,
@@ -61,6 +69,8 @@ INSTALL_BEFORE_DECISION = JUMPING_DECISIONS + (
     "PANDORA_BOOT_ATTEMPT_ERROR",
     "PANDORA_BOOT_CONFIRM_ERROR",
     "PANDORA_BOOT_CONFIRM_REQUEST_ERROR",
+    "PANDORA_BOOT_CONFIRM_STATE_ERROR",
+    "PANDORA_BOOT_CONFIRM_ACK_ERROR",
 )
 
 EXPECT_CHOICES = ("auto", "attempt", "confirm", "rollback", "install_error")

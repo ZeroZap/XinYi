@@ -309,8 +309,11 @@ static void test_confirm_slot_read_failure_halts_after_install(void) {
     TEST_ASSERT_EQUAL_INT(1, (int)event_count_of(EV_INSTALL));
     TEST_ASSERT_EQUAL_INT(0, (int)event_count_of(EV_CONFIRM));
     TEST_ASSERT_EQUAL_INT(0, (int)event_count_of(EV_ATTEMPT));
-    TEST_ASSERT_EQUAL_UINT(1U, marker_count);
+    /* A halt that prints nothing is indistinguishable from a truncated capture, so
+       the capture validator rejects its own boot frame. Name the step. */
+    TEST_ASSERT_EQUAL_UINT(2U, marker_count);
     TEST_ASSERT_EQUAL_INT(0, marker_index("PANDORA_BOOT_CANDIDATE_INSTALLED\r\n"));
+    TEST_ASSERT_EQUAL_INT(1, marker_index("PANDORA_BOOT_CONFIRM_STATE_ERROR\r\n"));
 }
 
 static void test_attempt_failure_halts_without_jump(void) {
@@ -358,9 +361,13 @@ static void test_confirm_ack_write_failure_halts_before_confirm_marker(void) {
 
     TEST_ASSERT_EQUAL_INT(PANDORA_FOTA_BOOT_OUTCOME_HALT, pandora_fota_boot_flow_run(&ops));
     TEST_ASSERT_EQUAL_INT(1, (int)event_count_of(EV_CONFIRM));
-    TEST_ASSERT_EQUAL_UINT(1U, marker_count);
+    /* The journal recorded the confirmation, so this is not CONFIRM_ERROR: the step that
+       failed is publishing the acknowledgement the application reads back. */
+    TEST_ASSERT_EQUAL_UINT(2U, marker_count);
     TEST_ASSERT_EQUAL_INT(0, marker_index("PANDORA_BOOT_CANDIDATE_ALREADY_INSTALLED\r\n"));
+    TEST_ASSERT_EQUAL_INT(1, marker_index("PANDORA_BOOT_CONFIRM_ACK_ERROR\r\n"));
     TEST_ASSERT_EQUAL_INT(-1, marker_index("PANDORA_BOOT_CANDIDATE_CONFIRMED\r\n"));
+    TEST_ASSERT_EQUAL_INT(-1, marker_index("PANDORA_BOOT_CONFIRM_ERROR\r\n"));
 }
 
 static void test_a_replaced_image_cannot_leave_its_request_behind(void) {
@@ -494,7 +501,93 @@ void test_restage_read_failure_halts_before_authorization(void) {
     TEST_ASSERT_EQUAL_INT(PANDORA_FOTA_BOOT_OUTCOME_HALT, pandora_fota_boot_flow_run(&ops));
     TEST_ASSERT_EQUAL_INT(0, (int)event_count_of(EV_RESTAGE));
     TEST_ASSERT_EQUAL_INT(0, (int)event_count_of(EV_INSTALL));
-    TEST_ASSERT_EQUAL_UINT(0U, marker_count);
+    TEST_ASSERT_EQUAL_UINT(1U, marker_count);
+    TEST_ASSERT_EQUAL_INT(0, marker_index("PANDORA_BOOT_RESTAGE_STATE_ERROR\r\n"));
+}
+
+static void test_a_restage_that_cannot_be_recorded_halts_naming_itself(void) {
+    pandora_fota_boot_flow_ops_t ops = make_ops();
+    ops.authorize_restage = fake_authorize_restage;
+    rtc_write_fail_slot = (int)PANDORA_FOTA_RTC_SLOT_RESTAGE;
+
+    TEST_ASSERT_EQUAL_INT(PANDORA_FOTA_BOOT_OUTCOME_HALT, pandora_fota_boot_flow_run(&ops));
+    /* The authorization itself succeeded; what failed is recording it, so the next boot
+       must not silently repeat a reviewed restage. */
+    TEST_ASSERT_EQUAL_INT(1, (int)event_count_of(EV_RESTAGE));
+    TEST_ASSERT_EQUAL_INT(0, (int)event_count_of(EV_INSTALL));
+    TEST_ASSERT_EQUAL_UINT(1U, marker_count);
+    TEST_ASSERT_EQUAL_INT(0, marker_index("PANDORA_BOOT_RESTAGE_DONE_ERROR\r\n"));
+    TEST_ASSERT_EQUAL_INT(-1, marker_index("PANDORA_BOOT_RESTAGE_AUTHORIZED\r\n"));
+}
+
+/* Every board operation the flow can fail on, with the marker that has to name it. A silent
+   halt used to be indistinguishable from a capture that stopped mid-frame: the validator
+   rejected the boot frame instead of reporting the failing step, which is the one outcome a
+   failure must never produce. */
+typedef struct {
+    void (*arrange)(void);
+    const char* marker;
+} halt_case_t;
+
+static void arrange_install_failure(void) {
+    install_result = -1;
+}
+static void arrange_attempt_failure(void) {
+    attempt_result = -1;
+}
+static void arrange_attempt_exhausted(void) {
+    attempt_rollback = 1;
+}
+static void arrange_confirm_failure(void) {
+    install_wrote = 0;
+    rtc_slots[PANDORA_FOTA_RTC_SLOT_CONFIRM] = PANDORA_FOTA_CONFIRM_REQUEST_MAGIC;
+    confirm_result = -1;
+}
+static void arrange_confirm_slot_read_failure(void) {
+    rtc_read_fail_slot = (int)PANDORA_FOTA_RTC_SLOT_CONFIRM;
+}
+static void arrange_confirm_ack_failure(void) {
+    install_wrote = 0;
+    rtc_slots[PANDORA_FOTA_RTC_SLOT_CONFIRM] = PANDORA_FOTA_CONFIRM_REQUEST_MAGIC;
+    rtc_write_fail_slot = (int)PANDORA_FOTA_RTC_SLOT_CONFIRM;
+}
+static void arrange_invalid_image(void) {
+    candidate_valid_result = 0;
+    vectors_valid_result = 0;
+}
+static void arrange_restage_read_failure(void) {
+    rtc_read_fail_slot = (int)PANDORA_FOTA_RTC_SLOT_RESTAGE;
+}
+static void arrange_restage_write_failure(void) {
+    rtc_write_fail_slot = (int)PANDORA_FOTA_RTC_SLOT_RESTAGE;
+}
+
+static void test_every_failing_board_operation_names_itself(void) {
+    static const halt_case_t cases[] = {
+        {arrange_install_failure, "PANDORA_BOOT_INSTALL_ERROR\r\n"},
+        {arrange_attempt_failure, "PANDORA_BOOT_ATTEMPT_ERROR\r\n"},
+        {arrange_attempt_exhausted, "PANDORA_BOOT_ROLLBACK_REQUIRED\r\n"},
+        {arrange_confirm_failure, "PANDORA_BOOT_CONFIRM_ERROR\r\n"},
+        {arrange_confirm_slot_read_failure, "PANDORA_BOOT_CONFIRM_STATE_ERROR\r\n"},
+        {arrange_confirm_ack_failure, "PANDORA_BOOT_CONFIRM_ACK_ERROR\r\n"},
+        {arrange_invalid_image, "PANDORA_BOOT_NO_VALID_IMAGE\r\n"},
+        {arrange_restage_read_failure, "PANDORA_BOOT_RESTAGE_STATE_ERROR\r\n"},
+        {arrange_restage_write_failure, "PANDORA_BOOT_RESTAGE_DONE_ERROR\r\n"},
+    };
+
+    for (unsigned int index = 0U; index < (unsigned int)(sizeof(cases) / sizeof(cases[0]));
+         ++index) {
+        pandora_fota_boot_flow_ops_t ops = make_ops();
+
+        setUp();
+        ops.authorize_restage = fake_authorize_restage;
+        cases[index].arrange();
+        TEST_ASSERT_EQUAL_INT_MESSAGE(PANDORA_FOTA_BOOT_OUTCOME_HALT,
+                                      pandora_fota_boot_flow_run(&ops), cases[index].marker);
+        TEST_ASSERT_GREATER_THAN_UINT_MESSAGE(0U, marker_count, cases[index].marker);
+        TEST_ASSERT_EQUAL_STRING_MESSAGE(cases[index].marker, markers[marker_count - 1U],
+                                         cases[index].marker);
+    }
 }
 
 int main(void) {
@@ -517,6 +610,8 @@ int main(void) {
     RUN_TEST(test_restage_runs_between_validation_and_install_only_once);
     RUN_TEST(test_restage_authorization_failure_halts_before_install);
     RUN_TEST(test_restage_read_failure_halts_before_authorization);
+    RUN_TEST(test_a_restage_that_cannot_be_recorded_halts_naming_itself);
+    RUN_TEST(test_every_failing_board_operation_names_itself);
     RUN_TEST(test_null_ops_halts);
     RUN_TEST(test_every_required_callback_is_checked_before_any_side_effect);
     RUN_TEST(test_missing_marker_callback_still_runs_the_sequence);

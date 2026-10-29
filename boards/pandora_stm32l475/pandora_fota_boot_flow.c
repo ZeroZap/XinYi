@@ -21,6 +21,7 @@ static int flow_restage(const pandora_fota_boot_flow_ops_t *ops) {
         return 0;
     }
     if (ops->rtc_backup_read(PANDORA_FOTA_RTC_SLOT_RESTAGE, &done_value) != 0) {
+        flow_mark(ops, "PANDORA_BOOT_RESTAGE_STATE_ERROR\r\n");
         return -1;
     }
     if (done_value == PANDORA_FOTA_RESTAGE_DONE_MAGIC) {
@@ -32,6 +33,7 @@ static int flow_restage(const pandora_fota_boot_flow_ops_t *ops) {
     }
     if (ops->rtc_backup_write(PANDORA_FOTA_RTC_SLOT_RESTAGE, PANDORA_FOTA_RESTAGE_DONE_MAGIC) !=
         0) {
+        flow_mark(ops, "PANDORA_BOOT_RESTAGE_DONE_ERROR\r\n");
         return -1;
     }
     flow_mark(ops, "PANDORA_BOOT_RESTAGE_AUTHORIZED\r\n");
@@ -74,6 +76,9 @@ static int flow_confirm(const pandora_fota_boot_flow_ops_t *ops) {
         return -1;
     }
     if (ops->rtc_backup_write(PANDORA_FOTA_RTC_SLOT_CONFIRM, PANDORA_FOTA_CONFIRM_ACK_MAGIC) != 0) {
+        /* The journal already holds the confirmation; what failed is publishing the
+         * acknowledgement the application reads back after the jump. Not CONFIRM_ERROR. */
+        flow_mark(ops, "PANDORA_BOOT_CONFIRM_ACK_ERROR\r\n");
         return -1;
     }
     flow_mark(ops, "PANDORA_BOOT_CANDIDATE_CONFIRMED\r\n");
@@ -115,6 +120,9 @@ pandora_fota_boot_outcome_t pandora_fota_boot_flow_run(const pandora_fota_boot_f
         return PANDORA_FOTA_BOOT_OUTCOME_HALT;
     }
     if (ops->rtc_backup_read(PANDORA_FOTA_RTC_SLOT_CONFIRM, &confirm_value) != 0) {
+        /* A halt with no marker is reported by the capture validator as a truncated
+         * boot frame, so the step that could not read the slot has to name itself. */
+        flow_mark(ops, "PANDORA_BOOT_CONFIRM_STATE_ERROR\r\n");
         return PANDORA_FOTA_BOOT_OUTCOME_HALT;
     }
     if (confirm_value == PANDORA_FOTA_CONFIRM_REQUEST_MAGIC) {

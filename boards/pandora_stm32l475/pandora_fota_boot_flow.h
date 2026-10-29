@@ -18,7 +18,10 @@ extern "C" {
  *     -> confirm request ? confirm + ack : record attempt (+ rollback abort)
  *     -> jump to application
  *
- * Any failing step halts before the next one runs; nothing here jumps on failure.
+ * Any failing step halts before the next one runs; nothing here jumps on failure, and
+ * every halt names the board operation that failed. A halt that printed nothing was
+ * indistinguishable from a capture that stopped mid-frame, so the capture validator
+ * rejected the boot frame instead of reporting the failing step.
  *
  * The confirm slot is scoped to one install cycle. install_once() reporting a write
  * clears it, because the only writer of a request is the application - which by

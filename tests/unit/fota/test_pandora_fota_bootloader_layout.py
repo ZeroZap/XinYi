@@ -62,6 +62,13 @@ def main() -> int:
         # The confirm slot is cleared when an install replaces the image; a request that
         # could not be cleared halts with its own marker instead of silently continuing.
         "PANDORA_BOOT_CONFIRM_REQUEST_ERROR",
+        # Reading the slot and publishing the acknowledgement are separate steps: each
+        # halt must name itself, because a boot frame that ends without a decision marker
+        # is what the capture validator reports as a truncated capture.
+        "PANDORA_BOOT_CONFIRM_STATE_ERROR",
+        "PANDORA_BOOT_CONFIRM_ACK_ERROR",
+        "PANDORA_BOOT_RESTAGE_STATE_ERROR",
+        "PANDORA_BOOT_RESTAGE_DONE_ERROR",
         "PANDORA_BOOT_ROLLBACK_REQUIRED",
         "PANDORA_BOOT_NO_VALID_IMAGE",
         "PANDORA_BOOT_INSTALL_ERROR",
