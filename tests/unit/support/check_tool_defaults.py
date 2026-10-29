@@ -40,11 +40,9 @@ ABSOLUTE = re.compile(r"^(?:[A-Za-z]:[\\/]|/)")
 SERIAL_DEVICE = re.compile(r"^/dev/(?:tty[A-Za-z]+\d+|serial/by-id/[^\s]+)$")
 
 #: (tool, option) -> why an absolute default is the only sensible one.
-PINNED = {
-    ("tools/program_opench_ch32v307.py", "--mrs-root"):
-        "MounRiver Studio installs itself where its installer decides; the root is only used to derive the "
-        "WCH OpenOCD config, and --mrs-root overrides it",
-}
+#: Empty: the one entry that lived here pinned --mrs-root, and that option was never read by anything - a pin
+#: is not evidence that a default is justified, it is evidence that somebody looked at it once.
+PINNED: dict[tuple[str, str], str] = {}
 
 
 def module_literals(tree: ast.Module) -> dict[str, str]:

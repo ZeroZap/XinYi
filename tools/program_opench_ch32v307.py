@@ -19,13 +19,11 @@ from pathlib import Path
 # OpenOCD comes from PATH when it is there, so this tool is not pinned to the machine it was written on (the
 # vendor default below is a Windows install of MounRiver Studio). The vendor paths stay as the fallback
 # because that is what those machines rely on.
-_VENDOR_MRS_ROOT = Path("D:/MounRiver/MounRiver_Studio2")
 _VENDOR_OPENOCD = Path(
     "D:/MounRiver/MounRiver_Studio2/resources/app/resources/win32/"
     "components/WCH/OpenOCD/OpenOCD/bin/openocd.exe"
 )
 DEFAULT_OPENOCD = Path(shutil.which("openocd")) if shutil.which("openocd") else _VENDOR_OPENOCD
-DEFAULT_MRS_ROOT = _VENDOR_MRS_ROOT
 FLASH_ADDRESS = 0x00000000
 
 
@@ -60,7 +58,6 @@ def main() -> int:
     parser.add_argument("--interval-ms", type=int, default=100)
     parser.add_argument("--post-reset-delay-ms", type=int, default=1000)
     parser.add_argument("--openocd", type=Path, default=DEFAULT_OPENOCD)
-    parser.add_argument("--mrs-root", type=Path, default=DEFAULT_MRS_ROOT)
     parser.add_argument("--config", type=Path)
     parser.add_argument("--log", type=Path, default=Path("opench_uart_runtime.log"))
     parser.add_argument(
