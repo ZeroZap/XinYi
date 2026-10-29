@@ -89,6 +89,40 @@ class SetTests(unittest.TestCase):
         osal = OSAL_OK.replace('elseif(OSAL_BACKEND STREQUAL "rtthread")\n', "")
         self.assertEqual(self.run_guard(ROOT_OK, osal, {}), [])
 
+    def test_an_offered_backend_without_a_branch_is_reported(self) -> None:
+        """Selectable and offered, but the build compiles no backend for it."""
+        osal = OSAL_OK.replace('elseif(OSAL_BACKEND STREQUAL "freertos")\n', "")
+        problems = self.run_guard(ROOT_OK, osal, UNREACHABLE)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("build no backend", problems[0])
+        self.assertIn("freertos", problems[0])
+
+    def test_a_commented_out_branch_is_not_a_branch(self) -> None:
+        """The same deletion written as a comment must be caught too - prose is not a branch."""
+        osal = OSAL_OK.replace('elseif(OSAL_BACKEND STREQUAL "freertos")\n',
+                               '# elseif(OSAL_BACKEND STREQUAL "freertos")\n')
+        self.assertNotIn("freertos", guard.dispatched(osal))
+        problems = self.run_guard(ROOT_OK, osal, UNREACHABLE)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("freertos", problems[0])
+
+    def test_a_commented_out_advertisement_is_not_an_advertisement(self) -> None:
+        osal = ("# set_property(CACHE OSAL_BACKEND PROPERTY STRINGS baremetal freertos)\n"
+                'if(OSAL_BACKEND STREQUAL "baremetal")\n'
+                'elseif(OSAL_BACKEND STREQUAL "freertos")\nendif()\n')
+        self.assertEqual(set(), guard.advertised(osal))
+        # Nothing is advertised at all, and the guard refuses to call that agreement.
+        self.assertEqual(1, len(self.run_guard(ROOT_OK, osal, {})))
+
+    def test_a_commented_out_root_selection_is_not_selectable(self) -> None:
+        root = ROOT_OK.replace(
+            'set(OSAL_BACKEND "freertos" CACHE STRING "OSAL backend selection" FORCE)',
+            '# set(OSAL_BACKEND "freertos" CACHE STRING "OSAL backend selection" FORCE)')
+        self.assertEqual({"baremetal"}, guard.selectable(root))
+        problems = self.run_guard(root, OSAL_OK, UNREACHABLE)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("can only select", problems[0])
+
     def test_a_stale_unreachable_declaration_is_reported(self):
         osal = OSAL_OK.replace('elseif(OSAL_BACKEND STREQUAL "rtthread")\n', "")
         problems = self.run_guard(ROOT_OK, osal)
@@ -169,10 +203,19 @@ class UndefinedSymbolTests(unittest.TestCase):
         self.assertEqual(1, len(problems))
         self.assertIn("a parser that finds nothing", problems[0])
 
-    def test_symbols_outside_conditions_are_not_judged(self):
+    def test_symbols_outside_conditions_are_not_judged(self) -> None:
         """A CONFIG_ token in a message or a variable name is not a branch."""
         text = 'message(STATUS "backend: ${CONFIG_OSAL_BACKEND}")\nset(OSAL_CONFIG_DIR x)\n'
         self.assertEqual(set(), guard.condition_symbols(text))
+
+    def test_a_trailing_comment_on_a_condition_is_not_a_symbol(self) -> None:
+        """`if(CONFIG_A) # CONFIG_B` branches on one symbol; the second is prose."""
+        text = "if(CONFIG_OSAL_BACKEND_FREERTOS) # CONFIG_OSAL_BACKEND_RTX5 would go here\n"
+        self.assertEqual({"CONFIG_OSAL_BACKEND_FREERTOS"}, guard.condition_symbols(text))
+
+    def test_a_commented_out_kconfig_declaration_is_not_a_definition(self) -> None:
+        text = "# config OSAL_BACKEND_RTX5\nconfig OSAL_BACKEND_FREERTOS\n"
+        self.assertEqual({"CONFIG_OSAL_BACKEND_FREERTOS"}, guard.parsed_symbols(text))
 
 
 class DocumentTests(unittest.TestCase):

@@ -15,6 +15,10 @@ guard passes over a real violation).
 
 A duplicated stripper is how this came back the first time, so this checks for the
 duplication itself rather than re-checking each guard's behaviour.
+
+The same rule covers the `#` half: source_scan.code_only_hash() is the one Kconfig/CMake
+stripper, and a guard defining its own (`strip_hash_comments`) is the same duplication in a
+different syntax.
 """
 
 from __future__ import annotations
@@ -32,7 +36,8 @@ REGEX_STRIPPERS = (
     re.compile(r're\.sub\(\s*r?"//\[\^'),
     re.compile(r're\.sub\(\s*r"//[^"]*"'),
 )
-LOCAL_DEFINITION = re.compile(r"^def (code_only|strip_comments)\([^)]*\)", re.M)
+LOCAL_DEFINITION = re.compile(r"^def (code_only|code_only_hash|strip_comments|strip_hash_comments)\([^)]*\)",
+                              re.M)
 
 
 def guard_files(root: Path = ROOT) -> list[Path]:

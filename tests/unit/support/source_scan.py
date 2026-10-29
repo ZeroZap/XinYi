@@ -13,6 +13,12 @@ directions once comments exist:
 
 Stripping comments first makes the guard answer the question it was written to ask.
 
+The same is true one syntax over. A guard that decides something from Kconfig or CMake - does
+this selection have a dispatch branch, can the root build set it - reads prose if it matches
+lines in the raw text: a commented-out `elseif(OSAL_BACKEND STREQUAL "freertos")` satisfied the
+"which backends are reachable" set just as well as a live one, and a commented-out
+`set(OSAL_BACKEND ...)` still counted as selectable. `code_only_hash()` is that half.
+
 There is one exception, and guards must say when they are taking it: a check that requires a
 rationale to have been written down *is* a check about a comment. `xy_os_thread_detach` in the
 RT-Thread backend and the task-handle inventory in the FreeRTOS backend both require a specific
@@ -95,15 +101,81 @@ def read_code(path: str | Path) -> str:
     return code_only(Path(path).read_text(encoding="utf-8", errors="replace"))
 
 
-def read_raw(path: str | Path) -> str:
-    """Read a file that is not C: Kconfig, CMake, Markdown, JSON.
+def code_only_hash(text: str) -> str:
+    """Return Kconfig/CMake/shell text with its `#` comments removed.
 
-    `code_only` only knows C comment syntax. Applying it to a Kconfig file would leave
-    every `#` comment in place - a half strip that reads as though it had been done - so
-    the non-code choice is spelled out here rather than being the silent default. A future
-    `#`-comment stripper belongs next to this function, not inside the guards.
+    Same reason as `code_only`, different syntax. A guard that decides something by
+    matching a line of CMake - which backends have a dispatch branch, which selection the
+    root build can set - is answered by a commented-out line just as readily as by a live
+    one, and only one of those builds. The mirror image bites too: a `# CONFIG_X` trailing
+    comment on an `if()` line was counted as a tested symbol.
+
+    Quoted text is preserved: a `#` inside `"..."` is data, not a comment. CMake's `#[[ ]]`
+    bracket comments are dropped with their newlines kept, so line numbers in a guard's
+    message still point at the right line. An unterminated quote is ended at the newline
+    rather than swallowing the rest of the file - neither language allows a plain string
+    literal to span lines, and guessing otherwise would delete real code.
+    """
+    out: list[str] = []
+    index = 0
+    length = len(text)
+
+    while index < length:
+        char = text[index]
+
+        if char == "#":
+            if text.startswith("#[[", index):
+                end = text.find("]]", index + 3)
+                stop = length if end < 0 else end + 2
+                out.extend("\n" for char in text[index:stop] if char == "\n")
+                index = stop
+                continue
+            while index < length and text[index] != "\n":
+                index += 1
+            continue
+
+        if char in ("'", '"'):
+            quote = char
+            out.append(char)
+            index += 1
+            while index < length:
+                if text[index] == "\\" and index + 1 < length:
+                    out.append(text[index:index + 2])
+                    index += 2
+                    continue
+                out.append(text[index])
+                last = text[index]
+                index += 1
+                if last == quote or last == "\n":
+                    break
+            continue
+
+        out.append(char)
+        index += 1
+
+    return "".join(out)
+
+
+def read_raw(path: str | Path) -> str:
+    """Read a file whose prose is the subject: Markdown, JSON, or a doc comment.
+
+    `code_only` only knows C comment syntax and `code_only_hash` only knows `#`, so neither
+    is a safe default for "some other file": applying the wrong one leaves every comment in
+    place, a half strip that reads as though it had been done. Choosing here means a guard
+    has to say which it means. Use `read_hash_code` for Kconfig and CMake, where a guard
+    decides what the build does - and this one only where a comment is what is being asked
+    about (the `@param` documentation checks) or where the format has no comments at all.
     """
     return Path(path).read_text(encoding="utf-8", errors="replace")
+
+
+def read_hash_code(path: str | Path) -> str:
+    """Read a Kconfig/CMake file with its `#` comments already removed.
+
+    The safe read is the short one, as with `read_code`: a guard that reads the raw text has
+    to remember to strip, and the one that forgets is satisfied by a comment.
+    """
+    return code_only_hash(Path(path).read_text(encoding="utf-8", errors="replace"))
 
 
 # One hop of delegation, shared so every guard means the same thing by it.

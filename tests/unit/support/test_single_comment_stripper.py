@@ -46,6 +46,13 @@ class StripperTests(unittest.TestCase):
                   'def strip_comments(text: str) -> str:\n    return code_only(text)\n')
         self.assertEqual(self.scan(source), [])
 
+    def test_a_local_hash_stripper_is_reported(self):
+        """The `#` half is the same rule: one implementation, shared from support/."""
+        source = "def strip_hash_comments(text: str) -> str:\n    return text\n"
+        problems = self.scan(source)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("own comment stripper", problems[0])
+
     def test_a_guard_that_does_not_strip_comments_is_not_blamed(self):
         self.assertEqual(self.scan("import re\nname = re.sub(r'a', 'b', name)\n"), [])
 

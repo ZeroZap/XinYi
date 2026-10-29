@@ -15,6 +15,11 @@ requested is the kind of result that makes every later measurement ambiguous.
 
 Backends that exist as sources but are unreachable from this build are listed with a reason,
 so the dispatch branches are not silently dead code.
+
+Every one of these questions is a question about *live* CMake. A commented-out branch answers
+`dispatched()` from the raw text exactly as well as a live one, and a guard that reads prose
+here is green on the thing it exists to catch - the offered-but-undispatched backend. So the
+CMake and Kconfig text goes through source_scan.code_only_hash() before any of it is matched.
 """
 
 from __future__ import annotations
@@ -22,6 +27,10 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+
+from source_scan import code_only_hash  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 ROOT_CMAKE = ROOT / "CMakeLists.txt"
@@ -52,16 +61,19 @@ ORPHANED = {
 
 
 def advertised(osal_cmake: str) -> set[str]:
+    osal_cmake = code_only_hash(osal_cmake)
     match = re.search(r"set_property\(\s*CACHE\s+OSAL_BACKEND\s+PROPERTY\s+STRINGS\s+([^)]*)\)",
                       osal_cmake)
     return set(match.group(1).split()) if match else set()
 
 
 def selectable(root_cmake: str) -> set[str]:
+    root_cmake = code_only_hash(root_cmake)
     return set(re.findall(r'set\(\s*OSAL_BACKEND\s+"([A-Za-z0-9_]+)"\s+CACHE\s+STRING', root_cmake))
 
 
 def dispatched(osal_cmake: str) -> set[str]:
+    osal_cmake = code_only_hash(osal_cmake)
     return set(re.findall(r'(?:else)?if\(\s*OSAL_BACKEND\s+STREQUAL\s+"([A-Za-z0-9_]+)"',
                           osal_cmake))
 
@@ -88,7 +100,7 @@ DECLARED = re.compile(r"^config\s+([A-Za-z0-9_]+)", re.M)
 def condition_symbols(cmake_text: str) -> set[str]:
     """CONFIG symbols used inside if()/elseif() conditions - the ones a build actually branches on."""
     found: set[str] = set()
-    for line in cmake_text.splitlines():
+    for line in code_only_hash(cmake_text).splitlines():
         match = CONDITION.match(line)
         if match:
             found |= set(SYMBOL.findall(match.group(1)))
@@ -97,7 +109,7 @@ def condition_symbols(cmake_text: str) -> set[str]:
 
 def parsed_symbols(root_kconfig: str) -> set[str]:
     """Symbols the config parser will define, which is exactly what the root Kconfig declares."""
-    return {f"CONFIG_{name}" for name in DECLARED.findall(root_kconfig)}
+    return {f"CONFIG_{name}" for name in DECLARED.findall(code_only_hash(root_kconfig))}
 
 
 def undefined_symbol_findings(cmake_text: str, root_kconfig: str,
@@ -183,6 +195,13 @@ def findings(root_cmake: str, osal_cmake: str,
     for name in sorted(set(unreachable) - branches):
         problems.append(f"{name} is declared unreachable but has no dispatch branch; the "
                         f"declaration is stale")
+    # A selection with no branch is not merely unreachable - the build sets the variable and then
+    # compiles no backend at all. Nothing else here catches it: the two set comparisons agree, the
+    # branch set is a subset of the offered set, and only this test asks whether the selection a
+    # person can make in the cache actually reaches an implementation.
+    for name in sorted((offered & chosen) - branches):
+        problems.append(f"{name} is offered and selectable but no dispatch branch names it - "
+                        f"selecting it would set the cache and build no backend")
     for name, reason in sorted({**unreachable, **ORPHANED}.items()):
         if not reason.strip():
             problems.append(f"{name} is declared unreachable without a reason")
