@@ -47,6 +47,41 @@ class PandoraUartCaptureTest(unittest.TestCase):
             text=True,
         )
 
+    def wait_until_listening(self, process, device: str, budget: float = 5.0) -> None:
+        """Wait until the capture has the device open, then let it finish configuring it.
+
+        capture_uart.py flushes the device while configuring it, which is right - stale bytes from an earlier
+        run must not be recorded as this capture's content - but it means a payload written before the flush
+        is thrown away and the capture reports NO_DATA_TIMEOUT. These tests slept 0.1 s from spawning the
+        child and then wrote: that window starts before the interpreter does, so under load the flush landed
+        after the write, and about one run in seven failed with returncode 2 where 3 was expected.
+
+        Waiting for the device to appear in the child's descriptors starts the window after the open, and the
+        flush happens microseconds after that, so the settle below is no longer a guess about process
+        startup.
+        """
+        deadline = time.monotonic() + budget
+        opened = False
+        while time.monotonic() < deadline and not opened:
+            try:
+                descriptors = os.listdir(f"/proc/{process.pid}/fd")
+            except OSError:
+                descriptors = []
+            for descriptor in descriptors:
+                try:
+                    if os.readlink(f"/proc/{process.pid}/fd/{descriptor}") == device:
+                        opened = True
+                        break
+                except OSError:
+                    continue
+            if not opened:
+                if process.poll() is not None:
+                    break
+                time.sleep(0.005)
+        if opened:
+            # configure_uart() runs tcflush() right after the open; this covers it without racing startup.
+            time.sleep(0.1)
+
     def test_captures_uart_bytes_and_records_source_identity(self):
         master, slave = pty.openpty()
         device = os.ttyname(slave)
@@ -54,7 +89,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
                 b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
@@ -85,7 +120,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = b"bootloader noise\r\n"
             os.write(master, payload)
             stdout, stderr = process.communicate(timeout=2)
@@ -110,7 +145,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
                 b"FIRMWARE_COMMIT ffffffffffffffffffffffffffffffffffffffff\r\n"
@@ -137,7 +172,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
@@ -164,7 +199,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             os.write(master, b"PANDORA STM32L475VE XINYI SMOKE OK\r\nAHT10 0x38 ACK\r\n")
             stdout, stderr = process.communicate(timeout=2)
 
@@ -184,7 +219,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
                 b"AHT10 RH_milli_percent=999999 T_milli_c=999999\r\n"
@@ -208,7 +243,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
                 b"AHT10 RH_milli_percent=50234 T_milli_c=23125\r\n"
@@ -232,7 +267,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
                 b"AHT10 RH_milli_percent=50234 T_milli_c=23125\r\n"
@@ -257,7 +292,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
                 b"AHT10 0x38 ACK\r\n"
@@ -285,7 +320,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
                 b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
@@ -312,7 +347,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
                 b"AHT10 0x38 NACK\r\n"
@@ -338,7 +373,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"AHT10 0x38 NACK\r\n"
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
@@ -364,7 +399,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
                 b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
@@ -390,7 +425,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
                 b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
@@ -420,7 +455,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata)
-            time.sleep(0.1)
+            self.wait_until_listening(process, device)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
                 b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
@@ -472,7 +507,9 @@ class PandoraUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(device, output, metadata, timeout=1.0)
-            time.sleep(0.1)
+            # Closing the master only means a disconnect once the child has the device open:
+            # before that it is an open failure, which writes no capture at all.
+            self.wait_until_listening(process, device)
             os.close(master)
             stdout, stderr = process.communicate(timeout=2)
 
