@@ -20,7 +20,24 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 TOOLS = ROOT / "tools"
 
+#: Where the project's own Python lives. Vendored trees and the developer virtualenv are not ours to police,
+#: and tools/tests deliberately writes paths like /dev/ttyACM0 because that is its input data.
+SCAN_ROOTS = ("tools", "boards")
+SKIP_PREFIXES = ("tools/tests", "tools/.venv", "boards/third_party", "tools/third_party")
+
+
+def tool_sources() -> list[Path]:
+    found: list[Path] = []
+    for base in SCAN_ROOTS:
+        for path in sorted((ROOT / base).rglob("*.py")):
+            relative = path.relative_to(ROOT).as_posix()
+            if any(relative.startswith(prefix) for prefix in SKIP_PREFIXES):
+                continue
+            found.append(path)
+    return found
+
 ABSOLUTE = re.compile(r"^(?:[A-Za-z]:[\\/]|/)")
+SERIAL_DEVICE = re.compile(r"^/dev/(?:tty[A-Za-z]+\d+|serial/by-id/[^\s]+)$")
 
 #: (tool, option) -> why an absolute default is the only sensible one.
 PINNED = {
@@ -80,8 +97,9 @@ def findings(tool: Path | None = None, pinned: dict[tuple[str, str], str] | None
              paths: list[Path] | None = None) -> list[str]:
     pinned = PINNED if pinned is None else pinned
     problems: list[str] = []
+    devices: dict[str, list[tuple[str, str, str]]] = {}
     inspected = 0
-    for path in paths if paths is not None else sorted(TOOLS.glob("*.py")):
+    for path in paths if paths is not None else tool_sources():
         inspected += 1
         try:
             tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
@@ -110,11 +128,36 @@ def findings(tool: Path | None = None, pinned: dict[tuple[str, str], str] | None
             text = default_text(default, literals)
             if text is None or not ABSOLUTE.match(text):
                 continue
+            # A console device is machine-specific by nature and there is nothing portable to look up, so it
+            # is not judged here - which console a board has is a per-board fact. What the next rule checks is
+            # that the scripts for one board agree about it.
+            if SERIAL_DEVICE.match(text):
+                devices.setdefault(path.parent.as_posix(), []).append((relative, option, text))
+                continue
             if (relative, option) in pinned:
                 continue
             problems.append(
                 f"{relative} {option}: defaults to the absolute path {text} - that is a default for whichever "
                 f"machine has it; look the executable up on PATH, or name it in PINNED with the reason")
+    # One board, one console: scripts written for the same board must not disagree about which device it is
+    # on. capture_uart.py defaulted to the debugger's virtual COM port while five siblings in the same
+    # directory used the CP2102, and no rule could judge which device a board has - but their disagreeing is
+    # something that can be seen.
+    for directory, entries in sorted(devices.items()):
+        counts: dict[str, int] = {}
+        for _, _, text in entries:
+            counts[text] = counts.get(text, 0) + 1
+        if len(counts) < 2:
+            continue
+        majority = max(counts, key=lambda value: counts[value])
+        for relative, option, text in entries:
+            if text == majority or (relative, option) in pinned:
+                continue
+            problems.append(
+                f"{relative} {option}: defaults to {text} while {counts[majority]} other scripts in "
+                f"{Path(directory).name} use {majority} - one board, one console; align them or pin this with the reason "
+                f"the board has two")
+
     if inspected == 0:
         problems.append("no tools were inspected - the walk is broken")
     return problems
@@ -127,7 +170,8 @@ def main() -> int:
         for problem in problems:
             print(f"- {problem}")
         return 1
-    print(f"tool_defaults ok ({len(list(TOOLS.glob('*.py')))} tools, no unpinned absolute-path default)")
+    print(f"tool_defaults ok ({len(tool_sources())} tool sources across "
+          f"{', '.join(SCAN_ROOTS)}, no unpinned absolute-path default)")
     return 0
 
 

@@ -87,5 +87,44 @@ class DefaultTests(unittest.TestCase):
         self.assertEqual([], guard.findings())
 
 
+class ConsoleAgreementTests(unittest.TestCase):
+    """One board, one console: the scripts for a board must not disagree about which device it is on."""
+
+    def run_dir(self, files: dict[str, str], pinned: dict | None = None) -> list[str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = []
+            for name, source in files.items():
+                path = Path(tmp) / name
+                path.write_text(source)
+                paths.append(path)
+            return guard.findings(pinned=pinned if pinned is not None else {}, paths=paths)
+
+    @staticmethod
+    def script(device: str, option: str = "--device") -> str:
+        return f'''import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("{option}", default="{device}")
+'''
+
+    def test_agreeing_scripts_pass(self):
+        self.assertEqual([], self.run_dir({"a.py": self.script("/dev/ttyUSB0"),
+                                           "b.py": self.script("/dev/ttyUSB0")}))
+
+    def test_a_lone_default_on_another_console_is_named(self):
+        problems = self.run_dir({"a.py": self.script("/dev/ttyUSB0"),
+                                 "b.py": self.script("/dev/ttyUSB0"),
+                                 "c.py": self.script("/dev/ttyACM0")})
+        self.assertEqual(1, len(problems))
+        self.assertIn("c.py", problems[0])
+        self.assertIn("/dev/ttyACM0", problems[0])
+
+    def test_a_pinned_outlier_passes(self):
+        problems = self.run_dir({"a.py": self.script("/dev/ttyUSB0"),
+                                 "c.py": self.script("/dev/ttyACM0")},
+                                pinned={("c.py", "--device"): "this board has two consoles"})
+        self.assertEqual([], problems)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

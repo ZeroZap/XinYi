@@ -180,7 +180,9 @@ def capture(device: str, timeout: float) -> tuple[str, bytes, str | None]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--device", default="/dev/ttyACM0")
+    # CP2102, not the ST-Link virtual COM port: capture evidence from the debugger's VCP is not Pandora's
+    # console, and its siblings in this directory all default to the same device.
+    parser.add_argument("--device", default="/dev/ttyUSB0")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--metadata", type=Path, required=True)
     parser.add_argument("--timeout", type=float, default=6.0)

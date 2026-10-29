@@ -140,7 +140,9 @@ def main() -> None:
         "DEVICE_OPEN_FAILED",
         "CAPTURE_CONTENT_MISMATCH",
         "PANDORA STM32L475VE XINYI SMOKE OK",
-        'default="/dev/ttyACM0"',
+        # The CP2102 console, not the ST-Link virtual COM port: this requirement used to name ttyACM0, so the
+        # board guard was holding the wrong device in place rather than catching it.
+        'default="/dev/ttyUSB0"',
         "--firmware-commit",
         "firmware_commit",
         "firmware_commit_marker_matched",
