@@ -53,11 +53,9 @@ def open_raw(port: str) -> int:
 
 
 def command_frame(addr: int, register: int, count: int) -> bytes:
-    payload = bytes((ord("C"), addr, register, count))
-    checksum = 0x5A
-    for byte in payload:
-        checksum ^= byte
-    return bytes((0x02, len(payload))) + payload + bytes((checksum,))
+    # One encoder for the whole host side: a second copy of the framing rules is a second
+    # thing to get wrong, and it drifted once already.
+    return probe.encode_frame(bytes((ord("C"), addr, register, count)))
 
 
 def main() -> int:

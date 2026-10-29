@@ -57,6 +57,23 @@ def ticking(ticks: int = 120, rx: int = 20) -> dict[str, int]:
 UART = "/dev/ttyACM0"
 
 
+class FramingTest(unittest.TestCase):
+    """The host encoder has to carry the same check the firmware verifies."""
+
+    def test_the_crc_matches_the_published_check_value(self) -> None:
+        self.assertEqual(probe.crc8(b"123456789"), 0xF4)
+
+    def test_an_encoded_frame_carries_the_crc_of_its_payload(self) -> None:
+        payload = b"I\x02\x00\x00\x00"
+        wire = probe.encode_frame(payload)
+        self.assertEqual(wire[0], 0x02)
+        self.assertEqual(wire[1], len(payload))
+        self.assertEqual(wire[-1], probe.crc8(payload))
+
+    def test_a_transposition_changes_the_check(self) -> None:
+        self.assertNotEqual(probe.crc8(b"\x12\x34"), probe.crc8(b"\x34\x12"))
+
+
 class ProbeJudgeTests(unittest.TestCase):
     def test_a_complete_run_passes(self) -> None:
         self.assertEqual(probe.judge(good_words(), ticking()), [])

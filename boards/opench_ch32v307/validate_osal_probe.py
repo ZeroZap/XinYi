@@ -124,16 +124,27 @@ def read_words(openocd: str, config: str, addresses: dict[str, int], resume: boo
     return values
 
 
+def crc8(data: bytes) -> int:
+    """CRC-8/ATM, the same polynomial the frame codec uses.
+
+    A xor sum was used here first and could not tell a transposed pair of bytes apart,
+    which is exactly the shape of a corrupted counter.
+    """
+    crc = 0x00
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x07) & 0xFF if crc & 0x80 else (crc << 1) & 0xFF
+    return crc
+
+
 def encode_frame(payload: bytes) -> bytes:
-    """STX, length, payload, checksum.
+    """STX, length, payload, CRC-8.
 
     Length rather than a terminator byte: 0x03 is a perfectly ordinary counter byte, and
     an earlier version truncated frames whose payload happened to contain it.
     """
-    checksum = 0x5A
-    for byte in payload:
-        checksum ^= byte
-    return bytes((0x02, len(payload))) + payload + bytes((checksum,))
+    return bytes((0x02, len(payload))) + payload + bytes((crc8(payload),))
 
 
 def _start_writer(port: str):

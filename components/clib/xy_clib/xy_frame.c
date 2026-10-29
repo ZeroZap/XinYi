@@ -7,15 +7,41 @@
 
 #include "xy_frame.h"
 
+/*
+ * CRC-8/ATM: polynomial 0x07, initial value 0x00, no reflection, no final xor. The check
+ * value for "123456789" is 0xF4, which the host test pins.
+ *
+ * This used to be a plain xor. A xor checksum cannot see two errors that cancel, and it
+ * cannot see a transposition of two bytes at all, so a frame carrying a misordered
+ * counter looked perfect. CRC-8 catches every single-bit error, every double-bit error,
+ * and every odd-length burst up to eight bits, which is what a byte stream actually does
+ * when it goes wrong.
+ */
+uint8_t xy_frame_crc8(const uint8_t *bytes, size_t count)
+{
+    uint8_t crc = XY_FRAME_CHECKSUM_SEED;
+    size_t i;
+
+    if (bytes == NULL) {
+        return crc;
+    }
+    for (i = 0; i < count; ++i) {
+        uint8_t bit;
+        crc ^= bytes[i];
+        for (bit = 0U; bit < 8U; ++bit) {
+            if ((crc & 0x80U) != 0U) {
+                crc = (uint8_t)((uint8_t)(crc << 1) ^ 0x07U);
+            } else {
+                crc = (uint8_t)(crc << 1);
+            }
+        }
+    }
+    return crc;
+}
+
 static uint8_t frame_checksum(const uint8_t *bytes, uint8_t count)
 {
-    uint8_t sum = XY_FRAME_CHECKSUM_SEED;
-    uint8_t i;
-
-    for (i = 0; i < count; ++i) {
-        sum ^= bytes[i];
-    }
-    return sum;
+    return xy_frame_crc8(bytes, count);
 }
 
 void xy_frame_decoder_reset(xy_frame_decoder_t *decoder)

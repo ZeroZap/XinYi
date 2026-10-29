@@ -32,6 +32,22 @@ MUTATIONS = {
         """        if (byte < 2U || byte > XY_FRAME_PAYLOAD_MAX + 1U) {""",
         """        if (0) {""",
     ),
+    "the checksum is a xor sum again": (
+        """        crc ^= bytes[i];
+        for (bit = 0U; bit < 8U; ++bit) {
+            if ((crc & 0x80U) != 0U) {
+                crc = (uint8_t)((uint8_t)(crc << 1) ^ 0x07U);
+            } else {
+                crc = (uint8_t)(crc << 1);
+            }
+        }""",
+        """        (void)bit;
+        crc ^= bytes[i];""",
+    ),
+    "the polynomial is not the standard one": (
+        """                crc = (uint8_t)((uint8_t)(crc << 1) ^ 0x07U);""",
+        """                crc = (uint8_t)((uint8_t)(crc << 1) ^ 0x1DU);""",
+    ),
     "the checksum is not verified": (
         """        if (expected != actual) {""",
         """        if (0) {""",

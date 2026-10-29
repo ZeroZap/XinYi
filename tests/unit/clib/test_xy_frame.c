@@ -142,6 +142,32 @@ static void test_a_frame_longer_than_the_payload_limit_is_refused(void) {
                                                 sizeof(wire)));
 }
 
+static void test_the_crc_matches_the_published_check_value(void) {
+    /* CRC-8/ATM("123456789") is 0xF4. A check value is what makes this the standard
+       polynomial rather than eight bits of arbitrary feedback. */
+    const uint8_t vector[] = "123456789";
+    TEST_ASSERT_EQUAL_HEX8(0xF4, xy_frame_crc8(vector, sizeof(vector) - 1));
+}
+
+static void test_the_crc_sees_a_transposition_a_xor_sum_cannot(void) {
+    /* {0x12,0x34} and {0x34,0x12} have identical xor sums, so the previous checksum
+       accepted a frame whose counter bytes had swapped. That is the reason the check
+       changed, so it is worth pinning. */
+    const uint8_t one[] = {0x12, 0x34};
+    const uint8_t other[] = {0x34, 0x12};
+
+    TEST_ASSERT_EQUAL_HEX8(one[0] ^ one[1], other[0] ^ other[1]);
+    TEST_ASSERT_NOT_EQUAL(xy_frame_crc8(one, sizeof(one)), xy_frame_crc8(other, sizeof(other)));
+}
+
+static void test_the_crc_covers_length_mismatches(void) {
+    const uint8_t short_one[] = {0x01, 0x02, 0x03};
+    const uint8_t long_one[] = {0x01, 0x02, 0x03, 0x00};
+
+    TEST_ASSERT_NOT_EQUAL(xy_frame_crc8(short_one, sizeof(short_one)),
+                          xy_frame_crc8(long_one, sizeof(long_one)));
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_a_frame_round_trips_through_the_encoder);
@@ -154,5 +180,8 @@ int main(void) {
     RUN_TEST(test_an_impossible_length_is_rejected);
     RUN_TEST(test_encoding_refuses_a_buffer_that_cannot_hold_the_frame);
     RUN_TEST(test_a_frame_longer_than_the_payload_limit_is_refused);
+    RUN_TEST(test_the_crc_matches_the_published_check_value);
+    RUN_TEST(test_the_crc_sees_a_transposition_a_xor_sum_cannot);
+    RUN_TEST(test_the_crc_covers_length_mismatches);
     return UNITY_END();
 }
