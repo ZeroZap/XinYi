@@ -9,6 +9,7 @@ case wrote, which is why one case produces exactly one finding.
 from __future__ import annotations
 
 import sys
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -150,6 +151,85 @@ class FormatTests(unittest.TestCase):
                                            "the requested format")
         self.assertEqual(1, len(problems))
         self.assertIn("discards format", problems[0])
+
+
+    def test_every_format_entry_is_actually_found(self):
+        """A rule that finds no bodies reports nothing, which reads exactly like full compliance.
+
+        This is not hypothetical: FORMAT_ENTRIES was defined twice, the second copy with a trailing
+        parenthesis, so `entry + "("` built `((` and every format rule silently inspected nothing.
+        """
+        for entry in guard.FORMAT_ENTRIES:
+            self.assertTrue(guard.braced(CORRECT, entry + "("), f"{entry} found no body")
+
+    def test_a_helper_that_branches_on_the_format_passes(self):
+        # dedent matters: local_definitions anchors ^static, and an indented fixture finds none.
+        backing = textwrap.dedent("""
+        static xy_hal_error_t fmt_ok(xy_hal_rtc_format_t format)
+        {
+            return (format == XY_HAL_RTC_FORMAT_BIN) ? XY_HAL_OK : XY_HAL_ERROR_NOT_SUPPORTED;
+        }
+
+        xy_hal_error_t xy_hal_rtc_get_time(void *rtc, xy_hal_rtc_time_t *t, xy_hal_rtc_format_t format)
+        {
+            xy_hal_error_t status = fmt_ok(format);
+            if (status != XY_HAL_OK) {
+                return status;
+            }
+            *t = s_time;
+            return XY_HAL_OK;
+        }
+        """)
+        problems = guard.argument_findings(backing, "ok", ("xy_hal_rtc_get_time",), "format",
+                                           guard.HONOURS_FORMAT, guard.DISCARDS_FORMAT,
+                                           "the requested format")
+        self.assertEqual([], problems)
+
+    def test_a_helper_that_discards_the_format_is_named(self):
+        # dedent matters: local_definitions anchors ^static, and an indented fixture finds none.
+        backing = textwrap.dedent("""
+        static xy_hal_error_t fmt_ok(xy_hal_rtc_format_t format)
+        {
+            (void)format;
+            return XY_HAL_OK;
+        }
+
+        xy_hal_error_t xy_hal_rtc_get_time(void *rtc, xy_hal_rtc_time_t *t, xy_hal_rtc_format_t format)
+        {
+            xy_hal_error_t status = fmt_ok(format);
+            if (status != XY_HAL_OK) {
+                return XY_HAL_ERROR_NOT_INIT;
+            }
+            *t = s_time;
+            return XY_HAL_OK;
+        }
+        """)
+        problems = guard.argument_findings(backing, "bad", ("xy_hal_rtc_get_time",), "format",
+                                           guard.HONOURS_FORMAT, guard.DISCARDS_FORMAT,
+                                           "the requested format")
+        self.assertEqual(1, len(problems))
+        self.assertIn("discards it", problems[0])
+
+    def test_a_helper_that_admits_it_ignores_the_format_is_named(self):
+        # dedent matters: local_definitions anchors ^static, and an indented fixture finds none.
+        backing = textwrap.dedent("""
+        static xy_hal_error_t fmt_ok(xy_hal_rtc_format_t format)
+        {
+            XY_UNUSED(format);
+            return XY_HAL_OK;
+        }
+
+        xy_hal_error_t xy_hal_rtc_get_time(void *rtc, xy_hal_rtc_time_t *t, xy_hal_rtc_format_t format)
+        {
+            (void)fmt_ok(format);
+            *t = s_time;
+            return XY_HAL_OK;
+        }
+        """)
+        problems = guard.argument_findings(backing, "quiet", ("xy_hal_rtc_get_time",), "format",
+                                           guard.HONOURS_FORMAT, guard.DISCARDS_FORMAT,
+                                           "the requested format")
+        self.assertTrue(problems, "a helper that neither branches on nor honours the format")
 
 
 class BackupTests(unittest.TestCase):

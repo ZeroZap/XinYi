@@ -75,6 +75,7 @@ DERIVES_FROM_DATE = re.compile(r"xy_hal_rtc_get_date|date\.|->date")
 RAW_COUNTER = re.compile(r"RTC_GetCounter\s*\(")
 COUNTER_DOCUMENTED = re.compile(r"seconds since the epoch")
 
+
 LOCAL_CALL = re.compile(r"\b(\w+)\s*\(")
 
 
@@ -141,11 +142,47 @@ def coverage_findings(source: str, name: str, pinned: int,
     return []
 
 
+def call_arguments(body: str, name: str) -> list[str]:
+    """Argument text of every call to `name` in `body`, by paren balance.
+
+    A regex over the arguments cannot do this: `[^;{}]*` runs straight past the closing paren of the
+    first call and reports a later sibling's argument as this call's, which produced findings against
+    helpers that were plainly correct.
+    """
+    found: list[str] = []
+    index = 0
+    while True:
+        index = body.find(name + "(", index)
+        if index < 0:
+            return found
+        open_at = index + len(name)
+        depth = 0
+        for position in range(open_at, len(body)):
+            if body[position] == "(":
+                depth += 1
+            elif body[position] == ")":
+                depth -= 1
+                if depth == 0:
+                    found.append(body[open_at + 1:position])
+                    index = position + 1
+                    break
+        else:
+            return found
+
+
 def argument_findings(source: str, name: str, entries: tuple[str, ...],
                       argument: str, selects: re.Pattern[str], discards: re.Pattern[str],
                       noun: str) -> list[str]:
-    """The argument must change what happens, or the call must be refused."""
+    """The argument must change what happens, or the call must be refused.
+
+    Handing the argument to a local helper is not the same as acting on it. with_delegation merges
+    the helper's text into the entry, so a validator that compares the value and then always returns
+    the same status satisfies any rule that only looks for a comparison - which is how a backend that
+    accepted BCD and answered in binary stayed green through two attempts at this rule. The helper
+    that receives the argument has to branch on it.
+    """
     problems: list[str] = []
+    local = local_definitions(source)
     for entry in entries:
         body = braced(source, entry + "(")
         if not body:
@@ -154,6 +191,24 @@ def argument_findings(source: str, name: str, entries: tuple[str, ...],
         discards_it = discards.search(resolved) is not None
         uses_it = selects.search(resolved) is not None
         refuses = REFUSES.search(resolved) is not None
+        # Follow the argument into any local helper that receives it, whatever else the entry does.
+        # This has to run before the classification below: a helper that refuses for an unrelated
+        # reason (not initialised, say) satisfies the "refuses" escape hatch while the argument itself
+        # still changes nothing, which is how the mutated validator stayed green.
+        followed = False
+        for helper, helper_body in local.items():
+            if not any(re.search(rf"\b{argument}\b", args)
+                       for args in call_arguments(body, helper)):
+                continue
+            if selects.search(helper_body) is not None:
+                continue
+            problems.append(
+                f"{name}:{entry}: hands {argument} to {helper}() which "
+                f"{'discards it' if discards.search(helper_body) else 'never branches on it'}, "
+                f"so every request is answered the same way while reporting success")
+            followed = True
+        if followed:
+            continue
         if uses_it:
             continue
         if discards_it and refuses:

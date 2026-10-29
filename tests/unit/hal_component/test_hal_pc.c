@@ -591,6 +591,52 @@ static void test_sys_irq_control_pc_contract(void)
     TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_sys_disable_irq_num(UINT32_MAX));
 }
 
+/*
+ * The format argument, as this backend actually behaves. I first read the four functions, saw the
+ * format validated and the value copied out unchanged, and concluded that BCD was ignored. It is not:
+ * pc_rtc_format_ok refuses anything but binary with NOT_SUPPORTED, which is what the header asks of a
+ * backend that cannot produce BCD. What was missing was a test - nothing pinned either the refusal or
+ * the fact that a refused call leaves the RTC alone.
+ */
+static void test_rtc_pc_refuses_a_format_it_cannot_produce(void)
+{
+    xy_hal_rtc_time_t time = { .hours = 12U, .minutes = 34U, .seconds = 56U, .subseconds = 0U };
+    xy_hal_rtc_date_t date = { .weekday = 2U, .month = 10U, .date = 27U, .year = 2026U };
+    xy_hal_rtc_time_t read_back = { 0 };
+    xy_hal_rtc_date_t date_back = { 0 };
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_init((void *)31));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_set_time((void *)31, &time, XY_HAL_RTC_FORMAT_BIN));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_set_date((void *)31, &date, XY_HAL_RTC_FORMAT_BIN));
+
+    /* All four entries refuse BCD rather than hand back binary digits the caller reads as BCD. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED,
+                      xy_hal_rtc_get_time((void *)31, &read_back, XY_HAL_RTC_FORMAT_BCD));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED,
+                      xy_hal_rtc_set_time((void *)31, &time, XY_HAL_RTC_FORMAT_BCD));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED,
+                      xy_hal_rtc_get_date((void *)31, &date_back, XY_HAL_RTC_FORMAT_BCD));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED,
+                      xy_hal_rtc_set_date((void *)31, &date, XY_HAL_RTC_FORMAT_BCD));
+
+    /* A refused call leaves the RTC exactly as it was - a refusal that still wrote something would be
+     * a refusal in the return code only. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_get_time((void *)31, &read_back, XY_HAL_RTC_FORMAT_BIN));
+    TEST_ASSERT_EQUAL_UINT8(12U, read_back.hours);
+    TEST_ASSERT_EQUAL_UINT8(34U, read_back.minutes);
+    TEST_ASSERT_EQUAL_UINT8(56U, read_back.seconds);
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_get_date((void *)31, &date_back, XY_HAL_RTC_FORMAT_BIN));
+    TEST_ASSERT_EQUAL_UINT16(2026U, date_back.year);
+    TEST_ASSERT_EQUAL_UINT8(10U, date_back.month);
+    TEST_ASSERT_EQUAL_UINT8(27U, date_back.date);
+
+    /* The timestamp does not depend on the format the caller last asked for, because it never accepts
+     * one - it reads binary through this backend. Midnight on 2026-10-27 plus the 12:34:56 set above. */
+    TEST_ASSERT_EQUAL_INT64(1793059200 + 12 * 3600 + 34 * 60 + 56,
+                            xy_hal_rtc_get_timestamp((void *)31));
+    (void)xy_hal_rtc_deinit((void *)31);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -603,6 +649,7 @@ int main(void)
     RUN_TEST(test_dma_pc_state_and_events);
     RUN_TEST(test_timer_pc_state_and_events);
     RUN_TEST(test_rtc_pc_state_and_alarms);
+    RUN_TEST(test_rtc_pc_refuses_a_format_it_cannot_produce);
     RUN_TEST(test_rtc_backup_register_pc_contract);
     RUN_TEST(test_sys_irq_control_pc_contract);
     return UNITY_END();
