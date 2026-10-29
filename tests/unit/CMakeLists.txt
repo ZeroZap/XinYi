@@ -91,6 +91,9 @@ add_test(NAME stm32f4_dma_wrapper_contract
     COMMAND python3 ${UNIT_HAL}/check_stm32f4_dma_wrapper_contract.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME stm32l4_uart_rx_irq_contract
+    COMMAND python3 ${UNIT_HAL}/check_stm32l4_uart_rx_irq_contract.py)
+
 add_test(NAME stm32f4_uart_wrapper_contract
     COMMAND python3 ${UNIT_HAL}/check_stm32f4_uart_wrapper_contract.py
     WORKING_DIRECTORY ${ROOT}

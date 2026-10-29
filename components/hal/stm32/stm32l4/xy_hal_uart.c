@@ -8,6 +8,13 @@ typedef struct {
     UART_HandleTypeDef *handle;
     xy_hal_uart_callback_t callback;
     void *callback_arg;
+    /* Receive interrupt state. irq_byte is where the vendor writes the byte, pending is
+       the handover the callback reads - the same split as the WCH backend, so a callback
+       that wants the byte never has to touch the data register itself. */
+    uint8_t irq_byte;
+    uint8_t pending_byte;
+    uint8_t pending_valid;
+    uint8_t irq_armed;
 } xy_hal_uart_context_t;
 
 static xy_hal_uart_context_t uart_contexts[XY_HAL_UART_MAX_INSTANCES];
@@ -277,7 +284,68 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *handle)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *handle)
 {
+    xy_hal_uart_context_t *context = uart_context_find(handle);
+
+    /* Stash the byte before dispatching: the callback reads it through
+       xy_hal_uart_rx_byte(), and re-arming here is what keeps the interrupt from firing
+       once and going quiet. */
+    if (context != NULL) {
+        context->pending_byte = context->irq_byte;
+        context->pending_valid = 1U;
+    }
     uart_callback_dispatch(handle, XY_HAL_UART_EVENT_RX_DONE);
+    if (context != NULL && context->irq_armed != 0U) {
+        (void)HAL_UART_Receive_IT(handle, &context->irq_byte, 1U);
+    }
+}
+
+xy_hal_error_t xy_hal_uart_enable_rx_irq(void *uart, int enable)
+{
+    xy_hal_uart_context_t *context;
+
+    if (uart == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    context = uart_context_find(uart);
+    if (context == NULL) {
+        return XY_HAL_ERROR_NOT_INIT;
+    }
+
+    if (enable == 0) {
+        context->irq_armed = 0U;
+        context->pending_valid = 0U;
+        return uart_status(HAL_UART_AbortReceive_IT((UART_HandleTypeDef *)uart));
+    }
+
+    context->irq_armed = 1U;
+    context->pending_valid = 0U;
+    return uart_status(HAL_UART_Receive_IT((UART_HandleTypeDef *)uart, &context->irq_byte, 1U));
+}
+
+void xy_hal_uart_irq_handler(void *uart)
+{
+    /* On STM32 the vector belongs to the board's interrupt table, which normally calls
+       HAL_UART_IRQHandler() itself. This entry point exists for boards that route the
+       vector through the HAL instead, so the contract is the same shape as the WCH one:
+       one call does the whole interrupt. */
+    if (uart != NULL) {
+        HAL_UART_IRQHandler((UART_HandleTypeDef *)uart);
+    }
+}
+
+int xy_hal_uart_rx_byte(void *uart)
+{
+    xy_hal_uart_context_t *context;
+
+    if (uart == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    context = uart_context_find(uart);
+    if (context == NULL || context->pending_valid == 0U) {
+        return XY_HAL_ERROR_NOT_FOUND;
+    }
+    context->pending_valid = 0U;
+    return (int)context->pending_byte;
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *handle)
