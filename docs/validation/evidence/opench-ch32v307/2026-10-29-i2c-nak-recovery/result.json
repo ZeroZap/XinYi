@@ -1,0 +1,44 @@
+{
+  "slice": "S6-153",
+  "what": "openCH CH32V307: an I2C transfer to an address nobody answers on, and whether the bus survives it",
+  "board": "openCH CH32V307 (WCH-Link CH549F, OpenOCD wch-riscv.cfg, adapter speed 1000)",
+  "probe_image": {
+    "target": "opench_ch32v307_osal_freertos_stall_probe_smoke",
+    "elf": "build/opench-osal-verify/boards/opench_ch32v307/opench_ch32v307_osal_freertos_stall_probe_smoke.elf",
+    "bytes": 48276,
+    "elf_sha256": "5aa034f905a2ec2cb203ee2ab6e655972f32009eca9b2e3a422dfdd9d1a6e098",
+    "source": "boards/opench_ch32v307/osal_freertos_stall_probe_main.c",
+    "source_sha256": "92a0d47f39e85568aba169b8ba620a4df6f7c7378b11abd47a4b887841d7d668",
+    "program": "openocd -f wch-riscv.cfg -c 'adapter speed 1000' -c init -c halt -c 'program <elf> verify' -c reset"
+  },
+  "green": {
+    "validator": "boards/opench_ch32v307/validate_osal_probe.py",
+    "exit": 0,
+    "stdout": "osal_stall_probe_ok stage=15 loops=3 wait=0x80000000 get=0xfffffffe uart=7/7 i2c=4/4 nak=0xfffffffa recover=0x68 recv_ms=10 ticks=0x11ce->0x1bda",
+    "readings": {
+      "xy_probe_i2c_nak_code": "0xfffffffa (-6, XY_HAL_ERROR_NOT_FOUND)",
+      "xy_probe_i2c_recover_code": "0x0 (XY_HAL_OK)",
+      "xy_probe_i2c_recover_value": "0x68 (MPU6050 WHO_AM_I)",
+      "xy_probe_i2c_ops": 4,
+      "xy_probe_i2c_fails": 0,
+      "xy_probe_uart_sends": 7,
+      "xy_probe_uart_fails": 0,
+      "xy_probe_uart_recv_ms": 10,
+      "xy_probe_stage": 15,
+      "xTickCount": "0x11ce -> 0x1bda (advanced)"
+    }
+  },
+  "red": {
+    "what_changed": "one temporary local edit, never committed: the 'unanswered' read was pointed at 0x68 (the address that does answer)",
+    "expected": "the wired judgement must reject a transfer that comes back as success",
+    "exit": 1,
+    "stdout": "osal_stall_probe failed:\n- an unanswered I2C address returned 0, expected 0xfffffffa (XY_HAL_ERROR_NOT_FOUND)",
+    "restore": "source copied back from a byte-exact backup, sha256 re-checked (92a0d47f...), rebuilt ELF reproduced 5aa034f9... bit-for-bit, reflashed, same validator green again"
+  },
+  "boundaries": [
+    "One board, one image, one run per state. The NAK is an address-NACK from an absent address, not clock stretching, a busy slave, a held-low bus, or arbitration loss.",
+    "It does not cover the I2C timeout path, repeated-start failures, or recovery after a bus that is already broken when the probe starts.",
+    "uart 7/7 and ticks 0x11ce->0x1bda are liveness readings from the same run, not a stability claim.",
+    "The RED came from a manual temporary edit and will not re-run automatically; only the contract tests and the probe guard are permanent."
+  ]
+}

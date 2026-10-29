@@ -1,0 +1,1 @@
+osal_stall_probe_ok stage=15 loops=3 wait=0x80000000 get=0xfffffffe uart=7/7 i2c=4/4 nak=0xfffffffa recover=0x68 recv_ms=10 ticks=0x11ce->0x1bda

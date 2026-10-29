@@ -1,0 +1,2 @@
+osal_stall_probe failed:
+- an unanswered I2C address returned 0, expected 0xfffffffa (XY_HAL_ERROR_NOT_FOUND)

@@ -1,5 +1,27 @@
 # XinYi 组件证据台账
 
+### 2026-10-29 openCH I2C 无应答：`NOT_FOUND` 与"下一条传输还能用"首次实板取证（含判据 RED）
+
+- **证据等级**：实板运行时（openCH CH32V307，WCH-Link + OpenOCD 读 RAM 计数器）。有 RED→GREEN
+  对照，不是"跑通一次"。该板 VCP 环只有 ~150–260 B 且会丢字节/乱序，**UART 不作为判据**。
+- **问的问题**：`xy_hal_i2c.c` 读起来是对的（AF→`XY_HAL_ERROR_NOT_FOUND`，BERR/ARLO/OVR→
+  `XY_HAL_ERROR_IO`，失败调 `i2c_abort()` 发 STOP 清标志），但这正是 fail-open 的典型形状：
+  没人在的总线被报成功，或 AF 锁存后**后面每一次**传输都坏掉而调用方只看到第一个错误。
+- **做法**：stall probe stage 14 对无人应答的 `0x7F` 做一次 `mem_read`，紧接着对 `0x68`
+  (MPU6050) 再做一次，前者必须恰好是 `NOT_FOUND`、后者必须成功且读到 `0x68`；发布
+  `xy_probe_i2c_nak_code`/`_recover_code`/`_recover_value`。
+- **实板读数**：`nak=0xfffffffa`(= −6 `XY_HAL_ERROR_NOT_FOUND`)、`recover_code=0`、
+  `recover=0x68`、`stage=15`、`uart=7/7 i2c=4/4`、`recv_ms=10`、`ticks=0x11ce->0x1bda`。
+- **判据证明会失败**：把"无人应答"那次读改成 `0x68`（即让它真的应答）这一处临时改动、重编译、
+  `Verified OK` 后同一 validator 落红并点名
+  `an unanswered I2C address returned 0, expected 0xfffffffa (XY_HAL_ERROR_NOT_FOUND)`；从逐字节
+  备份还原源码后重建，ELF **逐字节** 复现（`5aa034f9…`）、重烧再绿。RED 是手工临时改动，不入库、
+  不会自动重跑；常驻的只有契约测试与 probe 守卫。
+- **未覆盖 / 边界**：单板单镜像、每状态一次运行；这是**地址 NACK**，不是时钟拉伸、从机忙线、
+  总线被拉低或仲裁丢失；未覆盖 I2C 超时路径、repeated-start 失败、上电即坏总线后的恢复；
+  `uart 7/7` 与 tick 前进是同一次运行的 liveness 读数，不是稳定性结论；镜像本身是诊断探针。
+- 证据：`docs/validation/evidence/opench-ch32v307/2026-10-29-i2c-nak-recovery/`。
+
 ### 2026-10-29 WCH HAL 闭环三件：时基可替换、延时不再掐死调度器、Timer 接管 NVIC
 
 - **证据等级**：实板运行时（openCH CH32V307，WCH-Link）。三条都有 RED→GREEN 对照，
