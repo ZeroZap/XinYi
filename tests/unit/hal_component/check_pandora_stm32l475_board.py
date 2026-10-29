@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Fail-closed contract for the Pandora STM32L475VE smoke target."""
+import re
 import hashlib
 import json
 from pathlib import Path
@@ -140,8 +141,16 @@ def main() -> None:
         "xy_hal_rtc_backup_write",
     )
     pandora_sys = (BOARD / "pandora_sys.c").read_text(encoding="utf-8")
+    # Scan the code, not the prose. A comment that explains why a vendor macro is *not*
+    # used here is evidence the boundary is being respected, and a bare substring match
+    # reads it as a violation - the comment naming __HAL_RCC_CLEAR_RESET_FLAGS() turned
+    # this guard red while the code did the right thing.
+    pandora_sys_code = re.sub(r"/\*.*?\*/", "", pandora_sys, flags=re.S)
+    pandora_sys_code = re.sub(r"//[^\n]*", "", pandora_sys_code)
     for forbidden in ("NVIC_SystemReset", "HAL_GetUID", "__HAL_RCC_", "RCC->"):
-        assert forbidden not in pandora_sys, f"pandora_sys.c bypasses canonical SYS HAL: {forbidden}"
+        assert forbidden not in pandora_sys_code, (
+            f"pandora_sys.c bypasses canonical SYS HAL: {forbidden}"
+        )
     require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_sys.c",
         "xy_hal_sys_deinit",
