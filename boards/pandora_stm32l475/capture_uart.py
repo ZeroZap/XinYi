@@ -156,6 +156,10 @@ def capture(device: str, timeout: float) -> tuple[str, bytes, str | None]:
     deadline = time.monotonic() + timeout
     try:
         configure_uart(fd)
+        # Say so once the stale bytes are gone and the device is actually being watched. A caller that
+        # writes earlier has its bytes discarded as leftovers; one that waits for this line does not have
+        # to guess how long the process takes to start.
+        print(f"LISTENING device={device} timeout={timeout}", flush=True)
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
