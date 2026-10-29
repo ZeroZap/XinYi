@@ -22,6 +22,11 @@ static xy_hal_error_t fake_backup_write_result;
 static unsigned int reset_calls;
 static unsigned int clear_calls;
 static unsigned int uid_calls;
+static unsigned int raw_calls;
+static uint32_t fake_reset_raw;
+static xy_hal_error_t fake_reset_raw_result;
+static unsigned int clear_seq;
+static unsigned int raw_seq;
 static unsigned int backup_read_calls;
 static unsigned int backup_write_calls;
 static unsigned int op_sequence;
@@ -44,6 +49,11 @@ void setUp(void) {
     reset_calls = 0U;
     clear_calls = 0U;
     uid_calls = 0U;
+    raw_calls = 0U;
+    clear_seq = 0U;
+    raw_seq = 0U;
+    fake_reset_raw = UINT32_C(0x24000600);
+    fake_reset_raw_result = XY_HAL_OK;
     backup_read_calls = 0U;
     backup_write_calls = 0U;
     op_sequence = 0U;
@@ -59,7 +69,19 @@ uint32_t xy_hal_sys_get_reset_reason(void) {
 
 xy_hal_error_t xy_hal_sys_clear_reset_reason(void) {
     ++clear_calls;
+    clear_seq = ++op_sequence;
     return fake_clear_result;
+}
+
+xy_hal_error_t xy_hal_sys_get_reset_raw_flags(uint32_t *raw) {
+    ++raw_calls;
+    raw_seq = ++op_sequence;
+    if (fake_reset_raw_result != XY_HAL_OK)
+        return fake_reset_raw_result;
+    if (raw == NULL)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    *raw = fake_reset_raw;
+    return XY_HAL_OK;
 }
 
 xy_hal_error_t xy_hal_sys_software_reset(void) {
@@ -317,6 +339,40 @@ void test_init_reports_unknown_kind_when_the_hal_returns_an_unrecognized_bit(voi
     TEST_ASSERT_EQUAL_INT(PANDORA_RESET_KIND_UNKNOWN, pandora_sys_reset_kind());
 }
 
+/* Measured on the board: reading RCC->CSR after __HAL_RCC_CLEAR_RESET_FLAGS()
+ * returns the MSI range bits (0x600) and none of the cause flags, so the
+ * register has to be latched while the flags are still set. */
+void test_init_latches_the_reset_register_before_clearing_the_flags(void) {
+    uint32_t csr = 0U;
+
+    fake_reset_reason = XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN | XY_HAL_SYS_RESET_REASON_WATCHDOG;
+    fake_reset_raw = UINT32_C(0x24000600);
+    xy_sys_init();
+
+    TEST_ASSERT_EQUAL_UINT(1U, raw_calls);
+    TEST_ASSERT_TRUE(raw_seq < clear_seq);
+    TEST_ASSERT_EQUAL_INT(1, pandora_sys_reset_csr(&csr));
+    TEST_ASSERT_EQUAL_HEX32(UINT32_C(0x24000600), csr);
+}
+
+void test_reset_register_is_reported_unavailable_when_the_backend_has_none(void) {
+    uint32_t csr = UINT32_C(0xAAAAAAAA);
+
+    fake_reset_raw_result = XY_HAL_ERROR_NOT_SUPPORTED;
+    xy_sys_init();
+
+    TEST_ASSERT_EQUAL_INT(0, pandora_sys_reset_csr(&csr));
+    TEST_ASSERT_EQUAL_HEX32(UINT32_C(0xAAAAAAAA), csr);
+    /* The decoded reason is still reported: only the register is missing. */
+    TEST_ASSERT_EQUAL_INT(pandora_reset_kind_from_reason(fake_reset_reason),
+                          pandora_sys_reset_kind());
+}
+
+void test_reset_register_getter_rejects_null(void) {
+    xy_sys_init();
+    TEST_ASSERT_EQUAL_INT(0, pandora_sys_reset_csr(NULL));
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_snapshots_reset_reason_and_clears_hal_flags);
@@ -335,5 +391,8 @@ int main(void) {
     RUN_TEST(test_reset_kind_names_are_stable_and_distinct);
     RUN_TEST(test_init_latches_the_kind_decoded_from_the_snapshot);
     RUN_TEST(test_init_reports_unknown_kind_when_the_hal_returns_an_unrecognized_bit);
+    RUN_TEST(test_init_latches_the_reset_register_before_clearing_the_flags);
+    RUN_TEST(test_reset_register_is_reported_unavailable_when_the_backend_has_none);
+    RUN_TEST(test_reset_register_getter_rejects_null);
     return UNITY_END();
 }

@@ -41,4 +41,13 @@ const char *pandora_reset_kind_name(pandora_reset_kind_t kind);
 /** Kind latched by the last xy_sys_init(); UNKNOWN until then. */
 pandora_reset_kind_t pandora_sys_reset_kind(void);
 
+/**
+ * @brief Raw reset-status register latched by the last xy_sys_init().
+ *
+ * Latched while the cause flags are still set, so it is the register the
+ * decoder actually read. Returns 1 and writes *csr when the backend publishes
+ * one, 0 otherwise (the caller must not print a value it did not get).
+ */
+int pandora_sys_reset_csr(uint32_t *csr);
+
 #endif /* PANDORA_SYS_H */

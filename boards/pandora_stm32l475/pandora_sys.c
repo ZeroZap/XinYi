@@ -31,6 +31,8 @@ static const char *const pandora_reset_kind_names[] = {
 
 static uint32_t pandora_reset_reason;
 static uint32_t pandora_reset_request;
+static uint32_t pandora_reset_csr;
+static int pandora_reset_csr_available;
 static pandora_reset_kind_t pandora_reset_kind = PANDORA_RESET_KIND_UNKNOWN;
 
 pandora_reset_kind_t pandora_reset_kind_from_reason(uint32_t reason)
@@ -74,11 +76,25 @@ pandora_reset_kind_t pandora_sys_reset_kind(void)
     return pandora_reset_kind;
 }
 
+int pandora_sys_reset_csr(uint32_t *csr)
+{
+    if (csr == NULL || pandora_reset_csr_available == 0) {
+        return 0;
+    }
+    *csr = pandora_reset_csr;
+    return 1;
+}
+
 void xy_sys_init(void)
 {
     uint32_t retained = 0U;
 
     pandora_reset_reason = xy_hal_sys_get_reset_reason();
+    /* Latching the register has to happen before the clear below: measured on
+     * the board, reading RCC->CSR after __HAL_RCC_CLEAR_RESET_FLAGS() returns
+     * the MSI range bits and none of the cause flags. */
+    pandora_reset_csr_available =
+        xy_hal_sys_get_reset_raw_flags(&pandora_reset_csr) == XY_HAL_OK ? 1 : 0;
     pandora_reset_kind = pandora_reset_kind_from_reason(pandora_reset_reason);
     (void)xy_hal_sys_clear_reset_reason();
 

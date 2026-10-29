@@ -200,7 +200,7 @@ int main(void)
         fail();
     }
     uart_text("SYS_RESET_CSR ");
-    if (xy_hal_sys_get_reset_raw_flags(&reset_csr) == XY_HAL_OK) {
+    if (pandora_sys_reset_csr(&reset_csr) != 0) {
         uart_text("0x");
         uart_hex32(reset_csr);
     } else {
