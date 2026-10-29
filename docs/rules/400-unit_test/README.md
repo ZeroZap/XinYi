@@ -190,13 +190,16 @@ ctest --verbose
 
 ### 生成覆盖率
 
-```bash
-# 启用覆盖率
-cmake .. -DTEST_COVERAGE=ON
+覆盖率是 `tests/unit` 的 CMake 选项 `XY_ENABLE_UNIT_COVERAGE`（默认 OFF），报告由
+`unit_coverage` 目标用 `gcovr` 生成；主机没装 `gcovr` 时该目标会明确失败。
 
-# 运行测试后生成报告
-make coverage
+```bash
+# 带插桩配置一个独立目录，跑测试并生成报告
+cmake -B build/tests/unit-coverage -S tests/unit -DXY_ENABLE_UNIT_COVERAGE=ON
+cmake --build build/tests/unit-coverage --target unit_coverage
 ```
+
+报告落在 `build/tests/unit-coverage/coverage/index.html`。
 
 ---
 

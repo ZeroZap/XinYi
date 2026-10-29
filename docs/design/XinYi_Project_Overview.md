@@ -523,11 +523,13 @@ clang-format --version
 ### 快速构建
 
 ```bash
-# 构建所有组件
+# 构建当前配置启用的全部内容（默认 PC 仿真）
 make
 
-# 构建特定组件
-make crypto
+# 组件由 Kconfig 开关决定，没有各自的 make 目标：
+# 打开一个组件后它被同一次构建编进去
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON"
+make
 
 # 运行测试
 make test
@@ -569,16 +571,15 @@ make
 #### 使用 Make
 
 ```bash
-# 构建所有
+# 构建当前配置启用的全部内容
 make
 
-# 构建特定组件
-make crypto
-make net
-make sensor
+# 用构建真正读取的变量选择平台
+make HAL_PLATFORM=STM32U5
 
-# 使用特定目标构建
-make TARGET=stm32
+# 打开可选的组件（Kconfig 覆盖），然后构建
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON"
+make
 
 # 运行测试
 make test
@@ -588,46 +589,47 @@ make clean
 make distclean
 ```
 
-#### 使用 CMake
+root Makefile 里没有按组件划分的目标：`make crypto`、`make net`、`make sensor` 都不是规则。
+组件是 Kconfig 决策，由同一次构建编译。`make help` 会列出 wrapper 接受的全部目标与变量。
+
+#### 直接使用 CMake
 
 ```bash
-# 配置
-mkdir build && cd build
-cmake ..
+# 配置（与 Makefile wrapper 传给 cmake 的是同一组参数）
+cmake -B build/pc -S . -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release
 
-# 构建所有
-make
+# 构建
+cmake --build build/pc -j"$(nproc)"
 
-# 构建特定目标
-make xy_crypto
-make xy_net
+# 从已配置的构建里单独构建一个库目标
+cmake --build build/pc --target xy_hal
 
-# 运行测试
-make test
-
-# 安装
-make install
+# OSAL 后端是 Kconfig 符号，不是 -D 开关
+make configure KCONFIG_OVERRIDES="OSAL_BACKEND_FREERTOS=ON"
 ```
 
-#### 使用构建脚本
+PC 构建产出的是 `build/pc` 下的静态库；没有 `install` 步骤，`-DRTOS_BACKEND=...` 也不是
+这个构建读取的变量。
+
+#### 构建脚本
 
 ```bash
-# 跨平台构建脚本
-./build.sh make all
-./build.sh cmake all
-./build.sh make test
+# 仓库里没有 ./build.sh：make 与 cmake 就是完整的构建接口
+make help
 ```
 
 ### 配置系统 (Kconfig)
 
-每个组件都包含 `Kconfig` 用于编译时配置:
+编译期配置在每次 configure 时由 `Kconfig` 解析一次。没有交互式 `menuconfig` 目标，取值通过
+configure 步骤上的覆盖给出：
 
 ```bash
-# 交互式配置
-make menuconfig
+# 打开一个可选组件并用它重建
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON"
+make
 
-# 设置特定选项
-make CONFIG_CRYPTO_AES=y
+# 一次给出多个符号，用 ';' 分隔
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON;FOTA_ENABLED=ON"
 ```
 
 ### 组件结构
@@ -819,7 +821,7 @@ doxygen docs/doxygen.config
 ./tools/scripts/check_style.sh
 
 # 为特定平台构建
-make TARGET=stm32f4
+make HAL_PLATFORM=STM32F4
 
 # 清理所有
 make distclean

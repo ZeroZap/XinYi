@@ -308,6 +308,92 @@ class PlatformCommandTests(unittest.TestCase):
         self.assertEqual(guard.platform_command_findings(docs), [])
 
 
+class MakeTargetTests(unittest.TestCase):
+    """A fenced `make <target>` must name a target the root Makefile defines."""
+
+    MAKEFILE = """
+.PHONY: all test-unit
+all: build
+test-unit:
+\t@echo test
+
+$(BUILD_DIR)/CMakeCache.txt:
+\t@cmake -B $(BUILD_DIR)
+
+%.tmp: %.in
+\t@echo $<
+"""
+
+    def test_a_target_the_makefile_defines_passes(self):
+        docs = {"README.md": "```bash\nmake test-unit\n```\n"}
+        self.assertEqual(guard.make_target_findings(docs, guard.makefile_targets(self.MAKEFILE)),
+                         [])
+
+    def test_a_target_the_makefile_lacks_is_reported(self):
+        docs = {"README.md": "```bash\nmake menuconfig\n```\n"}
+        problems = guard.make_target_findings(docs, guard.makefile_targets(self.MAKEFILE))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("make menuconfig", problems[0])
+
+    def test_a_prompt_prefixed_command_is_judged_too(self):
+        docs = {"README.md": "```sh\n$ make flash\n```\n"}
+        problems = guard.make_target_findings(docs, guard.makefile_targets(self.MAKEFILE))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("make flash", problems[0])
+
+    def test_a_commented_out_command_is_not_an_instruction(self):
+        """The same rule as everywhere else: a `#` in a fence is a comment, not advice."""
+        docs = {"README.md": "```bash\n# make flash   <- there is no such target\n```\n"}
+        self.assertEqual(guard.make_target_findings(docs, guard.makefile_targets(self.MAKEFILE)),
+                         [])
+
+    def test_a_block_that_changed_directory_is_not_the_root_makefile(self):
+        """CMake's generated Makefile does know the library targets; the root one does not."""
+        docs = {"README.md": "```bash\nmkdir build && cd build\ncmake ..\nmake xy_crypto\n```\n"}
+        self.assertEqual(guard.make_target_findings(docs, guard.makefile_targets(self.MAKEFILE)),
+                         [])
+
+    def test_make_dash_c_names_another_makefile(self):
+        docs = {"README.md": "```bash\nmake -C tests/qemu_stm32f4 hal_test\n```\n"}
+        self.assertEqual(guard.make_target_findings(docs, guard.makefile_targets(self.MAKEFILE)),
+                         [])
+
+    def test_variable_assignments_and_options_are_not_targets(self):
+        docs = {"README.md": "```bash\nmake -j8 HAL_PLATFORM=STM32U5 BUILD_TYPE=debug\n"
+                             "make --version\n```\n"}
+        self.assertEqual(guard.make_target_findings(docs, guard.makefile_targets(self.MAKEFILE)),
+                         [])
+
+    def test_a_redirection_ends_the_argument_list(self):
+        docs = {"README.md": "```bash\nmake test-unit 2>&1 | tee log\n```\n"}
+        self.assertEqual(guard.make_target_findings(docs, guard.makefile_targets(self.MAKEFILE)),
+                         [])
+
+    def test_a_path_that_starts_with_make_is_not_a_command(self):
+        docs = {"README.md": "```text\nmake/\n```\n"}
+        self.assertEqual(guard.make_target_findings(docs, guard.makefile_targets(self.MAKEFILE)),
+                         [])
+
+    def test_a_proposal_document_is_not_an_instruction(self):
+        """A document arguing for a target that does not exist yet is its subject, not its defect."""
+        where = sorted(guard.PROPOSAL_DOCUMENTS)[0]
+        docs = {where: "```bash\nmake test-integration\n```\n"}
+        self.assertEqual(guard.make_target_findings(docs, guard.makefile_targets(self.MAKEFILE)),
+                         [])
+
+    def test_the_root_makefile_parser_finds_its_targets(self):
+        targets = guard.makefile_targets(guard.read_hash_code(guard.ROOT_MAKEFILE))
+        self.assertIn("test-unit", targets)
+        self.assertIn("test-tools", targets)
+        self.assertNotIn("menuconfig", targets)
+
+    def test_the_real_reader_docs_pass(self):
+        docs = guard.reader_docs()
+        self.assertTrue(docs)
+        targets = guard.makefile_targets(guard.read_hash_code(guard.ROOT_MAKEFILE))
+        self.assertEqual(guard.make_target_findings(docs, targets), [])
+
+
 class FencedBlockTests(unittest.TestCase):
     def test_a_four_backtick_fence_is_not_closed_by_three(self):
         """A block that quotes a fenced example keeps its content instead of ending inside it."""
@@ -333,6 +419,8 @@ class RepositoryTests(unittest.TestCase):
         docs = guard.reader_docs()
         problems += guard.doc_command_findings(docs, guard.selectable(root))
         problems += guard.platform_command_findings(docs)
+        problems += guard.make_target_findings(
+            docs, guard.makefile_targets(guard.read_hash_code(guard.ROOT_MAKEFILE)))
         self.assertEqual(problems, [])
 
 

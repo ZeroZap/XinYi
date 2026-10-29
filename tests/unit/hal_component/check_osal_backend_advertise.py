@@ -26,7 +26,9 @@ The fenced commands in the documents a reader follows get the same treatment one
 refused" was reported as telling readers to use it, which punishes the documentation that explains
 the rule. The same question is asked of the platform variable: a command must name the one the
 build reads (HAL_PLATFORM, not PLATFORM) with a value the configure step accepts, because a wrong
-variable is dropped without a word and builds the default platform instead.
+variable is dropped without a word and builds the default platform instead. And of `make` targets:
+the build documents taught `menuconfig`, `make crypto`, `make install` and `make flash`, none of
+which the root Makefile defines - a reader pasting one gets `No rule to make target`.
 """
 
 from __future__ import annotations
@@ -41,6 +43,7 @@ from source_scan import code_only_hash, read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 ROOT_CMAKE = ROOT / "CMakeLists.txt"
+ROOT_MAKEFILE = ROOT / "Makefile"
 OSAL_CMAKE = ROOT / "components" / "kernel" / "osal" / "CMakeLists.txt"
 KERNEL_CMAKE = ROOT / "components" / "kernel" / "CMakeLists.txt"
 ROOT_KCONFIG = ROOT / "Kconfig"
@@ -337,6 +340,83 @@ def reader_docs(root: Path = ROOT) -> dict[str, str]:
     return docs
 
 
+#: Documents that argue about the build instead of documenting it. Their fences propose targets
+#: that do not exist yet - that is the subject, not a defect - so they are not instructions.
+#: Listed explicitly rather than by a name pattern: a new document has to be classified by hand.
+PROPOSAL_DOCUMENTS = {
+    "docs/build_system_unification_analysis.md",
+    "docs/overall_optimization_recommendations.md",
+    "docs/toolchain/build_system_analysis.md",
+}
+
+#: A make target is a rule head. Pattern rules (`%.o:`) and dot-targets (`.PHONY:`) are not
+#: something a reader can name on a command line, and the first character rule drops them.
+MAKEFILE_RULE = re.compile(r"^(?P<name>[A-Za-z0-9_][A-Za-z0-9_.-]*)\s*:(?!=)", re.M)
+MAKE_COMMAND = re.compile(r"^(?:\$\s*)?make(?P<rest>\s.*)?$")
+#: `make -C dir target` and `make -f file` read a different Makefile than the root one.
+OTHER_MAKEFILE = re.compile(r"(?:^|\s)-(?:C|f)(?=\s|$)")
+#: After a `cd`, `make` reads whatever Makefile is there - usually CMake's generated one, which
+#: does know the library targets. The target namespace is not the root Makefile's any more.
+DIRECTORY_CHANGE = re.compile(r"(?:^|[;&|]\s*|\s)(?:cd|pushd)\s+\S")
+TARGET_NAME = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*$")
+REDIRECT = re.compile(r"[<>|]")
+
+
+def makefile_targets(text: str) -> set[str]:
+    """Every target the Makefile defines a rule for."""
+    return {match.group("name") for match in MAKEFILE_RULE.finditer(text)
+            if TARGET_NAME.match(match.group("name"))}
+
+
+def requested_targets(rest: str) -> list[str]:
+    """The target names on a `make` command line, in order.
+
+    Options, variable assignments and anything shell-expanded are not targets: `make -j8`,
+    `make HAL_PLATFORM=STM32U5` and `make $(JOBS)` name none. A redirection ends the argument
+    list, so `make test > log` asks for `test` and the rest is the shell's.
+    """
+    names: list[str] = []
+    for token in rest.split():
+        if REDIRECT.search(token):
+            break
+        if token.startswith("-") or "=" in token or "$" in token:
+            continue
+        if TARGET_NAME.match(token):
+            names.append(token)
+    return names
+
+
+def make_target_findings(docs: dict[str, str], targets: set[str]) -> list[str]:
+    """A fenced `make <target>` must name a target the root Makefile defines.
+
+    The build documents taught a build system this repository does not have: a `menuconfig`
+    target, per-component targets like `make crypto`, `make install`, `make flash`. A reader who
+    pastes one gets `No rule to make target` and nothing else. The judged set is deliberately the
+    commands that can only mean the root Makefile: a block that changed directory is reading some
+    other Makefile, and `-C`/`-f` say so explicitly.
+    """
+    problems: list[str] = []
+    for where, text in sorted(docs.items()):
+        if where in PROPOSAL_DOCUMENTS:
+            continue
+        for block in fenced_blocks(text):
+            moved = False
+            for line in code_only_hash(block).splitlines():
+                stripped = line.strip()
+                if DIRECTORY_CHANGE.search(stripped):
+                    moved = True
+                    continue
+                command = MAKE_COMMAND.match(stripped)
+                if command is None or moved or OTHER_MAKEFILE.search(stripped):
+                    continue
+                for name in requested_targets(command.group("rest") or ""):
+                    if name not in targets:
+                        problems.append(
+                            f"{where}: a fenced command runs `make {name}`, but the root "
+                            f"Makefile defines no such target (`make help` lists the real ones)")
+    return problems
+
+
 def main() -> int:
     root_text = read_hash_code(ROOT_CMAKE)
     osal_text = read_hash_code(OSAL_CMAKE)
@@ -350,6 +430,7 @@ def main() -> int:
     docs = reader_docs()
     problems.extend(doc_command_findings(docs, selectable(root_text)))
     problems.extend(platform_command_findings(docs))
+    problems.extend(make_target_findings(docs, makefile_targets(read_hash_code(ROOT_MAKEFILE))))
     if problems:
         print("osal_backend_advertise failed:")
         for problem in problems:

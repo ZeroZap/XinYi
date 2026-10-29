@@ -82,16 +82,19 @@ make -j$(nproc)
 
 ### 如何构建特定组件？
 
-```bash
-# 使用 Make
-make crypto
-make osal
+组件没有各自的 make 目标。它们由 Kconfig 开关决定，打开后由同一次构建编译：
 
-# 使用 CMake
-cd build
-make xy_crypto
-make xy_osal
+```bash
+# 打开 crypto 组件并重建（其他可选组件的符号名见 Kconfig）
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON"
+make
+
+# 组件库目标只在已配置的构建目录里存在，
+# 例如 crypto 打开后叫 xy_tiny_crypto（xy_crypto 是 CMake alias，不能用 make 点名）
+cmake --build build/pc --target xy_tiny_crypto
 ```
+
+`make crypto` / `make osal` 会以 `No rule to make target` 失败：root Makefile 里没有这些规则。
 
 ### 如何清理构建？
 
@@ -116,26 +119,29 @@ rm -rf build/
 
 ### 如何配置 RTOS 后端？
 
+后端由 Kconfig 符号选择（默认 `baremetal`），不是改宏——仓库里没有 `xy_os_cfg.h`，
+也没有 `XY_OS_BACKEND` 宏。覆盖只在 configure 时生效，所以给它一个独立的构建目录：
+
 ```bash
-# 使用 Kconfig
-make menuconfig
-# 选择 Kernel -> OSAL -> Backend
+# configure 时给出覆盖，然后构建同一目录
+make HAL_PLATFORM=STM32U5 BUILD_DIR=build/osal-freertos configure \
+     KCONFIG_OVERRIDES="OSAL_BACKEND_FREERTOS=ON"
+make HAL_PLATFORM=STM32U5 BUILD_DIR=build/osal-freertos
 ```
 
-或修改配置文件：
-```c
-// xy_os_cfg.h
-#define XY_OS_BACKEND XY_OS_BACKEND_FREERTOS
-```
+生成结果可在 `build/osal-freertos/.config` 里看到 `CONFIG_OSAL_BACKEND_FREERTOS=y`。
 
 ### 如何配置平台？
 
-```c
-// xy_hal_cfg.h
-#define XY_HAL_PLATFORM STM32
-// #define XY_HAL_PLATFORM HC32
-// #define XY_HAL_PLATFORM PC_SIM
+平台是 root 构建的 `HAL_PLATFORM` 变量，取值 `PC` / `STM32F4` / `STM32U5` / `STM32L4` /
+`WCH` / `HC32`：
+
+```bash
+make HAL_PLATFORM=STM32U5
 ```
+
+仓库里没有 `xy_hal_cfg.h`，也没有 `XY_HAL_PLATFORM` 宏：写错平台名会在 configure 阶段被
+拒绝，而不是静默退回 PC。
 
 ### 如何使用日志系统？
 

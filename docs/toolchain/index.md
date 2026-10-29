@@ -33,31 +33,42 @@ make test
 
 ### Makefile
 
-也提供 GNU Make 支持：
+root `Makefile` 是 CMake 的 wrapper：它接受 `HAL_PLATFORM` / `BUILD_TYPE` / `BUILD_TESTS` /
+`FOTA` / `KCONFIG_OVERRIDES` / `STM32L4_BOARD` / `BUILD_DIR` 等变量，并只定义下面这些目标。
 
 ```bash
-# 构建所有
+# 构建当前配置启用的全部内容
 make
 
-# 构建特定组件
-make crypto
-make osal
+# 选择平台（变量名是 HAL_PLATFORM）
+make HAL_PLATFORM=STM32U5
 
 # 清理
 make clean
 make distclean
+
+# 权威列表
+make help
+```
+
+没有按组件划分的目标：`make crypto`、`make osal` 会以 `No rule to make target` 失败。
+组件由 Kconfig 决定，例如：
+
+```bash
+# 打开可选组件（configure 时生效）
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON"
 ```
 
 ### Kconfig
 
-使用 Kconfig 进行编译时配置：
+Kconfig 在 configure 时被解析一次，生成 `.config` 与 `config.cmake`。没有交互式界面：
 
 ```bash
-# 交互式配置
-make menuconfig
+# 在 configure 步给出覆盖
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON;FOTA_ENABLED=ON"
 
-# 设置特定选项
-make CONFIG_CRYPTO_AES=y
+# 覆盖只在 configure 时生效，所以换配置要重新 configure（或换 BUILD_DIR）
+make configure BUILD_DIR=build/osal-freertos KCONFIG_OVERRIDES="OSAL_BACKEND_FREERTOS=ON"
 ```
 
 ---

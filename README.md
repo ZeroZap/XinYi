@@ -712,11 +712,13 @@ clang-format --version
 ### Quick Build
 
 ```bash
-# Build all components
+# Build everything the current configuration enables (PC simulation by default)
 make
 
-# Build specific component
-make crypto
+# Components are switched on by Kconfig, not by their own make targets:
+# enabling one adds it to the same build
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON"
+make
 
 # Run tests
 make test
@@ -758,16 +760,15 @@ make
 #### Using Make
 
 ```bash
-# Build all
+# Build everything the configuration enables
 make
 
-# Build specific component
-make crypto
-make net
-make sensor
+# Pick the platform with the variable the build reads
+make HAL_PLATFORM=STM32U5
 
-# Build with specific target
-make TARGET=stm32
+# Enable an optional component (Kconfig override), then build
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON"
+make
 
 # Run tests
 make test
@@ -777,56 +778,47 @@ make clean
 make distclean
 ```
 
-#### Using CMake
+There is no per-component make target: `make crypto`, `make net` and `make sensor` are not
+rules in the root Makefile. A component is a Kconfig decision and is compiled by the same build.
+`make help` lists every target and variable the wrapper accepts.
+
+#### Using CMake directly
 
 ```bash
-# Configure
-mkdir build && cd build
-cmake .. -DRTOS_BACKEND=freertos  # or baremetal/rtthread/cmsis_rtx
+# Configure (the same flags the Makefile wrapper passes)
+cmake -B build/pc -S . -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release
 
-# Build all
-make
+# Build
+cmake --build build/pc -j"$(nproc)"
 
-# Build specific target
-make xy_crypto
-make xy_net
+# Pick a library target out of the configured build
+cmake --build build/pc --target xy_hal
 
-# Run tests
-make test
-
-# Install
-make install
+# The OSAL backend is a Kconfig symbol, not a -D switch
+make configure KCONFIG_OVERRIDES="OSAL_BACKEND_FREERTOS=ON"
 ```
 
-#### Using Smart Agent
+The PC build produces static libraries under `build/pc`; there is no `install` step, and
+`-DRTOS_BACKEND=...` is not a variable this build reads.
 
-```bash
-# 使用智能代理系统进行构建和管理
-./.qwen/smart_agent.sh dev create my_component  # 创建新组件
-./.qwen/smart_agent.sh pm build my_component    # 构建组件
-./.qwen/smart_agent.sh arch check               # 代码质量检查
-./.qwen/smart_agent.sh test run all             # 运行所有测试
-```
+#### Removed: agent wrapper and build script
 
-#### Using Build Scripts
-
-```bash
-# Cross-platform build script
-./build.sh make all
-./build.sh cmake all
-./build.sh make test
-```
+Two subsections here used to show `./.qwen/smart_agent.sh ...` and `./build.sh make all`.
+Neither path exists in this repository, so they are gone rather than corrected:
+`make` and `cmake` are the whole build interface.
 
 ### Configuration System (Kconfig)
 
-Each component includes `Kconfig` for compile-time configuration:
+Compile-time configuration is resolved once per configure from `Kconfig`. There is no
+interactive `menuconfig` target; a value is set with an override on the configure step:
 
 ```bash
-# Interactive configuration
-make menuconfig
+# Turn an optional component on and rebuild with it
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON"
+make
 
-# Set specific option
-make CONFIG_CRYPTO_AES=y
+# Several symbols at once, separated by ';'
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON;FOTA_ENABLED=ON"
 ```
 
 ### Component Structure
@@ -1031,8 +1023,8 @@ doxygen docs/doxygen.config
 # Check code style
 ./tools/scripts/check_style.sh
 
-# Build for specific platform
-make TARGET=stm32f4
+# Build for a specific platform
+make HAL_PLATFORM=STM32F4
 
 # Clean everything
 make distclean

@@ -196,7 +196,7 @@ make
 - ✅ 适合小项目
 
 ```bash
-# 编译
+# 编译（配置当前目录里已启用的全部内容）
 make all
 
 # 清理
@@ -205,61 +205,64 @@ make clean
 # 测试
 make test
 
-# 烧录
-make flash
+# 烧录：root Makefile 没有 flash 目标，走带快照门禁的工具
+python3 tools/pandora_hil_program.py run --image <image.bin> --address 0x08000000 \
+        --snapshot <snapshot> --yes --reset
 
-# 配置
-make menuconfig
+# 配置：没有 menuconfig 目标，取值在 configure 步给出
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON"
 ```
+
+`make help` 是权威列表：wrapper 接受的全部目标与变量都在那里，本文提到的其余名字都不在
+root Makefile 里。
 
 ---
 
 ## ⚙️ Kconfig 配置系统
 
-### 交互式配置
+### 取值方式
+
+Kconfig 没有交互式界面：`cmake/kconfig_parser.py` 在 configure 时解析一次 root `Kconfig`，
+生成 `.config` 与 `config.cmake`。取值只有一条路——在 configure 步给出覆盖：
 
 ```bash
-make menuconfig
+# 打开可选组件（多个符号用 ';' 分隔）
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON;FOTA_ENABLED=ON"
+
+# 换个后端（只对声明了该符号的 Kconfig 有效，默认 baremetal）
+make HAL_PLATFORM=STM32U5 configure KCONFIG_OVERRIDES="OSAL_BACKEND_FREERTOS=ON"
 ```
 
-### 配置选项示例
+覆盖只在 configure 时生效：已有构建目录的缓存不会被后续 `make` 重新生成，需要换配置时
+重新执行一次 `make configure`（或换一个 `BUILD_DIR`）。
+
+### 配置项分组
+
+root `Kconfig` 的菜单结构（共 81 个 `config` 条目）：
 
 ```
-XinYi Configuration
-├─ HAL Platform Selection
-│  ├─ STM32 (STM32F4/STM32U5/STM32H7)
-│  ├─ WCH (CH32V307/CH32U5)
-│  ├─ HC32 (HC32F460)
-│  └─ PC Simulator
-│
-├─ OSAL Backend Selection
-│  ├─ FreeRTOS
-│  ├─ RT-Thread
-│  ├─ CMSIS-RTX
-│  └─ Bare-metal
-│
-├─ Component Selection
-│  ├─ Crypto (AES/SHA/CRC)
-│  ├─ Network (MQTT/Modbus)
-│  ├─ Sensor (DHT11/SHT30)
-│  └─ GUI (Basic/Advanced)
-│
-└─ Debug Options
-   ├─ Enable Logging
-   ├─ Enable Asserts
-   └─ Enable Stack Check
+XinYi Framework Configuration
+├─ Platform Selection        PLATFORM_*
+├─ HAL Configuration         HAL_*
+├─ Core Components           COMPONENT_DEVICE / CRYPTO / DM / SENSOR / ACTUATOR / CHARGER
+├─ Kernel Configuration      KERNEL_OSAL, OSAL_BACKEND_FREERTOS / BAREMETAL
+├─ Device Drivers            DRIVER_SENSOR / DISPLAY(+OLED/LCD/LED) / STORAGE / POWER / WIRELESS / SYSTEM
+├─ GUI Subsystem             GUI_ENABLED / SDL / TFT / LVGL / WIDGETS
+└─ Communication Protocols   NETWORK / ...
 ```
 
 ### 命令行配置
 
-```bash
-# 启用特定功能
-make CONFIG_CRYPTO_AES=y
-make CONFIG_NETWORK_MQTT=y
-make CONFIG_SENSOR_DHT11=y
+`make CONFIG_XXX=y` 只是把 `CONFIG_XXX=y` 当成一个与目标无关的 make 变量，什么都不会打开；
+root Kconfig 里也**没有** `CONFIG_CRYPTO_AES` / `CONFIG_NETWORK_MQTT` / `CONFIG_SENSOR_DHT11` /
+`CONFIG_GUI` 这些符号。真实开关是 Kconfig 里的 `config` 名：
 
-# 禁用功能
-make CONFIG_GUI=n
+```bash
+# 打开一个组件（名字取自 root Kconfig，例如 COMPONENT_CRYPTO / COMPONENT_SENSOR）
+make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON"
+
+# 关掉一个（默认已经是 n 的符号写 n 是幂等的）
+make configure KCONFIG_OVERRIDES="GUI_ENABLED=n"
 ```
 
 ---
