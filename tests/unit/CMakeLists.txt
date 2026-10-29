@@ -1814,6 +1814,8 @@ xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${HAL}/PC/xy_hal_spi_pc.c
     ${HAL}/PC/xy_hal_uart_pc.c
     ${HAL}/PC/xy_hal_dma_pc.c
+    ${HAL}/PC/xy_hal_timer_pc.c
+    ${HAL}/PC/xy_hal_irq_pc.c
 )
 target_include_directories(test_hal_pc PRIVATE
     ${HAL}/inc

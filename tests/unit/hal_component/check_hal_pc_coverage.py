@@ -143,12 +143,6 @@ PC_MISSING = {
         "xy_hal_sys_set_pwr_domain_config", "xy_hal_sys_set_pwr_voltage", "xy_hal_sys_software_reset",
         "xy_hal_sys_trigger_software_irq",
     },
-    "timer": {
-        "xy_hal_timer_deinit", "xy_hal_timer_disable_irq", "xy_hal_timer_enable_irq",
-        "xy_hal_timer_get_counter", "xy_hal_timer_init", "xy_hal_timer_register_callback",
-        "xy_hal_timer_set_counter", "xy_hal_timer_set_period", "xy_hal_timer_start",
-        "xy_hal_timer_stop",
-    },
     "uart": {
         "xy_hal_uart_available", "xy_hal_uart_enable_rx_irq", "xy_hal_uart_error",
         "xy_hal_uart_flush", "xy_hal_uart_irq_handler", "xy_hal_uart_recv_dma",

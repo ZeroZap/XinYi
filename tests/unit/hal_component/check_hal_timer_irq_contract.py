@@ -32,6 +32,8 @@ BACKENDS = {
     "stm32u5": ROOT / "components/hal/stm32/stm32u5/xy_hal_timer.c",
     "stm32f4": ROOT / "components/hal/stm32/stm32f4/xy_hal_timer.c",
     "wch": ROOT / "components/hal/wch/ch32x/src/xy_hal_timer.c",
+    # The host backend models the same contract; it must be held to it too.
+    "pc": ROOT / "components/hal/PC/xy_hal_timer_pc.c",
 }
 
 # Starting or stopping the counter as part of arming an interrupt.
@@ -39,7 +41,19 @@ STARTS_COUNTER = re.compile(r"HAL_TIM_Base_Start\w*\s*\(")
 STOPS_COUNTER = re.compile(r"HAL_TIM_Base_Stop\w*\s*\(")
 # Either NVIC idiom the tree uses: CubeHAL's HAL_NVIC_EnableIRQ, or the CH32 NVIC_Init path.
 ARMS_NVIC = re.compile(r"HAL_NVIC_EnableIRQ\s*\(|NVIC_Init\s*\(|NVIC->ISER")
-DISCARDS_EVENT = re.compile(r"XY_UNUSED\s*\(\s*event\s*\)")
+# Two ways to discard an argument, and the guard only knew the first: the tree's XY_UNUSED macro, and
+# a plain cast-to-void. A backend that wrote `(void)event;` armed whatever it liked and read clean.
+DISCARDS_EVENT = re.compile(r"XY_UNUSED\s*\(\s*event\s*\)|\(\s*void\s*\)\s*event\s*;")
+# Starting the counter has a vendor idiom (HAL_TIM_Base_Start) and a software one (setting the flag
+# the backend's own start() sets). The guard knew only the vendor spelling, so a host backend could
+# start timekeeping from enable_irq and stay green.
+STARTS_IN_SOFTWARE = re.compile(r"\b(?:running|started|enabled_running)\s*=\s*1U?\s*;")
+# A backend with no NVIC still has to make arming mean something: it sets a per-event flag, and some
+# delivery path reads that flag and calls the callback table. Without the second half the flag is
+# decoration, which is the same defect as enabling a peripheral interrupt nothing can deliver.
+ARMS_FLAG = re.compile(r"armed\s*\[[^\]]*\]\s*=\s*1U?")
+READS_FLAG = re.compile(r"armed\s*\[")
+CALLS_BACK = re.compile(r"callbacks\s*\[")
 USES_EVENT = re.compile(r"\bevent\b")
 LOCAL_CALL = re.compile(r"\b(\w+)\s*\(")
 
@@ -104,7 +118,9 @@ def findings(backends: dict | None = None, header: Path | None = None) -> list[s
                 continue
             resolved = with_delegation(body, definitions)
             where = f"{name}:{entry.rstrip('(')}"
-            if forbidden.search(resolved):
+            starts = forbidden.search(resolved) or (
+                entry == "xy_hal_timer_enable_irq(" and STARTS_IN_SOFTWARE.search(resolved))
+            if starts:
                 problems.append(
                     f"{where}: {label} - arming or masking an interrupt is not starting or "
                     f"stopping the timer, and a caller that only wanted the interrupt changes "
@@ -117,9 +133,14 @@ def findings(backends: dict | None = None, header: Path | None = None) -> list[s
                 problems.append(f"{where}: never reads `event`")
         arm = with_delegation(function_body(source, "xy_hal_timer_enable_irq("), definitions)
         if arm and not ARMS_NVIC.search(arm):
-            problems.append(
-                f"{name}: enable_irq never reaches the NVIC, so the interrupt is enabled in the "
-                f"peripheral and can never reach the CPU - reported as success")
+            software = (ARMS_FLAG.search(arm) is not None
+                        and READS_FLAG.search(source) is not None
+                        and CALLS_BACK.search(source) is not None)
+            if not software:
+                problems.append(
+                    f"{name}: enable_irq never reaches the NVIC, so the interrupt is enabled in the "
+                    f"peripheral and can never reach the CPU - reported as success, and no "
+                    f"delivery path reads what it armed")
 
     text = read_raw(header)
     if "does not start" not in text or "NVIC" not in text:

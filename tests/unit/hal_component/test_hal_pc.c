@@ -347,6 +347,12 @@ static void test_dma_pc_state_and_events(void)
                       xy_hal_dma_start((void *)10, 0x1000U, 0x2000U, 0x10000U));
 
     TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dma_start((void *)10, 0x1000U, 0x2000U, 16U));
+    /* The transfer is done, but the callback belongs to the interrupt handler: nothing arrives
+     * until the vector runs, which is what the header documents. */
+    TEST_ASSERT_EQUAL_INT(0, count);
+    xy_hal_dma_irq_handler((void *)10);
+    TEST_ASSERT_EQUAL_INT(1, count);
+    xy_hal_dma_irq_handler((void *)10);
     TEST_ASSERT_EQUAL_INT(1, count);
     TEST_ASSERT_EQUAL(XY_HAL_DMA_EVENT_COMPLETE, g_dma_last_event);
     TEST_ASSERT_EQUAL_INT(0, xy_hal_dma_get_counter((void *)10));
@@ -361,6 +367,86 @@ static void test_dma_pc_state_and_events(void)
 
     TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dma_deinit((void *)10));
     TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_dma_get_counter((void *)10));
+}
+
+static int g_timer_update_events;
+static int g_timer_cc1_events;
+
+static void timer_update_callback(void *timer, xy_hal_timer_event_t event, void *arg)
+{
+    (void)timer; (void)event; (void)arg;
+    g_timer_update_events++;
+}
+
+static void timer_cc1_callback(void *timer, xy_hal_timer_event_t event, void *arg)
+{
+    (void)timer; (void)event; (void)arg;
+    g_timer_cc1_events++;
+}
+
+static void test_timer_pc_state_and_events(void)
+{
+    static const xy_hal_timer_config_t cfg = {
+        .prescaler = 99U,
+        .period = 999U,
+        .mode = XY_HAL_TIMER_COUNT_UP,
+        .clock_div = XY_HAL_TIMER_CKDIV_1,
+        .auto_reload_preload = 1U,
+    };
+    xy_hal_timer_config_t bad = cfg;
+
+    g_timer_update_events = 0;
+    g_timer_cc1_events = 0;
+
+    /* Nothing works before init. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_timer_start((void *)20));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_timer_stop((void *)20));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_timer_get_counter((void *)20));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_timer_set_counter((void *)20, 1U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_timer_set_period((void *)20, 1U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_timer_enable_irq(
+                      (void *)20, XY_HAL_TIMER_EVENT_UPDATE));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_timer_deinit((void *)20));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_timer_init((void *)20, &cfg));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_ALREADY_INIT, xy_hal_timer_init((void *)20, &cfg));
+
+    /* The counter reads back what was written, and arming an interrupt does not move it. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_timer_set_counter((void *)20, 42U));
+    TEST_ASSERT_EQUAL_INT(42, xy_hal_timer_get_counter((void *)20));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_timer_enable_irq((void *)20, XY_HAL_TIMER_EVENT_CC1));
+    TEST_ASSERT_EQUAL_INT(42, xy_hal_timer_get_counter((void *)20));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_timer_start((void *)20));
+    TEST_ASSERT_EQUAL_INT(42, xy_hal_timer_get_counter((void *)20));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_timer_stop((void *)20));
+
+    /* Two events registered, one armed: only the armed one is delivered. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_timer_register_callback(
+                      (void *)20, XY_HAL_TIMER_EVENT_UPDATE, timer_update_callback, NULL));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_timer_register_callback(
+                      (void *)20, XY_HAL_TIMER_EVENT_CC1, timer_cc1_callback, NULL));
+    xy_hal_timer_irq_handler((void *)20);
+    TEST_ASSERT_EQUAL_INT(0, g_timer_update_events);
+    TEST_ASSERT_EQUAL_INT(1, g_timer_cc1_events);
+
+    /* Disarming stops delivery without touching the counter. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_timer_disable_irq((void *)20, XY_HAL_TIMER_EVENT_CC1));
+    xy_hal_timer_irq_handler((void *)20);
+    TEST_ASSERT_EQUAL_INT(1, g_timer_cc1_events);
+    TEST_ASSERT_EQUAL_INT(42, xy_hal_timer_get_counter((void *)20));
+
+    /* An event outside the enum is refused rather than treated as event 0. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_timer_enable_irq(
+                      (void *)20, (xy_hal_timer_event_t)9));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_timer_register_callback(
+                      (void *)20, (xy_hal_timer_event_t)9, timer_update_callback, NULL));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_timer_set_period((void *)20, 0U));
+
+    bad.clock_div = (xy_hal_timer_ckdiv_t)7;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_timer_init((void *)21, &bad));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_timer_deinit((void *)20));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_timer_get_counter((void *)20));
 }
 
 static void test_rtc_backup_register_pc_contract(void)
@@ -401,6 +487,7 @@ int main(void)
     RUN_TEST(test_uart_i2c_spi_pc_smoke);
     RUN_TEST(test_uart_i2c_spi_pc_refuses_bad_input);
     RUN_TEST(test_dma_pc_state_and_events);
+    RUN_TEST(test_timer_pc_state_and_events);
     RUN_TEST(test_rtc_backup_register_pc_contract);
     RUN_TEST(test_sys_irq_control_pc_contract);
     return UNITY_END();

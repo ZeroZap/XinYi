@@ -26,6 +26,7 @@ typedef struct {
     uint8_t running;
     xy_hal_dma_config_t config;
     uint32_t remaining;
+    uint8_t complete_pending;
     xy_hal_dma_callback_t callbacks[PC_DMA_EVENT_COUNT];
     void *args[PC_DMA_EVENT_COUNT];
 } pc_dma_ctx_t;
@@ -138,10 +139,9 @@ xy_hal_error_t xy_hal_dma_start(void *dma, uint32_t src_addr, uint32_t dst_addr,
     if (ctx->config.mode == XY_HAL_DMA_MODE_CIRCULAR) {
         ctx->remaining = (uint32_t)data_len;
     }
-    if (ctx->callbacks[XY_HAL_DMA_EVENT_COMPLETE] != NULL) {
-        ctx->callbacks[XY_HAL_DMA_EVENT_COMPLETE](dma, XY_HAL_DMA_EVENT_COMPLETE,
-                                                  ctx->args[XY_HAL_DMA_EVENT_COMPLETE]);
-    }
+    /* The transfer is done, but the callback belongs to the interrupt handler - the header says so,
+     * and delivering it from start() would hide whether a caller ever wired the vector. */
+    ctx->complete_pending = 1U;
     return XY_HAL_OK;
 }
 
@@ -183,6 +183,27 @@ xy_hal_error_t xy_hal_dma_poll_complete(void *dma, uint32_t timeout)
     }
     /* Completion is instantaneous here, so there is never anything to wait for. */
     return ctx->remaining == 0U ? XY_HAL_OK : XY_HAL_ERROR_TIMEOUT;
+}
+
+/**
+ * @brief Deliver a pending transfer-complete interrupt on the host.
+ *
+ * Called by xy_hal_dma_irq_handler(). The completion latched in start() is delivered once, and only
+ * if a callback was registered for the event.
+ */
+void xy_hal_dma_pc_irq(void *dma)
+{
+    pc_dma_ctx_t *ctx = pc_dma_find(dma);
+
+    if (ctx == NULL || ctx->initialized == 0U || ctx->complete_pending == 0U) {
+        return;
+    }
+    if (ctx->callbacks[XY_HAL_DMA_EVENT_COMPLETE] == NULL) {
+        return;
+    }
+    ctx->complete_pending = 0U;
+    ctx->callbacks[XY_HAL_DMA_EVENT_COMPLETE](dma, XY_HAL_DMA_EVENT_COMPLETE,
+                                              ctx->args[XY_HAL_DMA_EVENT_COMPLETE]);
 }
 
 xy_hal_error_t xy_hal_dma_register_callback(void *dma, xy_hal_dma_event_t event,
