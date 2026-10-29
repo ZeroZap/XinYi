@@ -97,6 +97,18 @@ def main() -> int:
     require(application, "PANDORA_FOTA_CONFIRM_REQUESTED")
     require(application, "PANDORA_FOTA_CONFIRM_ACKNOWLEDGED")
     require(application, "else if (w25q128_mcu_reset_recovery_pending != 0U)")
+    # The confirmation fixture ends at the acknowledgement. If it falls through to the
+    # stress chain it writes the candidate into W25Q128 again and stages another reset,
+    # so the next boot spends a boot attempt on a second install cycle and the confirm
+    # boot ends up behind a rollback - which is exactly how the branch stayed unobserved.
+    ack_branch = application.split("PANDORA_FOTA_CONFIRM_ACKNOWLEDGED", 1)[1].split(
+        "PANDORA_FOTA_CONFIRM_REQUESTED", 1
+    )[0]
+    assert "PANDORA_FOTA_CONFIRM_FIXTURE_DONE" in ack_branch, (
+        "the confirmation fixture must not continue into the stress chain after the "
+        "acknowledgement: re-staging there spends the bootloader's attempt budget"
+    )
+    assert "for (;;)" in ack_branch, "the confirmation fixture must halt after the acknowledgement"
     return 0
 
 

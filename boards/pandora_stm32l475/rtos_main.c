@@ -1469,6 +1469,21 @@ int main(void)
             fail();
         }
         uart_text("PANDORA_FOTA_CONFIRM_ACKNOWLEDGED\r\n");
+        /* The confirmation fixture ends at the acknowledgement on purpose. Everything
+           this image would do next is the stress chain, whose first act is to write the
+           candidate into W25Q128 again and stage another reset - so the bootloader would
+           spend an attempt on a second install cycle and bury the confirm boot behind a
+           rollback. On a board with a three-attempt budget that turned the branch into a
+           race against when the capture window closes: the 2026-10-29 runs either ended
+           in ATTEMPT/ROLLBACK or stopped before the request was ever staged. Ending the
+           image here makes the chain's terminal state a property of the image.
+           `xy_image_last_marker` names the stop for a debugger post-mortem, because a
+           halted image prints nothing more. */
+        xy_image_last_marker = "PANDORA_FOTA_CONFIRM_FIXTURE_DONE";
+        uart_text("PANDORA_FOTA_CONFIRM_FIXTURE_DONE\r\n");
+        __disable_irq();
+        for (;;) {
+        }
     } else if (w25q128_mcu_reset_recovery_pending != 0U) {
         if (xy_hal_rtc_backup_write(1U, PANDORA_FOTA_CONFIRM_REQUEST_MAGIC) != XY_HAL_OK) {
             fail();
