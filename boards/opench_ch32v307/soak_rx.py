@@ -51,6 +51,32 @@ def open_raw(port: str) -> int:
     return fd
 
 
+def verdict(sent_frames: int, words: dict[str, int]) -> list[str]:
+    """Return what is wrong with a soak result; empty means every byte was accounted for.
+
+    Broken out of main() so it can be tested. A judgement that only ever runs on hardware
+    is a judgement nobody has ever seen fail, and "0 across the board" reads exactly the
+    same whether the counters were checked or the check was silently skipped.
+    """
+    errors = []
+    if words["xy_probe_rx_frames_bad"]:
+        errors.append(f"{words['xy_probe_rx_frames_bad']} frames broke continuity")
+    if words["xy_probe_rx_overflow"]:
+        errors.append(f"the ring overflowed {words['xy_probe_rx_overflow']} times")
+    if words["xy_probe_rx_ore"]:
+        errors.append(f"the receiver overran {words['xy_probe_rx_ore']} times")
+    expected_bytes = sent_frames * 8
+    if words["xy_probe_rx_irq_bytes"] != expected_bytes:
+        errors.append(
+            f"{expected_bytes} bytes sent but {words['xy_probe_rx_irq_bytes']} arrived"
+        )
+    if words["xy_probe_rx_frames_ok"] != sent_frames:
+        errors.append(
+            f"{sent_frames} frames sent but {words['xy_probe_rx_frames_ok']} were intact"
+        )
+    return errors
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--openocd", required=True)
@@ -63,6 +89,9 @@ def main() -> int:
     parser.add_argument("--burst-ms", type=float, default=10.0)
     parser.add_argument("--settle", type=float, default=3.0,
                         help="seconds to let the ring drain before the final read")
+    parser.add_argument("--saturated", action="store_true",
+                        help="no pacing: write as fast as the port accepts, which is the "
+                             "line rate the ring budget was computed against")
     args = parser.parse_args()
 
     symbols = probe.symbol_addresses(args.nm, args.elf)
@@ -102,7 +131,8 @@ def main() -> int:
                 os.write(fd, payload)
                 index += args.frames_per_burst
                 sent["frames"] = index
-                stop.wait(args.burst_ms / 1000.0)
+                if not args.saturated:
+                    stop.wait(args.burst_ms / 1000.0)
         finally:
             os.close(fd)
 
@@ -119,27 +149,15 @@ def main() -> int:
     time.sleep(args.settle)
 
     words = probe.read_words(args.openocd, args.config, addresses, resume=False)
-    print(f"\nsoak: {args.seconds:.0f}s, sent {sent['frames']} frames "
-          f"({sent['frames'] * 8} bytes)")
+    mode = "saturated" if args.saturated else f"paced at {args.frames_per_burst} frames " \
+        f"per {args.burst_ms:.0f} ms"
+    rate = sent["frames"] * 8 / max(args.seconds, 1e-9)
+    print(f"\nsoak: {args.seconds:.0f}s {mode}, sent {sent['frames']} frames "
+          f"({sent['frames'] * 8} bytes, {rate / 1024.0:.1f} kB/s)")
     for name, value in words.items():
         print(f"  {name} = {value}")
 
-    errors = []
-    if words["xy_probe_rx_frames_bad"]:
-        errors.append(f"{words['xy_probe_rx_frames_bad']} frames broke continuity")
-    if words["xy_probe_rx_overflow"]:
-        errors.append(f"the ring overflowed {words['xy_probe_rx_overflow']} times")
-    if words["xy_probe_rx_ore"]:
-        errors.append(f"the receiver overran {words['xy_probe_rx_ore']} times")
-    if words["xy_probe_rx_irq_bytes"] != sent["frames"] * 8:
-        errors.append(
-            f"{sent['frames'] * 8} bytes sent but {words['xy_probe_rx_irq_bytes']} arrived"
-        )
-    if words["xy_probe_rx_frames_ok"] != sent["frames"]:
-        errors.append(
-            f"{sent['frames']} frames sent but {words['xy_probe_rx_frames_ok']} were intact"
-        )
-
+    errors = verdict(sent["frames"], words)
     if errors:
         print("soak_rx failed:")
         for error in errors:

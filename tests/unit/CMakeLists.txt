@@ -103,6 +103,9 @@ add_test(NAME stm32f4_spi_wrapper_contract
     COMMAND python3 ${UNIT_HAL}/check_stm32f4_spi_wrapper_contract.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME opench_rx_soak
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/hal_component/test_opench_rx_soak.py)
+
 add_test(NAME opench_rx_overflow_sweep
     COMMAND python3 ${UNIT_HAL}/test_opench_rx_overflow_sweep.py)
 
