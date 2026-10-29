@@ -14,6 +14,7 @@
  * component and the board targets do not agree on include directories. */
 #include "../../../clib/xy_clib/inc/xy_time_civil.h"
 #include "../../../clib/xy_clib/inc/xy_bcd.h"
+#include "../../../clib/xy_clib/inc/xy_rtc_alarm_mask.h"
 #include <string.h>
 
 /* RTC context structure */
@@ -341,7 +342,32 @@ xy_hal_error_t xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm,
     sAlarm.AlarmTime.Minutes = bin_to_bcd(alarm->time.minutes);
     sAlarm.AlarmTime.Seconds = bin_to_bcd(alarm->time.seconds);
     sAlarm.AlarmTime.SubSeconds = alarm->time.subseconds;
-    sAlarm.AlarmMask = alarm->alarm_mask;
+    /* Our mask says which fields must MATCH; the vendor bits say which to SKIP. Passing ours through
+     * made the alarm compare exactly the fields the caller asked to ignore, and it still fired - at
+     * the wrong time, which is the kind of defect that gets blamed on the clock. */
+    if (!xy_rtc_alarm_mask_valid(alarm->alarm_mask, XY_HAL_RTC_ALARM_MASK_ALL)) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    {
+        uint8_t skip = xy_rtc_alarm_skip_from_match(alarm->alarm_mask,
+                                                    XY_HAL_RTC_ALARM_MASK_ALL);
+
+        if ((skip & XY_HAL_RTC_ALARM_MASK_HOURS) != 0U) {
+            sAlarm.AlarmMask |= RTC_ALARMMASK_HOURS;
+        }
+        if ((skip & XY_HAL_RTC_ALARM_MASK_MINUTES) != 0U) {
+            sAlarm.AlarmMask |= RTC_ALARMMASK_MINUTES;
+        }
+        if ((skip & XY_HAL_RTC_ALARM_MASK_SECONDS) != 0U) {
+            sAlarm.AlarmMask |= RTC_ALARMMASK_SECONDS;
+        }
+        if ((skip & XY_HAL_RTC_ALARM_MASK_WEEKDAY) != 0U) {
+            sAlarm.AlarmMask |= RTC_ALARMMASK_DATEWEEKDAY;
+            sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
+        } else {
+            sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_WEEKDAY;
+        }
+    }
     sAlarm.Alarm = selected;
 
     if (HAL_RTC_SetAlarm((RTC_HandleTypeDef *)rtc, &sAlarm,
@@ -376,7 +402,24 @@ xy_hal_error_t xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm,
     alarm->time.minutes  = bcd_to_bin(sAlarm.AlarmTime.Minutes);
     alarm->time.seconds  = bcd_to_bin(sAlarm.AlarmTime.Seconds);
     alarm->time.subseconds = sAlarm.AlarmTime.SubSeconds;
-    alarm->alarm_mask    = sAlarm.AlarmMask;
+    {
+        /* The inverse, so a caller reads back the mask in the vocabulary it gave. */
+        uint8_t skip = 0U;
+
+        if ((sAlarm.AlarmMask & RTC_ALARMMASK_HOURS) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_HOURS;
+        }
+        if ((sAlarm.AlarmMask & RTC_ALARMMASK_MINUTES) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_MINUTES;
+        }
+        if ((sAlarm.AlarmMask & RTC_ALARMMASK_SECONDS) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_SECONDS;
+        }
+        if ((sAlarm.AlarmMask & RTC_ALARMMASK_DATEWEEKDAY) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_WEEKDAY;
+        }
+        alarm->alarm_mask = xy_rtc_alarm_match_from_skip(skip, XY_HAL_RTC_ALARM_MASK_ALL);
+    }
 
     return XY_HAL_OK;
 }

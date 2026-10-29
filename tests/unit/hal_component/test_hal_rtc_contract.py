@@ -232,6 +232,59 @@ class FormatTests(unittest.TestCase):
         self.assertTrue(problems, "a helper that neither branches on nor honours the format")
 
 
+class AlarmMaskTests(unittest.TestCase):
+    """Our mask names the fields that must match; the vendor bits name the fields to skip."""
+
+    def test_a_backend_that_inverts_passes(self):
+        backed = textwrap.dedent("""
+        xy_hal_error_t xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm, char id)
+        {
+            uint8_t skip = xy_rtc_alarm_skip_from_match(alarm->alarm_mask, XY_HAL_RTC_ALARM_MASK_ALL);
+
+            sAlarm.AlarmMask = 0U;
+            if ((skip & XY_HAL_RTC_ALARM_MASK_HOURS) != 0U) {
+                sAlarm.AlarmMask |= RTC_ALARMMASK_HOURS;
+            }
+            return XY_HAL_OK;
+        }
+        """)
+        self.assertEqual([], guard.alarm_mask_findings(backed, "ok"))
+
+    def test_passing_the_mask_straight_through_is_named(self):
+        backed = textwrap.dedent("""
+        xy_hal_error_t xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm, char id)
+        {
+            sAlarm.AlarmMask = alarm->alarm_mask;
+            return XY_HAL_OK;
+        }
+        """)
+        problems = guard.alarm_mask_findings(backed, "bad")
+        self.assertEqual(1, len(problems))
+        self.assertIn("matches on the fields the caller asked to ignore", problems[0])
+
+    def test_reading_the_mask_back_without_inverting_is_named(self):
+        backed = textwrap.dedent("""
+        xy_hal_error_t xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm, char id)
+        {
+            alarm->alarm_mask = sAlarm.AlarmMask;
+            return XY_HAL_OK;
+        }
+        """)
+        problems = guard.alarm_mask_findings(backed, "bad")
+        self.assertEqual(1, len(problems))
+        self.assertIn("xy_hal_rtc_get_alarm", problems[0])
+
+    def test_a_backend_without_a_vendor_mask_is_not_judged(self):
+        backed = textwrap.dedent("""
+        xy_hal_error_t xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm, char id)
+        {
+            s_stored = *alarm;
+            return XY_HAL_OK;
+        }
+        """)
+        self.assertEqual([], guard.alarm_mask_findings(backed, "stored"))
+
+
 class YearSpellingTests(unittest.TestCase):
     """A two-digit vendor year register has one correct spelling, and it lives in one place."""
 

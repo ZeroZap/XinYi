@@ -1907,6 +1907,11 @@ add_test(NAME clib_frame_mutations
 #     calendar. Written because the U5 backend approximated months as 30 days. ---
 # --- Test 25c: BCD digits and the RTC year spelling. The three STM32 RTC backends each
 #     spelled the year differently and two of them were wrong. ---
+# --- Test 25d: the alarm mask inversion. Two of three STM32 backends had it backwards or absent. ---
+xy_add_unit_test(test_xy_rtc_alarm_mask clib_alarm_mask UNITY
+    ${UNIT_CLIB}/test_xy_rtc_alarm_mask.c
+)
+
 xy_add_unit_test(test_xy_bcd clib_bcd UNITY
     ${UNIT_CLIB}/test_xy_bcd.c
 )

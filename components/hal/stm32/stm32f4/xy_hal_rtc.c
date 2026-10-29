@@ -12,6 +12,7 @@
 #include "stm32_hal.h"
 /* Shared calendar arithmetic; included by path so it resolves in every build shape. */
 #include "../../../clib/xy_clib/inc/xy_bcd.h"
+#include "../../../clib/xy_clib/inc/xy_rtc_alarm_mask.h"
 #include "../../../clib/xy_clib/inc/xy_time_civil.h"
 
 static uint32_t xy_to_stm32_format(xy_hal_rtc_format_t format)
@@ -202,12 +203,43 @@ xy_hal_error_t xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm,
     }
 
     RTC_AlarmTypeDef sAlarm     = { 0 };
+
+    /* Any id that was not 'A' used to become alarm B, so a caller who passed 'C' silently reprogrammed
+     * the other alarm. */
+    if (alarm_id != 'A' && alarm_id != 'B') {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (!xy_rtc_alarm_mask_valid(alarm->alarm_mask, XY_HAL_RTC_ALARM_MASK_ALL)) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
     sAlarm.AlarmTime.Hours      = alarm->time.hours;
     sAlarm.AlarmTime.Minutes    = alarm->time.minutes;
     sAlarm.AlarmTime.Seconds    = alarm->time.seconds;
     sAlarm.AlarmTime.SubSeconds = alarm->time.subseconds;
     sAlarm.AlarmDateWeekDay     = alarm->date;
     sAlarm.Alarm                = (alarm_id == 'A') ? RTC_ALARM_A : RTC_ALARM_B;
+    {
+        /* The mask was never written here, which left the vendor default of zero - every field
+         * compared - so a caller asking to ignore seconds got an alarm that matched them. */
+        uint8_t skip = xy_rtc_alarm_skip_from_match(alarm->alarm_mask,
+                                                    XY_HAL_RTC_ALARM_MASK_ALL);
+
+        if ((skip & XY_HAL_RTC_ALARM_MASK_HOURS) != 0U) {
+            sAlarm.AlarmMask |= RTC_ALARMMASK_HOURS;
+        }
+        if ((skip & XY_HAL_RTC_ALARM_MASK_MINUTES) != 0U) {
+            sAlarm.AlarmMask |= RTC_ALARMMASK_MINUTES;
+        }
+        if ((skip & XY_HAL_RTC_ALARM_MASK_SECONDS) != 0U) {
+            sAlarm.AlarmMask |= RTC_ALARMMASK_SECONDS;
+        }
+        if ((skip & XY_HAL_RTC_ALARM_MASK_WEEKDAY) != 0U) {
+            sAlarm.AlarmMask |= RTC_ALARMMASK_DATEWEEKDAY;
+            sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
+        } else {
+            sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_WEEKDAY;
+        }
+    }
 
     if (HAL_RTC_SetAlarm((RTC_HandleTypeDef *)rtc, &sAlarm, RTC_FORMAT_BIN)
         != HAL_OK) {
@@ -224,10 +256,13 @@ xy_hal_error_t xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm, char a
     }
 
     RTC_AlarmTypeDef sAlarm = { 0 };
-    sAlarm.Alarm            = (alarm_id == 'A') ? RTC_ALARM_A : RTC_ALARM_B;
 
-    if (HAL_RTC_GetAlarm(
-            (RTC_HandleTypeDef *)rtc, &sAlarm, sAlarm.Alarm, RTC_FORMAT_BIN)
+    if (alarm_id != 'A' && alarm_id != 'B') {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    sAlarm.Alarm = (alarm_id == 'A') ? RTC_ALARM_A : RTC_ALARM_B;
+
+    if (HAL_RTC_GetAlarm((RTC_HandleTypeDef *)rtc, &sAlarm, sAlarm.Alarm, RTC_FORMAT_BIN)
         != HAL_OK) {
         return XY_HAL_ERROR_FAIL;
     }
@@ -236,7 +271,27 @@ xy_hal_error_t xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm, char a
     alarm->time.minutes    = sAlarm.AlarmTime.Minutes;
     alarm->time.seconds    = sAlarm.AlarmTime.Seconds;
     alarm->time.subseconds = sAlarm.AlarmTime.SubSeconds;
-    alarm->date            = sAlarm.AlarmDateWeekDay;
+    alarm->date            = (uint8_t)sAlarm.AlarmDateWeekDay;
+    alarm->weekday         = (uint8_t)sAlarm.AlarmDateWeekDay;
+    {
+        /* The mask was never read back, so the caller's struct kept whatever it arrived with. And it
+         * has to be expressed the way the caller spoke: fields that must match. */
+        uint8_t skip = 0U;
+
+        if ((sAlarm.AlarmMask & RTC_ALARMMASK_HOURS) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_HOURS;
+        }
+        if ((sAlarm.AlarmMask & RTC_ALARMMASK_MINUTES) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_MINUTES;
+        }
+        if ((sAlarm.AlarmMask & RTC_ALARMMASK_SECONDS) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_SECONDS;
+        }
+        if ((sAlarm.AlarmMask & RTC_ALARMMASK_DATEWEEKDAY) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_WEEKDAY;
+        }
+        alarm->alarm_mask = xy_rtc_alarm_match_from_skip(skip, XY_HAL_RTC_ALARM_MASK_ALL);
+    }
 
     return XY_HAL_OK;
 }

@@ -26,6 +26,7 @@
 /* Shared calendar arithmetic. Included by path so it resolves in every build shape - the HAL
  * component and the board targets do not agree on include directories. */
 #include "../../../clib/xy_clib/inc/xy_bcd.h"
+#include "../../../clib/xy_clib/inc/xy_rtc_alarm_mask.h"
 #include "../../../clib/xy_clib/inc/xy_time_civil.h"
 #include <string.h>
 
@@ -115,17 +116,20 @@ static int rtc_alarm_select(char alarm_id, uint32_t *alarm)
 static void rtc_alarm_mask(uint8_t alarm_mask, uint32_t *hal_mask, uint32_t *date_weekday_sel)
 {
     uint32_t mask = 0U;
+    /* The inversion itself lives in xy_rtc_alarm_mask.h and is tested on the host; this function only
+     * translates the resulting field set into this vendor's constants. */
+    uint8_t skip = xy_rtc_alarm_skip_from_match(alarm_mask, XY_HAL_RTC_ALARM_MASK_ALL);
 
-    if ((alarm_mask & XY_HAL_RTC_ALARM_MASK_HOURS) == 0U) {
+    if ((skip & XY_HAL_RTC_ALARM_MASK_HOURS) != 0U) {
         mask |= RTC_ALARMMASK_HOURS;
     }
-    if ((alarm_mask & XY_HAL_RTC_ALARM_MASK_MINUTES) == 0U) {
+    if ((skip & XY_HAL_RTC_ALARM_MASK_MINUTES) != 0U) {
         mask |= RTC_ALARMMASK_MINUTES;
     }
-    if ((alarm_mask & XY_HAL_RTC_ALARM_MASK_SECONDS) == 0U) {
+    if ((skip & XY_HAL_RTC_ALARM_MASK_SECONDS) != 0U) {
         mask |= RTC_ALARMMASK_SECONDS;
     }
-    if ((alarm_mask & XY_HAL_RTC_ALARM_MASK_WEEKDAY) == 0U) {
+    if ((skip & XY_HAL_RTC_ALARM_MASK_WEEKDAY) != 0U) {
         mask |= RTC_ALARMMASK_DATEWEEKDAY;
         *date_weekday_sel = RTC_ALARMDATEWEEKDAYSEL_DATE;
     } else {
@@ -433,19 +437,24 @@ xy_hal_error_t xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm, char a
     alarm->date = (s_alarm.AlarmDateWeekDaySel == RTC_ALARMDATEWEEKDAYSEL_DATE)
                       ? (uint8_t)s_alarm.AlarmDateWeekDay : 0U;
     /* Reported back in the caller's sense: the fields the HAL does not mask are the ones it compares,
-     * which is what "must match" means on this side. */
-    alarm->alarm_mask = 0U;
-    if ((s_alarm.AlarmMask & RTC_ALARMMASK_HOURS) == 0U) {
-        alarm->alarm_mask |= XY_HAL_RTC_ALARM_MASK_HOURS;
-    }
-    if ((s_alarm.AlarmMask & RTC_ALARMMASK_MINUTES) == 0U) {
-        alarm->alarm_mask |= XY_HAL_RTC_ALARM_MASK_MINUTES;
-    }
-    if ((s_alarm.AlarmMask & RTC_ALARMMASK_SECONDS) == 0U) {
-        alarm->alarm_mask |= XY_HAL_RTC_ALARM_MASK_SECONDS;
-    }
-    if ((s_alarm.AlarmMask & RTC_ALARMMASK_DATEWEEKDAY) == 0U) {
-        alarm->alarm_mask |= XY_HAL_RTC_ALARM_MASK_WEEKDAY;
+     * which is what "must match" means on this side. The inversion itself is the shared one - this
+     * function only gathers the skip set out of the vendor's bits. */
+    {
+        uint8_t skip = 0U;
+
+        if ((s_alarm.AlarmMask & RTC_ALARMMASK_HOURS) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_HOURS;
+        }
+        if ((s_alarm.AlarmMask & RTC_ALARMMASK_MINUTES) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_MINUTES;
+        }
+        if ((s_alarm.AlarmMask & RTC_ALARMMASK_SECONDS) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_SECONDS;
+        }
+        if ((s_alarm.AlarmMask & RTC_ALARMMASK_DATEWEEKDAY) != 0U) {
+            skip |= XY_HAL_RTC_ALARM_MASK_WEEKDAY;
+        }
+        alarm->alarm_mask = xy_rtc_alarm_match_from_skip(skip, XY_HAL_RTC_ALARM_MASK_ALL);
     }
     return XY_HAL_OK;
 }

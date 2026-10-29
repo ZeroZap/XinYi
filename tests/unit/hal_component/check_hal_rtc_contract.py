@@ -80,6 +80,12 @@ COUNTER_DOCUMENTED = re.compile(r"seconds since the epoch")
 VENDOR_YEAR_FIELD = re.compile(r"\.\s*Year\b")
 SHARED_YEAR_SPELLING = re.compile(r"xy_rtc_year_(?:encode|decode)")
 DATE_ENTRIES = ("xy_hal_rtc_get_date", "xy_hal_rtc_set_date")
+# The two vocabularies are inverted: our mask names the fields that must match, the vendor bits name
+# the fields to skip. A backend that touches a vendor AlarmMask without the shared inversion either
+# matches on what the caller asked to ignore or compares everything.
+VENDOR_ALARM_MASK = re.compile(r"AlarmMask")
+SKIP_FROM_MATCH = re.compile(r"xy_rtc_alarm_skip_from_match")
+MATCH_FROM_SKIP = re.compile(r"xy_rtc_alarm_match_from_skip")
 
 
 LOCAL_CALL = re.compile(r"\b(\w+)\s*\(")
@@ -271,6 +277,23 @@ def year_findings(source: str, name: str) -> list[str]:
     return problems
 
 
+def alarm_mask_findings(source: str, name: str) -> list[str]:
+    """Whoever writes or reads a vendor AlarmMask must go through the shared inversion."""
+    problems: list[str] = []
+    for entry, expected, verb in (("xy_hal_rtc_set_alarm", SKIP_FROM_MATCH, "writes"),
+                                  ("xy_hal_rtc_get_alarm", MATCH_FROM_SKIP, "reads")):
+        body = with_delegation(source, braced(source, entry + "("))
+        if not body:
+            continue
+        if not VENDOR_ALARM_MASK.search(body):
+            continue  # no vendor alarm register: the backend stores the mask or refuses
+        if expected.search(body) is None:
+            problems.append(
+                f"{name}:{entry}: {verb} the vendor AlarmMask without the shared inversion, so the "
+                f"alarm matches on the fields the caller asked to ignore")
+    return problems
+
+
 def backup_findings(source: str, name: str) -> list[str]:
     problems: list[str] = []
     for entry in BACKUP_ENTRIES:
@@ -297,6 +320,7 @@ def findings(backends: dict[str, Path] | None = None, header: Path | None = None
                                           DISCARDS_FORMAT, "the requested format"))
         problems.extend(timestamp_findings(source, name, read_raw(path)))
         problems.extend(year_findings(source, name))
+        problems.extend(alarm_mask_findings(source, name))
         problems.extend(backup_findings(source, name))
 
     text = read_raw(header or HEADER)
@@ -318,7 +342,8 @@ def main() -> int:
     counts = ", ".join(f"{name} {count}/{len(declared_entries())}"
                        for name, count in sorted(PINNED_COVERAGE.items()))
     print(f"hal_rtc_contract ok ({len(BACKENDS)} backends: alarm id selects or is refused, "
-          f"format honoured or refused, year spelled once, backup index bounded; "
+          f"format honoured or refused, year spelled once, alarm mask inverted; "
+          f"backup index bounded; "
           f"coverage {counts})")
     return 0
 
