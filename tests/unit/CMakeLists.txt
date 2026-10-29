@@ -103,6 +103,9 @@ add_test(NAME stm32f4_spi_wrapper_contract
     COMMAND python3 ${UNIT_HAL}/check_stm32f4_spi_wrapper_contract.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME opench_rx_overflow_sweep
+    COMMAND python3 ${UNIT_HAL}/test_opench_rx_overflow_sweep.py)
+
 add_test(NAME osal_backend_paths
     COMMAND python3 ${UNIT_HAL}/check_osal_backend_paths.py)
 

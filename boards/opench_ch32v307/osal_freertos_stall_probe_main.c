@@ -62,6 +62,11 @@ volatile uint32_t xy_probe_rx_irq_bytes;
    overflowed 35 times in a two-second run. */
 #define RX_RING_SIZE 256U
 #define RX_TASK_PERIOD_MS 5
+
+/* The drain period is a RAM variable rather than a constant so the host can sweep it
+   without reflashing: the overflow threshold against a given rate is the number this
+   test is after, and one run per period would cost one flash per period. */
+volatile uint32_t xy_probe_rx_task_period_ms = RX_TASK_PERIOD_MS;
 static volatile uint8_t rx_ring[RX_RING_SIZE];
 static volatile uint32_t rx_head;
 static volatile uint32_t rx_tail;
@@ -322,8 +327,13 @@ static void probe_task(void* argument) {
     else
         mark("OPENCH_OSAL_PROBE_RX_IRQ_ERROR_A\r\n");
     for (;;) {
+        uint32_t period = xy_probe_rx_task_period_ms;
         drain_rx_frames();
-        (void)xy_os_delay(RX_TASK_PERIOD_MS);
+        if (period < 1U)
+            period = 1U;
+        if (period > 200U)
+            period = 200U;
+        (void)xy_os_delay(period);
     }
 }
 

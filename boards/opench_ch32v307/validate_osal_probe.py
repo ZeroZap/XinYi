@@ -73,6 +73,7 @@ SYMBOLS = (
     "xy_probe_rx_frames_ok",
     "xy_probe_rx_frames_bad",
     "xy_probe_rx_overflow",
+    "xy_probe_rx_task_period_ms",
     "xTickCount",
 )
 
