@@ -85,3 +85,6 @@ rtc_backup `38723a2e…` 全部逐字节相同）。
 - `chain=CONFIRM` 证明决策与 journal 状态，不证明 bootloader 之后的 vector handoff 正确性（那一跳由 `JUMP_APP` +
   应用自身打印 `READY`/`FIRMWARE_COMMIT` 间接支持）。
 - 中间快照 `s1`/`s2` 只保留 `manifest.json` 与 `program.json`（region 二进制已删除），恢复源是 `s0`。
+- **W25Q128 `0xF00000` 现在留着本轮写入的 candidate**（43800 B，source commit `56ee6030…`）：快照工具只覆盖 MCU
+  Flash 四段 + RTC backup，不覆盖片外 SPI flash，因此 `restore` 不会把它清掉。board 复位后运行的是原驻
+  `762c4a75…` bootloader（不扫 W25Q128 候选），该候选处于惰性状态；下次用本仓库 bootloader 时会先装它。
