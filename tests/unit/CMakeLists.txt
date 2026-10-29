@@ -100,6 +100,12 @@ add_test(NAME stm32u5_uart_rx_irq_contract
 add_test(NAME stm32f4_uart_rx_irq_contract
     COMMAND python3 ${UNIT_HAL}/check_stm32_uart_rx_irq_contract.py --target stm32f4)
 
+add_test(NAME board_uart_irq_vectors
+    COMMAND python3 ${UNIT_HAL}/check_board_uart_irq_vectors.py)
+
+add_test(NAME board_uart_irq_vectors_unit
+    COMMAND python3 ${UNIT_HAL}/test_board_uart_irq_vectors.py)
+
 add_test(NAME stm32f4_uart_wrapper_contract
     COMMAND python3 ${UNIT_HAL}/check_stm32f4_uart_wrapper_contract.py
     WORKING_DIRECTORY ${ROOT}
