@@ -42,6 +42,12 @@ volatile uint32_t xy_probe_uart_sends;
    these time out. MPU6050 WHO_AM_I (0x75) answers 0x68 on this board. */
 volatile uint32_t xy_probe_i2c_ops;
 volatile uint32_t xy_probe_i2c_fails;
+
+/* What a transaction to an address nobody answers on returns, and whether the bus
+   still works on the very next transfer. */
+volatile uint32_t xy_probe_i2c_nak_code;
+volatile uint32_t xy_probe_i2c_recover_code;
+volatile uint32_t xy_probe_i2c_recover_value;
 volatile uint32_t xy_probe_whoami;
 /* Milliseconds measured across a 256-byte UART burst (~22 ms at 115200). The
    HAL times its own waits with the same helper this uses, so a saw-tooth reading
@@ -194,6 +200,29 @@ static void probe_task(void* argument) {
         mark("OPENCH_OSAL_PROBE_RECV_TIMEOUT_OK_A\r\n");
     else
         mark("OPENCH_OSAL_PROBE_RECV_TIMEOUT_ERROR_A\r\n");
+
+    /* The failure a real bus hits: an address nobody answers on. The HAL has to
+       report it as "not found" rather than success or a bare timeout, and - the
+       part that actually bites in the field - the bus has to be usable on the very
+       next transfer instead of staying stuck with AF latched. */
+    xy_probe_stage = 14U;
+    {
+        uint8_t sink = 0U;
+        uint8_t identity = 0U;
+
+        xy_probe_i2c_nak_code =
+            (uint32_t)(int32_t)xy_hal_i2c_mem_read(I2C2, 0x7FU, 0x75U, &sink, 1U, 100U);
+        xy_probe_i2c_recover_code = (uint32_t)(int32_t)xy_hal_i2c_mem_read(
+            I2C2, 0x68U, 0x75U, &identity, 1U, 100U);
+        xy_probe_i2c_recover_value = identity;
+    }
+    xy_probe_stage = 15U;
+
+    if (xy_probe_i2c_nak_code == (uint32_t)(int32_t)XY_HAL_ERROR_NOT_FOUND &&
+        xy_probe_i2c_recover_code == 0U && xy_probe_i2c_recover_value == 0x68U)
+        mark("OPENCH_OSAL_PROBE_I2C_RECOVERY_OK_A\r\n");
+    else
+        mark("OPENCH_OSAL_PROBE_I2C_RECOVERY_ERROR_A\r\n");
 
     mark("OPENCH_OSAL_PROBE_SEQUENCE_DONE_A\r\n");
     for (;;) {

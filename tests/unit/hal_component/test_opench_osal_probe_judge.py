@@ -34,6 +34,9 @@ def good_words() -> dict[str, int]:
         "xy_probe_whoami": probe.WHOAMI_EXPECTED,
         "xy_probe_uart_sends": 6,
         "xy_probe_uart_fails": 0,
+        "xy_probe_i2c_nak_code": probe.I2C_NOT_FOUND_CODE,
+        "xy_probe_i2c_recover_code": 0,
+        "xy_probe_i2c_recover_value": probe.I2C_RECOVER_VALUE,
         "xTickCount": 100,
     }
 
@@ -67,6 +70,19 @@ class ProbeJudgeTests(unittest.TestCase):
         errors = probe.judge(words, ticking())
         self.assertTrue(any("xy_probe_uart_recv_ms" in e for e in errors), errors)
 
+    def test_a_nak_reported_as_success_is_rejected(self) -> None:
+        words = good_words()
+        words["xy_probe_i2c_nak_code"] = 0
+        errors = probe.judge(words, ticking())
+        self.assertTrue(any("unanswered I2C address" in e for e in errors), errors)
+
+    def test_a_bus_that_stays_stuck_after_a_nak_is_rejected(self) -> None:
+        # The field failure: AF latched, every later transfer fails.
+        words = good_words()
+        words["xy_probe_i2c_recover_code"] = 0xFFFFFFFD
+        errors = probe.judge(words, ticking())
+        self.assertTrue(any("bus stayed stuck" in e for e in errors), errors)
+
     def test_a_frozen_burst_reading_is_rejected(self) -> None:
         words = good_words()
         words["xy_probe_uart_burst_ms"] = 0
@@ -82,6 +98,32 @@ class ProbeJudgeTests(unittest.TestCase):
     def test_a_tick_that_stops_advancing_is_rejected(self) -> None:
         errors = probe.judge(good_words(), {"xTickCount": 100})
         self.assertEqual(errors, ["xTickCount did not advance: 100 -> 100"])
+
+    def test_the_reporting_path_survives_a_good_run(self) -> None:
+        # Extracting judge() once left main()'s summary printing locals that no
+        # longer existed, and nothing noticed because only judge() was tested. Run
+        # main() against stubbed reads so the whole path has to execute.
+        import contextlib
+        import io
+
+        snapshots = iter([dict(good_words()), dict(good_words(), xTickCount=140)])
+        originals = (probe.symbol_addresses, probe.read_words, probe.subprocess.run)
+        probe.symbol_addresses = lambda nm, elf: {"xy_probe_stage": 0x20000000}
+        probe.read_words = lambda *a, **k: next(snapshots)
+        probe.subprocess.run = lambda *a, **k: None
+        argv = sys.argv
+        sys.argv = ["validate_osal_probe.py", "--openocd", "oc", "--config", "cfg",
+                    "--elf", "elf", "--nm", "nm", "--settle-ms", "0"]
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out):
+                code = probe.main()
+        finally:
+            probe.symbol_addresses, probe.read_words, probe.subprocess.run = originals
+            sys.argv = argv
+        self.assertEqual(code, 0, out.getvalue())
+        self.assertIn("osal_stall_probe_ok", out.getvalue())
+        self.assertIn("nak=0xfffffffa", out.getvalue())
 
     def test_the_receive_window_stays_tight_enough_to_be_meaningful(self) -> None:
         # A 10 ms receive is asked for; a window that accepted anything from 0 up

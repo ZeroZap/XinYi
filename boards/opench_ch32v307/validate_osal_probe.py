@@ -27,10 +27,11 @@ import re
 import subprocess
 import sys
 
-# The probe now ends at stage 13: stage 10 runs the UART burst that measures the
+# The probe now ends at stage 15: stage 10 runs the UART burst that measures the
 # HAL millisecond helper against wall clock, stage 12 makes a receive give up on a
-# silent line, and 13 means both measurements are published.
-STAGE_DONE = 13
+# silent line, stage 14 asks a bus for an address nobody answers on, and 15 means
+# every measurement is published.
+STAGE_DONE = 15
 # 256 bytes at 115200 8N1 is 22.2 ms on the wire. The window is wide enough for
 # buffering jitter but narrow enough that a saw-tooth timebase cannot land in it.
 BURST_MS_MIN = 10
@@ -41,6 +42,10 @@ BURST_MS_MAX = 200
 RECV_MS_MIN = 5
 RECV_MS_MAX = 200
 RECV_TIMEOUT_CODE = 0xFFFFFFFD
+# An address nobody answers on has to come back as "not found", and the transfer
+# right after it has to succeed - a bus left with AF latched is the field failure.
+I2C_NOT_FOUND_CODE = 0xFFFFFFFA
+I2C_RECOVER_VALUE = 0x68
 WHOAMI_EXPECTED = 0x68
 LOOPS_EXPECTED = 3
 EVENT_FLAGS_ERROR = 0x80000000
@@ -60,6 +65,9 @@ SYMBOLS = (
     "xy_probe_uart_burst_ms",
     "xy_probe_uart_recv_ms",
     "xy_probe_uart_recv_code",
+    "xy_probe_i2c_nak_code",
+    "xy_probe_i2c_recover_code",
+    "xy_probe_i2c_recover_value",
     "xTickCount",
 )
 
@@ -121,6 +129,21 @@ def judge(first: dict[str, int], second: dict[str, int]) -> list[str]:
         errors.append(
             f"xy_probe_uart_recv_code is {first.get('xy_probe_uart_recv_code')}, "
             f"expected {RECV_TIMEOUT_CODE:#x} (XY_HAL_ERROR_TIMEOUT)"
+        )
+    if first.get("xy_probe_i2c_nak_code") != I2C_NOT_FOUND_CODE:
+        errors.append(
+            f"an unanswered I2C address returned {first.get('xy_probe_i2c_nak_code')}, "
+            f"expected {I2C_NOT_FOUND_CODE:#x} (XY_HAL_ERROR_NOT_FOUND)"
+        )
+    if first.get("xy_probe_i2c_recover_code") != 0:
+        errors.append(
+            "the transfer after an unanswered address failed with "
+            f"{first.get('xy_probe_i2c_recover_code')}: the bus stayed stuck"
+        )
+    if first.get("xy_probe_i2c_recover_value") != I2C_RECOVER_VALUE:
+        errors.append(
+            f"the recovering read saw {first.get('xy_probe_i2c_recover_value')}, "
+            f"expected {I2C_RECOVER_VALUE:#x}"
         )
     if first.get("xy_probe_loops") != LOOPS_EXPECTED:
         errors.append(f"loops is {first.get('xy_probe_loops')}, expected {LOOPS_EXPECTED}")
@@ -198,12 +221,21 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
+    # Read back from the snapshot for the summary: judge() owns the checks, so the
+    # locals it builds do not exist out here.
+    sends = first.get("xy_probe_uart_sends", 0)
+    fails = first.get("xy_probe_uart_fails", 0)
+    ops = first.get("xy_probe_i2c_ops", 0)
+    i2c_fails = first.get("xy_probe_i2c_fails", 0)
     print(
         "osal_stall_probe_ok "
         f"stage={first['xy_probe_stage']} loops={first['xy_probe_loops']} "
         f"wait={first['xy_probe_wait_ret']:#x} get={first['xy_probe_get_ret']:#x} "
         f"uart={sends - fails}/{sends} i2c={ops - i2c_fails}/{ops} "
-        f"ticks={ticks_first:#x}->{ticks_second:#x}"
+        f"nak={first.get('xy_probe_i2c_nak_code', 0):#x} "
+        f"recover={first.get('xy_probe_i2c_recover_value', 0):#x} "
+        f"recv_ms={first.get('xy_probe_uart_recv_ms', 0)} "
+        f"ticks={first.get('xTickCount', 0):#x}->{second.get('xTickCount', 0):#x}"
     )
     return 0
 
