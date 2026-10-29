@@ -1,13 +1,25 @@
 #!/usr/bin/env python3
 """Fail-closed source contract for the Pandora onboard ST7789 path."""
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT / "boards" / "pandora_stm32l475"
 
 
 def require(path: Path, *needles: str) -> None:
-    text = path.read_text(encoding="utf-8")
+    """C sources are read as code: a comment must not satisfy a source contract.
+
+    CMakeLists and other build files are read raw - there `//` is not a comment, and the
+    needles being looked for are target names rather than code.
+    """
+    if path.suffix in (".c", ".h"):
+        text = read_code(path)
+    else:
+        text = read_raw(path)
     for needle in needles:
         assert needle in text, f"{path.relative_to(ROOT)} missing {needle!r}"
 

@@ -10,6 +10,8 @@ the RT-Thread scheduler lock (rt_enter_critical / rt_exit_critical).
 
 from pathlib import Path
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import code_only  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BACKEND = ROOT / "components/kernel/osal/backend/rtthread/xy_os_rtthread.c"
@@ -74,7 +76,7 @@ KINDS = [
 
 
 def main() -> int:
-    source = BACKEND.read_text(encoding="utf-8")
+    source = code_only(BACKEND.read_text(encoding="utf-8"))
     errors: list[str] = []
 
     for kind, alloc_sig, alloc_next, clear_sig, clear_next in KINDS:

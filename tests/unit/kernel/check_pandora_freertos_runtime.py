@@ -3,6 +3,8 @@
 
 from pathlib import Path
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import code_only  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT / "boards" / "pandora_stm32l475"
@@ -50,7 +52,7 @@ def main() -> int:
             errors.append(f"Pandora CMake must wire token: {token}")
 
     if MAIN.is_file():
-        main_source = MAIN.read_text(encoding="utf-8")
+        main_source = code_only(MAIN.read_text(encoding="utf-8"))
         for token in (
             "xy_os_thread_new",
             "xy_os_kernel_start",
@@ -277,7 +279,7 @@ def main() -> int:
     if not L4_DMA.is_file():
         errors.append("dedicated STM32L4 DMA wrapper is missing")
     else:
-        dma_source = L4_DMA.read_text(encoding="utf-8")
+        dma_source = code_only(L4_DMA.read_text(encoding="utf-8"))
         for token in (
             "STM32L4",
             "HAL_DMA_Init",
@@ -297,7 +299,7 @@ def main() -> int:
     if not L4_SPI.is_file():
         errors.append("dedicated STM32L4 SPI wrapper is missing")
     else:
-        spi_source = L4_SPI.read_text(encoding="utf-8")
+        spi_source = code_only(L4_SPI.read_text(encoding="utf-8"))
         for token in (
             "STM32L4",
             "HAL_SPI_Init",
@@ -314,7 +316,7 @@ def main() -> int:
     if not L4_TIMER.is_file():
         errors.append("dedicated STM32L4 timer wrapper is missing")
     else:
-        timer_source = L4_TIMER.read_text(encoding="utf-8")
+        timer_source = code_only(L4_TIMER.read_text(encoding="utf-8"))
         for token in (
             "STM32L4",
             "HAL_TIM_Base_Init",
@@ -328,7 +330,7 @@ def main() -> int:
                 errors.append(f"STM32L4 timer wrapper must preserve token: {token}")
 
     if STRESS_VALIDATOR.is_file():
-        validator_source = STRESS_VALIDATOR.read_text(encoding="utf-8")
+        validator_source = code_only(STRESS_VALIDATOR.read_text(encoding="utf-8"))
         for token in (
             "STRESS_REVIEW_CANDIDATE",
             "STRESS_VALIDATION_FAILED",
@@ -341,7 +343,7 @@ def main() -> int:
                 errors.append(f"stress validator must preserve token: {token}")
 
     if HANDLERS.is_file():
-        handler_source = HANDLERS.read_text(encoding="utf-8")
+        handler_source = code_only(HANDLERS.read_text(encoding="utf-8"))
         for token in (
             "vPortSVCHandler",
             "xPortPendSVHandler",
@@ -397,7 +399,7 @@ def main() -> int:
         ):
             if dispatch not in backend.read_text(encoding="utf-8"):
                 errors.append(f"{backend.relative_to(ROOT)} must own vendor IRQ dispatch")
-        l4_sys_source = L4_SYS.read_text(encoding="utf-8")
+        l4_sys_source = code_only(L4_SYS.read_text(encoding="utf-8"))
         for token in (
             "xy_hal_sys_set_irq_priority",
             "xy_hal_sys_enable_irq_num",

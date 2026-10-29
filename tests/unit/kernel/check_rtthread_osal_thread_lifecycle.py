@@ -4,6 +4,9 @@
 from pathlib import Path
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code, read_raw  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 BACKEND = ROOT / "components/kernel/osal/backend/rtthread/xy_os_rtthread.c"
 
@@ -13,7 +16,8 @@ def function_body(source: str, start: str, end: str) -> str:
 
 
 def main() -> int:
-    source = BACKEND.read_text(encoding="utf-8")
+    source = read_code(BACKEND)
+    raw = read_raw(BACKEND)
     errors: list[str] = []
 
     new_body = function_body(
@@ -32,7 +36,10 @@ def main() -> int:
     if "clear_thread_ctx(ctx)" not in new_body:
         errors.append("thread create/startup failure must release the reserved context")
 
-    if "/* RT-Thread detach is unsupported until owner retirement can be observed. */" not in source:
+    # Raw text on purpose: this asserts a rationale was written next to the decision, so
+    # stripping comments would delete the thing being checked. Everything else in this file
+    # reads code, and the two reads are separate variables so the exception stays visible.
+    if "/* RT-Thread detach is unsupported until owner retirement can be observed. */" not in raw:
         errors.append("RT-Thread detach must document its fail-closed unsupported contract")
     detach_body = function_body(
         source, "xy_os_status_t xy_os_thread_detach", "xy_os_status_t xy_os_thread_join"

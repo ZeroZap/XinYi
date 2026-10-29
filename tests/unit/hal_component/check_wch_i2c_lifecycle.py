@@ -3,6 +3,8 @@
 
 from pathlib import Path
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "components/hal/wch/ch32x/src/xy_hal_i2c.c"
@@ -13,7 +15,7 @@ def body(source: str, start: str, end: str) -> str:
 
 
 def main() -> int:
-    source = SOURCE.read_text(encoding="utf-8")
+    source = read_code(SOURCE)
     errors: list[str] = []
 
     if "static uint8_t i2c_initialized[2];" not in source:

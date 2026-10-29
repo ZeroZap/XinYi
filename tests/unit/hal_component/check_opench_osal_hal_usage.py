@@ -17,6 +17,8 @@ stops a new image from starting life outside the HAL.
 from pathlib import Path
 import re
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT / "boards/opench_ch32v307"
@@ -83,7 +85,7 @@ def main() -> int:
             "or a HAL delay under the kernel stops the scheduler tick"
         )
     for name in images:
-        source = (BOARD / name).read_text(encoding="utf-8")
+        source = read_code(BOARD / name)
         if re.search(r"\bxy_hal_delay_(ms|us)\b", source) and not binds_delay:
             errors.append(
                 f"{name} calls xy_hal_delay_*, which reprograms the SysTick the kernel owns, "
@@ -106,7 +108,7 @@ def main() -> int:
         if not path.is_file():
             errors.append(f"migrated image is missing: {name}")
             continue
-        source = path.read_text(encoding="utf-8")
+        source = read_code(path)
         if "#include \"xy_hal_uart.h\"" not in source:
             errors.append(f"{name} must include xy_hal_uart.h")
         if "xy_hal_uart_init(" not in source:
@@ -148,7 +150,7 @@ def main() -> int:
         if not path.is_file():
             errors.append(f"timer-boundary image is missing: {name}")
             continue
-        source = path.read_text(encoding="utf-8")
+        source = read_code(path)
         if "TIM_TimeBaseInit(" not in source:
             errors.append(
                 f"{name} no longer sets up TIM2 itself, so its TIMER_BOUNDARY entry "
@@ -160,7 +162,7 @@ def main() -> int:
         if not path.is_file():
             errors.append(f"deferred image is missing: {name}")
             continue
-        source = path.read_text(encoding="utf-8")
+        source = read_code(path)
         if "xy_hal_uart_init(" in source:
             errors.append(
                 f"{name} already uses xy_hal_uart_init: move it from DEFERRED to MIGRATED "

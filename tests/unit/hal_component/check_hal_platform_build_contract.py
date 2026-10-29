@@ -20,6 +20,8 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
+from source_scan import read_code, read_raw  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 HAL = ROOT / "components" / "hal"
@@ -121,12 +123,12 @@ def guarded_sources(directory: Path) -> set[str]:
     return {
         path.name
         for path in sorted(directory.glob("*.c"))
-        if GUARD in path.read_text(encoding="utf-8")
+        if GUARD in read_code(path)
     }
 
 
 def main() -> int:
-    text = HAL_CMAKE.read_text(encoding="utf-8")
+    text = read_raw(HAL_CMAKE)
     f4 = branch_body(text, "STM32F4")
     l4 = branch_body(text, "STM32L4")
 
@@ -206,7 +208,7 @@ def main() -> int:
 
     # 8. Every appended STM32L4 wrapper must declare its required HAL module and
     #    that module must actually be enabled by the platform HAL config.
-    conf_text = L4_HAL_CONF.read_text(encoding="utf-8")
+    conf_text = read_code(L4_HAL_CONF)
     enabled_modules = set(re.findall(r"^#define\s+(HAL_\w+_MODULE_ENABLED)\b", conf_text, re.M))
     for basename in sorted(l4_appended):
         assert basename in L4_MODULE_REQUIREMENTS, (
