@@ -1,0 +1,78 @@
+name: Cross builds and board tests
+
+# The firmware does not get compiled anywhere but on a developer machine today, and neither do the host tool
+# tests or the QEMU board tests - the unit-tests workflow builds the host target only. This job closes that:
+# it compiles every hardware target that does not need a proprietary toolchain, then runs the two test suites
+# that no workflow used to run.
+#
+# The Arm toolchain is the official relocatable release rather than the distribution package, pinned to the
+# same version this project is developed against (15.2.Rel1): the distribution package is compiled with /usr
+# baked in, so it only works when installed system-wide, and its 13.2 vs the 15.2 used locally would be a
+# second, silent difference between what CI proves and what the developer sees.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cross-builds:
+    runs-on: ubuntu-24.04
+    env:
+      ARM_TOOLCHAIN_URL: "https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz"
+      ARM_TOOLCHAIN_DIR: "arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake qemu-system-arm xz-utils
+
+      - name: Install the pinned Arm toolchain
+        run: |
+          curl -fsSL "$ARM_TOOLCHAIN_URL" -o "$RUNNER_TEMP/toolchain.tar.xz"
+          mkdir -p "$RUNNER_TEMP/toolchain"
+          tar -xf "$RUNNER_TEMP/toolchain.tar.xz" -C "$RUNNER_TEMP/toolchain"
+          "$RUNNER_TEMP/toolchain/$ARM_TOOLCHAIN_DIR/bin/arm-none-eabi-gcc" --version
+          echo "TOOLCHAIN_PATH=$RUNNER_TEMP/toolchain/$ARM_TOOLCHAIN_DIR/bin" >> "$GITHUB_ENV"
+
+      # One directory per target, mirroring the local build layout. WCH is absent on purpose: it needs the
+      # MounRiver RISC-V toolchain, which is not installable from a public source.
+      - name: Build the STM32 targets
+        run: |
+          set -e
+          for target in STM32L4 STM32U5 STM32F4; do
+            echo "::group::$target"
+            cmake -S . -B "build/$target" \
+              -DHAL_PLATFORM="$target" \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DTOOLCHAIN_PATH="$TOOLCHAIN_PATH"
+            cmake --build "build/$target" -j"$(nproc)"
+            echo "::endgroup::"
+          done
+
+      - name: Build the Pandora FreeRTOS variant
+        run: |
+          set -e
+          cmake -S . -B build/pandora-rtos \
+            -DHAL_PLATFORM=STM32L4 \
+            -DOSAL_BACKEND=freertos \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DTOOLCHAIN_PATH="$TOOLCHAIN_PATH"
+          cmake --build build/pandora-rtos -j"$(nproc)"
+
+      - name: Run the host tool tests
+        run: make test-tools
+
+      # The stock qemu-system-arm carries the olimex-stm32-h405 machine these tests use; the makefile falls
+      # back to it when the local unified build is absent.
+      - name: Run the QEMU board tests
+        run: make test-qemu

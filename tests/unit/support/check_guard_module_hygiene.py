@@ -180,8 +180,6 @@ def shown(path: Path, root: Path) -> str:
 CI_EXEMPT = {
     "test": "aggregate target; it only calls the targets below",
     "test-unit": "run by CI as ctest --test-dir build/tests/unit, which is the same thing",
-    "test-tools": "147 host tool tests; no workflow runs them - CI would pass without them today",
-    "test-qemu": "needs arm-none-eabi-gcc and qemu-system-arm, neither installed by any workflow",
     "test-qemu-ch32v": "needs a locally built QEMU with the ch32v307 machine and the WCH RISC-V toolchain",
 }
 

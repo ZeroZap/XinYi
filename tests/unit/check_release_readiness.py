@@ -26,8 +26,11 @@ RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 UNIT_WORKFLOW = ROOT / ".github" / "workflows" / "unit-tests.yml"
 RELEASE_CHECKOUT_ACTION = "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
 UNIT_UPLOAD_ACTION = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+# The reviewed immutable set, by exact SHA and by how many times each is used. Adding a use of an SHA already
+# in this set is still a change to the reviewed surface, which is why it has to be counted here: the sixth
+# checkout is the cross-builds workflow that compiles the firmware targets and runs the board tests.
 WORKFLOW_ACTIONS = {
-    "actions/checkout@11d5960a326750d5838078e36cf38b85af677262": 5,
+    "actions/checkout@11d5960a326750d5838078e36cf38b85af677262": 6,
     "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065": 3,
     "actions/configure-pages@1f0c5cde4bc74cd7e1254d0cb4de8d49e9068c7d": 1,
     "actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa": 1,
