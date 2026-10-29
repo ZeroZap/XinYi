@@ -112,9 +112,13 @@ void xy_timer_sw_poll(void)
 
     for (int i = 0; i < XY_TIMER_SW_MAX_TIMERS; i++) {
         if (g_timers[i].running && g_timers[i].callback) {
+            /* Decrement first, then fire on reaching zero. The other order - fire when the counter was
+             * already zero at the top of the poll - fires one tick late: a timer started for 3 ticks ran
+             * on the 4th poll, and every timer in the system was a tick behind what it asked for. */
             if (g_timers[i].counter > 0) {
                 g_timers[i].counter--;
-            } else {
+            }
+            if (g_timers[i].counter == 0) {
                 g_timers[i].callback(g_timers[i].arg);
 
                 if (g_timers[i].periodic) {

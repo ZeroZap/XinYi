@@ -552,6 +552,12 @@ static void timer_sw_callback(void *arg)
     if (ctx && ctx->callback) {
         ctx->callback(ctx->arg);
     }
+    /* A one-shot that has just run is no longer running, and is_running() reads this id. The sw module
+     * retires its own entry, but the context kept pointing at it, so the timer answered "still running"
+     * for as long as the caller cared to ask. A periodic timer keeps its id: the sw module reloads it. */
+    if (ctx && ctx->type != XY_OS_TIMER_PERIODIC) {
+        ctx->sw_timer_id = 0;
+    }
 }
 
 xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t f, xy_os_timer_type_t t,

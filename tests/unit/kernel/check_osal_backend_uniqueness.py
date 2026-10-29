@@ -25,7 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
 
-from source_scan import read_code  # noqa: E402
+from source_scan import read_code, read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 OSAL = ROOT / "components" / "kernel" / "osal"
@@ -35,7 +35,6 @@ COMPONENTS = ROOT / "components"
 #: the OSAL component, with the reason, so an entry here is a decision rather than a shrug.
 SHARED_SOURCES = {
     "src/xy_os_tick.c": "tick accounting, backend-independent by design",
-    "src/xy_os_timer_sw.c": "software timer list, used by the backends that have no timer hardware",
 }
 
 #: How many entries a file must define before it is treated as a backend implementation rather than a
@@ -92,6 +91,64 @@ def declared_entries() -> set[str]:
     return names
 
 
+def shared_source_pin_findings(sources: dict[str, set[str]],
+                               shared: dict[str, str] | None = None) -> list[str]:
+    """A shared-source pin for a file that is gone or defines nothing is a stale claim, not a decision.
+
+    `src/xy_os_timer_sw.c` sat in that list long after it stopped being built - it was a byte-identical
+    copy of `misc/xy_timer_sw.c` that no CMakeLists named and no header included. The pin said the file
+    was a shared implementation; it was a duplicate that read like one. A pin has to fail in both
+    directions, or it quietly becomes a place to put things.
+    """
+    shared = SHARED_SOURCES if shared is None else shared
+    problems: list[str] = []
+    for relative in sorted(shared):
+        if not (OSAL / relative).exists():
+            problems.append(f"SHARED_SOURCES names {relative}, which does not exist - drop the pin")
+        elif not sources.get(relative):
+            problems.append(f"SHARED_SOURCES names {relative}, which defines no OSAL entry - the pin "
+                            f"is describing a file that is not a shared implementation")
+    return problems
+
+
+#: Sources that are deliberately not in the OSAL CMakeLists, keyed by path relative to the component.
+UNLISTED_ALLOWED = {
+    "backend/rtx5/xy_os_rtx5.c":
+        "orphaned backend: no OSAL_BACKEND branch names this directory, recorded in the advertise guard",
+    "portable/freertos/GCC/ARM_CM33_NTZ/non_secure/portasm.c":
+        "vendor FreeRTOS port assembly, built by the platform that selects that port",
+    "portable/freertos/GCC/ARM_CM33_NTZ/non_secure/port.c":
+        "vendor FreeRTOS port, built by the platform that selects that port",
+    "portable/freertos/GCC/ARM_CM4F/port.c":
+        "vendor FreeRTOS port, built by the platform that selects that port",
+}
+
+
+def unlisted_source_findings(root: Path | None = None, allowed: dict[str, str] | None = None) -> list[str]:
+    """Every .c under the OSAL component must be named by its CMakeLists, or pinned with a reason.
+
+    This is the rule that would have caught `src/xy_os_timer_sw.c`: a full source file, never built,
+    that a guard had learned to call a shared implementation.
+    """
+    root = OSAL if root is None else root
+    allowed = UNLISTED_ALLOWED if allowed is None else allowed
+    cmake = root / "CMakeLists.txt"
+    # read_hash_code, not read_text: a commented-out entry does not put a file in the build, and a rule
+    # that counted one would pass on exactly the mistake it exists to catch.
+    listed = read_hash_code(cmake) if cmake.exists() else ""
+    problems: list[str] = []
+    for path in sorted(root.rglob("*.c")):
+        relative = path.relative_to(root).as_posix()
+        if relative in allowed:
+            continue
+        if relative not in listed:
+            problems.append(f"{relative}: no CMakeLists in {root.name} names it and no pin explains it - "
+                            f"nothing compiles it, so nothing can be verified about it")
+    if not any(p.suffix == ".c" for p in root.rglob("*.c")):
+        problems.append("no C source was found under the component - the walk is broken")
+    return problems
+
+
 def placement_findings(sources: dict[str, set[str]]) -> list[str]:
     """One implementation per backend: a big file is a backend, and backends live in backend/<name>/."""
     problems: list[str] = []
@@ -144,7 +201,8 @@ def main() -> int:
 
     declared = declared_entries()
     problems = (placement_findings(sources) + declaration_findings(sources, declared) +
-                stale_pin_findings(sources, declared))
+                stale_pin_findings(sources, declared) + shared_source_pin_findings(sources) +
+                unlisted_source_findings())
 
     # Say what was inspected every run: a rule that silently sees nothing reads exactly like a rule
     # that holds everywhere.

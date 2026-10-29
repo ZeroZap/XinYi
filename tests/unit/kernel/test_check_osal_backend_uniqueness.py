@@ -7,6 +7,7 @@ One fixture that satisfies both rules; each case damages exactly one thing in it
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -89,6 +90,67 @@ class RealTreeTests(unittest.TestCase):
 
     def test_the_tree_passes(self):
         self.assertEqual(0, guard.main())
+
+
+class UnlistedSourceTests(unittest.TestCase):
+    """A .c nothing names is a file nothing verifies."""
+
+    def make_tree(self, tmp: str, cmake: str, files: dict[str, str]) -> Path:
+        root = Path(tmp) / "osal"
+        (root / "src").mkdir(parents=True)
+        (root / "CMakeLists.txt").write_text(cmake)
+        for name, text in files.items():
+            target = root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(text)
+        return root
+
+    def test_an_unlisted_source_is_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.make_tree(tmp, "src/xy_os_tick.c\n", {"src/xy_os_tick.c": "", "src/dup.c": ""})
+            problems = guard.unlisted_source_findings(root, {})
+            self.assertEqual(1, len(problems))
+            self.assertIn("src/dup.c", problems[0])
+
+    def test_a_listed_source_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.make_tree(tmp, "src/xy_os_tick.c\n", {"src/xy_os_tick.c": ""})
+            self.assertEqual([], guard.unlisted_source_findings(root, {}))
+
+    def test_a_pinned_source_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.make_tree(tmp, "src/xy_os_tick.c\n",
+                                  {"src/xy_os_tick.c": "", "backend/rtx5/x.c": ""})
+            self.assertEqual([], guard.unlisted_source_findings(root, {"backend/rtx5/x.c": "orphaned"}))
+
+    def test_an_empty_walk_says_so(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "osal"
+            root.mkdir()
+            (root / "CMakeLists.txt").write_text("")
+            problems = guard.unlisted_source_findings(root, {})
+            self.assertEqual(1, len(problems))
+            self.assertIn("walk is broken", problems[0])
+
+
+class SharedSourcePinTests(unittest.TestCase):
+    """A pin for a file that is gone, or defines nothing, is a stale claim."""
+
+    def test_a_missing_file_is_reported(self):
+        problems = guard.shared_source_pin_findings({}, {"src/gone.c": "was shared"})
+        self.assertEqual(1, len(problems))
+        self.assertIn("does not exist", problems[0])
+
+    def test_a_file_defining_nothing_is_reported(self):
+        problems = guard.shared_source_pin_findings({"src/xy_os_tick.c": set()},
+                                                    {"src/xy_os_tick.c": "tick accounting"})
+        self.assertEqual(1, len(problems))
+        self.assertIn("defines no OSAL entry", problems[0])
+
+    def test_a_real_shared_source_passes(self):
+        problems = guard.shared_source_pin_findings({"src/xy_os_tick.c": {"xy_os_tick_get"}},
+                                                    {"src/xy_os_tick.c": "tick accounting"})
+        self.assertEqual([], problems)
 
 
 if __name__ == "__main__":

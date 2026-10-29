@@ -140,6 +140,62 @@ static void test_start_and_stop_does_not_exhaust_the_timer_pool(void)
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_timer_delete(timer));
 }
 
+/* A timer started for 3 ticks fired on the 4th poll: xy_timer_sw_poll() decremented the counter first
+ * and only fired at the poll after it reached zero, so every timer in the system ran one tick late - by
+ * the count as well as by the arithmetic. The existing test recorded that as the contract for a 1-tick
+ * timer; this one asks for the interval the caller asked for. */
+/* The periodic path had no coverage at all: the reload is what makes a timer periodic, and it is one
+ * line away from the one-shot branch. */
+static void test_periodic_timer_fires_once_per_interval(void)
+{
+    int arg = 9;
+    xy_os_timer_id_t t = xy_os_timer_new(test_timer_callback, XY_OS_TIMER_PERIODIC, &arg, NULL);
+    TEST_ASSERT_NOT_NULL(t);
+    memset(&test_timer_callback_fake, 0, sizeof(test_timer_callback_fake));
+
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_timer_start(t, 2U));
+    xy_timer_sw_poll();
+    TEST_ASSERT_EQUAL_UINT(0U, test_timer_callback_fake.call_count);
+    /* Two-tick period with a one-tick offset: after two ticks it must fire, and again every two. */
+    xy_timer_sw_poll();
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(1U, test_timer_callback_fake.call_count, "end of the first period");
+    xy_timer_sw_poll();
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(1U, test_timer_callback_fake.call_count, "mid-period");
+    xy_timer_sw_poll();
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(2U, test_timer_callback_fake.call_count, "end of the second period");
+    xy_timer_sw_poll();
+    xy_timer_sw_poll();
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(3U, test_timer_callback_fake.call_count, "end of the third period");
+    /* A periodic timer is still running, unlike the one-shot above. */
+    TEST_ASSERT_EQUAL_INT(1, xy_os_timer_is_running(t));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_timer_stop(t));
+    TEST_ASSERT_EQUAL_INT(0, xy_os_timer_is_running(t));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_timer_delete(t));
+}
+
+static void test_timer_expires_after_the_ticks_it_was_given(void)
+{
+    int arg = 7;
+    xy_os_timer_id_t t = xy_os_timer_new(test_timer_callback, XY_OS_TIMER_ONCE, &arg, NULL);
+    TEST_ASSERT_NOT_NULL(t);
+    memset(&test_timer_callback_fake, 0, sizeof(test_timer_callback_fake));
+
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_timer_start(t, 3U));
+    xy_timer_sw_poll();
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(0U, test_timer_callback_fake.call_count, "one tick of three");
+    xy_timer_sw_poll();
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(0U, test_timer_callback_fake.call_count, "two ticks of three");
+    xy_timer_sw_poll();
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(1U, test_timer_callback_fake.call_count, "the third tick is the one");
+
+    /* It is a one-shot: later polls must not fire it again. */
+    xy_timer_sw_poll();
+    xy_timer_sw_poll();
+    TEST_ASSERT_EQUAL_UINT(1U, test_timer_callback_fake.call_count);
+    TEST_ASSERT_EQUAL_INT(0, xy_os_timer_is_running(t));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_timer_delete(t));
+}
+
 static void test_timer_one_shot_and_reuse(void)
 {
     int arg = 123;
@@ -150,12 +206,15 @@ static void test_timer_one_shot_and_reuse(void)
     TEST_ASSERT_NOT_NULL(timer);
     TEST_ASSERT_EQUAL_STRING("tmr", xy_os_timer_get_name(timer));
     TEST_ASSERT_EQUAL_INT(0, xy_os_timer_is_running(timer));
+    memset(&test_timer_callback_fake, 0, sizeof(test_timer_callback_fake));
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_timer_start(timer, 1));
     TEST_ASSERT_EQUAL_INT(1, xy_os_timer_is_running(timer));
-    xy_timer_sw_poll();
-    TEST_ASSERT_EQUAL_UINT(0U, test_timer_callback_fake.call_count);
+    /* One tick asked for, one poll to fire. This used to assert the opposite - that a 1-tick timer had
+     * not fired after one tick - which recorded the off-by-one as if it were the contract. */
     xy_timer_sw_poll();
     TEST_ASSERT_EQUAL_UINT(1U, test_timer_callback_fake.call_count);
+    xy_timer_sw_poll();
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(1U, test_timer_callback_fake.call_count, "one-shot fires once");
     TEST_ASSERT_EQUAL_PTR(&arg, test_timer_callback_fake.arg0_val);
     TEST_ASSERT_EQUAL_INT(123, *(int *)test_timer_callback_fake.arg0_val);
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_timer_stop(timer));
@@ -789,6 +848,8 @@ int main(void)
     RUN_TEST(test_thread_operations_this_backend_cannot_do);
     RUN_TEST(test_timer_handle_misuse_is_a_parameter_error);
     RUN_TEST(test_start_and_stop_does_not_exhaust_the_timer_pool);
+    RUN_TEST(test_periodic_timer_fires_once_per_interval);
+    RUN_TEST(test_timer_expires_after_the_ticks_it_was_given);
     RUN_TEST(test_timer_one_shot_and_reuse);
 
     /* Mutex */
