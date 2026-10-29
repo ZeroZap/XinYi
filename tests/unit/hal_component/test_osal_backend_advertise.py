@@ -269,6 +269,45 @@ class DocumentTests(unittest.TestCase):
         self.assertIn("-DOSAL_BACKEND=rtthread", problems[0])
 
 
+class PlatformCommandTests(unittest.TestCase):
+    """A fenced command must name the platform variable this build reads, with a value it accepts."""
+
+    def test_a_command_passing_platform_without_hal_is_reported(self):
+        docs = {"docs/getting-started/x.md": "```bash\nmake PLATFORM=PC\n```\n"}
+        problems = guard.platform_command_findings(docs)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("PLATFORM=PC", problems[0])
+        self.assertIn("HAL_PLATFORM", problems[0])
+
+    def test_a_command_passing_the_variable_the_build_reads_passes(self):
+        docs = {"docs/getting-started/x.md": "```bash\nmake HAL_PLATFORM=STM32U5\n```\n"}
+        self.assertEqual(guard.platform_command_findings(docs), [])
+
+    def test_a_cmake_d_flag_is_judged_the_same_way(self):
+        docs = {"docs/getting-started/x.md": "```bash\ncmake .. -DPLATFORM=PC\n```\n"}
+        problems = guard.platform_command_findings(docs)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("PLATFORM=PC", problems[0])
+
+    def test_a_makefile_fragment_is_not_a_command(self):
+        """A fragment showing how another project spells its own build is not something a reader pastes."""
+        docs = {"docs/hardware/x.md": "```makefile\nPLATFORM = stm32\n```\n"}
+        self.assertEqual(guard.platform_command_findings(docs), [])
+
+    def test_a_snippet_naming_a_value_the_build_refuses_is_reported(self):
+        """Not a command, and still wrong: a reader would write this into their own build."""
+        docs = {"docs/getting-started/x.md": "```makefile\nHAL_PLATFORM = STM32\n```\n"}
+        problems = guard.platform_command_findings(docs)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("HAL_PLATFORM=STM32", problems[0])
+        self.assertIn("STM32U5", problems[0])
+
+    def test_the_real_reader_docs_pass(self):
+        docs = guard.reader_docs()
+        self.assertTrue(docs)
+        self.assertEqual(guard.platform_command_findings(docs), [])
+
+
 class FencedBlockTests(unittest.TestCase):
     def test_a_four_backtick_fence_is_not_closed_by_three(self):
         """A block that quotes a fenced example keeps its content instead of ending inside it."""
@@ -280,9 +319,9 @@ class FencedBlockTests(unittest.TestCase):
     def test_a_four_space_indented_line_is_not_a_fence(self):
         self.assertEqual(guard.fenced_blocks("    ```bash\ncmake ..\n    ```\n"), [])
 
-    def test_the_real_design_docs_are_read_as_blocks(self):
+    def test_the_real_reader_docs_are_read_as_blocks(self):
         """A parser that finds no fence is green for the same reason an empty file is."""
-        docs = guard.design_docs()
+        docs = guard.reader_docs()
         self.assertTrue(docs)
         self.assertTrue(any(guard.fenced_blocks(text) for text in docs.values()))
 
@@ -291,8 +330,9 @@ class RepositoryTests(unittest.TestCase):
     def test_the_repository_passes(self):
         root = guard.ROOT_CMAKE.read_text(encoding="utf-8")
         problems = guard.findings(root, guard.OSAL_CMAKE.read_text(encoding="utf-8"))
-        problems += guard.doc_command_findings(guard.design_docs(),
-                                               guard.selectable(root))
+        docs = guard.reader_docs()
+        problems += guard.doc_command_findings(docs, guard.selectable(root))
+        problems += guard.platform_command_findings(docs)
         self.assertEqual(problems, [])
 
 

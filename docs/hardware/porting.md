@@ -138,7 +138,7 @@ C_DEFS += -D$(PLATFORM)_HAL_ENABLED
 
 ```bash
 # 选择平台编译
-make PLATFORM=stm32 SERIES=stm32f4
+make HAL_PLATFORM=STM32F4
 ```
 
 ### 2. 基本功能测试

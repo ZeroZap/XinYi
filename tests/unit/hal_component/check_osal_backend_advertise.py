@@ -21,9 +21,12 @@ Every one of these questions is a question about *live* CMake. A commented-out b
 here is green on the thing it exists to catch - the offered-but-undispatched backend. So the
 CMake and Kconfig text goes through source_scan.code_only_hash() before any of it is matched.
 
-The fenced commands in docs/design get the same treatment one format over: a `#` inside a fence
-is a comment there too. Before that, a block that wrote down "this spelling is refused" was
-reported as telling readers to use it, which punishes the documentation that explains the rule.
+The fenced commands in the documents a reader follows get the same treatment one format over: a
+`#` inside a fence is a comment there too. Before that, a block that wrote down "this spelling is
+refused" was reported as telling readers to use it, which punishes the documentation that explains
+the rule. The same question is asked of the platform variable: a command must name the one the
+build reads (HAL_PLATFORM, not PLATFORM) with a value the configure step accepts, because a wrong
+variable is dropped without a word and builds the default platform instead.
 """
 
 from __future__ import annotations
@@ -272,11 +275,65 @@ def doc_command_findings(docs: dict[str, str], chosen: set[str]) -> list[str]:
     return problems
 
 
-def design_docs(root: Path = ROOT) -> dict[str, str]:
+#: What the root CMake accepts as HAL_PLATFORM. A value outside this list is refused with
+#: FATAL_ERROR, so a document naming one sends the reader into a failed configure.
+PLATFORM_VALUES = ("PC", "STM32F4", "STM32U5", "STM32L4", "WCH", "HC32")
+
+COMMAND = re.compile(r"^(?:\$\s*)?(?:make|cmake)\b")
+# A bare `PLATFORM=` is not the root build's variable at all: it reads HAL_PLATFORM, so the
+# assignment is dropped without a word and the default platform is built instead. The `-D` is
+# part of the match because its `D` would otherwise read as a word character in the lookbehind.
+PLATFORM_ASSIGN = re.compile(r"(?<![A-Za-z0-9_])(?P<dash>-D)?(?P<hal>HAL_)?PLATFORM\s*=\s*"
+                             r"(?P<value>[^\s)'\";]*)")
+
+
+def platform_command_findings(docs: dict[str, str]) -> list[str]:
+    """A fenced command must name the platform variable this build reads, with a value it accepts.
+
+    The variable half is judged on command lines only, because `PLATFORM = stm32` is a legitimate
+    line *inside a Makefile fragment* - a document showing how a different project spells its own
+    build - while `make PLATFORM=stm32` is a command a reader pastes and gets the default platform
+    for. The value half is judged everywhere, because a snippet telling someone to write
+    `HAL_PLATFORM = STM32` into their build is wrong whether or not it is a command.
+    """
+    problems: list[str] = []
+    for where, text in sorted(docs.items()):
+        for block in fenced_blocks(text):
+            for line in code_only_hash(block).splitlines():
+                command = COMMAND.match(line.strip()) is not None
+                for match in PLATFORM_ASSIGN.finditer(line):
+                    value = match.group("value")
+                    if match.group("hal") is None:
+                        if command:
+                            problems.append(
+                                f"{where}: a fenced command passes PLATFORM={value}, but this build "
+                                f"reads HAL_PLATFORM - the assignment is dropped and the default "
+                                f"platform is built instead")
+                        continue
+                    if value not in PLATFORM_VALUES:
+                        problems.append(
+                            f"{where}: a fenced line names HAL_PLATFORM={value}, but the build "
+                            f"accepts only {list(PLATFORM_VALUES)} and refuses the rest")
+    return problems
+
+
+def reader_docs(root: Path = ROOT) -> dict[str, str]:
+    """Documents a reader follows to build *this* repository, today.
+
+    Left out on purpose: `docs/history` records what was true when it was written and is not an
+    instruction now, and a per-example README documents that example's own CMakeLists, which has
+    its own variables and may legitimately spell `PLATFORM`.
+    """
     docs: dict[str, str] = {}
-    for path in sorted((root / "docs" / "design").rglob("*.md")):
+    for path in (root / "README.md", root / "AGENTS.md", root / "CLAUDE.md"):
+        if path.exists():
+            docs[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8",
+                                                                     errors="replace")
+    for path in sorted((root / "docs").rglob("*.md")):
+        if "history" in path.relative_to(root).parts:
+            continue
         docs[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8",
-                                                                errors="replace")
+                                                                 errors="replace")
     return docs
 
 
@@ -290,7 +347,9 @@ def main() -> int:
     problems.extend(undefined_symbol_findings(
         read_hash_code(KERNEL_CMAKE) + "\n" + osal_text,
         read_hash_code(ROOT_KCONFIG)))
-    problems.extend(doc_command_findings(design_docs(), selectable(root_text)))
+    docs = reader_docs()
+    problems.extend(doc_command_findings(docs, selectable(root_text)))
+    problems.extend(platform_command_findings(docs))
     if problems:
         print("osal_backend_advertise failed:")
         for problem in problems:

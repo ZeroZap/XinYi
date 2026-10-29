@@ -158,30 +158,34 @@ make clean
 | 选项 | 默认值 | 说明 |
 |------|--------|------|
 | `CMAKE_BUILD_TYPE` | Release | 构建类型 (Debug/Release/MinSizeRel) |
-| `CMAKE_TOOLCHAIN_FILE` | - | 工具链文件路径 |
-| `BUILD_TESTING` | ON | 构建测试用例 |
+| `BUILD_TESTING` | OFF | 构建测试用例 |
 | `TEST_COVERAGE` | OFF | 启用代码覆盖率 |
-| `HAL_PLATFORM` | STM32 | HAL 平台 (STM32/WCH/HC32/PC) |
-| `OSAL_BACKEND` | FreeRTOS | OSAL 后端 (FreeRTOS/RT-Thread/RTX/Baremetal) |
+| `HAL_PLATFORM` | PC | HAL 平台 (PC/STM32F4/STM32U5/STM32L4/WCH/HC32) |
+| `OSAL_BACKEND` | baremetal | 由 Kconfig 推导 (baremetal/freertos)；直接传值会被根 CMake 拒绝 |
 
 #### 平台特定配置
 
+交叉编译器由 `cmake/platform/<HAL_PLATFORM>.cmake` 选择，所以平台就是唯一开关；不需要
+（也不应该）再传 `CMAKE_TOOLCHAIN_FILE`。
+
 ```bash
 # STM32U5
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/arm-gcc.cmake \
-         -DHAL_PLATFORM=STM32
+make HAL_PLATFORM=STM32U5
 
-# WCH CH32U5
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/wch-gcc.cmake \
-         -DHAL_PLATFORM=WCH
+# STM32L4（Pandora STM32L475 参考板冒烟镜像）
+make HAL_PLATFORM=STM32L4 STM32L4_BOARD=pandora_stm32l475
+
+# STM32F4
+make HAL_PLATFORM=STM32F4
+
+# WCH CH32V307
+make HAL_PLATFORM=WCH
 
 # HC32
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/hc32-gcc.cmake \
-         -DHAL_PLATFORM=HC32
+make HAL_PLATFORM=HC32
 
-# PC 仿真
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/native-gcc.cmake \
-         -DHAL_PLATFORM=PC
+# PC 仿真（默认）
+make
 ```
 
 ### Make (传统)

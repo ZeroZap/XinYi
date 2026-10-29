@@ -15,35 +15,35 @@ git clone https://github.com/ZeroZap/XinYi.git
 cd XinYi
 ```
 
-### 2. 选择示例项目
+### 2. 选择平台
 
-```bash
-# STM32U5 示例 (推荐)
-cd examples/stm32u5_demo
-
-# 或 PC 仿真 (无需硬件)
-cd examples/pc_simulator
-```
+root 构建由 `HAL_PLATFORM` 选择平台（默认 `PC`）。交叉编译器由
+`cmake/platform/<HAL_PLATFORM>.cmake` 决定，不需要手动传 `CMAKE_TOOLCHAIN_FILE`。
 
 ### 3. 编译项目
 
 ```bash
-# STM32U5 (需要 ARM GCC)
+# PC（默认，无需硬件；产出库与 Host 单元测试）
 make
 
-# PC 仿真 (需要 GCC)
-make PLATFORM=PC
+# STM32U5（需要 arm-none-eabi-gcc，可用 -DTOOLCHAIN_PATH=<bin 目录> 覆盖默认路径）
+make HAL_PLATFORM=STM32U5
+
+# Pandora STM32L475 参考板冒烟镜像
+make HAL_PLATFORM=STM32L4 STM32L4_BOARD=pandora_stm32l475
 ```
 
-### 4. 运行/烧录
+### 4. 运行 / 验证
 
 ```bash
-# STM32U5 - 烧录到开发板
-make flash
+# Host 单元测试 —— PC 上真正会"跑起来"的东西
+make test-unit
 
-# PC 仿真 - 直接运行
-./build/xy_demo
+# PC 构建产出的是库，不是可直接执行的文件；各示例在 examples/ 下独立构建
 ```
+
+烧录走 `python3 tools/pandora_hil_program.py run ...`（快照门禁，无快照不写）。root
+Makefile 没有 `flash` 目标。
 
 ---
 
@@ -318,30 +318,25 @@ uint16_t crc = xy_crc16(data, len);
 
 ### OSAL 后端配置
 
-在 `xy_os_cfg.h` 中配置:
+后端由 Kconfig 选择，不是改宏：`CONFIG_OSAL_BACKEND_FREERTOS` /
+`CONFIG_OSAL_BACKEND_BAREMETAL`（默认 baremetal）。FreeRTOS 只在 STM32U5 / STM32L4 /
+WCH 上可选，其它平台由 root CMake 直接拒绝；RT-Thread 与 CMSIS-RTX 目前没有可编译的
+后端。
 
-```c
-/* 选择 OSAL 后端 */
-#define OSAL_BACKEND_FREERTOS
-// #define OSAL_BACKEND_RTTHREAD
-// #define OSAL_BACKEND_CMSIS_RTX
-// #define OSAL_BACKEND_BAREMETAL
+```bash
+# 选 FreeRTOS 后端
+make HAL_PLATFORM=STM32L4 KCONFIG_OVERRIDES=OSAL_BACKEND_FREERTOS=ON
 ```
 
 ### HAL 平台配置
 
-在 CMake 中配置:
+`HAL_PLATFORM` 只接受 `PC` / `STM32F4` / `STM32U5` / `STM32L4` / `WCH` / `HC32`，其它
+值在 configure 阶段报错。
 
-```cmake
-set(HAL_PLATFORM "STM32" CACHE STRING "HAL Platform")
-# 可选：STM32 / WCH / HC32 / PC
-```
-
-或在 Makefile 中:
-
-```makefile
-HAL_PLATFORM = STM32
-# 可选：STM32 / WCH / HC32 / PC
+```bash
+make HAL_PLATFORM=STM32U5
+# 或直接 configure
+cmake -B build/stm32u5 -S . -DHAL_PLATFORM=STM32U5 -DCMAKE_BUILD_TYPE=Release
 ```
 
 ---
