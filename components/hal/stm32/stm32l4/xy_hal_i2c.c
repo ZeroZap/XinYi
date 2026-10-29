@@ -164,6 +164,14 @@ xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr, uint8_t *
                                              (uint16_t)len, timeout));
 }
 
+/* The public API exposes one 16-bit register address with no size selector, so
+ * the encoding must be chosen from the value itself; truncating a >0xFF address
+ * to eight bits addressed the wrong register. */
+static uint16_t i2c_mem_address_size(uint16_t reg_addr)
+{
+    return (reg_addr > 0xFFU) ? I2C_MEMADD_SIZE_16BIT : I2C_MEMADD_SIZE_8BIT;
+}
+
 xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr, uint16_t reg_addr,
                                     const uint8_t *data, size_t len, uint32_t timeout)
 {
@@ -173,7 +181,7 @@ xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr, uint16_t reg_a
     }
     return map_status(HAL_I2C_Mem_Write((I2C_HandleTypeDef *)i2c,
                                         (uint16_t)(dev_addr << 1), reg_addr,
-                                        I2C_MEMADD_SIZE_8BIT, (uint8_t *)data,
+                                        i2c_mem_address_size(reg_addr), (uint8_t *)data,
                                         (uint16_t)len, timeout));
 }
 
@@ -186,7 +194,7 @@ xy_hal_error_t xy_hal_i2c_mem_read(void *i2c, uint16_t dev_addr, uint16_t reg_ad
     }
     return map_status(HAL_I2C_Mem_Read((I2C_HandleTypeDef *)i2c,
                                        (uint16_t)(dev_addr << 1), reg_addr,
-                                       I2C_MEMADD_SIZE_8BIT, data, (uint16_t)len,
+                                       i2c_mem_address_size(reg_addr), data, (uint16_t)len,
                                        timeout));
 }
 

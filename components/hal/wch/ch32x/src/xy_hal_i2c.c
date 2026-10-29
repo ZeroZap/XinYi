@@ -189,7 +189,7 @@ xy_hal_error_t xy_hal_i2c_mem_write(void* instance, uint16_t address, uint16_t r
     size_t i;
     xy_hal_error_t result;
     int index = i2c_index(instance);
-    if (index < 0 || !i2c_address_valid(address) || reg > 0xFFU || len == 0U || data == NULL)
+    if (index < 0 || !i2c_address_valid(address) || len == 0U || data == NULL)
         return XY_HAL_ERROR_INVALID_PARAM;
     if (i2c_initialized[index] == 0U)
         return XY_HAL_ERROR_NOT_INIT;
@@ -205,7 +205,16 @@ xy_hal_error_t xy_hal_i2c_mem_write(void* instance, uint16_t address, uint16_t r
     result = i2c_wait_event(instance, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED, timeout);
     if (result != XY_HAL_OK)
         return result;
-    I2C_SendData(instance, (uint8_t)reg);
+    if (reg > 0xFFU) {
+        /* The same encoding STM32's I2C_MEMADD_SIZE_16BIT produces: high byte first.
+         * Refusing the address (or truncating it) made one public parameter mean three
+         * different things across the backends. */
+        I2C_SendData(instance, (uint8_t)(reg >> 8));
+        result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, timeout);
+        if (result != XY_HAL_OK)
+            return result;
+    }
+    I2C_SendData(instance, (uint8_t)(reg & 0xFFU));
     result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, timeout);
     if (result != XY_HAL_OK)
         return result;
@@ -224,7 +233,7 @@ xy_hal_error_t xy_hal_i2c_mem_read(void* instance, uint16_t address, uint16_t re
     size_t i;
     xy_hal_error_t result;
     int index = i2c_index(instance);
-    if (index < 0 || !i2c_address_valid(address) || reg > 0xFFU || len == 0U || data == NULL)
+    if (index < 0 || !i2c_address_valid(address) || len == 0U || data == NULL)
         return XY_HAL_ERROR_INVALID_PARAM;
     if (i2c_initialized[index] == 0U)
         return XY_HAL_ERROR_NOT_INIT;
@@ -240,7 +249,16 @@ xy_hal_error_t xy_hal_i2c_mem_read(void* instance, uint16_t address, uint16_t re
     result = i2c_wait_event(instance, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED, timeout);
     if (result != XY_HAL_OK)
         return result;
-    I2C_SendData(instance, (uint8_t)reg);
+    if (reg > 0xFFU) {
+        /* The same encoding STM32's I2C_MEMADD_SIZE_16BIT produces: high byte first.
+         * Refusing the address (or truncating it) made one public parameter mean three
+         * different things across the backends. */
+        I2C_SendData(instance, (uint8_t)(reg >> 8));
+        result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, timeout);
+        if (result != XY_HAL_OK)
+            return result;
+    }
+    I2C_SendData(instance, (uint8_t)(reg & 0xFFU));
     result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, timeout);
     if (result != XY_HAL_OK)
         return result;

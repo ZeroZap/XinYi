@@ -141,6 +141,76 @@ xy_hal_error_t xy_hal_i2c_init(void *i2c, const xy_hal_i2c_config_t *config)
         self.assertTrue(any("programs the peripheral" in problem for problem in problems))
 
 
+class RegisterAddressTests(unittest.TestCase):
+    """One uint16_t parameter, three behaviours: truncated, derived, refused.
+
+    L4 and U5 hardcoded I2C_MEMADD_SIZE_8BIT, so a register above 0xFF reached the wrong
+    register with no error at all. F4 derived the encoding from the value. WCH refused the wide
+    address, which is at least visible but splits one public parameter into three meanings.
+    """
+
+    L4_HARDCODED = """
+xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr, uint16_t reg_addr,
+                                    const uint8_t *data, size_t len, uint32_t timeout)
+{
+    return map_status(HAL_I2C_Mem_Write(handle, (uint16_t)(dev_addr << 1), reg_addr,
+                                        I2C_MEMADD_SIZE_8BIT, (uint8_t *)data, (uint16_t)len,
+                                        timeout));
+}
+"""
+
+    WCH_REFUSES = """
+xy_hal_error_t xy_hal_i2c_mem_read(void* instance, uint16_t address, uint16_t reg,
+                                   uint8_t* data, size_t len, uint32_t timeout) {
+    if (i2c_address_valid(address) || reg > 0xFFU || len == 0U)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    I2C_SendData(instance, (uint8_t)reg);
+    return XY_HAL_OK;
+}
+"""
+
+    WCH_WIDE = """
+xy_hal_error_t xy_hal_i2c_mem_read(void* instance, uint16_t address, uint16_t reg,
+                                   uint8_t* data, size_t len, uint32_t timeout) {
+    if (reg > 0xFFU) {
+        I2C_SendData(instance, (uint8_t)(reg >> 8));
+    }
+    I2C_SendData(instance, (uint8_t)(reg & 0xFFU));
+    return XY_HAL_OK;
+}
+"""
+
+    F4_DERIVED = """
+xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr, uint16_t reg_addr,
+                                    const uint8_t *data, size_t len, uint32_t timeout)
+{
+    return map_status(HAL_I2C_Mem_Write(handle, (uint16_t)(dev_addr << 1), reg_addr,
+                                        i2c_mem_address_size(reg_addr), (uint8_t *)data,
+                                        (uint16_t)len, timeout));
+}
+"""
+
+    def test_a_hardcoded_eight_bit_size_is_reported_as_truncation(self):
+        problems = guard.register_address_findings(self.L4_HARDCODED, "l4")
+        self.assertTrue(any("truncated to its low byte" in problem for problem in problems))
+
+    def test_refusing_the_wide_address_is_reported_as_refusal(self):
+        problems = guard.register_address_findings(self.WCH_REFUSES, "wch")
+        self.assertTrue(any("refuses register addresses above 0xFF" in problem
+                            for problem in problems))
+
+    def test_branching_on_the_wide_address_is_not_a_refusal(self):
+        """Regression case: `if (reg > 0xFFU) {` is the fix, not the defect.
+
+        The first version of the rule matched the condition alone and reported the corrected
+        WCH backend as still refusing the address.
+        """
+        self.assertEqual(guard.register_address_findings(self.WCH_WIDE, "wch"), [])
+
+    def test_a_size_derived_from_the_value_passes(self):
+        self.assertEqual(guard.register_address_findings(self.F4_DERIVED, "f4"), [])
+
+
 class HeaderTests(unittest.TestCase):
     def test_a_header_that_names_the_7_bit_address_passes(self):
         self.assertEqual(guard.header_findings(" * @param dev_addr 7-bit address\n"), [])

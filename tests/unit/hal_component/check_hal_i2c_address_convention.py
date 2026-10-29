@@ -142,8 +142,86 @@ def ten_bit_findings(source: str, where: str) -> list[str]:
     return problems
 
 
+MEM_CALLS = ("xy_hal_i2c_mem_write(", "xy_hal_i2c_mem_read(")
+HARDCODED_EIGHT_BIT = re.compile(r"I2C_MEMADD_SIZE_8BIT\s*,")
+SIZE_FROM_VALUE = re.compile(r"\w*mem_?address_?size\s*\(|\w*memadd_size\w*\s*\(")
+HIGH_BYTE_SENT = re.compile(r"reg\s*>>\s*8")
+SINGLE_BYTE_REGISTER = re.compile(r"\(uint8_t\)\s*\(?reg\b")
+WIDE_REGISTER = re.compile(r"reg(_addr)?\s*>\s*0xFFU?")
+
+
+def if_statements(body: str) -> list[tuple[str, str]]:
+    """Every `if (condition)` with the text that follows its closing parenthesis.
+
+    A regex cannot do this: the conditions these backends write contain calls, so the first `)`
+    belongs to `i2c_address_valid(address)`, not to the `if`. Splitting the condition from what
+    follows it is the whole point - `if (reg > 0xFFU) return INVALID_PARAM;` refuses the wide
+    address, while `if (reg > 0xFFU) { send the high byte }` is the fix for it.
+    """
+    statements: list[tuple[str, str]] = []
+    for match in re.finditer(r"\bif\s*\(", body):
+        depth = 0
+        start = match.end() - 1
+        for index in range(start, len(body)):
+            if body[index] == "(":
+                depth += 1
+            elif body[index] == ")":
+                depth -= 1
+                if depth == 0:
+                    statements.append((body[start + 1:index], body[index + 1:index + 120]))
+                    break
+    return statements
+
+
+def refuses_wide_register(body: str) -> bool:
+    """A condition on a >0xFF register that returns INVALID_PARAM instead of handling it."""
+    for condition, following in if_statements(body):
+        if WIDE_REGISTER.search(condition) and "XY_HAL_ERROR_INVALID_PARAM" in following:
+            return True
+    return False
+
+
+def register_address_findings(source: str, where: str) -> list[str]:
+    """One 16-bit parameter, three behaviours: truncated, derived, or refused.
+
+    L4 and U5 passed a hardcoded I2C_MEMADD_SIZE_8BIT, so a register above 0xFF was silently
+    truncated to its low byte - the wrong register, with no error. F4 derived the size from the
+    value. WCH refused the address outright. F4 is the only one that matches the header's 16-bit
+    parameter, so the rule is that shared: derive the encoding from the value, never truncate it,
+    and do not refuse it either.
+
+    The truncation rule is stated only for backends that do not refuse the wide address: refusing
+    is a different (and reported) defect, and calling it truncation would name the wrong bug.
+    """
+    problems: list[str] = []
+    for call in MEM_CALLS:
+        body = function_body(source, call)
+        if not body:
+            continue
+        name = call.rstrip("(")
+        refuses = refuses_wide_register(body)
+        if HARDCODED_EIGHT_BIT.search(body):
+            problems.append(
+                f"{where}:{name}: passes a hardcoded I2C_MEMADD_SIZE_8BIT, so a register "
+                f"address above 0xFF is truncated to its low byte and the wrong register is "
+                f"accessed")
+        elif refuses:
+            problems.append(
+                f"{where}:{name}: refuses register addresses above 0xFF, but the parameter is "
+                f"uint16_t and the other backends support the wider address")
+        elif "I2C_MEMADD" not in body and SINGLE_BYTE_REGISTER.search(body) \
+                and not HIGH_BYTE_SENT.search(body):
+            problems.append(
+                f"{where}:{name}: sends the register address as a single byte with no "
+                f"high-byte path, so a 16-bit address is silently truncated")
+    return problems
+
+
 def header_findings(header: str) -> list[str]:
     problems: list[str] = []
+    if "reg_addr" in header and "16-bit" not in header:
+        problems.append("xy_hal_i2c.h: reg_addr is 16-bit in the signature and the header does "
+                        "not say how the size is chosen")
     if "ADDR_10BIT" in header and "NOT_SUPPORTED" not in header:
         problems.append("xy_hal_i2c.h: XY_HAL_I2C_ADDR_10BIT is declared without saying that "
                         "init refuses it")
@@ -168,6 +246,7 @@ def findings(backends: dict[str, Path] | None = None, header: Path | None = None
         text = read_code(path)
         problems.extend(helper_findings(text, name))
         problems.extend(ten_bit_findings(text, name))
+        problems.extend(register_address_findings(text, name))
         for function in FUNCTIONS:
             body = function_body(text, function)
             if not body:

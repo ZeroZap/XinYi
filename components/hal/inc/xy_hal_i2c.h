@@ -102,7 +102,10 @@ xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr,
  * @param i2c I2C instance
  * @param dev_addr Device address, 7-bit and unshifted (0x50, not 0xA0); each backend
  *        validates it and applies the shift itself
- * @param reg_addr Register address
+ * @param reg_addr Register address, 8- or 16-bit. There is no size selector, so each backend
+ *        picks the encoding from the value (> 0xFF is sent as a two-byte address, high byte
+ *        first). Truncating it, or refusing it, addressed the wrong register or made an
+ *        ordinary 16-bit part unusable.
  * @param data Data buffer
  * @param len Data length
  * @param timeout Timeout in milliseconds
@@ -117,7 +120,10 @@ xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr,
  * @param i2c I2C instance
  * @param dev_addr Device address, 7-bit and unshifted (0x50, not 0xA0); each backend
  *        validates it and applies the shift itself
- * @param reg_addr Register address
+ * @param reg_addr Register address, 8- or 16-bit. There is no size selector, so each backend
+ *        picks the encoding from the value (> 0xFF is sent as a two-byte address, high byte
+ *        first). Truncating it, or refusing it, addressed the wrong register or made an
+ *        ordinary 16-bit part unusable.
  * @param data Data buffer
  * @param len Buffer length
  * @param timeout Timeout in milliseconds
