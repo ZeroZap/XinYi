@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "tool": "tools/pandora_hil_program.py",
+  "board": "pandora_stm32l475",
+  "created_utc": "2026-10-29T02:58:20+00:00",
+  "image": {
+    "path": "/home/eugene/.hermes/cache/scratch/s6-confirm/prog-part2.bin",
+    "size": 21460,
+    "sha256": "8e920facea009e01eb7b0cb3352c8da261e3e5d3c610cb29c0b26fde208337d1",
+    "address": "0x8008000",
+    "region": "application"
+  },
+  "readback": {
+    "span_identical": true,
+    "first_diff": null,
+    "observed_sha256": "8e920facea009e01eb7b0cb3352c8da261e3e5d3c610cb29c0b26fde208337d1",
+    "erased_tail": 1064,
+    "unexpected_changes": 0,
+    "unexpected_first": null
+  },
+  "reset": false,
+  "drift": [],
+  "drift_stable": true,
+  "drift_samples": 0,
+  "drift_seconds": 0.0,
+  "drift_window": {
+    "settle": 3.0,
+    "stable_for": 3.0,
+    "poll": 0.5,
+    "max_wait": 20.0
+  },
+  "restore_command": "tools/pandora_hil_state.py restore --snapshot docs/validation/evidence/pandora-stm32l475/2026-10-29-fota-confirm-chain/pandora-state-s1 --yes"
+}

@@ -1,0 +1,52 @@
+{
+  "active": {
+    "blank": false,
+    "boot_attempts": 0,
+    "generation": 5,
+    "image_crc32": "0x1c8c8519",
+    "image_size": 43768,
+    "image_version": 2,
+    "magic": "0x58424a52",
+    "present": true,
+    "record_crc32_ok": true,
+    "state": "CONFIRMED",
+    "state_value": 3,
+    "valid": true
+  },
+  "active_slot": 0,
+  "dump_bytes": 4096,
+  "dump_sha256": "ac8d9f1b5c32c04cae9d4a4affcf816dd4a99a79206ddc040dee327bbb31a27f",
+  "failures": [],
+  "slot_size": 2048,
+  "slots": [
+    {
+      "blank": false,
+      "boot_attempts": 0,
+      "generation": 5,
+      "image_crc32": "0x1c8c8519",
+      "image_size": 43768,
+      "image_version": 2,
+      "magic": "0x58424a52",
+      "present": true,
+      "record_crc32_ok": true,
+      "state": "CONFIRMED",
+      "state_value": 3,
+      "valid": true
+    },
+    {
+      "blank": false,
+      "boot_attempts": 2,
+      "generation": 4,
+      "image_crc32": "0x1c8c8519",
+      "image_size": 43768,
+      "image_version": 2,
+      "magic": "0x58424a52",
+      "present": true,
+      "record_crc32_ok": true,
+      "state": "INSTALLED",
+      "state_value": 2,
+      "valid": true
+    }
+  ],
+  "status": "JOURNAL_VALID"
+}
