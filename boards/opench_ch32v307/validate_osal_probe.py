@@ -76,6 +76,7 @@ SYMBOLS = (
     "xy_probe_rx_overflow",
     "xy_probe_rx_ore",
     "xy_probe_rx_expected",
+    "xy_probe_rx_have_expected",
     "xy_probe_rx_last_index",
     "xy_probe_rx_last_bad_index",
     "xy_probe_rx_task_period_ms",
@@ -389,7 +390,7 @@ def main() -> int:
         for name, address in addresses.items():
             if not name.startswith("xy_probe_rx_") or name == "xy_probe_rx_task_period_ms":
                 continue
-            value = "0xffffffff" if name == "xy_probe_rx_expected" else "0"
+            value = "0"
             zero += ["-c", f"mww 0x{address:08x} {value}"]
         reset = subprocess.run(
             [args.openocd, "-f", args.config, "-c", "adapter speed 1000", "-c", "init",

@@ -84,11 +84,16 @@ volatile uint32_t xy_probe_rx_ore;
    host, which cannot then restart the stream: zeroing the counters would leave the
    expectation from the previous window and the first frame of the new one would be
    counted as a break. -1 means "no expectation yet". */
-volatile int32_t xy_probe_rx_expected = -1;
+/* The expected index and whether there is one are two variables, not one. Encoding
+   "nothing expected" as a negative value put the sentinel in the middle of the 32 bit
+   index space, so every counter at or above 0x80000000 disabled continuity checking
+   silently - and that is exactly where the counter wraps to. */
+volatile uint32_t xy_probe_rx_expected;
+volatile uint32_t xy_probe_rx_have_expected;
 
 /* The indices that broke, so a failure says where rather than only how often. */
-volatile int32_t xy_probe_rx_last_index;
-volatile int32_t xy_probe_rx_last_bad_index;
+volatile uint32_t xy_probe_rx_last_index;
+volatile uint32_t xy_probe_rx_last_bad_index;
 
 /* Commands that arrive through the receive interrupt and end up as an I2C transfer:
    the whole chain from a byte on the wire to a device register, with no step in it
@@ -159,22 +164,25 @@ static void handle_command(const xy_frame_t* frame) {
 }
 
 static void handle_stress(const xy_frame_t* frame) {
-    int32_t index;
+    uint32_t index;
     /* payload[0..3] is a little-endian counter. */
     if (frame->length != 4U) {
         ++xy_probe_rx_frames_bad;
         return;
     }
-    index = (int32_t)(frame->payload[0] | ((uint32_t)frame->payload[1] << 8) |
-                      ((uint32_t)frame->payload[2] << 16) | ((uint32_t)frame->payload[3] << 24));
+    index = (uint32_t)frame->payload[0] | ((uint32_t)frame->payload[1] << 8) |
+            ((uint32_t)frame->payload[2] << 16) | ((uint32_t)frame->payload[3] << 24);
     xy_probe_rx_last_index = index;
-    if (xy_probe_rx_expected < 0 || index == xy_probe_rx_expected) {
+    /* Unsigned arithmetic on purpose: wrapping past 0xFFFFFFFF back to zero is defined,
+       and adding one to a signed counter is not. */
+    if (xy_probe_rx_have_expected == 0U || index == xy_probe_rx_expected) {
         ++xy_probe_rx_frames_ok;
     } else {
         ++xy_probe_rx_frames_bad;
         xy_probe_rx_last_bad_index = index;
     }
-    xy_probe_rx_expected = index + 1;
+    xy_probe_rx_expected = index + 1U;
+    xy_probe_rx_have_expected = 1U;
 }
 
 /* Framing lives in xy_frame: it is the same code the host tests exercise, including the

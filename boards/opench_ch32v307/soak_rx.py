@@ -36,6 +36,7 @@ COUNTERS = (
     "xy_probe_rx_ore",
     "xy_probe_rx_last_index",
     "xy_probe_rx_expected",
+    "xy_probe_rx_have_expected",
 )
 
 
@@ -105,7 +106,7 @@ def main() -> int:
     # the first frame the probe has ever seen.
     zero = []
     for name, address in addresses.items():
-        value = "0xffffffff" if name == "xy_probe_rx_expected" else "0"
+        value = "0"
         zero += ["-c", f"mww 0x{address:08x} {value}"]
     reset = subprocess.run(
         [args.openocd, "-f", args.config, "-c", "adapter speed 1000", "-c", "init",
