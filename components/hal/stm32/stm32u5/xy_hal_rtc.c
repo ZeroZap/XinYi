@@ -13,6 +13,7 @@
 /* Shared calendar arithmetic. Included by path so it resolves in every build shape - the HAL
  * component and the board targets do not agree on include directories. */
 #include "../../../clib/xy_clib/inc/xy_time_civil.h"
+#include "../../../clib/xy_clib/inc/xy_bcd.h"
 #include <string.h>
 
 /* RTC context structure */
@@ -220,16 +221,37 @@ xy_hal_error_t xy_hal_rtc_set_date(void *rtc, const xy_hal_rtc_date_t *date,
 
     RTC_DateTypeDef sDate = { 0 };
 
-    if (format == XY_HAL_RTC_FORMAT_BIN) {
-        sDate.WeekDay = bin_to_bcd(date->weekday);
-        sDate.Month   = bin_to_bcd(date->month);
-        sDate.Date    = bin_to_bcd(date->date);
-        sDate.Year    = bin_to_bcd(date->year);
-    } else {
-        sDate.WeekDay = date->weekday;
-        sDate.Month   = date->month;
-        sDate.Date    = date->date;
-        sDate.Year    = date->year;
+    if (format != XY_HAL_RTC_FORMAT_BIN && format != XY_HAL_RTC_FORMAT_BCD) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+
+    {
+        /* This entry had no validation at all: any month, any day, and bin_to_bcd(date->year) with a
+         * full year handed to a two-digit encoder, so writing 2026 wrote the low byte of 2026 encoded
+         * as BCD. Decode, check, then spell the register. */
+        uint8_t month = date->month;
+        uint8_t day = date->date;
+        uint8_t weekday = date->weekday;
+        uint16_t year = date->year;
+        int year_register;
+
+        if (format == XY_HAL_RTC_FORMAT_BCD) {
+            if (!xy_bcd_decode8(date->month, &month) || !xy_bcd_decode8(date->date, &day) ||
+                !xy_bcd_decode8(date->weekday, &weekday) || !xy_bcd_decode16(date->year, &year)) {
+                return XY_HAL_ERROR_INVALID_PARAM;
+            }
+        }
+        if (month < 1U || month > 12U || day < 1U || day > 31U || weekday > 7U) {
+            return XY_HAL_ERROR_INVALID_PARAM;
+        }
+        year_register = xy_rtc_year_encode(year, 1);
+        if (year_register < 0) {
+            return XY_HAL_ERROR_INVALID_PARAM;
+        }
+        sDate.WeekDay = weekday;
+        sDate.Month   = xy_bcd_encode8(month);
+        sDate.Date    = xy_bcd_encode8(day);
+        sDate.Year    = (uint8_t)year_register;
     }
 
     if (HAL_RTC_SetDate((RTC_HandleTypeDef *)rtc, &sDate,
@@ -259,16 +281,26 @@ xy_hal_error_t xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
         return XY_HAL_ERROR_FAIL;
     }
 
-    if (format == XY_HAL_RTC_FORMAT_BIN) {
-        date->weekday = bcd_to_bin(sDate.WeekDay);
-        date->month   = bcd_to_bin(sDate.Month);
-        date->date    = bcd_to_bin(sDate.Date);
-        date->year    = bcd_to_bin(sDate.Year);
-    } else {
-        date->weekday = sDate.WeekDay;
-        date->month   = sDate.Month;
-        date->date    = sDate.Date;
-        date->year    = sDate.Year;
+    {
+        /* Two digits in the register, a full year in the answer, whichever format was asked for. The
+         * old code returned bcd_to_bin(Year) - 26 - in binary mode and the packed digits in BCD mode,
+         * so no caller could tell a year from a digit pair. */
+        int year = xy_rtc_year_decode((uint8_t)((sDate.Year <= 99U) ? sDate.Year : 0xFFU), 1);
+
+        if (year < 0) {
+            return XY_HAL_ERROR_FAIL;
+        }
+        if (format == XY_HAL_RTC_FORMAT_BIN) {
+            date->weekday = bcd_to_bin(sDate.WeekDay);
+            date->month   = bcd_to_bin(sDate.Month);
+            date->date    = bcd_to_bin(sDate.Date);
+            date->year    = (uint16_t)year;
+        } else {
+            date->weekday = sDate.WeekDay;
+            date->month   = sDate.Month;
+            date->date    = sDate.Date;
+            date->year    = xy_bcd_encode16((uint16_t)year);
+        }
     }
 
     return XY_HAL_OK;

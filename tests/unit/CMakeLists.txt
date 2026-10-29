@@ -1905,6 +1905,12 @@ add_test(NAME clib_frame_mutations
 
 # --- Test 25b: calendar arithmetic, shared by the RTC backends that read a
 #     calendar. Written because the U5 backend approximated months as 30 days. ---
+# --- Test 25c: BCD digits and the RTC year spelling. The three STM32 RTC backends each
+#     spelled the year differently and two of them were wrong. ---
+xy_add_unit_test(test_xy_bcd clib_bcd UNITY
+    ${UNIT_CLIB}/test_xy_bcd.c
+)
+
 xy_add_unit_test(test_xy_time_civil clib_time_civil UNITY
     ${UNIT_CLIB}/test_xy_time_civil.c
 )

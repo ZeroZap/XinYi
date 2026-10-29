@@ -232,6 +232,50 @@ class FormatTests(unittest.TestCase):
         self.assertTrue(problems, "a helper that neither branches on nor honours the format")
 
 
+class YearSpellingTests(unittest.TestCase):
+    """A two-digit vendor year register has one correct spelling, and it lives in one place."""
+
+    def test_a_backend_using_the_shared_spelling_passes(self):
+        backed = textwrap.dedent("""
+        xy_hal_error_t xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date, xy_hal_rtc_format_t f)
+        {
+            RTC_DateTypeDef sDate = { 0 };
+            int year = xy_rtc_year_decode(sDate.Year, 1);
+
+            if (year < 0) {
+                return XY_HAL_ERROR_FAIL;
+            }
+            date->year = (uint16_t)year;
+            return XY_HAL_OK;
+        }
+        """)
+        self.assertEqual([], guard.year_findings(backed, "ok"))
+
+    def test_a_backend_inventing_its_own_century_is_named(self):
+        backed = textwrap.dedent("""
+        xy_hal_error_t xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date, xy_hal_rtc_format_t f)
+        {
+            RTC_DateTypeDef sDate = { 0 };
+            date->year = sDate.Year + 2000;
+            return XY_HAL_OK;
+        }
+        """)
+        problems = guard.year_findings(backed, "bad")
+        self.assertEqual(1, len(problems))
+        self.assertIn("shared spelling", problems[0])
+
+    def test_a_backend_without_a_calendar_register_is_not_judged(self):
+        """PC refuses BCD and WCH derives the date from a counter; neither has a two-digit year."""
+        backed = textwrap.dedent("""
+        xy_hal_error_t xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date, xy_hal_rtc_format_t f)
+        {
+            date->year = (uint16_t)(1970 + s_years);
+            return XY_HAL_OK;
+        }
+        """)
+        self.assertEqual([], guard.year_findings(backed, "counter"))
+
+
 class BackupTests(unittest.TestCase):
     def test_bounded_registers_pass(self):
         self.assertEqual([], guard.backup_findings(CORRECT, "ok"))

@@ -74,6 +74,12 @@ USES_CIVIL = re.compile(r"xy_civil_(?:days_from_epoch|seconds_from_epoch|from_da
 DERIVES_FROM_DATE = re.compile(r"xy_hal_rtc_get_date|date\.|->date")
 RAW_COUNTER = re.compile(r"RTC_GetCounter\s*\(")
 COUNTER_DOCUMENTED = re.compile(r"seconds since the epoch")
+# The header promises a full year in both formats. A backend that touches a two-digit vendor year
+# register has to go through the shared spelling, or it invents a century of its own - which is how
+# three backends came to answer 2026, 26 and 2038 for the same register.
+VENDOR_YEAR_FIELD = re.compile(r"\.\s*Year\b")
+SHARED_YEAR_SPELLING = re.compile(r"xy_rtc_year_(?:encode|decode)")
+DATE_ENTRIES = ("xy_hal_rtc_get_date", "xy_hal_rtc_set_date")
 
 
 LOCAL_CALL = re.compile(r"\b(\w+)\s*\(")
@@ -249,6 +255,22 @@ def timestamp_findings(source: str, name: str, raw: str | None = None) -> list[s
     return problems
 
 
+def year_findings(source: str, name: str) -> list[str]:
+    """A backend that reads or writes a two-digit year register must spell it the shared way."""
+    problems: list[str] = []
+    for entry in DATE_ENTRIES:
+        body = braced(source, entry + "(")
+        if not body:
+            continue
+        if not VENDOR_YEAR_FIELD.search(body):
+            continue  # no calendar register: PC refuses BCD, WCH derives from a counter
+        if not SHARED_YEAR_SPELLING.search(body):
+            problems.append(
+                f"{name}:{entry}: converts a two-digit vendor year without the shared spelling, so "
+                f"this backend's year can disagree with the others'")
+    return problems
+
+
 def backup_findings(source: str, name: str) -> list[str]:
     problems: list[str] = []
     for entry in BACKUP_ENTRIES:
@@ -274,6 +296,7 @@ def findings(backends: dict[str, Path] | None = None, header: Path | None = None
         problems.extend(argument_findings(source, name, FORMAT_ENTRIES, "format", HONOURS_FORMAT,
                                           DISCARDS_FORMAT, "the requested format"))
         problems.extend(timestamp_findings(source, name, read_raw(path)))
+        problems.extend(year_findings(source, name))
         problems.extend(backup_findings(source, name))
 
     text = read_raw(header or HEADER)
@@ -295,7 +318,8 @@ def main() -> int:
     counts = ", ".join(f"{name} {count}/{len(declared_entries())}"
                        for name, count in sorted(PINNED_COVERAGE.items()))
     print(f"hal_rtc_contract ok ({len(BACKENDS)} backends: alarm id selects or is refused, "
-          f"format honoured or refused, backup index bounded; coverage {counts})")
+          f"format honoured or refused, year spelled once, backup index bounded; "
+          f"coverage {counts})")
     return 0
 
 

@@ -29,7 +29,7 @@ typedef struct {
     uint8_t weekday; /**< Weekday (1-7, 1=Monday) */
     uint8_t month;   /**< Month (1-12) */
     uint8_t date;    /**< Date (1-31) */
-    uint16_t year;   /**< Year (0-99 or full year) */
+    uint16_t year;   /**< Full year, always: 2026, never 26 */
 } xy_hal_rtc_date_t;
 
 /* RTC Alarm Structure */
@@ -90,6 +90,17 @@ typedef void (*xy_hal_rtc_callback_t)(xy_hal_rtc_event_t event, void *arg);
  *   cannot produce the requested format must refuse with NOT_SUPPORTED rather than hand back digits
  *   in a format the caller did not ask for - BCD and binary are the same bytes with different
  *   meanings.
+ *
+ * - `format` decides how the digits are spelled, not what the fields mean. `year` is a full year in
+ *   both formats: binary answers 2026, BCD answers 0x2026, and neither ever answers 26. The RTC
+ *   registers on these parts hold two digits, so a backend converts at the register boundary and
+ *   refuses a year the register cannot represent rather than truncating it into a different year.
+ *   `weekday` is 1-7 (1 = Monday) in both formats and is never BCD - the vendor field is a small
+ *   integer and packing it would make Monday 0x01 and Friday 0x05 look identical either way, which is
+ *   exactly the kind of coincidence a date bug hides behind.
+ *
+ * - An RTC register that decodes to something that is not a date (a BCD nibble above nine) is a bus or
+ *   clock problem, and the read refuses rather than returning a plausible year.
  *
  * - `xy_hal_rtc_backup_read` / `_write` bound the index by XY_HAL_RTC_BACKUP_REGISTER_COUNT and
  *   return INVALID_PARAM beyond it. Register contents survive a reset; they do not survive power

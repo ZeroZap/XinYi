@@ -11,6 +11,7 @@
 
 #include "stm32_hal.h"
 /* Shared calendar arithmetic; included by path so it resolves in every build shape. */
+#include "../../../clib/xy_clib/inc/xy_bcd.h"
 #include "../../../clib/xy_clib/inc/xy_time_civil.h"
 
 static uint32_t xy_to_stm32_format(xy_hal_rtc_format_t format)
@@ -108,19 +109,45 @@ xy_hal_error_t xy_hal_rtc_set_date(void *rtc, const xy_hal_rtc_date_t *date,
     }
 
     RTC_DateTypeDef sDate = { 0 };
-    sDate.WeekDay         = date->weekday;
-    sDate.Month           = date->month;
-    sDate.Date            = date->date;
-    sDate.Year            = date->year % 100; /* STM32 uses 2-digit year */
 
-    if (HAL_RTC_SetDate(
-            (RTC_HandleTypeDef *)rtc, &sDate, xy_to_stm32_format(format))
-        != HAL_OK) {
+    if (format != XY_HAL_RTC_FORMAT_BIN && format != XY_HAL_RTC_FORMAT_BCD) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+
+    {
+        /* This wrote the caller's bytes straight into the register whatever the format, with the year
+         * reduced to two digits by truncation - so a BCD caller put binary digits in a register the
+         * HAL reads as BCD, and a year outside the century became a different year silently. */
+        uint8_t month = date->month;
+        uint8_t day = date->date;
+        uint8_t weekday = date->weekday;
+        uint16_t year = date->year;
+        int year_register;
+
+        if (format == XY_HAL_RTC_FORMAT_BCD) {
+            if (!xy_bcd_decode8(date->month, &month) || !xy_bcd_decode8(date->date, &day) ||
+                !xy_bcd_decode8(date->weekday, &weekday) || !xy_bcd_decode16(date->year, &year)) {
+                return XY_HAL_ERROR_INVALID_PARAM;
+            }
+        }
+        if (month < 1U || month > 12U || day < 1U || day > 31U || weekday > 7U) {
+            return XY_HAL_ERROR_INVALID_PARAM;
+        }
+        year_register = xy_rtc_year_encode(year, 1);
+        if (year_register < 0) {
+            return XY_HAL_ERROR_INVALID_PARAM;
+        }
+        sDate.WeekDay = weekday;
+        sDate.Month   = xy_bcd_encode8(month);
+        sDate.Date    = xy_bcd_encode8(day);
+        sDate.Year    = (uint8_t)year_register;
+    }
+
+    if (HAL_RTC_SetDate((RTC_HandleTypeDef *)rtc, &sDate, RTC_FORMAT_BCD) != HAL_OK) {
         return XY_HAL_ERROR_FAIL;
     }
 
     return XY_HAL_OK;
-    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 xy_hal_error_t xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
@@ -132,19 +159,39 @@ xy_hal_error_t xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
 
     RTC_DateTypeDef sDate = { 0 };
 
-    if (HAL_RTC_GetDate(
-            (RTC_HandleTypeDef *)rtc, &sDate, xy_to_stm32_format(format))
-        != HAL_OK) {
+    if (format != XY_HAL_RTC_FORMAT_BIN && format != XY_HAL_RTC_FORMAT_BCD) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    /* Read the registers as BCD whatever the caller asked for: the conversion happens once, below. */
+    if (HAL_RTC_GetDate((RTC_HandleTypeDef *)rtc, &sDate, RTC_FORMAT_BCD) != HAL_OK) {
         return XY_HAL_ERROR_FAIL;
     }
 
-    date->weekday = sDate.WeekDay;
-    date->month   = sDate.Month;
-    date->date    = sDate.Date;
-    date->year    = sDate.Year + 2000; /* Convert back to 4-digit */
+    {
+        /* Adding 2000 to whatever the register held was wrong in BCD mode - 0x26 read as a number is
+         * 38, so the year came back as 2038 - and the dead return after the real one meant nobody
+         * noticed. The register is always read as BCD and converted once. */
+        int year = xy_rtc_year_decode((uint8_t)((sDate.Year <= 99U) ? sDate.Year : 0xFFU), 1);
+        uint8_t month = 0;
+        uint8_t day = 0;
+
+        if (year < 0 || !xy_bcd_decode8(sDate.Month, &month) || !xy_bcd_decode8(sDate.Date, &day)) {
+            return XY_HAL_ERROR_FAIL;
+        }
+        if (format == XY_HAL_RTC_FORMAT_BIN) {
+            date->weekday = sDate.WeekDay;
+            date->month   = month;
+            date->date    = day;
+            date->year    = (uint16_t)year;
+        } else {
+            date->weekday = sDate.WeekDay;
+            date->month   = sDate.Month;
+            date->date    = sDate.Date;
+            date->year    = xy_bcd_encode16((uint16_t)year);
+        }
+    }
 
     return XY_HAL_OK;
-    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 xy_hal_error_t xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm,
