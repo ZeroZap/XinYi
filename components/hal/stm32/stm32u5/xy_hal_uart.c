@@ -429,23 +429,151 @@ static xy_hal_error_t uart_it_status(HAL_StatusTypeDef status)
     return XY_HAL_ERROR_IO;
 }
 
+
+/* Which NVIC line carries this UART. The answer comes back through an out-parameter
+   rather than as a sentinel IRQn_Type: a magic "unknown" number inside a legal
+   range is how a checked path silently stops checking. */
+static int uart_irqn(const UART_HandleTypeDef *handle, IRQn_Type *irqn)
+{
+#ifdef USART1
+    if (handle->Instance == (void *)USART1) {
+        *irqn = USART1_IRQn;
+        return 1;
+    }
+#endif
+#ifdef USART2
+    if (handle->Instance == (void *)USART2) {
+        *irqn = USART2_IRQn;
+        return 1;
+    }
+#endif
+#ifdef USART3
+    if (handle->Instance == (void *)USART3) {
+        *irqn = USART3_IRQn;
+        return 1;
+    }
+#endif
+#ifdef UART4
+    if (handle->Instance == (void *)UART4) {
+        *irqn = UART4_IRQn;
+        return 1;
+    }
+#endif
+#ifdef UART5
+    if (handle->Instance == (void *)UART5) {
+        *irqn = UART5_IRQn;
+        return 1;
+    }
+#endif
+#ifdef LPUART1
+    if (handle->Instance == (void *)LPUART1) {
+        *irqn = LPUART1_IRQn;
+        return 1;
+    }
+#endif
+    (void)handle;
+    (void)irqn;
+    return 0;
+}
+
+/* Opt-in: supplying the vectors pulls HAL_UART_IRQHandler into the link, and that
+ * function references the vendor DMA driver. A board that wants the HAL to own the
+ * UART vector defines XY_HAL_UART_PROVIDE_IRQ_VECTORS and links stm32XX_hal_dma.c.
+ * Boards that keep their own it.c vectors leave this off - the guard over board
+ * interrupt tables checks that such an override forwards to the HAL. */
+#if defined(XY_HAL_UART_PROVIDE_IRQ_VECTORS)
+/* The vector a board can forget to write. Without one the peripheral raises
+   RXNE and the NVIC line fires into nothing: the interrupt exists and the byte
+   is never collected. Weak, so a board's own USARTx_IRQHandler (CubeMX writes
+   one) still wins - and the board guard checks that an override forwards on. */
+static void uart_vector_dispatch(void *instance)
+{
+    size_t index;
+
+    for (index = 0U; index < MAX_UART_INSTANCES; index++) {
+        if (g_uart_ctx[index].huart != NULL &&
+            g_uart_ctx[index].huart->Instance == instance) {
+            HAL_UART_IRQHandler(g_uart_ctx[index].huart);
+            return;
+        }
+    }
+}
+
+#ifdef USART1
+__weak void USART1_IRQHandler(void)
+{
+    uart_vector_dispatch((void *)USART1);
+}
+#endif
+
+#ifdef USART2
+__weak void USART2_IRQHandler(void)
+{
+    uart_vector_dispatch((void *)USART2);
+}
+#endif
+
+#ifdef USART3
+__weak void USART3_IRQHandler(void)
+{
+    uart_vector_dispatch((void *)USART3);
+}
+#endif
+
+#ifdef UART4
+__weak void UART4_IRQHandler(void)
+{
+    uart_vector_dispatch((void *)UART4);
+}
+#endif
+
+#ifdef UART5
+__weak void UART5_IRQHandler(void)
+{
+    uart_vector_dispatch((void *)UART5);
+}
+#endif
+
+#ifdef LPUART1
+__weak void LPUART1_IRQHandler(void)
+{
+    uart_vector_dispatch((void *)LPUART1);
+}
+#endif
+
+#endif
+
 xy_hal_error_t xy_hal_uart_enable_rx_irq(void *uart, int enable)
 {
-    uart_ctx_t *ctx = find_uart_ctx(uart);
+    uart_ctx_t *ctx;
+    IRQn_Type irqn;
 
     if (uart == NULL) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
+    ctx = find_uart_ctx(uart);
     if (ctx == NULL || !ctx->initialized) {
         return XY_HAL_ERROR_NOT_INIT;
     }
+    if (!uart_irqn((UART_HandleTypeDef *)uart, &irqn)) {
+        /* No NVIC line is known for this instance, so arming would succeed at the
+           peripheral and never reach the CPU. Report it instead of pretending. */
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+
     if (enable == 0) {
         ctx->irq_armed = 0U;
         ctx->pending_valid = 0U;
+        HAL_NVIC_DisableIRQ(irqn);
         return uart_it_status(HAL_UART_AbortReceive_IT((UART_HandleTypeDef *)uart));
     }
-    ctx->irq_armed = 1U;
+
     ctx->pending_valid = 0U;
+    ctx->irq_armed = 1U;
+    /* NVIC before the peripheral: a byte arriving between the two must already have
+       somewhere to land. */
+    HAL_NVIC_SetPriority(irqn, 5U, 0U);
+    HAL_NVIC_EnableIRQ(irqn);
     return uart_it_status(HAL_UART_Receive_IT((UART_HandleTypeDef *)uart, &ctx->irq_byte, 1U));
 }
 

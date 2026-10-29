@@ -77,6 +77,15 @@ def main() -> int:
         if "XY_HAL_ERROR_NOT_SUPPORTED" in enable:
             failures.append("enable_rx_irq reports NOT_SUPPORTED, which is the stub this "
                             "backend was supposed to grow out of")
+        if "HAL_NVIC_EnableIRQ" not in enable or "HAL_NVIC_DisableIRQ" not in enable:
+            failures.append(
+                "enable_rx_irq arming only the peripheral: HAL_UART_Receive_IT sets RXNEIE, "
+                "but without the NVIC line the byte arrives and nothing dispatches it")
+        if "HAL_NVIC_EnableIRQ" in enable and enable.find("HAL_NVIC_EnableIRQ") > enable.find(
+                "HAL_UART_Receive_IT") >= 0:
+            failures.append(
+                "the NVIC line is enabled after the receive is armed, so a byte arriving in "
+                "that window has nowhere to land")
         if "XY_HAL_ERROR_NOT_INIT" not in enable:
             failures.append("enable_rx_irq arms an unknown handle without reporting "
                             "NOT_INIT, so a missing init would look like a working interrupt")
@@ -109,6 +118,28 @@ def main() -> int:
     elif "XY_HAL_ERROR_NOT_FOUND" not in rx_byte:
         failures.append("xy_hal_uart_rx_byte has no path for 'nothing pending', so callers "
                         "cannot tell an empty handover from a zero byte")
+
+    irqn = body_of(source, "static int uart_irqn(")
+    if not irqn:
+        failures.append("uart_irqn is missing, so there is no mapping from a UART instance "
+                        "to the NVIC line that carries it")
+    elif "*irqn =" not in irqn:
+        failures.append("uart_irqn does not report the line through its out-parameter")
+    elif "return 0;" not in irqn:
+        failures.append("uart_irqn has no path for an instance it does not know, so an "
+                        "unmapped UART would arm against whatever the caller passed")
+
+    vectors_at = source.find("XY_HAL_UART_PROVIDE_IRQ_VECTORS")
+    if vectors_at < 0:
+        failures.append("the opt-in vector block is gone: a board that wants the HAL to own "
+                        "the UART vector has no way to get one")
+    else:
+        block = source[vectors_at:]
+        if "uart_vector_dispatch" not in block:
+            failures.append("the vector block does not dispatch to the vendor handler")
+        if not any(f"void {name}_IRQHandler(void)" in block
+                   for name in ("USART1", "USART2", "USART3", "UART4", "UART5", "LPUART1")):
+            failures.append("the vector block defines no UART vector at all")
 
     handler = body_of(source, "void xy_hal_uart_irq_handler(")
     if not handler:
