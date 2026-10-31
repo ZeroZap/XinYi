@@ -1995,6 +1995,12 @@ add_test(NAME doc_api_symbols
 add_test(NAME doc_api_symbols_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_check_doc_api_symbols.py)
 
+add_test(NAME include_guard_collisions
+    COMMAND python3 ${UNIT_SUPPORT}/check_include_guard_collisions.py)
+
+add_test(NAME include_guard_collisions_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_include_guard_collisions.py)
+
 add_test(NAME dead_kconfig_options
     COMMAND python3 ${UNIT_SUPPORT}/check_dead_kconfig_options.py)
 

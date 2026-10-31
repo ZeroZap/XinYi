@@ -9,11 +9,12 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 3
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 379 (measured: `ctest -N` reports 379;
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 382 (measured: `ctest -N` reports 382;
   the C targets are registered through `xy_add_unit_test(...)`, so `add_test` calls in this file are
-  only the explicit Python/board entries. Re-measured in the CRC catalogue slice, which added
-  `crypto_crc_catalogue` + `crypto_crc_catalogue_unit`; the previous 304 was stale by roughly the
-  number of CTests registered since it was written, so treat this line as measured-not-maintained)
+  only the explicit Python/board entries. Re-measured in the include-guard slice, which added
+  `include_guard_collisions` + `include_guard_collisions_unit`; the previous 379 was measured in the
+  CRC catalogue slice, and the 304 before that was stale by roughly the number of CTests registered
+  since it was written, so treat this line as measured-not-maintained)
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -34,7 +35,10 @@
   (`tests/unit/fota/test_pandora_fota_bootloader_capture.py`, 53 cases) judges `PANDORA_BOOT_*`
   captures and decodes the boot journal. One of its cases reads the boot-flow source and asserts
   every marker it emits is in that validator's vocabulary, because an unregistered marker turns
-  the capture that reports a halt into an "unknown boot marker" rejection.
+  the capture that reports a halt into an "unknown boot marker" rejection. The include-guard slice
+  added `include_guard_collisions` (`tests/unit/support/check_include_guard_collisions.py`) and its
+  `_unit` self-test (18 cases), which judge two things no C test can see: a guard name shared by two
+  headers (the second one is silently not read) and an `#ifndef X` that never defines `X`.
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
   production self-test implementations are not mistaken for missing Unity migrations.

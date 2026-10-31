@@ -1,5 +1,5 @@
-#ifndef _USB2P_COMMON_H_
-#define _USB2P_COMMON_H_
+#ifndef _USB2P_DEF_H_
+#define _USB2P_DEF_H_
 #include <stdint.h>
 
 #ifdef __cplusplus

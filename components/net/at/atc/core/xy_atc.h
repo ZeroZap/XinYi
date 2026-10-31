@@ -1,5 +1,5 @@
 #ifndef _XY_AT_H_
-#define _XY_ATC_H_
+#define _XY_AT_H_
 
 #define ATC_PRINT_RAW_CMD
 #define ATC_MAX_RESP_LEN        1024

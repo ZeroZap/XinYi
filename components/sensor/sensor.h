@@ -1,5 +1,5 @@
 #ifndef _XY_SENSOR_H_
-#define _SENSOR_H_
+#define _XY_SENSOR_H_
 enum xy_sensor_type {
 
 };
