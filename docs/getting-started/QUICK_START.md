@@ -317,9 +317,10 @@ xy_aes_cbc_encrypt(&ctx, iv, data, 16, encrypted);
 uint8_t hash[XY_SHA256_DIGEST_SIZE];
 xy_sha256_hash(data, len, hash);
 
-/* CRC16 校验: xy_crc.h 提供按标准命名的变体 (ccitt / ccitt_false / modbus / xmodem ...)，
+/* CRC16 校验: xy_crc.h 按标准命名变体，读到的名字就是算出的算法
+ * (ccitt_false / modbus / xmodem ...)，这一条的期望值是 "123456789" -> 0x29B1；
  * 需要自定义多项式时用通用引擎 xy_crc_calc(&cfg, data, len) */
-uint16_t crc = xy_crc16_ccitt(data, (uint16_t)len);
+uint16_t crc = xy_crc16_ccitt_false(data, (uint16_t)len);
 ```
 
 ---
