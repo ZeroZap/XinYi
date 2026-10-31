@@ -123,8 +123,8 @@ XinYi/
 #include "xy_hal.h"
 #include "xy_log.h"
 
-/* LED 引脚 (根据开发板修改) */
-#define LED_PIN     GPIO_PIN_5
+/* LED 引脚 (根据开发板修改；HAL 的 pin 是 0-15 的引脚号，不是 SDK 的 GPIO_PIN_x) */
+#define LED_PIN     5U
 #define LED_PORT    GPIOA
 
 void app_thread(void *arg)
@@ -134,21 +134,21 @@ void app_thread(void *arg)
     xy_log_i("My First XinYi App!\n");
     
     /* 配置 LED 引脚 */
-    xy_hal_pin_config_t led_cfg = {
-        .mode = XY_HAL_PIN_MODE_OUTPUT,
-        .pull = XY_HAL_PIN_PULL_NONE,
-        .otype = XY_HAL_PIN_OTYPE_PP,
-        .speed = XY_HAL_PIN_SPEED_LOW
+    xy_hal_gpio_config_t led_cfg = {
+        .mode = XY_HAL_GPIO_MODE_OUTPUT,
+        .pull = XY_HAL_GPIO_PULL_NONE,
+        .otype = XY_HAL_GPIO_OTYPE_PP,
+        .speed = XY_HAL_GPIO_SPEED_LOW
     };
-    xy_hal_pin_init(LED_PORT, LED_PIN, &led_cfg);
+    (void)xy_hal_gpio_init(LED_PORT, LED_PIN, &led_cfg);
     
     /* 闪烁 LED */
     while (1) {
-        xy_hal_pin_write(LED_PORT, LED_PIN, 1);  /* LED ON */
-        xy_os_delay(500);                         /* 延时 500ms */
+        (void)xy_hal_gpio_write(LED_PORT, LED_PIN, 1);  /* LED ON */
+        xy_os_delay(500);                               /* 延时 500ms */
         
-        xy_hal_pin_write(LED_PORT, LED_PIN, 0);  /* LED OFF */
-        xy_os_delay(500);                         /* 延时 500ms */
+        (void)xy_hal_gpio_write(LED_PORT, LED_PIN, 0);  /* LED OFF */
+        xy_os_delay(500);                               /* 延时 500ms */
         
         xy_log_d("LED toggled\n");
     }
@@ -162,10 +162,17 @@ int main(void)
     
     xy_log_i("System initialized\n");
     
-    /* 创建应用任务 */
-    xy_os_thread_t thread;
-    xy_os_thread_create(&thread, "app_thread", app_thread, NULL,
-                        2, 512);  /* 优先级 2, 栈 512 字节 */
+    /* 创建应用任务: 线程属性由调用方给出，创建成功才返回 ID */
+    const xy_os_thread_attr_t app_attr = {
+        .name = "app_thread",
+        .stack_size = 512U,                /* 栈 512 字节 */
+        .priority = XY_OS_PRIORITY_NORMAL   /* 默认优先级 */
+    };
+
+    if (xy_os_thread_new(app_thread, NULL, &app_attr) == NULL) {
+        xy_log_e("thread create failed\n");
+        return -1;
+    }
     
     /* 启动调度器 */
     xy_os_kernel_start();
@@ -203,22 +210,22 @@ make flash
 ```c
 #include "xy_os.h"
 
-/* 创建任务 */
-xy_os_thread_t thread;
-xy_os_thread_create(&thread, "my_task", my_function, NULL, 
-                    3, 1024);
+/* 创建任务: 属性放在调用方栈上，创建成功返回非 NULL 的 ID */
+const xy_os_thread_attr_t task_attr = {
+    .name = "my_task",
+    .stack_size = 1024U,
+    .priority = XY_OS_PRIORITY_NORMAL
+};
+xy_os_thread_id_t thread = xy_os_thread_new(my_function, NULL, &task_attr);
 
 /* 创建互斥量 */
-xy_os_mutex_t mutex;
-xy_os_mutex_create(&mutex);
+xy_os_mutex_id_t mutex = xy_os_mutex_new(NULL);
 
-/* 创建信号量 */
-xy_os_sem_t sem;
-xy_os_sem_create(&sem, 0, 10);
+/* 创建信号量: 最大计数与初始计数，0 / 超过最大值的入参会被拒绝而不是猜测 */
+xy_os_semaphore_id_t sem = xy_os_semaphore_new(10U, 0U, NULL);
 
-/* 创建消息队列 */
-xy_os_msgqueue_t mq;
-xy_os_msgqueue_create(&mq, 10, sizeof(my_msg_t));
+/* 创建消息队列: 条数与单条字节数 */
+xy_os_msgqueue_id_t mq = xy_os_msgqueue_new(10U, sizeof(my_msg_t), NULL);
 
 /* 延时 */
 xy_os_delay(100);  /* 延时 100ms */
@@ -232,10 +239,10 @@ uint32_t tick = xy_os_tick_get();
 ```c
 #include "xy_hal.h"
 
-/* GPIO 操作 */
-xy_hal_pin_init(GPIOA, GPIO_PIN_5, &config);
-xy_hal_pin_write(GPIOA, GPIO_PIN_5, 1);
-int level = xy_hal_pin_read(GPIOA, GPIO_PIN_5);
+/* GPIO 操作: port 是 GPIOA/GPIOB...，pin 是 0-15 的引脚号 */
+xy_hal_gpio_init(GPIOA, 5U, &config);
+xy_hal_gpio_write(GPIOA, 5U, 1);
+int32_t level = xy_hal_gpio_read(GPIOA, 5U);
 
 /* UART 操作 */
 xy_hal_uart_send(&huart1, data, len, 1000);
@@ -276,40 +283,43 @@ xy_device_wake(&sht30.base);   /* 唤醒 */
 ```c
 #include "xy_sht30.h"
 
-/* 初始化 SHT30 温湿度传感器 */
+/* 初始化 SHT30 温湿度传感器 (默认地址 0x44) */
 xy_sht30_t sht30;
-xy_sht30_init(&sht30, &hi2c1, 0x44);
+xy_sht30_init(&sht30, &hi2c1);
 
-/* 读取数据 */
-xy_sht30_read_all(&sht30);
+/* 读取数据: 返回 0 表示整帧转换成功，非 0 时下面两个字段保持上一次的值 */
+xy_sht30_read(&sht30);
 
 /* 获取温度 (0.01°C 精度) */
 int16_t temp = sht30.temperature;  /* 2500 = 25.00°C */
 
 /* 获取湿度 (0.01%RH 精度) */
-int16_t humid = sht30.humidity;    /* 5000 = 50.00%RH */
+uint16_t humid = sht30.humidity;   /* 5000 = 50.00%RH */
 ```
 
 ### 5. Crypto (密码学)
 
 ```c
-#include "xy_crypto.h"
+#include "xy_tiny_crypto.h"
+#include "xy_crc.h"
 
 /* AES-128 加密 */
 uint8_t key[16] = {0};
 uint8_t iv[16] = {0};
 uint8_t data[16] = "Hello, XinYi!";
 uint8_t encrypted[16];
+xy_aes_ctx_t ctx;
 
-xy_aes_set_key(&ctx, key, 128);
-xy_aes_crypt_cbc(&ctx, AES_ENCRYPT, 16, iv, data, encrypted);
+xy_aes_init(&ctx, key, XY_AES_KEY_SIZE_128);
+xy_aes_cbc_encrypt(&ctx, iv, data, 16, encrypted);
 
 /* SHA-256 哈希 */
-uint8_t hash[32];
-xy_sha256(data, len, hash);
+uint8_t hash[XY_SHA256_DIGEST_SIZE];
+xy_sha256_hash(data, len, hash);
 
-/* CRC16 校验 */
-uint16_t crc = xy_crc16(data, len);
+/* CRC16 校验: xy_crc.h 提供按标准命名的变体 (ccitt / ccitt_false / modbus / xmodem ...)，
+ * 需要自定义多项式时用通用引擎 xy_crc_calc(&cfg, data, len) */
+uint16_t crc = xy_crc16_ccitt(data, (uint16_t)len);
 ```
 
 ---

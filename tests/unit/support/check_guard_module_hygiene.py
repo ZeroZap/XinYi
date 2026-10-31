@@ -13,12 +13,29 @@ This checks the shape, not the values: a module-level name may be bound once.
 from __future__ import annotations
 
 import ast
+import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 GUARDS = ROOT / "tests"
 CMAKE_DIRS = ("tests",)  # every CMakeLists.txt under these, plus the Makefile, may register a test
+
+#: Support checkers that no gate target names, each with the reason it still earns its place. Empty on
+#: purpose: a checker either runs in the gate or it does not, and only the first kind is a guard.
+GUARD_EXEMPT: dict[str, str] = {}
+
+
+def names_file(name: str, blob: str) -> bool:
+    """Whether ``blob`` names the file ``name`` as a whole token.
+
+    A plain substring test is wrong here: ``test_check_dead_cli_options.py`` contains
+    ``check_dead_cli_options.py``, so registering only the self-test would make the checker itself look
+    registered while nothing ran it. The lookarounds reject a preceding or trailing word character, which
+    covers the ``_`` that glues the two names together.
+    """
+    return re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", blob) is not None
+
 
 
 def bound_names(tree: ast.Module) -> dict[str, list[int]]:
@@ -167,6 +184,44 @@ def registration_findings(root: Path = GUARDS, files: list[Path] | None = None,
     return problems
 
 
+def guard_registration_findings(root: Path = GUARDS, text: str | None = None,
+                                files: list[Path] | None = None) -> list[str]:
+    """A support checker no gate names is a gate only for whoever remembers to type it by hand.
+
+    ``registration_findings()`` holds ``test_*.py`` to this rule and never held ``check_*.py`` to it, so a
+    checker could be written, reviewed and merged with no gate target running it. The tree then stays
+    green for the one reason that must never count: nothing executes the file. ``check_doc_api_symbols.py``
+    sat in exactly that state - a finished guard against a getting-started sample that does not compile.
+    """
+    blob = registration_text() if text is None else text
+    directories = discovered_dirs(blob)
+    problems: list[str] = []
+    inspected = 0
+    for path in files if files is not None else sorted(root.rglob("check_*.py")):
+        inspected += 1
+        try:
+            relative = path.resolve().relative_to(ROOT).as_posix()
+        except ValueError:
+            relative = path.as_posix()
+        if names_file(path.name, blob):
+            continue
+        exempted = next((GUARD_EXEMPT[key] for key in (relative, path.name) if key in GUARD_EXEMPT), None)
+        if exempted is not None:
+            if not exempted.strip():
+                problems.append(
+                    f"{shown(path, root)}: exempted from the registration rule without a stated reason - "
+                    f"an exemption nobody can audit is a silent skip")
+            continue
+        if any(relative == found or relative.startswith(f"{found}/") for found in directories):
+            continue
+        problems.append(
+            f"{shown(path, root)}: no gate target names this checker - it never runs, and a guard that "
+            f"never runs reports the same result as one that passes")
+    if inspected == 0:
+        problems.append("no checkers were inspected - the walk is broken")
+    return problems
+
+
 def shown(path: Path, root: Path) -> str:
     """A path fit for a message, whether or not it lives under the tree being inspected."""
     try:
@@ -229,15 +284,17 @@ def findings(root: Path = GUARDS, files: list[Path] | None = None) -> list[str]:
 
 
 def main() -> int:
-    # Two independent questions, so each has its own function and its own tests: names bound once, and test
-    # files that actually run something.
-    problems = findings() + entry_point_findings() + registration_findings() + ci_coverage_findings()
+    # Three independent questions, so each has its own function and its own tests: names bound once, test
+    # files that actually run something, and checkers a gate target actually names.
+    problems = (findings() + entry_point_findings() + registration_findings() + ci_coverage_findings()
+                + guard_registration_findings())
     if problems:
         print("guard_module_hygiene failed:")
         for problem in problems:
             print(f"- {problem}")
         return 1
-    print(f"guard_module_hygiene ok ({len(list(GUARDS.rglob('check_*.py')))} guard files, each name bound once; "
+    print(f"guard_module_hygiene ok ({len(list(GUARDS.rglob('check_*.py')))} guard files, each name bound once "
+          f"and each named by a gate target; "
           f"{len(list(GUARDS.rglob('test_*.py')))} test files, each running something and each named by a "
           f"gate target or covered by a discovery walk)")
     return 0

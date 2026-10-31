@@ -220,18 +220,18 @@ int main(void) {
     xy_os_kernel_init();
     
     /* 创建 LED 闪烁任务 */
-    xy_os_thread_t led_thread;
     static uint8_t led_stack[512];
+    const xy_os_thread_attr_t led_attr = {
+        .name = "LED",
+        .stack_mem = led_stack,
+        .stack_size = sizeof(led_stack),
+        .priority = XY_OS_PRIORITY_NORMAL
+    };
     
-    xy_os_thread_create(
-        &led_thread,
-        "LED",
-        led_blink_task,
-        NULL,
-        5,              /* 优先级 */
-        led_stack,
-        sizeof(led_stack)
-    );
+    if (xy_os_thread_new(led_blink_task, NULL, &led_attr) == NULL) {
+        xy_log_e("LED thread create failed\n");
+        return -1;
+    }
     
     /* 启动内核 */
     xy_os_kernel_start();
@@ -370,18 +370,15 @@ static void my_task(void *arg) {
 }
 
 /* 2. 创建任务 */
-xy_os_thread_t thread;
 static uint8_t stack[1024];
+const xy_os_thread_attr_t task_attr = {
+    .name = "MyTask",
+    .stack_mem = stack,
+    .stack_size = sizeof(stack),
+    .priority = XY_OS_PRIORITY_NORMAL
+};
 
-xy_os_thread_create(
-    &thread,
-    "MyTask",
-    my_task,
-    NULL,
-    5,          /* 优先级 */
-    stack,
-    sizeof(stack)
-);
+xy_os_thread_id_t thread = xy_os_thread_new(my_task, NULL, &task_attr);
 
 /* 3. 启动内核 */
 xy_os_kernel_start();

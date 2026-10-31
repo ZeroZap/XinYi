@@ -1986,6 +1986,12 @@ add_test(NAME guards_read_code
 add_test(NAME guards_read_code_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_guards_read_code.py)
 
+add_test(NAME doc_api_symbols
+    COMMAND python3 ${UNIT_SUPPORT}/check_doc_api_symbols.py)
+
+add_test(NAME doc_api_symbols_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_doc_api_symbols.py)
+
 add_test(NAME clib_frame_mutations
     COMMAND python3 ${UNIT_CLIB}/mutation_check_frame.py --build-dir ${CMAKE_BINARY_DIR})
 

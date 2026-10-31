@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -212,6 +213,71 @@ class RegistrationTests(unittest.TestCase):
             problems = guard.registration_findings(Path(tmp), [])
             self.assertEqual(1, len(problems))
             self.assertIn("walk is broken", problems[0])
+
+
+class GuardRegistrationTests(unittest.TestCase):
+    """A checker no target names is a checker that never runs - green because nobody looked.
+
+    `registration_findings()` has always held `test_*.py` to this rule. Nothing held `check_*.py` to
+    it, so a finished checker could be merged with no gate target running it, which is how
+    `check_doc_api_symbols.py` sat unrun.
+    """
+
+    def test_an_unregistered_checker_is_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "check_nobody_runs.py"
+            path.write_text("print('ok')\n")
+            problems = guard.guard_registration_findings(Path(tmp), "", [path])
+            self.assertEqual(1, len(problems))
+            self.assertIn("check_nobody_runs.py", problems[0])
+            self.assertIn("never runs", problems[0])
+
+    def test_a_checker_named_by_a_gate_target_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "check_guard_module_hygiene.py"
+            path.write_text("print('ok')\n")
+            self.assertEqual([], guard.guard_registration_findings(Path(tmp), None, [path]))
+
+    def test_registering_only_the_self_test_does_not_register_the_checker(self):
+        # The trap a plain substring test falls into: `test_check_doc_api_symbols.py` contains
+        # `check_doc_api_symbols.py`, so the checker would look registered while only its self-test ran.
+        blob = "COMMAND python3 ${UNIT_SUPPORT}/test_check_doc_api_symbols.py"
+        self.assertFalse(guard.names_file("check_doc_api_symbols.py", blob))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "check_doc_api_symbols.py"
+            path.write_text("print('ok')\n")
+            problems = guard.guard_registration_findings(Path(tmp), blob, [path])
+            self.assertEqual(1, len(problems), problems)
+
+    def test_the_checker_itself_is_named_as_a_whole_token(self):
+        blob = "COMMAND python3 ${UNIT_SUPPORT}/check_doc_api_symbols.py"
+        self.assertTrue(guard.names_file("check_doc_api_symbols.py", blob))
+
+    def test_an_exemption_with_a_reason_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "check_imported_only.py"
+            path.write_text("print('ok')\n")
+            with mock.patch.dict(guard.GUARD_EXEMPT, {path.name: "imported by another guard"}, clear=True):
+                self.assertEqual([], guard.guard_registration_findings(Path(tmp), "", [path]))
+
+    def test_an_exemption_without_a_reason_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "check_imported_only.py"
+            path.write_text("print('ok')\n")
+            with mock.patch.dict(guard.GUARD_EXEMPT, {path.name: "   "}, clear=True):
+                problems = guard.guard_registration_findings(Path(tmp), "", [path])
+            self.assertEqual(1, len(problems), problems)
+            self.assertIn("without a stated reason", problems[0])
+
+    def test_an_empty_walk_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            problems = guard.guard_registration_findings(Path(tmp), "", [])
+            self.assertEqual(1, len(problems))
+            self.assertIn("walk is broken", problems[0])
+
+    def test_the_real_tree_registers_every_checker(self):
+        # The claim that matters: every support checker in this tree is named by a gate target.
+        self.assertEqual([], guard.guard_registration_findings())
 
 
 if __name__ == "__main__":
