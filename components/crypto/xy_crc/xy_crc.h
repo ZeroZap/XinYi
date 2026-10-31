@@ -104,7 +104,7 @@ uint8_t xy_crc8_1wire(uint8_t *data, uint16_t length);     // 1-Wire bus
 uint8_t xy_crc8_sae_j1850(uint8_t *data, uint16_t length); // SAE J1850
 uint8_t xy_crc8_wcdma(uint8_t *data, uint16_t length);     // WCDMA
 uint8_t xy_crc8_autosar(uint8_t *data, uint16_t length);   // Automotive
-uint8_t xy_crc8_bluetooth(uint8_t *data, uint16_t length); // Bluetooth HID
+uint8_t xy_crc8_bluetooth(uint8_t *data, uint16_t length); // CRC-8/BLUETOOTH, poly 0xA7, check 0x26
 uint8_t xy_crc8_cdma2000(uint8_t *data, uint16_t length);  // CDMA2000
 uint8_t xy_crc8_darc(uint8_t *data, uint16_t length);      // Data Radio Channel
 uint8_t xy_crc8_dvb_s2(uint8_t *data, uint16_t length);    // DVB-S2 standard
@@ -120,7 +120,7 @@ uint8_t xy_crc8_mifare_mad(uint8_t *data, uint16_t length); // MIFARE MAD
 
 // CRC16 variants
 uint16_t xy_crc16_modbus(uint8_t *data, uint16_t length); // For Modbus
-uint16_t xy_crc16_ccitt(uint8_t *data, uint16_t length);  // CCITT variant
+uint16_t xy_crc16_kermit(uint8_t *data, uint16_t length);  // KERMIT: poly 0x1021 reflected, check 0x2189
 uint16_t xy_crc16_xmodem(uint8_t *data, uint16_t length); // For XModem
 uint16_t xy_crc16_dnp(uint8_t *data, uint16_t length);    // For DNP protocol
 uint16_t xy_crc16_ibm(uint8_t *data, uint16_t length);    // IBM SDLC
@@ -156,7 +156,6 @@ uint16_t xy_crc16_dectx(uint8_t *data, uint16_t length);        // DECT-X
 uint16_t xy_crc16_epc(uint8_t *data, uint16_t length);          // EPC
 uint16_t xy_crc16_epc_c1g2(uint8_t *data, uint16_t length);     // EPC C1G2
 uint16_t xy_crc16_flexray(uint8_t *data, uint16_t length);      // FlexRay
-uint16_t xy_crc16_kermit(uint8_t *data, uint16_t length);       // Kermit
 uint16_t xy_crc16_m17(uint8_t *data, uint16_t length);          // M17
 uint16_t xy_crc16_modbus_arc(uint8_t *data, uint16_t length);   // Modbus/ARC
 uint16_t xy_crc16_nrsc_5(uint8_t *data, uint16_t length);       // NRSC-5

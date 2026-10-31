@@ -9,9 +9,11 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 3
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 304 (measured: `ctest -N` reports 304;
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 379 (measured: `ctest -N` reports 379;
   the C targets are registered through `xy_add_unit_test(...)`, so `add_test` calls in this file are
-  only the explicit Python/board entries)
+  only the explicit Python/board entries. Re-measured in the CRC catalogue slice, which added
+  `crypto_crc_catalogue` + `crypto_crc_catalogue_unit`; the previous 304 was stale by roughly the
+  number of CTests registered since it was written, so treat this line as measured-not-maintained)
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -111,7 +113,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/crypto/test_25519_m0.c` | `unity` | 6 |
 | `tests/unit/crypto/test_cipher_hmac.c` | `unity` | 0 |
 | `tests/unit/crypto/test_blake2.c` | `unity` | 0 | Focused BLAKE2s host vectors, incremental/keyed behavior, invalid-parameter guards, and output-preservation contract; API-drift guard only, not security/provenance validation. |
-| `tests/unit/crypto/test_crc.c` | `unity` | 2 |
+| `tests/unit/crypto/test_crc.c` | `unity` | 8 |
 | `tests/unit/crypto/test_crypto_smoke_example.c` | `unity` | 0 | Host-safe Crypto public Base64/Hex/SHA-256/simple-RNG smoke; API-drift guard only, not security audit/compliance/hardware acceleration validation. |
 | `tests/unit/crypto/crypto_root_target_smoke_probe/main.c` | plain CTest probe | 0 | Standalone public consumer linked against real root `xy_tiny_crypto`; proves aggregate `src/` Base64/Hex/SHA-256 API smoke only, not duplicate-source reconciliation or security/hardware validation. |
 | `tests/unit/crypto/test_csprng.c` | `unity` | 0 |

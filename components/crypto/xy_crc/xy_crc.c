@@ -1,6 +1,9 @@
 #include "xy_crc.h"
 #include "xy_crc_cfg.h"
 
+#include <stddef.h>
+#include <string.h>
+
 // Core bit manipulation functions
 static uint8_t reflect8(uint8_t value)
 {
@@ -22,6 +25,27 @@ static uint64_t reflect(uint64_t value, uint8_t width)
     return reflected;
 }
 
+/* Byte-at-a-time injection needs `width - 8` bits of headroom. A register narrower than a
+ * byte has none: `byte << (width - 8)` shifts by a negative count, which is undefined
+ * behaviour rather than a small mistake - every sub-byte variant (xy_crc3_rohc,
+ * xy_crc5_usb, xy_crc6_cdma2000a, xy_crc7_mmc, ...) was returning whatever the compiler
+ * happened to make of it, and none of those values matched the parameters the same source
+ * declares. Those widths get a bit-at-a-time loop, which needs no headroom. */
+static uint64_t crc_update_narrow(const xy_crc_cfg_t *cfg, uint64_t crc, uint8_t byte,
+                                  uint64_t mask)
+{
+    if (cfg->ref_in)
+        byte = reflect8(byte);
+
+    for (int i = 7; i >= 0; i--) {
+        uint64_t top = (crc >> (cfg->width - 1)) & 1ULL;
+        crc          = (crc << 1) & mask;
+        if (top ^ (uint64_t)((byte >> i) & 1U))
+            crc ^= cfg->polynomial;
+    }
+    return crc;
+}
+
 // Core CRC calculation functions
 uint64_t xy_crc_calc(const xy_crc_cfg_t *cfg, const uint8_t *data,
                      uint16_t length)
@@ -29,12 +53,16 @@ uint64_t xy_crc_calc(const xy_crc_cfg_t *cfg, const uint8_t *data,
     if (!cfg || !data || cfg->width > 64 || cfg->width < 2)
         return 0;
 
-    uint64_t crc = cfg->init_value;
+    uint64_t crc = cfg->init_value & ((cfg->width < 64) ? ((1ULL << cfg->width) - 1) : ~0ULL);
     uint64_t mask =
         (cfg->width < 64) ? ((1ULL << cfg->width) - 1) : 0xFFFFFFFFFFFFFFFFULL;
 
     while (length--) {
         uint8_t byte = *data++;
+        if (cfg->width < 8) {
+            crc = crc_update_narrow(cfg, crc, byte, mask);
+            continue;
+        }
         if (cfg->ref_in)
             byte = reflect8(byte);
 
@@ -61,6 +89,12 @@ uint64_t xy_crc_calc_table(const xy_crc_cfg_t *cfg, const uint64_t *table,
     if (!cfg || !table || !data || cfg->width > 64 || cfg->width < 2)
         return 0;
 
+    /* A 256-entry table indexes bytes, so it only exists for a register at least a byte wide.
+     * Narrower widths delegate rather than compute: the alternative is the same negative shift
+     * `xy_crc_calc()` used to perform. */
+    if (cfg->width < 8)
+        return xy_crc_calc(cfg, data, length);
+
     uint64_t crc = cfg->init_value;
     uint64_t mask =
         (cfg->width < 64) ? ((1ULL << cfg->width) - 1) : 0xFFFFFFFFFFFFFFFFULL;
@@ -82,6 +116,11 @@ uint64_t xy_crc_calc_table(const xy_crc_cfg_t *cfg, const uint64_t *table,
 int xy_crc_make_table(const xy_crc_cfg_t *cfg, uint64_t *table)
 {
     if (!cfg || !table || cfg->width > 64 || cfg->width < 2)
+        return -1;
+
+    /* Refused rather than clamped: a byte-indexed table cannot represent a register narrower
+     * than a byte, and a caller that gets -1 can choose the software path instead. */
+    if (cfg->width < 8)
         return -1;
 
     uint64_t mask =
@@ -123,7 +162,8 @@ uint64_t xy_crc_calc_ex(const xy_crc_cfg_t *cfg, const uint8_t *data,
                         uint16_t length, const xy_crc_opt_t *opt)
 {
     static uint64_t crc_table[256];
-    static uint8_t table_initialized = 0;
+    static xy_crc_cfg_t table_cfg;
+    static uint8_t table_ready = 0;
 
     if (!cfg || !data || !opt || cfg->width > 64 || cfg->width < 2)
         return 0;
@@ -133,9 +173,17 @@ uint64_t xy_crc_calc_ex(const xy_crc_cfg_t *cfg, const uint8_t *data,
         return xy_crc_calc(cfg, data, length);
 
     case XY_CRC_METHOD_TABLE:
-        if (!table_initialized) {
-            xy_crc_make_table(cfg, crc_table);
-            table_initialized = 1;
+        /* The table is a function of the polynomial, width, init value and reflection, so a table
+         * built for one variant must not answer for another. The old cache was built once - from
+         * whichever `cfg` was passed first - and every later call reused it, which turns a table
+         * request into a plausible but wrong number rather than an error. It also marked the table
+         * ready when `xy_crc_make_table()` had refused (register narrower than a byte), leaving 256
+         * zero entries in service. */
+        if (!table_ready || memcmp(&table_cfg, cfg, sizeof(*cfg)) != 0) {
+            if (xy_crc_make_table(cfg, crc_table) != 0)
+                return xy_crc_calc(cfg, data, length);
+            table_cfg   = *cfg;
+            table_ready = 1;
         }
         return xy_crc_calc_table(cfg, crc_table, data, length);
 
@@ -254,8 +302,11 @@ uint8_t xy_crc8_ebu(uint8_t *data, uint16_t length)
 }
 #endif
 
-#if XY_CRC8_BLUETOOTH_HID_ENABLE
-uint8_t xy_crc8_bluetooth_hid(uint8_t *data, uint16_t length)
+#if XY_CRC8_BLUETOOTH_ENABLE
+/* Named for the catalogue entry (CRC-8/BLUETOOTH, poly 0xA7, check 0x26); the header used to
+ * declare this same function as `xy_crc8_bluetooth` while the definition answered only to
+ * `..._hid`, so the declared name never linked. */
+uint8_t xy_crc8_bluetooth(uint8_t *data, uint16_t length)
 {
     static const xy_crc_cfg_t cfg = { .width      = 8,
                                       .polynomial = 0xA7,
@@ -379,8 +430,8 @@ uint8_t xy_crc6_darc(uint8_t *data, uint16_t length)
                                       .polynomial = 0x19,
                                       .init_value = 0x00,
                                       .xor_out    = 0x00,
-                                      .ref_in     = 0,
-                                      .ref_out    = 0 };
+                                      .ref_in     = 1,
+                                      .ref_out    = 1 };
     return (uint8_t)xy_crc_calc(&cfg, data, length);
 }
 
@@ -629,7 +680,7 @@ uint16_t xy_crc16_modbus(uint8_t *data, uint16_t length)
     return (uint16_t)xy_crc_calc(&cfg, data, length);
 }
 
-uint16_t xy_crc16_ccitt(uint8_t *data, uint16_t length)
+uint16_t xy_crc16_kermit(uint8_t *data, uint16_t length)
 {
     static const xy_crc_cfg_t cfg = { .width      = 16,
                                       .polynomial = 0x1021,
@@ -988,3 +1039,34 @@ uint64_t xy_crc64_redis(uint8_t *data, uint16_t length)
     return xy_crc_calc(&cfg, data, length);
 }
 #endif
+
+/* ==================== Tiny-crypto entry points ====================
+ *
+ * `xy_tiny_crypto.h` (both copies) declares `xy_crc32()` / `xy_crc32_update()`, the component
+ * README documents them and `components/crypto/example.c` calls them, and no translation unit
+ * defined either one: the symbols were published but never emitted, so every caller linked
+ * against nothing. They are implemented here, next to the CRC catalogue, with the zlib-compatible
+ * contract a caller expects from those names - CRC-32/ISO-HDLC, reflected, init and final XOR
+ * 0xFFFFFFFF, check value 0xCBF43926 for "123456789" - and the incremental form takes the value
+ * the previous call returned.
+ */
+uint32_t xy_crc32_update(uint32_t crc, const uint8_t *data, size_t len)
+{
+    uint32_t value;
+
+    if (!data)
+        return 0U;
+
+    value = crc ^ 0xFFFFFFFFUL;
+    while (len--) {
+        value ^= *data++;
+        for (int i = 0; i < 8; i++)
+            value = (value & 1U) ? ((value >> 1) ^ 0xEDB88320UL) : (value >> 1);
+    }
+    return value ^ 0xFFFFFFFFUL;
+}
+
+uint32_t xy_crc32(const uint8_t *data, size_t len)
+{
+    return xy_crc32_update(0U, data, len);
+}

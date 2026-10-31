@@ -194,6 +194,9 @@ size_t xy_hex_decode_len(size_t input_len);
 uint32_t xy_crc32(const uint8_t *data, size_t len);
 uint32_t xy_crc32_update(uint32_t crc, const uint8_t *data, size_t len);
 ```
+实现与变体目录同在 `xy_crc/xy_crc.c`。契约为 zlib 语义的 CRC-32/ISO-HDLC：
+`"123456789"` 的校验值为 `0xCBF43926`，`xy_crc32_update()` 接收上一次调用的返回值，
+因此「分块更新」与「一次算完」相等。
 
 #### 随机数
 ```c

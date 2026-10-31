@@ -770,6 +770,9 @@ xy_add_unit_test(test_crc crypto_crc UNITY
     ${UNIT_CRYPTO}/test_crc.c
     ${CRYPTO}/xy_crc/xy_crc.c
 )
+# `xy_crc32()` / `xy_crc32_update()` are published by xy_tiny_crypto.h, which lives at the
+# component root and pulls the SM3/SM4/SM2 subheaders by relative path.
+target_include_directories(test_crc PRIVATE ${CRYPTO})
 
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
 set(OSAL_ROOT ${ROOT}/components/kernel)
@@ -1997,6 +2000,12 @@ add_test(NAME dead_kconfig_options
 
 add_test(NAME dead_kconfig_options_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_check_dead_kconfig_options.py)
+
+add_test(NAME crypto_crc_catalogue
+    COMMAND python3 ${UNIT_SUPPORT}/check_crypto_crc_catalogue.py)
+
+add_test(NAME crypto_crc_catalogue_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_crypto_crc_catalogue.py)
 
 add_test(NAME clib_frame_mutations
     COMMAND python3 ${UNIT_CLIB}/mutation_check_frame.py --build-dir ${CMAKE_BINARY_DIR})
