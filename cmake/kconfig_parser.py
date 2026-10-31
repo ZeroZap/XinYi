@@ -27,12 +27,19 @@ class KconfigParser:
         """Parse Kconfig file"""
         with open(kconfig_file, 'r') as f:
             content = f.read()
-        
+
+        # `if`/`endif` blocks are real conditions, not decoration: every symbol
+        # between them carries the condition as an extra dependency.  Without
+        # this the block was ignored and an enclosed symbol could be switched on
+        # while its guard stayed off.
+        if_ranges = self._scan_if_blocks(kconfig_file, content)
+
         # Parse config entries
         config_pattern = r'config\s+(\w+)'
         for match in re.finditer(config_pattern, content):
             config_name = match.group(1)
             start = match.end()
+            line_index = content.count('\n', 0, match.start())
             
             # Find the block
             block_end = self._find_block_end(content, start)
@@ -54,6 +61,11 @@ class KconfigParser:
             depends_on = [match.group(1).strip() for match in re.finditer(
                 r'^\s*depends on\s+(.+?)\s*$', block, re.MULTILINE
             )]
+
+            # Enclosing `if` conditions are dependencies too (outermost first).
+            for block_start, block_stop, condition in if_ranges:
+                if block_start <= line_index <= block_stop and condition not in depends_on:
+                    depends_on.append(condition)
             
             # Parse select
             selects = re.findall(r'select\s+(\w+)', block)
@@ -92,6 +104,55 @@ class KconfigParser:
             if parsed['help']:
                 existing['help'] = (existing['help'] + '\n' + parsed['help']).strip()
     
+    def _scan_if_blocks(self, kconfig_file: str,
+                        content: str) -> List[Tuple[int, int, str]]:
+        """Return ``(start_line, end_line, condition)`` for every `if` block.
+
+        Only column-0 directives count: `help` prose and the indented body of a
+        `config` block are not directives, and a `#` starts a comment.  An
+        unbalanced block is a parse error rather than a silently dropped guard,
+        and `source` is refused for the same reason -- a fragment that is never
+        read configures nothing and says nothing.
+        """
+        ranges: List[Tuple[int, int, str]] = []
+        open_blocks: List[Tuple[int, str]] = []
+
+        for index, raw in enumerate(content.split('\n')):
+            if not raw or raw[0] in ' \t':
+                continue
+            line = raw.split('#', 1)[0].strip()
+            if not line:
+                continue
+            keyword, _, rest = line.partition(' ')
+            keyword = keyword.strip()
+            rest = rest.strip()
+
+            if keyword == 'if':
+                if not rest:
+                    raise ValueError(
+                        f"{kconfig_file}:{index + 1}: 'if' without a condition")
+                open_blocks.append((index, rest))
+            elif keyword == 'endif':
+                if not open_blocks:
+                    raise ValueError(
+                        f"{kconfig_file}:{index + 1}: 'endif' without a matching 'if'")
+                start, condition = open_blocks.pop()
+                ranges.append((start, index, condition))
+            elif keyword == 'source':
+                raise ValueError(
+                    f"{kconfig_file}:{index + 1}: 'source' is not supported by this "
+                    f"parser ({line!r}); it would silently configure nothing. "
+                    f"Inline the fragment, or teach the parser before using it.")
+
+        if open_blocks:
+            start, condition = open_blocks[0]
+            raise ValueError(
+                f"{kconfig_file}:{start + 1}: 'if {condition}' is never closed by 'endif'")
+
+        # Outermost block first, so appended dependencies read outer -> inner.
+        ranges.sort(key=lambda item: item[0])
+        return ranges
+
     def _find_block_end(self, content: str, start: int) -> int:
         """Find end of config block"""
         lines = content[start:].split('\n')

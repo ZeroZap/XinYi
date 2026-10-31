@@ -14,7 +14,7 @@
 
 | 组合 | 目标契约 | 状态 | 当前证据/下一 probe |
 |---|---|---|---|
-| 非法 Display 子功能单开 | `DRIVER_DISPLAY_LCD_SPI=ON` 且父符号关闭时，子符号必须保持 `OFF` | PASS | `python3 -m unittest tests.test_kconfig_parser -v`（4/4）；root PC configure 后检查三个生成变量均为 `OFF` |
+| 非法 Display 子功能单开 | `DRIVER_DISPLAY_LCD_SPI=ON` 且父符号关闭时，子符号必须保持 `OFF`；`DRIVER_DISPLAY` 关闭时 `if` 块内的直接子符号（`DRIVER_DISPLAY_LCD`/`_OLED`/`_LED`）同样必须保持 `OFF` | PASS | `python3 -m unittest tests.test_kconfig_parser -v`（15/15）；root PC configure 后检查三个生成变量均为 `OFF`；`-DKCONFIG_OVERRIDES='BUILD_TESTING=OFF;FOTA_ENABLED=OFF;DRIVER_DISPLAY=OFF;DRIVER_DISPLAY_LCD=ON'` 真实 configure 生成 `set(CONFIG_DRIVER_DISPLAY OFF)` + `set(CONFIG_DRIVER_DISPLAY_LCD OFF)`（修复前同一命令生成 `_LCD ON`） |
 | PC 默认基线 | 默认 Kconfig + FOTA off 可 configure/build | PASS | `cmake -S . -B build/pc ...`；`cmake --build build/pc -j$(nproc)` |
 | 全关最小配置 | 可选组件、GUI、网络、驱动和额外组件关闭后仍可 configure/build，关闭项不得泄漏 root target | PASS | 显式 all-off override configure/build 通过；target inventory 不含 Device/Charger/Crypto/DM/Sensor/Actuator/Drivers/GUI/Net/FOTA/PM/PID/MUX/SYS/Fuel Gauge |
 | 核心组件逐项开启 | Device/Crypto/DM/Sensor/Actuator 各自具备可重复 configure/build 结果 | PASS | Device-only、Crypto-only、DM-only、Sensor-only 与 Actuator-only 组合已验证生成变量、focused build、target inventory 与归档对象；Sensor/Actuator 的两个兼容入口分别生成相同 root target 对象 |

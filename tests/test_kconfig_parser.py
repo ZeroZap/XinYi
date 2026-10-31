@@ -188,6 +188,129 @@ config DRIVER_DISPLAY_LCD_SPI
         self.assertNotIn("DRIVER_DISPLAY_RGB", parser.config)
         self.assertIn("DRIVER_DISPLAY_LED_SERIAL_RGB", parser.config)
 
+    def test_if_block_condition_gates_enclosed_symbols(self):
+        """An `if` block is a dependency on everything it encloses.
+
+        The parser matched `config NAME` anywhere in the file, so an `if` block was
+        decoration: a symbol inside it could be switched on while its guard was off.
+        """
+        parser = self.parse_text(
+            """
+config PARENT
+    bool
+    default n
+
+if PARENT
+
+config CHILD
+    bool "child"
+    default n
+
+endif
+"""
+        )
+
+        self.assertEqual(parser.config["CHILD"]["depends_on"], ["PARENT"])
+        self.assertEqual(
+            parser.resolve_values(platform="PC", overrides={"CHILD": "ON"})["CHILD"], "n"
+        )
+        self.assertEqual(
+            parser.resolve_values(
+                platform="PC", overrides={"PARENT": "ON", "CHILD": "ON"}
+            )["CHILD"],
+            "y",
+        )
+
+    def test_nested_if_blocks_accumulate_outer_conditions(self):
+        parser = self.parse_text(
+            """
+config OUTER
+    bool
+    default y
+
+config INNER
+    bool
+    default n
+
+if OUTER
+if INNER
+
+config LEAF
+    bool "leaf"
+    default n
+
+endif
+endif
+"""
+        )
+
+        self.assertEqual(parser.config["LEAF"]["depends_on"], ["OUTER", "INNER"])
+        self.assertEqual(
+            parser.resolve_values(platform="PC", overrides={"LEAF": "ON"})["LEAF"], "n"
+        )
+
+    def test_unclosed_if_block_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "never closed by 'endif'"):
+            self.parse_text(
+                """
+config PARENT
+    bool
+    default y
+
+if PARENT
+
+config CHILD
+    bool
+    default n
+"""
+            )
+
+    def test_stray_endif_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "without a matching 'if'"):
+            self.parse_text(
+                """
+config PARENT
+    bool
+    default y
+
+endif
+"""
+            )
+
+    def test_source_directive_is_rejected_instead_of_silently_ignored(self):
+        """`source` used to configure nothing and say nothing."""
+        with self.assertRaisesRegex(ValueError, "'source' is not supported"):
+            self.parse_text(
+                """
+source "components/sensor/Kconfig"
+
+config PARENT
+    bool
+    default y
+"""
+            )
+
+    def test_root_kconfig_if_block_gates_display_children(self):
+        root = Path(__file__).resolve().parents[1]
+        parser = KconfigParser()
+        parser.parse(str(root / "Kconfig"))
+
+        self.assertIn("DRIVER_DISPLAY", parser.config["DRIVER_DISPLAY_LCD"]["depends_on"])
+
+        rejected = parser.resolve_values(
+            platform="PC",
+            overrides={"DRIVER_DISPLAY": "OFF", "DRIVER_DISPLAY_LCD": "ON"},
+        )
+        self.assertEqual(rejected["DRIVER_DISPLAY"], "n")
+        self.assertEqual(rejected["DRIVER_DISPLAY_LCD"], "n")
+
+        accepted = parser.resolve_values(
+            platform="PC",
+            overrides={"DRIVER_DISPLAY": "ON", "DRIVER_DISPLAY_LCD": "ON"},
+        )
+        self.assertEqual(accepted["DRIVER_DISPLAY"], "y")
+        self.assertEqual(accepted["DRIVER_DISPLAY_LCD"], "y")
+
     def test_duplicate_blocks_merge_defaults_dependencies_selects_and_help(self):
         parser = self.parse_text(
             """

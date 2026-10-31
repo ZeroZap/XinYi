@@ -85,6 +85,17 @@ make
 
 ## 📁 Kconfig 配置
 
+### 解析器支持的语法
+
+`cmake/kconfig_parser.py` 是轻量实现，只认下面这些行（其余行被忽略）：
+
+- `config NAME`（含 `menuconfig`）、类型 `bool/string/int/hex`、`default` 与 `default ... if <expr>`
+- `depends on`、`select`、`help`
+- `menu` / `endmenu`
+- `if <expr>` / `endif` — 块内符号自动加上该条件依赖（可嵌套）
+
+`source` **不支持**：遇到会直接报错而不是静默跳过（否则片段永远不被读取，配置却看起来生效了）。条件表达式只支持 `!`、`&&`、`||` 和括号，符号取值只有 `y/n`。
+
 ### 顶层 Kconfig (Kconfig)
 
 ```kconfig
