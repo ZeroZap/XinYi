@@ -15,6 +15,28 @@ set(CONFIG_CMAKE_FILE ${CMAKE_BINARY_DIR}/config.cmake)
 # Create output directories
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
 
+# --- Standard CMake names, and Kconfig decides them --------------------------------------------
+# `BUILD_TESTING` and `BUILD_SHARED_LIBS` are CMake's own names for these two decisions. The FORCE
+# below is what makes the Kconfig value stick, but a FORCE also discards whatever the cache already
+# held - including a value the reader passed with -D - and it does so without a word: measured on this
+# tree, `-DBUILD_TESTING=ON` configured a build whose summary read `Tests Enabled: OFF`. Nothing warns,
+# and the summary prints the value that took effect rather than the one that was asked for, so the only
+# symptom is a test suite that quietly did not build. `check_ci_build_flags.py` already treats "the
+# build overrides a variable a workflow passed" as a defect; this is the same defect on the command line.
+#
+# So an explicit -D is fed in as a Kconfig override, which is the documented way to set one. The marker
+# records that this configure was told, so a later configure that says nothing falls back to the Kconfig
+# default instead of inheriting the request forever. Kconfig.cmake is included before any
+# enable_testing()/include(CTest), so on a first configure these names are defined only when -D set them.
+foreach(_standard BUILD_TESTING BUILD_SHARED_LIBS)
+    if(DEFINED ${_standard} AND NOT DEFINED XY_KCONFIG_GIVEN_${_standard})
+        set(XY_KCONFIG_GIVEN_${_standard} "${${_standard}}" CACHE INTERNAL
+            "the -D${_standard} this configuration was given")
+        list(APPEND KCONFIG_OVERRIDES "${_standard}=${${_standard}}")
+        message(STATUS "Honouring -D${_standard}=${${_standard}} as a Kconfig override")
+    endif()
+endforeach()
+
 # Parse Kconfig and generate configuration files
 set(_kconfig_override_args)
 foreach(_override IN LISTS KCONFIG_OVERRIDES)

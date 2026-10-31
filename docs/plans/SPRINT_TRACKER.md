@@ -3022,3 +3022,34 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 下一步：决定 50 个未实现变体是补齐还是从头部删除（补齐需要逐条从 reveng 转录参数，不能用猜）；
   `components/crypto/xy_tiny_crypto.h` 与 `inc/xy_tiny_crypto.h` 是**共用同一个 include guard 的两份不同
   文件**，谁先被包含谁生效——这是上一轮 `xy_crc.h` 那份"同名头"缺陷的上一层，尚未处理。
+
+### 2026-10-31 `-DBUILD_TESTING=ON` 配出来的构建没有测试
+
+- 收口：`cmake/Kconfig.cmake` 末尾 `set(BUILD_TESTING ${CONFIG_BUILD_TESTING} CACHE BOOL ... FORCE)`
+  的 `FORCE` 会把缓存里已有的值整个丢掉，包括读者用 `-D` 显式传进来的那个，而且不留一句话。实测：
+  `-DBUILD_TESTING=ON` → `BUILD_TESTING:BOOL=OFF`、摘要行 `Tests Enabled: OFF`。摘要打印的是**生效
+  值**而不是**被请求的值**，所以唯一症状是一套悄悄没编出来的测试。`BUILD_SHARED_LIBS` 同一处
+  `FORCE`、同一个标准名字、同样的静默丢弃。
+- 为什么是缺陷而不是偏好：`BUILD_TESTING` 是 CMake `include(CTest)` 自己定义的标准名，任何用过
+  CMake 的人都会这么写；本仓要求读者记住它把同一意思拼成
+  `-DKCONFIG_OVERRIDES="BUILD_TESTING=ON"`。且 `check_ci_build_flags.py` 早已把「构建覆盖了调用方
+  传进来的变量」判为缺陷 —— 这是同一个缺陷落在命令行上，不是新规则。
+- 修复：显式 `-D BUILD_TESTING` / `-D BUILD_SHARED_LIBS` 在解析前转成 Kconfig override，并打印
+  `Honouring -D<name>=<value> as a Kconfig override`；同时写一个
+  `XY_KCONFIG_GIVEN_<name>` INTERNAL marker，让**本次**配置之后的下一次配置在什么都不传时回落到
+  Kconfig 默认，而不是永久继承第一次的命令行请求。顺序上成立：`Kconfig.cmake` 在根
+  `CMakeLists.txt:145` 被 include，`enable_testing()` 在 297 行，首次配置时这两个名字只因 `-D` 而存在。
+- 覆盖：`test_kconfig_standard_overrides.py` 6 例，配置真实的一次性构建树而不是断言 cmake 文本
+  （断言的是 CMake 拿到这些 flag 后做了什么）：`-D BUILD_TESTING=ON` 得 ON；`OFF` 得 OFF；文档里
+  `-DKCONFIG_OVERRIDES=` 那条路仍有效；什么都不传时仍由 Kconfig 决定；`BUILD_SHARED_LIBS=ON` 得 ON；
+  显式请求**不跨配置存活**（新建目录再配一次必须回到 Kconfig 默认）。全套 4.3 秒，只配置不编译。
+- 反证：修复前该文件 RED 3 例（ON 得 OFF ×3）；修复后 6/6 绿。元守卫在注册该测试前先红（
+  `no gate target names this file`），注册后绿。
+- 验证：Host `make test-unit` **380/380**；刻意用真实 cmake 复核：`-DBUILD_TESTING=ON
+  -DBUILD_SHARED_LIBS=ON` 两项均 ON 且各打印一行 Honouring，不传时 `Tests Enabled: OFF`；
+  PC / STM32L4 / WCH / STM32U5 四路 configure 均 rc=0；`git diff --check` 通过。
+- 边界：只修「显式 `-D` 不被吞」。**不改 `docs/**` 里 15 个写 `-DBUILD_TESTING=` 的文件** ——
+  那属于 S6-264 记录的取舍，且多数是历史报告，按「历史按发生的样子保留」不改写；本修复让那些文档
+  的说法**从今天起变成真的**，这是它最直接的效果。未改 `check_ci_build_flags.py` 的 CI 侧规则，
+  未上板，未烧录。
+- 下一步：S6-264 本体（`make flash` 被 `cd` 豁免规则放过）仍需取舍，未动。
