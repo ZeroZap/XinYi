@@ -2,20 +2,29 @@
 """A Kconfig option nothing reads is a switch that does not switch.
 
 This is the same defect as an argparse option nothing reads and a CMake option nothing reads, one
-layer further down: `Kconfig` declares 81 symbols, the parser turns them into `CONFIG_*` values in
-`config.cmake` and `autoconf.h`, and the build reads 23 of them.
+layer further down: `Kconfig` declares its symbols, the parser turns them into `CONFIG_*` values in
+`autoconf.h` and `XY_*` variables in `config.cmake`, and the build reads only some of them.
 
-The other 58 are not harmless. Ten of them are the platform menu - `PLATFORM_STM32L4`,
-`PLATFORM_STM32U5`, `HAL_PC`, ... - and the platform a build is actually for is chosen by
-`HAL_PLATFORM` on the make command line, which the parser consumes as input (`--platform`) rather
-than publishing as a decision. So the menu and the build are two names for one thing and only the
-second one reaches the compiler: setting `PLATFORM_STM32L4=y` in a `.config` builds PC, silently.
+The symbols that are not read are not harmless. Ten of them are the platform menu -
+`PLATFORM_STM32L4`, `PLATFORM_STM32U5`, `HAL_PC`, ... - and the platform a build is actually for is
+chosen by `HAL_PLATFORM` on the make command line, which the parser consumes as input (`--platform`)
+rather than publishing as a decision. So the menu and the build are two names for one thing and only
+the second one reaches the compiler: setting `PLATFORM_STM32L4=y` in a `.config` builds PC, silently.
 `autoconf.h` is generated into a directory that `include_directories()` does put on the include path,
 so the macros are reachable - and no source includes the header, so not one of them is consulted in
 C either.
 
-A reader of `Kconfig` therefore cannot tell which of its 81 switches do anything. That is worse than
+A reader of `Kconfig` therefore cannot tell which of its switches do anything. That is worse than
 having no menu: the menu is the thing that says what is configurable.
+
+Which symbols count as read is the part that has to be got right in both directions. The parser
+publishes every symbol twice - `CONFIG_<symbol>` for C, `XY_<symbol>` for the build - and the build
+layer reads the second form (`if(NOT XY_PROTO_SMBUS)`, `AND NOT XY_COMPONENT_SYS`). Counting only
+the `CONFIG_` form made this inventory overstate the dead switches by 34: every component and driver
+gate, `NETWORK`, and the AT/CAN/LTE protocol switches were listed as "nothing gates on this" while
+the CMake that gates them was reading them. The `XY_` form is not accepted in C files, though:
+`components/pm/src/xy_pm_platform.c` defines its own `XY_PLATFORM_WCH` from `#ifdef` chains, which
+has nothing to do with the Kconfig symbol of the same name.
 
 The corpus a reference may legitimately live in is wide on purpose, for the reason
 `check_dead_cmake_options.py` states - a symbol can be read by a workflow, a preset or a helper
@@ -42,9 +51,19 @@ KCONFIG = ROOT / "Kconfig"
 #: grammar this needs: the repository declares its symbols in one flat file.
 DECLARATION = re.compile(r"^\s*(?:menu)?config\s+([A-Za-z_][A-Za-z0-9_]*)\s*$", re.M)
 
-#: A consumer is a `CONFIG_<symbol>` token in a file the build or a tool actually reads.
-def consumers_of(symbol: str, text: str) -> bool:
-    return re.search(rf"\bCONFIG_{re.escape(symbol)}\b", text) is not None
+#: A consumer is either published form of the symbol: `CONFIG_<symbol>`, which `autoconf.h` defines for
+#: C, or `XY_<symbol>`, which `config.cmake` sets for the build layer.
+#:
+#: The build-layer form counts only in build-layer files. Counting it in C was how `PLATFORM_WCH` and
+#: `PLATFORM_HC32` first looked live: `components/pm/src/xy_pm_platform.c` defines its own
+#: `XY_PLATFORM_WCH` from `#ifdef` chains, a macro that has nothing to do with the Kconfig symbol of the
+#: same name. Counting it in CMake is the opposite mistake: `NETWORK`, `PROTO_AT_CLIENT`, `PROTO_CAN` and
+#: every `COMPONENT_*`/`DRIVER_*` switch are read exactly that way in the CMake that gates them, and all
+#: of them were pinned here as "nothing gates on this" until a newly wired symbol (`PROTO_SMBUS`) was
+#: reported dead on arrival.
+def consumers_of(symbol: str, text: str, build_layer: bool = False) -> bool:
+    prefix = r"(?:CONFIG|XY)" if build_layer else r"CONFIG"
+    return re.search(rf"\b{prefix}_{re.escape(symbol)}\b", text) is not None
 
 #: Directories never descended into: the build tree, the vendors, and the vendored MCU trees.
 PRUNE_DIRS = {"build", ".git", ".venv", "MCU", "third_party", "node_modules", "__pycache__", "docs"}
@@ -53,17 +72,15 @@ C_SUFFIXES = {".c", ".h"}
 HASH_SUFFIXES = {".cmake", ".txt", ".py", ".mk", ".yml", ".yaml", ".json"}
 HASH_NAMES = {"Makefile"}
 
-#: Declared and read nowhere, each with why it is still in the menu. Fifty-eight entries is the
+#: Declared and read nowhere, each with why it is still in the menu. Twenty-seven entries is the
 #: finding, not an inconvenience: this table is the inventory of what `Kconfig` promises and the
 #: build does not honour. A symbol here may be deleted from `Kconfig`, or wired up and dropped from
-#: this table - what it may not do is quietly become a fifty-ninth.
+#: this table - what it may not do is quietly become a twenty-eighth.
 BY_PLATFORM = (
     "the platform is chosen by HAL_PLATFORM on the make command line (-DHAL_PLATFORM=); the parser "
     "reads it as an input and writes this symbol out, and nothing reads it back")
 BY_COMPONENT = (
     "component sources are compiled unconditionally by their own CMakeLists; nothing gates on this")
-BY_DRIVER = (
-    "driver sources are compiled by their own CMakeLists; nothing gates on this")
 BY_PROTO = (
     "protocol sources are compiled by their own CMakeLists; nothing gates on this")
 
@@ -81,41 +98,12 @@ DECLARED_BUT_UNREAD: dict[str, str] = {
     "HAL_HC32": BY_PLATFORM,
     "HAL_USE_STANDARD_API": BY_PLATFORM,
     # --- components ---
-    "COMPONENT_DEVICE": BY_COMPONENT,
     "COMPONENT_CHARGER": BY_COMPONENT,
-    "COMPONENT_CRYPTO": BY_COMPONENT,
-    "COMPONENT_DM": BY_COMPONENT,
-    "COMPONENT_SENSOR": BY_COMPONENT,
-    "COMPONENT_ACTUATOR": BY_COMPONENT,
-    "COMPONENT_PID": BY_COMPONENT,
-    "COMPONENT_MUX": BY_COMPONENT,
-    "COMPONENT_SYS": BY_COMPONENT,
-    "COMPONENT_FUEL_GAUGE": BY_COMPONENT,
     "COMPONENT_BMS": BY_COMPONENT,
     "KERNEL_OSAL": (
         "the OSAL backend is selected by OSAL_BACKEND, whose per-backend symbols this one is the "
         "parent of; nothing reads the parent"),
-    # --- drivers ---
-    "DRIVER_SENSOR": BY_DRIVER,
-    "DRIVER_DISPLAY": BY_DRIVER,
-    "DRIVER_DISPLAY_OLED": BY_DRIVER,
-    "DRIVER_DISPLAY_SSD1306": BY_DRIVER,
-    "DRIVER_DISPLAY_LCD": BY_DRIVER,
-    "DRIVER_DISPLAY_LCD_SPI": BY_DRIVER,
-    "DRIVER_DISPLAY_LCD_I8080": BY_DRIVER,
-    "DRIVER_DISPLAY_LCD_ST7789": BY_DRIVER,
-    "DRIVER_DISPLAY_LED": BY_DRIVER,
-    "DRIVER_DISPLAY_LED_SERIAL_RGB": BY_DRIVER,
-    "DRIVER_STORAGE": BY_DRIVER,
-    "DRIVER_POWER": BY_DRIVER,
-    "DRIVER_WIRELESS": BY_DRIVER,
-    "DRIVER_SYSTEM": BY_DRIVER,
     # --- networking and protocols ---
-    "NETWORK": BY_PROTO,
-    "PROTO_AT_CLIENT": BY_PROTO,
-    "PROTO_AT_SERVER": BY_PROTO,
-    "PROTO_CAN": BY_PROTO,
-    "PROTO_LTE": BY_PROTO,
     "PROTO_HTTP": BY_PROTO,
     "PROTO_COAP": BY_PROTO,
     # --- filesystem ---
@@ -128,7 +116,6 @@ DECLARED_BUT_UNREAD: dict[str, str] = {
         "the FOTA component sizes from its own configuration; no source or build file reads this"),
     "NOR_FLASH_XIP": "declared for an XIP mode nothing implements; no source mentions it at all",
     # --- power management ---
-    "PM_ENABLED": "the PM component is compiled unconditionally; nothing gates on this",
     "PM_SLEEP_MODES": "no consumer; the sleep modes are a runtime argument, not a build switch",
     "PM_DYNAMIC_VOLTAGE": "no consumer; nothing implements dynamic voltage scaling yet",
     # --- logging and assertions ---
@@ -138,9 +125,6 @@ DECLARED_BUT_UNREAD: dict[str, str] = {
     # --- build tooling ---
     "ENABLE_COVERAGE": "no consumer; coverage is passed as a compiler flag by the CI workflow",
     "ENABLE_SANITIZER": "no consumer; sanitizers are passed as compiler flags, not read from Kconfig",
-    # --- sensor/actuator convenience switches ---
-    "XY_SENSOR_ENABLE": "no consumer; the canonical sensor owners are built by their board CMakeLists",
-    "XY_ACTUATOR_ENABLE": "no consumer; actuators are built by their component CMakeLists",
 }
 
 
@@ -155,6 +139,10 @@ def corpus(root: Path = ROOT) -> dict[str, str]:
     begins with "Kconfig" and is the CMake integration script, which is where two of the live
     references actually live. Skipping by prefix made a version of this guard report `LOG_LEVEL` and
     `BUILD_SHARED_LIBS` as dead when both are read on every configure.
+
+    `tests/unit/support/` is skipped for the same reason: the guards that live there name symbols to
+    describe defects, and a guard's prose is not a consumer. Without this, a docstring explaining that
+    `XY_PLATFORM_<arch>` means two different things in C and CMake made the platform symbol look read.
     """
     found: dict[str, str] = {}
     for directory, subdirectories, filenames in os.walk(root):
@@ -162,7 +150,7 @@ def corpus(root: Path = ROOT) -> dict[str, str]:
         for filename in sorted(filenames):
             path = Path(directory) / filename
             relative = path.relative_to(root).as_posix()
-            if relative == "Kconfig":
+            if relative == "Kconfig" or relative.startswith("tests/unit/support/"):
                 continue
             try:
                 if path.suffix in C_SUFFIXES:
@@ -190,13 +178,17 @@ def findings(symbols: list[str] | None = None, files: dict[str, str] | None = No
         return problems
 
     blob = "\n".join(texts.values())
-    read = [name for name in names if consumers_of(name, blob)]
+    #: `XY_<symbol>` means the Kconfig variable only in build-layer files; in C it is just as likely a
+    #: macro the driver defined for itself, so the two corpora are kept apart.
+    build_layer = "\n".join(text for path, text in texts.items() if Path(path).suffix not in C_SUFFIXES)
+    read = [name for name in names
+            if consumers_of(name, blob) or consumers_of(name, build_layer, build_layer=True)]
 
     for name in names:
         if name in read and name in table:
             problems.append(
-                f"{name}: pinned as declared-and-unread, but a file now reads CONFIG_{name} - the pin "
-                f"is stale, and a stale pin hides the next symbol that goes dead")
+                f"{name}: pinned as declared-and-unread, but a file now reads it (CONFIG_{name} or "
+                f"XY_{name}) - the pin is stale, and a stale pin hides the next symbol that goes dead")
         elif name not in read and name not in table:
             problems.append(
                 f"{name}: declared in Kconfig and read by nothing - setting it configures nothing. "
@@ -221,9 +213,9 @@ def main() -> int:
             print(f"- {problem}")
         return 1
     names = declared()
-    read = [name for name in names if consumers_of(name, "\n".join(corpus().values()))]
-    print(f"dead_kconfig_options ok ({len(names)} symbols declared, {len(read)} read by the build, "
-          f"{len(names) - len(read)} pinned as declared-but-unread with a reason)")
+    read = len(names) - len(DECLARED_BUT_UNREAD)
+    print(f"dead_kconfig_options ok ({len(names)} symbols declared, {read} read by the build, "
+          f"{len(DECLARED_BUT_UNREAD)} pinned as declared-but-unread with a reason)")
     return 0
 
 

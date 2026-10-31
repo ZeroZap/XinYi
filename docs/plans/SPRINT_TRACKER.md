@@ -3056,3 +3056,49 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   的说法**从今天起变成真的**，这是它最直接的效果。未改 `check_ci_build_flags.py` 的 CI 侧规则，
   未上板，未烧录。
 - 下一步：S6-264 本体（`make flash` 被 `cd` 豁免规则放过）仍需取舍，未动。
+
+### 2026-11-01 SMBus 的 CMake 门永远为真，而那个库从来没有存在过
+
+- 缺陷：`components/net/smbus/CMakeLists.txt` 开头是
+  `if(NOT XY_COMPONENT_SMBUS AND NOT XY_CONFIG_SMBUS_ENABLED) return() endif()`。`XY_CONFIG_SMBUS_ENABLED`
+  是 `components/xy_config.h` 里的 **C 预处理器宏**，CMake 里永远没有这个变量；`XY_COMPONENT_SMBUS` 也没有
+  对应的 Kconfig 符号（`XY_COMPONENT_*` 只由 `cmake/Kconfig.cmake` 按符号逐个生成）。两个名字都未定义，
+  `NOT <undef> AND NOT <undef>` 恒为 TRUE —— 也就是说这个文件**每次 configure 都会在 `add_library(xy_smbus)`
+  之前 return**。更外层：`components/net/CMakeLists.txt` 从来没有 `add_subdirectory(smbus)`，所以这个
+  CMakeLists 连被读到的机会都没有。两处叠加的结果是：这个组件每次只在 `net_smbus_pmbus` 单测里以
+  "源码直接编译"的方式存在，任何产品构建都拿不到 `xy_smbus` 目标。
+- 第二处同族缺陷：`target_link_libraries(xy_smbus PRIVATE xy_hal xy_log)` 里的 `xy_log` 是头文件名，不是
+  目标（trace 组件的目标是 `xy_trace`）。即使门打开了，这段也只会给链接器喂一个 `-lxy_log`。
+- 为什么是缺陷而不是命名偏好：这和上一轮 `xy_crc.h` / `-DBUILD_TESTING` 是同一层——**接口说了一件构建层做不到的事**。
+  组件目录里躺着一个 CMakeLists，等于对读者承诺"打开开关就有这个库"；实际的开关既不存在于 CMake 变量空间，
+  也没有任何菜单项能产生它。
+- 修复：`Kconfig` 在 Communication Protocols 菜单里新增 `PROTO_SMBUS`（`bool "SMBus / PMBus"`，`default n`，
+  `depends on NETWORK`）；`components/net/CMakeLists.txt` 在协议 opt-in 区后加 `add_subdirectory(smbus)`
+  （子目录自门控）；门改为 `if(NOT XY_PROTO_SMBUS)`，依赖改成 `xy_trace` + 显式 `components/trace/xy_log/inc`
+  include 根。`XY_CONFIG_SMBUS_ENABLED` 从 CMake 条件里彻底移除。
+- 常驻守卫：`check_dead_cmake_options.py` 新增 `condition_findings()`，两条规则都对着"名字的真源"判：
+  ① `if/elseif/while` 条件里出现 `XY_CONFIG_*` 直接判红（那是 C 头文件的命名空间，CMake 不可能有值）；
+  ② 条件里出现 `XY_{COMPONENT,PROTO,DRIVER}_*` 时，后缀必须是真实 Kconfig 符号，否则"没有人能生成这个变量"。
+  只读 `if/elseif/while`，`list(FILTER ... REGEX "XY_CONFIG_")` 那种字符串不算判定。5 例新单测。
+- 反证：修前在**真实树**上跑就是 RED，2 条 finding 全部指向这一个文件（两条规则各一条），不是合成用例；
+  修后 0 条、11/11 单测绿。门的两个方向都实测过：`NETWORK=y PROTO_SMBUS=n` → `gmake: 没有规则可制作目标"xy_smbus"`；
+  `NETWORK=y PROTO_SMBUS=y` → 配出并构建出 `libxy_smbus.a`，`nm -g --defined-only` 里有 **49** 个 exported `T` 符号
+  （`smbus_calculate_pec`/`smbus_alert_response`/…），整树构建 rc=0 且 smbus 自身零 warning。
+- 连带修正（同一轮的第二个发现，必须做否则新符号"落生即死"）：`check_dead_kconfig_options.py` 只把
+  `CONFIG_<symbol>` 认作消费者，而 build 层读的一直是 `XY_<symbol>`（`config.cmake` 同时发布两种形式，
+  root `CMakeLists.txt` 的 `elseif(_name STREQUAL "pid" AND NOT XY_COMPONENT_PID)` 就是例子）。于是**34 个活开关**
+  被钉在"没人 gate"表里，连 `NETWORK` / `PROTO_AT_CLIENT` / 全部 `COMPONENT_*`、`DRIVER_*` 都在内。
+  修法：build-layer 文件接受两种前缀，C 文件只接受 `CONFIG_` —— 这不是保守而是必须，
+  `components/pm/src/xy_pm_platform.c` 自己 `#define XY_PLATFORM_WCH`，那是驱动宏，不是 Kconfig 变量。
+  pin 表 **58 → 27**，守卫输出改为 82 声明 / 55 读 / 27 pin。守卫自己的散文也从语料里排除
+  （`tests/unit/support/`）—— 否则描述缺陷的 docstring 会把被判的符号洗成"有人读"。
+- 验证：Host `make test-unit` **382/382**（493.6 s）；`make` (PC) / `make HAL_PLATFORM=STM32L4` /
+  `make HAL_PLATFORM=STM32U5` 三路 rc=0；`git diff --check` 干净；`dead_cmake_options` 与
+  `dead_kconfig_options` 两个 gate 及其 `_unit` 用例全绿（11 + 16 例）。
+- 边界：未上板、未烧录，这一格纯构建层。`PROTO_SMBUS` 默认仍是 `n`，**产品构建的源集合没有变化**——
+  本 slice 让开关真的存在、两向可证，不是把 SMBus 接进任何板子。`xy_smbus` 只影响自己的库，
+  `xy_net` 的 `NET_SOURCES` 未动。
+- 下一步：`components/drivers/xy_sys/`（`xy_sys.{c,h}` + 第三份 `xy_typedef.h`，独立 tick/power API，
+  被 `components/drivers/CMakeLists.txt` 的 `GLOB_RECURSE "*.c"` 编进 `xy_drivers`，但全仓库零调用者），
+  删除并把 `components/drivers/system/CMakeLists.txt` 里那句"canonical implementation is
+  components/drivers/xy_sys"更正为 `components/sys/xy_sys`——那行注释正好把后来者指向要删的孤儿。

@@ -85,6 +85,13 @@ if(XY_PROTO_MQTT)
     list(APPEND NET_SOURCES src/xy_mqtt_client.c)
 endif()
 
+# SMBus/PMBus (explicit opt-in; publishes its own xy_smbus library, gated on PROTO_SMBUS inside)
+# Nothing added this directory, so its CMakeLists.txt was never evaluated even after its gate stopped
+# being impossible. The subdirectory decides for itself whether to declare a target.
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/smbus/CMakeLists.txt)
+    add_subdirectory(smbus)
+endif()
+
 # Collect headers
 file(GLOB_RECURSE NET_HEADERS "inc/*.h")
 

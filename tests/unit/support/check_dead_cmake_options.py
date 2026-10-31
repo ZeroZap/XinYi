@@ -9,6 +9,21 @@ because `-DBUILD_EXAMPLES=OFF` is the kind of thing a reader copies without chec
 The corpus a reference may legitimately appear in is deliberately wide, because an option can be read by a
 preset file, a workflow, a Kconfig default, a Makefile or a helper script and still be doing its job. What it
 cannot be is decoration.
+
+The second half is the same defect one step further in: an option that is read is still a lie if the name it
+reads can never hold the value the reader believes. `components/net/smbus/CMakeLists.txt` opened with
+
+    if(NOT XY_COMPONENT_SMBUS AND NOT XY_CONFIG_SMBUS_ENABLED)
+        return()
+    endif()
+
+and both names were undefined in CMake, so the condition was `TRUE AND TRUE` and the file returned before it
+declared `xy_smbus` - from every configure, always. `XY_CONFIG_SMBUS_ENABLED` is a *C preprocessor macro* in
+`components/xy_config.h`; CMake never sees it. `XY_COMPONENT_SMBUS`/`XY_PROTO_*`/`XY_DRIVER_*` do exist as
+CMake variables, but only because `cmake/Kconfig.cmake` emits one per Kconfig symbol, so a name whose suffix
+is not a declared symbol is undefined in exactly the same way. Those two namespaces are therefore checkable
+against their source of truth instead of being guessed at: `XY_CONFIG_*` may not appear in a condition at all,
+and a generated name in a condition must have a Kconfig symbol behind it.
 """
 
 from __future__ import annotations
@@ -83,14 +98,72 @@ def findings(declaring: list[Path] | None = None, referencing: list[Path] | None
     return problems
 
 
+#: The `XY_CONFIG_*` namespace belongs to `components/xy_config.h`, a C header. CMake has no such variable, so
+#: a condition naming one is constant - and `if(NOT XY_CONFIG_X)` is constantly *true*, which is the direction
+#: that silently skips work.
+C_ONLY_NAME = re.compile(r"\bXY_CONFIG_[A-Z0-9_]+")
+#: Variables CMake only ever has because `cmake/Kconfig.cmake` emitted them, one per Kconfig symbol.
+GENERATED_NAME = re.compile(r"\bXY_(?:COMPONENT|PROTO|DRIVER)_[A-Z0-9_]+")
+CONDITION = re.compile(r"\b(?:if|elseif|while)\s*\(([^)]*)\)")
+KCONFIG_SYMBOL = re.compile(r"^\s*(?:menu)?config\s+([A-Za-z0-9_]+)", re.M)
+
+
+def _kconfig_symbols(kconfigs: list[Path] | None = None) -> set[str]:
+    """Every first-party Kconfig symbol name, without the `CONFIG_`/`XY_` decorations."""
+    files = kconfigs if kconfigs is not None else _walk(("Kconfig", "Kconfig.*"))
+    symbols: set[str] = set()
+    for path in files:
+        try:
+            symbols.update(KCONFIG_SYMBOL.findall(path.read_text(encoding="utf-8", errors="replace")))
+        except OSError:
+            continue
+    return symbols
+
+
+def condition_findings(cmake: list[Path] | None = None,
+                       kconfigs: list[Path] | None = None) -> list[str]:
+    """Conditions that test a name CMake cannot have.
+
+    Only `if`/`elseif`/`while` conditions are read: a `list(FILTER ... REGEX "XY_CONFIG_")` is a string, not a
+    decision. The two namespaces are treated differently on purpose. `XY_CONFIG_*` is rejected outright because
+    it has one owner - the C header - and mixing it into CMake is always the same mistake. A generated name is
+    accepted when its suffix is a Kconfig symbol name, which is the only way it can come to exist.
+    """
+    files = cmake if cmake is not None else _walk(CMAKE_GLOBS)
+    symbols = _kconfig_symbols(kconfigs)
+    problems: list[str] = []
+    for path in files:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        text = re.sub(r"#[^\n]*", "", text)
+        relative = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.name
+        for match in CONDITION.finditer(text):
+            expression = " ".join(match.group(1).split())
+            for name in sorted(set(C_ONLY_NAME.findall(expression))):
+                problems.append(
+                    f"{relative}: `if({expression})` tests {name}, which is a preprocessor macro in "
+                    f"components/xy_config.h and never a CMake variable - the branch it guards is decided "
+                    f"before anything can set it")
+            for name in sorted(set(GENERATED_NAME.findall(expression))):
+                if name[3:] in symbols:
+                    continue
+                problems.append(
+                    f"{relative}: `if({expression})` tests {name}, but Kconfig declares no symbol "
+                    f"{name[3:]} - nothing generates that variable, so the test is always false")
+    return problems
+
+
 def main() -> int:
-    problems = findings()
+    problems = findings() + condition_findings()
     if problems:
         print("dead_cmake_options failed:")
         for problem in problems:
             print(f"- {problem}")
         return 1
-    print(f"dead_cmake_options ok ({len(_walk(CMAKE_GLOBS))} CMake files, every option is read somewhere)")
+    print(f"dead_cmake_options ok ({len(_walk(CMAKE_GLOBS))} CMake files, every option is read somewhere and "
+          f"every gated name exists)")
     return 0
 
 

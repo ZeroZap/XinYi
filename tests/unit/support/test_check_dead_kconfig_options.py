@@ -109,6 +109,20 @@ class DeadKconfigOptionsTest(unittest.TestCase):
         self.write("cmake/Kconfig.cmake", "set(BUILD_SHARED_LIBS ${CONFIG_BUILD_SHARED_LIBS})\n")
         self.assertEqual([], self.judge(["BUILD_SHARED_LIBS"]))
 
+    def test_the_build_layer_form_of_the_symbol_counts(self) -> None:
+        # config.cmake publishes XY_<symbol> for CMake, and that is how every component gate reads
+        # its switch. Counting only CONFIG_ listed 34 live switches as "nothing gates on this".
+        self.write("components/x/CMakeLists.txt", "if(NOT XY_COMPONENT_X)\n    return()\nendif()\n")
+        self.assertEqual([], self.judge(["COMPONENT_X"]))
+
+    def test_the_build_layer_form_does_not_count_in_c(self) -> None:
+        # xy_pm_platform.c defines its own XY_PLATFORM_WCH from #ifdef chains. That is a driver
+        # macro, not the Kconfig variable, and it must not launder a dead switch.
+        self.write("src/platform.c", "#if defined(__riscv)\n#define XY_PLATFORM_WCH 1\n#endif\n")
+        problems = self.judge(["PLATFORM_WCH"])
+        self.assertEqual(1, len(problems), problems)
+        self.assertIn("configures nothing", problems[0])
+
     def test_the_real_tree_pins_every_symbol_it_declares(self) -> None:
         # The claim that matters: every symbol Kconfig declares is either read or pinned with a reason.
         self.assertEqual([], guard.findings())

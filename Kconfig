@@ -357,6 +357,14 @@ config PROTO_COAP
     help
       CoAP for constrained devices.
 
+config PROTO_SMBUS
+    bool "SMBus / PMBus"
+    default n
+    depends on NETWORK
+    help
+      SMBus/PMBus protocol core (xy_smbus + xy_pmbus). Host-guarded and covered by the
+      net_smbus_pmbus unit test; opt in to link the xy_smbus library into a build.
+
 endmenu # Communication Protocols
 
 menu "File System"

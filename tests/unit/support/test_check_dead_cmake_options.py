@@ -55,5 +55,45 @@ class OptionTests(unittest.TestCase):
         self.assertEqual([], guard.findings())
 
 
+class ConditionTests(unittest.TestCase):
+    """Names a condition tests must be ones CMake can actually hold."""
+
+    def run_conditions(self, cmake: str, kconfig: str = "") -> list[str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            script = root / "CMakeLists.txt"
+            script.write_text(cmake)
+            symbols = root / "Kconfig"
+            symbols.write_text(kconfig)
+            return guard.condition_findings(cmake=[script], kconfigs=[symbols])
+
+    def test_a_c_macro_in_a_condition_is_named(self):
+        problems = self.run_conditions(
+            "if(NOT XY_CONFIG_SMBUS_ENABLED)\n    return()\nendif()\n")
+        self.assertEqual(1, len(problems))
+        self.assertIn("XY_CONFIG_SMBUS_ENABLED", problems[0])
+        self.assertIn("preprocessor macro", problems[0])
+
+    def test_a_generated_name_without_a_symbol_is_named(self):
+        problems = self.run_conditions(
+            "if(XY_COMPONENT_SMBUS)\n    add_library(xy_smbus s.c)\nendif()\n")
+        self.assertEqual(1, len(problems))
+        self.assertIn("XY_COMPONENT_SMBUS", problems[0])
+        self.assertIn("Kconfig declares no symbol COMPONENT_SMBUS", problems[0])
+
+    def test_a_generated_name_backed_by_a_symbol_passes(self):
+        self.assertEqual([], self.run_conditions(
+            "if(XY_PROTO_AT_CLIENT)\n    list(APPEND S a.c)\nendif()\n",
+            "config PROTO_AT_CLIENT\n    bool \"AT client\"\n"))
+
+    def test_a_string_mention_is_not_a_condition(self):
+        """A REGEX filter contains the name but decides nothing."""
+        self.assertEqual([], self.run_conditions(
+            'list(FILTER SOURCES EXCLUDE REGEX "XY_CONFIG_.*")\n'))
+
+    def test_the_real_tree_has_no_impossible_condition(self):
+        self.assertEqual([], guard.condition_findings())
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
