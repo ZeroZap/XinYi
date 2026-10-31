@@ -110,10 +110,6 @@ PINS: dict[str, tuple[tuple[str, ...], str]] = {
         ("components/net/at/AT-Command-V2/samples/linux/include/comdef.h",
          "components/net/at/AT-Command-V2/samples/none_os/framework/comdef.h"),
         "same sample-tree duplication as `_CMDLINE_H_`"),
-    "_XY_SYS_H_": (
-        ("components/drivers/xy_sys/xy_sys.h", "components/sys/xy_sys/xy_sys.h"),
-        "`drivers/xy_sys/xy_sys.h` is unreferenced - no CMake target, no includer - and its API "
-        "is not the sys component's; deleting it is a cleanup, not a guard rename"),
     "_XY_TYPEDEF_H_": (
         ("components/xy_typedef.h", "components/clib/xy_clib/xy_typedef.h"),
         "the two copies define NULL/true/false and ssize_t differently; converging them changes "

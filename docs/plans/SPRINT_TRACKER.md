@@ -3102,3 +3102,39 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   被 `components/drivers/CMakeLists.txt` 的 `GLOB_RECURSE "*.c"` 编进 `xy_drivers`，但全仓库零调用者），
   删除并把 `components/drivers/system/CMakeLists.txt` 里那句"canonical implementation is
   components/drivers/xy_sys"更正为 `components/sys/xy_sys`——那行注释正好把后来者指向要删的孤儿。
+
+### 2026-11-01 第三个 `xy_sys`：没有调用者，却确实被编进了库
+
+- 缺陷：`components/drivers/xy_sys/` 是 `components/sys/xy_sys/` 定名之前的同名遗留（`git log` 只有
+  `init` 和一次"批量创建占位符"两笔）。三个文件是 `xy_sys.{c,h}`（`xy_sys_tick_init` /
+  `xy_sys_tick_inrease` / `xy_sys_tick` 加一个 `_sys_tick`）与**第三份** `xy_typedef.h`。全仓库零
+  `#include` 指向它、零 CMake 显式引用——但它**不是惰性的**：`components/drivers/CMakeLists.txt` 的
+  `file(GLOB_RECURSE COMPONENT_SOURCES "*.c")` 把它编进了 `xy_drivers`。
+- 证据（"没人调用"不等于"没进二进制"）：三个**早于本次改动**的 archive 里都能读到同一批强符号
+  （`nm -A`）：`_sys_tick B`、`xy_sys_tick T`、`xy_sys_tick_init T`、`xy_sys_tick_inrease T`，
+  见 `build/pc`、`build/max44009-driver-pc`、`build/stm32u5-sensor` 三处 `libxy_drivers.a`。
+  名字还带前导下划线，落在保留标识符空间内。
+- 顺带记下的第二个隐患：头文件用 `inline void xy_sys_tick_init(void);` 声明、`.c` 用 `extern inline`
+  定义，方向正好反了 C99 的约定（应为头文件里 `inline` 定义 + 恰好一个 TU 的 `extern inline`）。
+  今天没有调用者所以没人撞到，但它与被删的 API 一起消失了，不需要单独修。
+- 修法：`git rm` 三个文件；`components/drivers/system/CMakeLists.txt` 里那句把 canonical 指向
+  `components/drivers/xy_sys` 的注释改为 `components/sys/xy_sys`（这行注释正是把后来者引向孤儿的那个）；
+  `check_include_guard_collisions.py` 的 `_XY_SYS_H_` pin 随之移除——该 pin 的理由原文就是
+  "unreferenced ... deleting it is a cleanup"，文件删掉后守卫会自己判红。
+- 反证：把该 pin 临时加回内存里的 `PINS` 再跑 `findings()` → 2 条（`pinned file ... does not exist`、
+  `pinned, but no two headers collide on it any more`），证明 pin 的移除是被守卫要求的，不是顺手清理。
+- 验证：`-DKCONFIG_OVERRIDES="...;DRIVER_SENSOR=ON"` 重新 configure + `--target xy_drivers` rc=0，
+  新 archive **55** 个对象且 `nm` 里 `xy_sys` / `_sys_tick` 全无（改动前的同配置 archive 有
+  `xy_sys.c.o`）；`include_guard_collisions` 由 12 pin 降到 **11**（561 头 / 513 guard / 11 处
+  divergent collision 全部带理由 / 3 处完全重复 / 0 个无法阻断的 guard），18 例自测绿；
+  `make test-unit` **382/382**（356.3 s）；`make`（PC）/ `make HAL_PLATFORM=STM32L4`（含 Pandora 板级
+  target）/ `make HAL_PLATFORM=STM32U5` 三路 rc=0；`git diff --check` 干净。
+- 边界：纯删除，不动任何行为。`xy_drivers` 的产品源集合少一个 16 行文件，那些符号没有引用者，
+  所以链接结果不变。未上板、未烧录。
+- 下一步（已探明，需一个取舍）：根 `Kconfig` 是**单文件**，`cmake/kconfig_parser.py` 不支持 `source`，
+  于是仓库里另外 **27 个 Kconfig** 从来没被读过——其中 `components/kernel/osal/Kconfig.osal` 声明的
+  30 个 `XY_OS_*` 开关，`xy_os_cfg.h` 读的是**无前缀**同名宏（`#ifndef` 兜底），
+  `components/kernel/osal/CMakeLists.txt` 用的是 `option(...)`，两边都不吃 `CONFIG_` 前缀。
+  即整条 Kconfig→OSAL 配置链是断的：那个文件无论被不被 source 都影响不到构建。
+  取舍：删掉这些装饰性 Kconfig，还是给 parser 加 `source` 并把消费端改成吃 `CONFIG_` 前缀——
+  后者会改变每次 build 的生成配置，属架构决策，不做单方面改动。
