@@ -11,6 +11,7 @@ endif()
 
 # Add sources (only include files that exist)
 set(SENSOR_SOURCES
+    sensor_bus.c
     sensor_core.c
     sensor_calibration.c
     sensor_dma.c

@@ -576,6 +576,15 @@ xy_add_unit_test(test_bmp280_device sensor_bmp280_device UNITY
     ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
 )
 
+# --- Sensor bus access layer: the public I2C/SPI helpers the fuel-gauge drivers call ---
+xy_add_unit_test(test_sensor_bus sensor_bus UNITY
+    ${UNIT_SENSOR}/test_sensor_bus.c
+    ${SENSOR}/sensor_bus.c
+)
+target_include_directories(test_sensor_bus PRIVATE
+    ${SENSOR}/inc                    # xy_sensor.h / xy_sensor_device.h
+)
+
 # --- Pandora I2C2 sensor Device-driver contracts ---
 xy_add_unit_test(test_i2c2_sensor_devices sensor_i2c2_devices UNITY
     ${UNIT_SENSOR}/test_i2c2_sensor_devices.c

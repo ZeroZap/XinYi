@@ -107,9 +107,10 @@ def main() -> int:
 
     legacy = sorted((ROOT / "components" / "sensor" / "sensors").glob("sensor_*.c"))
     framework_sources = {
-        "sensor_calibration.c", "sensor_core.c", "sensor_dma.c", "sensor_fifo.c",
-        "sensor_filter.c", "sensor_fusion.c", "sensor_interrupt.c", "sensor_mem_pool.c",
-        "sensor_moton.c", "sensor_power.c", "sensor_self_test.c", "sensor_threshold.c",
+        "sensor_bus.c", "sensor_calibration.c", "sensor_core.c", "sensor_dma.c",
+        "sensor_fifo.c", "sensor_filter.c", "sensor_fusion.c", "sensor_interrupt.c",
+        "sensor_mem_pool.c", "sensor_moton.c", "sensor_power.c", "sensor_self_test.c",
+        "sensor_threshold.c",
     }
     explicit_top_level_sources = {
         match.group(1)

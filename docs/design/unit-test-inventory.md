@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 200
-- Unity-style files: 197
+- Total C files under `tests/unit`: 208
+- Unity-style files: 202
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
-- Plain/support helper C files without obvious Unity/assert markers: 3
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 382 (measured: `ctest -N` reports 382;
+- Plain/support helper C files without obvious Unity/assert markers: 6
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 383 (measured: `ctest -N` reports 383;
   the C targets are registered through `xy_add_unit_test(...)`, so `add_test` calls in this file are
   only the explicit Python/board entries. Re-measured in the include-guard slice, which added
   `include_guard_collisions` + `include_guard_collisions_unit`; the previous 379 was measured in the
@@ -74,7 +74,7 @@
 | `net` | 17 | 17 | 0 | 0 | 0 | 5 |
 | `pid` | 3 | 2 | 0 | 0 | 1 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
-| `sensor` | 48 | 48 | 0 | 0 | 0 | 48 |
+| `sensor` | 49 | 49 | 0 | 0 | 0 | 49 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `support` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -88,7 +88,10 @@
 > `test_pandora_i2c_owners`, `test_pandora_platform_startup`, `test_pandora_device_stack`,
 > `test_pandora_hw_i2c_stack` and `test_pandora_sensor_owners`.
 > The summary counts above were re-measured from the tree in the `test_pandora_sensor_owners`
-> slice. A full breakdown regeneration remains a separate docs-sync slice.
+> slice. They were re-measured again in the sensor-bus slice, which added `sensor_bus`
+> (`tests/unit/sensor/test_sensor_bus.c`, 20 cases) for the public I2C/SPI bus helpers the
+> fuel-gauge drivers call, and that slice is where 208 / 202 / 383 were counted.
+> A full breakdown regeneration remains a separate docs-sync slice.
 
 ## Migration Priority
 
@@ -211,6 +214,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/pm/test_charger_bq25620.c` | `unity` | 10 |
 | `tests/unit/pm/test_pm_core.c` | `unity` | 0 |
 | `tests/unit/pm/test_pm_platform_fallback.c` | `unity` | 0 |
+| `tests/unit/sensor/test_sensor_bus.c` | `unity` | 20 | The public `xy_sensor_i2c_*` / `xy_sensor_spi_*` / `xy_sensor_check_device_id` / `xy_sensor_bus_config_*` helpers the fuel-gauge drivers call: every rejection (NULL bus, unconfigured type, missing handle, address 0, shifted address, zero length) is asserted to return `-1` with **zero HAL calls**, every HAL failure maps to `-1`, the 100 ms whole-call timeout is forwarded, and `read_reg16`/`write_reg16` are pinned to SMBus little-endian word order. Host contract only; no bus timing, clock-stretching or device evidence. |
 | `tests/unit/sensor/test_sensor_framework.c` | `unity` | 19 |
 | `tests/unit/sensor/test_mlx90614.c` | `unity` | 0 |
 | `tests/unit/sensor/test_aht20.c` | `unity` | 0 |
