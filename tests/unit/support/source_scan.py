@@ -236,3 +236,51 @@ def with_delegation(source: str, body: str, hops: int = 1) -> str:
         if not added:
             break
     return body
+
+
+# The one fenced-block reader, shared so two guards cannot disagree about what a code block is.
+#
+# A single regex over the whole document - ```[^\n]*\n(.*?)``` - cannot tell a nested fence from a
+# closing one, knows nothing about `~~~`, and silently accepts a block whose terminator is missing.
+# That made a documentation guard punish a doc for writing a rule down inside a block and miss the
+# same shape written with tildes. The states are walked line by line instead.
+
+FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+
+
+def fenced_blocks(text: str) -> list[tuple[str, int, str]]:
+    """Every fenced block in `text` as `(info string, first content line, body)`.
+
+    The info string is what follows the fence (`c`, `bash`, or empty) so a caller can judge only
+    the blocks that make the claim it cares about, and the line number lets a finding point at the
+    block rather than at the document. A fence closes on the same character, at least as long, with
+    nothing else on the line; CommonMark allows up to three spaces of indent. A block whose
+    terminator never arrives runs to the end of the document, because a file that lost its closing
+    fence still shows what it was describing.
+    """
+    blocks: list[tuple[str, int, str]] = []
+    current: list[str] | None = None
+    marker = ""
+    info = ""
+    start = 0
+
+    for number, line in enumerate(text.splitlines(), start=1):
+        opener = FENCE_OPEN.match(line)
+        if current is None:
+            if opener is not None:
+                marker = opener.group(1)
+                info = opener.group(2).strip()
+                current = []
+                start = number + 1
+            continue
+        if opener is not None and opener.group(1)[0] == marker[0] and \
+                len(opener.group(1)) >= len(marker) and not opener.group(2).strip():
+            blocks.append((info, start, "\n".join(current)))
+            current = None
+            marker = ""
+            info = ""
+            continue
+        current.append(line)
+    if current is not None:
+        blocks.append((info, start, "\n".join(current)))
+    return blocks

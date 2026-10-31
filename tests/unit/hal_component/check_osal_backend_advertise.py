@@ -42,7 +42,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
 
-from source_scan import code_only_hash, read_hash_code  # noqa: E402
+from source_scan import code_only_hash, fenced_blocks as shared_fenced_blocks, read_hash_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 ROOT_CMAKE = ROOT / "CMakeLists.txt"
@@ -226,36 +226,14 @@ DOC_COMMAND = re.compile(r"-DOSAL_BACKEND=([A-Za-z0-9_]+)")
 
 
 def fenced_blocks(text: str) -> list[str]:
-    """Every fenced block in `text`, fence markers removed.
+    """Every fenced block in `text`, fence markers and language info removed.
 
-    Read line by line rather than by one regex over the whole document, because a regex that
-    treats the text between the first and last fence as one block cannot tell a nested fence
-    from a closing one, and misses tildes and the three-space indent CommonMark allows. A
-    block whose closing fence never arrives runs to the end of the document: a file that lost
-    its terminator still shows the command it was describing.
+    The state machine lives in `source_scan.fenced_blocks()` because a second reader is how two
+    guards end up disagreeing about what a code block is - the same way two comment strippers
+    disagreed. This one drops the info string and the line numbers, which the callers here do not
+    use.
     """
-    blocks: list[str] = []
-    current: list[str] | None = None
-    marker = ""
-
-    for line in text.splitlines():
-        opener = FENCE_OPEN.match(line)
-        if current is None:
-            if opener is not None:
-                marker = opener.group(1)
-                current = []
-            continue
-        # A closing fence is the same character, at least as long, and nothing else on the line.
-        if opener is not None and line.strip() == opener.group(1) and \
-                opener.group(1)[0] == marker[0] and len(opener.group(1)) >= len(marker):
-            blocks.append("\n".join(current))
-            current = None
-            marker = ""
-            continue
-        current.append(line)
-    if current is not None:
-        blocks.append("\n".join(current))
-    return blocks
+    return [body for _info, _start, body in shared_fenced_blocks(text)]
 
 
 def doc_command_findings(docs: dict[str, str], chosen: set[str]) -> list[str]:

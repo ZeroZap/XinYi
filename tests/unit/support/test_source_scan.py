@@ -15,7 +15,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "support"))
 
-from source_scan import code_only, code_only_hash, read_code, read_hash_code, read_raw  # noqa: E402
+from source_scan import (code_only, code_only_hash, fenced_blocks, read_code,  # noqa: E402
+                         read_hash_code, read_raw)
 
 
 class CodeOnlyTest(unittest.TestCase):
@@ -127,6 +128,39 @@ class ReadHashCodeTest(unittest.TestCase):
     def test_read_hash_code_accepts_a_string_path(self) -> None:
         self.path.write_text("# note\nset(A 1)\n", encoding="utf-8")
         self.assertIn("set(A 1)", read_hash_code(str(self.path)))
+
+
+class FencedBlocksTest(unittest.TestCase):
+    """The one fenced-block reader, shared by the documentation guards.
+
+    A single regex over the whole document cannot tell a nested fence from a closing one, and two
+    guards with their own readers is how they start disagreeing about what a code block is.
+    """
+
+    def test_a_backtick_block_reports_its_info_string_and_first_line(self) -> None:
+        # "# Doc", "", "```c", "int a;" -> the content starts on line 4.
+        self.assertEqual([("c", 4, "int a;")], fenced_blocks("# Doc\n\n```c\nint a;\n```\n"))
+
+    def test_a_tilde_block_opens_and_closes(self) -> None:
+        self.assertEqual([("bash", 2, "make")], fenced_blocks("~~~bash\nmake\n~~~\n"))
+
+    def test_a_four_backtick_fence_is_not_closed_by_three(self) -> None:
+        text = "````markdown\n```c\nint a;\n```\n````\n"
+        blocks = fenced_blocks(text)
+        self.assertEqual(1, len(blocks))
+        self.assertIn("```c", blocks[0][2])
+
+    def test_a_block_whose_terminator_never_arrives_runs_to_the_end(self) -> None:
+        self.assertEqual([("c", 2, "int a;\nint b;")], fenced_blocks("```c\nint a;\nint b;\n"))
+
+    def test_an_indented_by_four_spaces_fence_is_not_a_fence(self) -> None:
+        self.assertEqual([], fenced_blocks("    ```c\n    int a;\n    ```\n"))
+
+    def test_an_indented_by_three_spaces_fence_is_a_fence(self) -> None:
+        self.assertEqual([("c", 2, "int a;")], fenced_blocks("   ```c\nint a;\n   ```\n"))
+
+    def test_prose_outside_a_fence_is_not_a_block(self) -> None:
+        self.assertEqual([], fenced_blocks("# Doc\n\nNo block here.\n"))
 
 
 if __name__ == "__main__":
