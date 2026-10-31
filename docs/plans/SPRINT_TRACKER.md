@@ -2945,3 +2945,32 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 过程订正：迁移过程中 `cbad5478`（S6-119 Pandora 传感器 owner 实板 runtime 记录）由并行会话落地，
   故本 slice 编号由 119 顺延为 120；`tools/program_opench_ch32v307.py` 的脏改动属该并行会话，
   未纳入本次提交。
+
+### 2026-10-31 Kconfig 声明了 81 个开关，构建只读 23 个
+
+- 收口：`Kconfig` 声明 81 个符号，`cmake/kconfig_parser.py` 把它们写成 `config.cmake` 的
+  `CONFIG_*` 变量与 `autoconf.h` 的宏，**构建只读其中 23 个**。其余 58 个不是无害的装饰：其中十个
+  就是平台菜单（`PLATFORM_STM32L4`/`PLATFORM_STM32U5`/`HAL_PC`/`HAL_STM32`/…），而一个构建实际是
+  哪个平台，由 `HAL_PLATFORM` 决定 —— 它选 `cmake/platform/${HAL_PLATFORM}.cmake`，解析器只是把
+  它当**输入**（`--platform`）读走再写出一份没人读回的符号。于是菜单和构建是同一件事的两个名字，
+  只有后一个到达编译器：把平台符号设成 STM32L4，构建仍然是 PC，且不报错。`autoconf.h` 生成到
+  `include_directories()` 已经挂上的目录，宏是可达的 —— 但没有任何源码 `#include` 它，C 侧一个
+  仓库内消费者都没有。解析器也没有 `--config` 输入，`.config` 是**只写**产物，改它不生效。
+- 覆盖：新增 `check_dead_kconfig_options.py`，把 58 个死符号逐条 pin 理由（平台菜单、组件、驱动、
+  协议、FS、FOTA、PM、日志断言、构建工具、传感器开关各自成组），并钉住三条反向规则：pin 住的符号
+  若开始被读（stale pin）、pin 住的符号若已从 Kconfig 删除（outlived pin）、pin 没有理由，三者都判红；
+  声明集为空或语料为空也判红，避免"什么都没走查到"读作干净。
+- 反证：五个变异全部拦下 —— `consumers_of` 恒假（5 项 FAIL）、去掉 stale-pin 检查（1）、去掉
+  outlived-pin 检查（1）、去掉空理由检查（1）、**不剥注释改成原始读取（2）**。最后一项是关键：
+  死开关正是会被人在注释里讨论的东西，把注释当消费就会在它最该死的时候报活。
+- 过程订正（本轮自查）：守卫第一版按文件名前缀跳过 "Kconfig*"，把 `cmake/Kconfig.cmake`（CMake
+  集成脚本，不是声明文件）一并跳过，于是把每次配置都被读的 `LOG_LEVEL` 与 `BUILD_SHARED_LIBS`
+  误判为死符号（58 vs 真值 60 的错误方向）。改为一律按精确路径只跳过声明源 `Kconfig` 本身。
+  该缺陷由 `test_the_cmake_integration_script_does_count_as_a_consumer` 钉住。
+- 验证：新增测试 14 例；`check_guard_module_hygiene` 在注册前先红（同时点名 checker 与其自测），
+  注册后绿（77 个守卫文件、59 个测试文件）；Host `make test-unit` **377/377**；`git diff --check` 通过。
+- 边界：本 slice **只把差距钉住，不删也不接线**。删除 58 个符号是产品决策，把 `autoconf.h`
+  接进源码是另一件事；两者都留待明确决定。未触碰 `Kconfig`、`kconfig_parser.py`、
+  `cmake/Kconfig.cmake` 与任何产品源码，故六路构建不受影响（本轮未重跑六路）。
+- 下一步：决定平台配置的唯一权威是 `HAL_PLATFORM` 还是 `Kconfig`（二选一，而不是两套并存）；若选
+  Kconfig，需要给解析器加 `--config` 读回能力并由它派生 `cmake/platform/` 选择。

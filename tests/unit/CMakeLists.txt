@@ -1992,6 +1992,12 @@ add_test(NAME doc_api_symbols
 add_test(NAME doc_api_symbols_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_check_doc_api_symbols.py)
 
+add_test(NAME dead_kconfig_options
+    COMMAND python3 ${UNIT_SUPPORT}/check_dead_kconfig_options.py)
+
+add_test(NAME dead_kconfig_options_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_dead_kconfig_options.py)
+
 add_test(NAME clib_frame_mutations
     COMMAND python3 ${UNIT_CLIB}/mutation_check_frame.py --build-dir ${CMAKE_BINARY_DIR})
 
