@@ -50,15 +50,15 @@ add_library(xy_device STATIC ${DEVICE_SOURCES})
 # HAL Platform Selection (same as xy_hal component)
 set(HAL_PLATFORM "PC" CACHE STRING "HAL Platform for device component")
 
-# Include HAL sources based on platform
+# `xy_hal` owns the platform backends, the PC simulation included. This component
+# links that library on every platform; it must not compile the backends itself.
+# Doing so put a second copy of every backend symbol into `libxy_device.a`
+# (59 `xy_hal_*` definitions shared with `libxy_hal.a` on a PC configure with
+# `COMPONENT_DEVICE=ON`), which leaves the linked implementation up to archive
+# order instead of the build.
+set(HAL_INCLUDE_DIRS "")
+set(HAL_DEFINES "")
 if(HAL_PLATFORM STREQUAL "PC")
-    set(HAL_SOURCES
-        ../hal/PC/xy_hal_pc.c
-        ../hal/PC/xy_hal_gpio_pc.c
-        ../hal/PC/xy_hal_i2c_pc.c
-        ../hal/PC/xy_hal_spi_pc.c
-        ../hal/PC/xy_hal_uart_pc.c
-    )
     set(HAL_INCLUDE_DIRS
         ${CMAKE_CURRENT_SOURCE_DIR}/../hal/inc
         ${CMAKE_CURRENT_SOURCE_DIR}/../hal
@@ -67,12 +67,6 @@ if(HAL_PLATFORM STREQUAL "PC")
         HAL_PLATFORM_PC
         XY_HAL_PC_SIM
     )
-else()
-    # For embedded platforms, link with external xy_hal
-    message(STATUS "Device: Using external xy_hal for ${HAL_PLATFORM}")
-    set(HAL_SOURCES "")
-    set(HAL_INCLUDE_DIRS "")
-    set(HAL_DEFINES "")
 endif()
 
 target_include_directories(xy_device PUBLIC
@@ -81,18 +75,11 @@ target_include_directories(xy_device PUBLIC
     ${HAL_INCLUDE_DIRS}
 )
 
-# Add HAL sources if building for PC
-if(HAL_SOURCES)
-    target_sources(xy_device PRIVATE ${HAL_SOURCES})
-endif()
-
 # Compile definitions
 target_compile_definitions(xy_device PUBLIC ${HAL_DEFINES})
 
-# For non-PC platforms, link with xy_hal library
-if(NOT HAL_PLATFORM STREQUAL "PC")
-    target_link_libraries(xy_device PUBLIC xy_hal)
-endif()
+# The HAL implementation is owned by exactly one library, on every platform.
+target_link_libraries(xy_device PUBLIC xy_hal)
 
 # Installation
 install(FILES ${DEVICE_HEADERS} DESTINATION include/xy_device)
