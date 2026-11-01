@@ -2134,6 +2134,17 @@ xy_add_unit_test(test_clib_math_stdlib clib_math_stdlib UNITY
 # degree; the implementations themselves are integer-only.
 target_link_libraries(test_clib_math_stdlib PRIVATE m)
 
+# --- The math TU's own header must declare what the TU defines ---
+# Includes xy_math.h only (no xy_stdlib.h, which still carries the leftover
+# declarations), so a missing declaration is a compile error instead of a
+# warning, and a declared-but-undefined function is a link error.
+xy_add_unit_test(test_clib_math_header clib_math_header UNITY
+    ${UNIT_CLIB}/test_clib_math_header.c
+    ${CLIB}/xy_math.c
+)
+target_compile_options(test_clib_math_header PRIVATE -Werror=implicit-function-declaration)
+target_link_libraries(test_clib_math_header PRIVATE m)
+
 # --- Test 26: MUX manager, registration, and TLV packet contracts ---
 xy_add_unit_test(test_mux_core mux_core UNITY
     ${UNIT_MUX}/test_mux_core.c

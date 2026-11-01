@@ -4,19 +4,18 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 208
-- Unity-style files: 202
+- Total C files under `tests/unit`: 209
+- Unity-style files: 203
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 389 (measured: `ctest -N` on a direct
-  `tests/unit` configure reports 389, while `make test-unit` registers and runs 387 - two entries are
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 401 (measured: `ctest -N` on a direct
+  `tests/unit` configure reports 401, while `make test-unit` registers and runs 400 - two entries are
   configuration-dependent. The C targets are registered through `xy_add_unit_test(...)`, so
-  `add_test` calls in this file are only the explicit Python/board entries. Re-measured in the
-  component-source-ownership slice, which added `component_source_ownership` +
-  `component_source_ownership_unit` (385 before it, 387 on the make path); the 383 before that was
-  measured in the include-guard slice, and the 304 before that was stale by roughly the number of
-  CTests registered since it was written, so treat this line as measured-not-maintained)
+  `add_test` calls in this file are only the explicit Python/board entries. Last measured in the
+  fixed-point-trig `clib_math_header` slice, which added one C target to the 400/398 pair before it;
+  the older numbers on this line were stale by roughly the number of CTests registered since they
+  were written, so treat the count as measured-not-maintained)
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -118,7 +117,8 @@ guard API drift in those examples/skeletons.
 | `tests/unit/actuator/test_actuator_framework.c` | `unity` | 18 |
 | `tests/unit/analog_devices/test_analog_devices.c` | `unity` | 11 |
 | `tests/unit/clib/test_clib_core.c` | `unity` | 0 |
-| `tests/unit/clib/test_clib_math_stdlib.c` | `unity` | 0 | Links `xy_stdio.c` + `xy_stdlib.c` + `xy_math.c` into one executable on purpose: a duplicate non-static definition in the CLIB archive becomes a link error instead of an archive-order coin flip. Pins conversion and fixed-point-math contracts only; float parsing stays unsupported (see backlog A16). |
+| `tests/unit/clib/test_clib_math_stdlib.c` | `unity` | 0 | Links `xy_stdio.c` + `xy_stdlib.c` + `xy_math.c` into one executable on purpose: a duplicate non-static definition in the CLIB archive becomes a link error instead of an archive-order coin flip. Pins conversion and fixed-point-math contracts only; float parsing stays unsupported (see backlog A16). The trig cases compare all 360 whole degrees against libm (+/-1 LSB), which is how the `89 - x` mirror index was found: it made sin(90) read 9998 and sin(91) 9993. |
+| `tests/unit/clib/test_clib_math_header.c` | `unity` | 1 | Includes `xy_math.h` only and is built with `-Werror=implicit-function-declaration` (plus `-lm` for nothing but the assertions), so a function `xy_math.c` defines without its own header declaring it is a compile error and a declared-but-undefined one is a link error. RED before the fix: `xy_gcd`/`xy_lcm`/`xy_factorial`/`xy_constrain`/`xy_map` were defined in the TU and declared only in `xy_stdlib.h`. |
 | `tests/unit/crypto/test_25519.c` | `unity` | 0 |
 | `tests/unit/crypto/test_25519_m0.c` | `unity` | 6 |
 | `tests/unit/crypto/test_cipher_hmac.c` | `unity` | 0 |

@@ -113,6 +113,51 @@ xy_lldiv_t xy_lldiv(long long numer, long long denom);
 #define xy_clamp(x, low, high) \
     (((x) < (low)) ? (low) : (((x) > (high)) ? (high) : (x)))
 
+/* Integer Utilities (definitions live in xy_math.c) */
+
+/**
+ * @brief Greatest common divisor (Euclid)
+ * @param a First value
+ * @param b Second value
+ * @return Non-negative greatest common divisor
+ */
+int xy_gcd(int a, int b);
+
+/**
+ * @brief Least common multiple
+ * @param a First value
+ * @param b Second value
+ * @return Non-negative least common multiple
+ */
+int xy_lcm(int a, int b);
+
+/**
+ * @brief Factorial
+ * @param n Non-negative integer
+ * @return n!
+ */
+int xy_factorial(int n);
+
+/**
+ * @brief Constrain a value to a range (same contract as the xy_clamp macro)
+ * @param x Value to constrain
+ * @param min Lower bound
+ * @param max Upper bound
+ * @return Value constrained to [min, max]
+ */
+int xy_constrain(int x, int min, int max);
+
+/**
+ * @brief Map a value from one range to another
+ * @param x Value to map
+ * @param in_min Input range lower bound
+ * @param in_max Input range upper bound
+ * @param out_min Output range lower bound
+ * @param out_max Output range upper bound
+ * @return Mapped value
+ */
+int xy_map(int x, int in_min, int in_max, int out_min, int out_max);
+
 /* Power and Root Functions */
 
 /**

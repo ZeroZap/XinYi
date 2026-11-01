@@ -317,7 +317,10 @@ float xy_fast_cos(float x)
     return xy_fast_sin(x + 1.57079632f);
 }
 
-/* Additional utility functions */
+/* Additional utility functions. Signatures are `int`, not `int32_t`: on a
+ * 32-bit target `int32_t` is `long`, so these definitions disagreed with the
+ * `int` declarations both headers publish (the host build cannot see it -
+ * there `int32_t` is `int`). Kept in step with xy_math.h/xy_stdlib.h. */
 
 /**
  * @brief Calculate greatest common divisor
@@ -325,10 +328,10 @@ float xy_fast_cos(float x)
  * @param b Second number
  * @return GCD of a and b
  */
-int32_t xy_gcd(int32_t a, int32_t b)
+int xy_gcd(int a, int b)
 {
     while (b != 0) {
-        int32_t temp = b;
+        int temp = b;
         b = a % b;
         a = temp;
     }
@@ -341,7 +344,7 @@ int32_t xy_gcd(int32_t a, int32_t b)
  * @param b Second number
  * @return LCM of a and b
  */
-int32_t xy_lcm(int32_t a, int32_t b)
+int xy_lcm(int a, int b)
 {
     if (a == 0 || b == 0) return 0;
     return (a / xy_gcd(a, b)) * b;
@@ -354,7 +357,7 @@ int32_t xy_lcm(int32_t a, int32_t b)
  * @param max Maximum value
  * @return Constrained value
  */
-int32_t xy_constrain(int32_t x, int32_t min, int32_t max)
+int xy_constrain(int x, int min, int max)
 {
     if (x < min) return min;
     if (x > max) return max;
@@ -370,8 +373,7 @@ int32_t xy_constrain(int32_t x, int32_t min, int32_t max)
  * @param out_max Output range maximum
  * @return Mapped value
  */
-int32_t xy_map(int32_t x, int32_t in_min, int32_t in_max, 
-               int32_t out_min, int32_t out_max)
+int xy_map(int x, int in_min, int in_max, int out_min, int out_max)
 {
     if (in_min == in_max) return out_min;
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
