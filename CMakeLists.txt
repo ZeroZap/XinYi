@@ -297,6 +297,18 @@ if(EXISTS "${_dir}/CMakeLists.txt")
 endif()
 
 # =============================================================================
+# Framework-wide source with no component directory
+# =============================================================================
+# components/xy_version.c implements the API of components/xy_version.h, which the umbrella
+# header components/xy.h re-exports, but it lives at the components root so no component
+# directory ever claimed it. Without a target it is never compiled: every declared
+# xy_version_* entry point is an undefined reference for a consumer and the implementation
+# cannot be compared against the release macros. The library is what makes the public
+# declaration true; tests/unit/framework/test_version_api.c holds it to those macros.
+add_library(xy_version STATIC "${CMAKE_SOURCE_DIR}/components/xy_version.c")
+target_include_directories(xy_version PUBLIC "${CMAKE_SOURCE_DIR}/components")
+
+# =============================================================================
 # Tests
 # =============================================================================
 if(BUILD_TESTING)

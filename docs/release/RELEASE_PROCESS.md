@@ -5,6 +5,11 @@
 - `VERSION` is the only framework-version fact source.
 - Root CMake reads `VERSION`; `Kconfig` and `components/xy_version.h` are checked mirrors for embedded
   consumers and generated configuration.
+- The mirrors are enforced locally by CTest `release_facts` (same script as CI) **and** by
+  `tests/unit/framework/test_version_api.c`, which compares the header macros with the shipped
+  implementation in `components/xy_version.c` (root target `xy_version`). Before that, the only
+  local invocation was `release_publication_refuses_without_authorization`, which runs the same
+  script with `WILL_FAIL` set, so a forgotten mirror looked exactly like the intended refusal.
 - `docs/release/CHANGELOG.md` is the canonical release-note path.
 - `docs/release/known-limitations.md` is mandatory release context.
 - Files under `docs/history/` are archival and do not define current release readiness.

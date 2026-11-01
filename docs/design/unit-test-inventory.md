@@ -4,20 +4,20 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 210
-- Unity-style files: 203
+- Total C files under `tests/unit`: 210 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
+  the previous line said 210 when the tree held 209 — that number was a slice behind)
+- Unity-style files: 206 (measured `grep -l unity.h` over those files)
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
-- Plain/support helper C files without obvious Unity/assert markers: 7
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 405 (measured: `make test-unit` ran
-  405/405 and `ctest -N` on that build tree reports 405; the direct `tests/unit` configure still
-  reports fewer because a couple of entries are configuration-dependent, so the two used to differ.
-  The C targets are registered through `xy_add_unit_test(...)`, so `add_test` calls in this file
-  are only the explicit Python/board entries. Last measured in the `sensor_gps_example` slice,
-  which added one C target (`test_gps_example`) and one support stub
-  (`sensor/test_gps_example_tick_stub.c`) to the 404 of the `clib_example` slice before it; older
-  numbers on this line were stale by roughly the number of CTests registered since they were
-  written, so treat the count as measured-not-maintained)
+- Plain/support helper C files without obvious Unity/assert markers: 4
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 407 (measured: `make test-unit` ran
+  407/407 in 378.72 s and `ctest -N` on that build tree reports `Total Tests: 407`; the direct
+  `tests/unit` configure reports the same now. The C targets are registered through
+  `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
+  entries. The `version_api` slice added two: the C target `test_version_api` and the Python
+  `release_facts` gate, taking 405 → 407. Older numbers on this line were stale by roughly the
+  number of CTests registered since they were written, so treat the count as
+  measured-not-maintained)
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -165,6 +165,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/hal_component/test_pandora_hw_i2c_stack.c` | `unity` | 13 | Pandora hardware I2C3 -> Device -> driver vertical slice for the handle transport style: `pandora_hw_i2c.c` (vendor `Instance`/AF4/RCC handle path) feeds the real `xy_i2c_device_*` helpers into the canonical `xy_ap3216c` driver against a host-side AP3216C register model on the `xy_hal_i2c_*` seam, pinning the 7-bit address and 100 ms timeout carried per transfer, reset-then-mode init with both 50 ms settle delays, ALS (`*350`), PS (12-bit mask plus the 0x40 out-of-range flag) and IR (10-bit mask) decoding, register-select-then-read framing per quantity, live-owner/cache preservation on a failed re-init, fail-closed reads/deinit on a NACKing device, and power-down on deinit. Host contract only - no timing, clock-stretching, real-device or board-runtime evidence. |
 | `tests/unit/fota/test_fota_smoke_example.c` | `unity` | 0 | Host-safe public FOTA flow smoke; fake Flash callbacks only, not board/bootloader validation. |
 | `tests/unit/framework/test_fff_smoke.c` | `unity` | 72 |
+| `tests/unit/framework/test_version_api.c` | `unity` | 0 | Release facts vs the implementation shipped for them. `components/xy_version.c` implemented the API of `components/xy_version.h` (re-exported by the `xy.h` umbrella) and **no target ever compiled it**: a consumer calling `xy_version_get_string()` got `undefined reference`. The cases pin the string to the numeric macros (`sscanf` of `XY_VERSION_STRING` vs `MAJOR/MINOR/PATCH`, so a half-done bump is caught inside the header), the packed `XY_VERSION_NUMBER`, the comparison macros, the getters against the macros, and the direction of `xy_version_check_compatibility`: a request for a *newer* minor/patch than this build provides is refused (it used to return 1, granting an API that does not exist), and negative fields are refused rather than read as an older version. Header-vs-`VERSION` drift is the Python `release_facts` gate, not this one. |
 | `tests/unit/fuel_gauge/test_fg_bq27z561.c` | `unity` | 42 |
 | `tests/unit/fuel_gauge/test_fg_bq27z746.c` | `unity` | 39 |
 | `tests/unit/fuel_gauge/test_fg_bq40z50.c` | `unity` | 115 |

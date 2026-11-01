@@ -411,6 +411,14 @@ add_test(NAME release_publication_refuses_without_authorization
     WORKING_DIRECTORY ${ROOT}
 )
 set_tests_properties(release_publication_refuses_without_authorization PROPERTIES WILL_FAIL TRUE)
+# The only local invocation of the release-fact checker above expects it to fail, so every
+# failure of that checker looks the same: publishing is (correctly) refused. A VERSION bump
+# that forgot one of the mirrors therefore kept `make test-unit` green and was only caught by
+# the CI workflow that runs the same script plainly. This positive gate is the local half.
+add_test(NAME release_facts
+    COMMAND python3 ${ROOT}/tools/scripts/check_release_facts.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME supply_chain_inventory
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_supply_chain_inventory.py
     WORKING_DIRECTORY ${ROOT}
@@ -3100,6 +3108,17 @@ target_include_directories(test_fuel_gauge_smbus_hardware_smoke_example PRIVATE
 xy_add_unit_test(test_fff_smoke fff_smoke UNITY
     ${UNIT_FRAMEWORK}/test_fff_smoke.c
 )
+
+# --- Test 50: release macros vs the implementation shipped for them ---
+# components/xy_version.c implemented the API of components/xy_version.h and no target
+# compiled it, so the getters were a link error and the compatibility gate was never run.
+# The source is compiled here directly (this project does not link the root targets) and
+# the root library `xy_version` is what makes the symbols exist for a real consumer.
+xy_add_unit_test(test_version_api version_api UNITY
+    ${UNIT_FRAMEWORK}/test_version_api.c
+    ${ROOT}/components/xy_version.c
+)
+target_include_directories(test_version_api PRIVATE ${ROOT}/components)
 
 # Convenience target: build + run all tests
 get_property(XY_UNIT_TEST_TARGETS GLOBAL PROPERTY XY_UNIT_TEST_TARGETS)

@@ -94,11 +94,16 @@ int xy_version_get_minor(void);
 int xy_version_get_patch(void);
 
 /**
- * @brief 检查运行时版本
+ * @brief 检查请求的版本是否被当前二进制满足
  * @param major 主版本号
  * @param minor 次版本号
  * @param patch 补丁号
  * @return 1=兼容，0=不兼容
+ *
+ * 参数是要**请求**的版本，`XY_VERSION_*` 是当前二进制实际提供的版本：
+ * - 主版本号必须相等；
+ * - 请求的次版本号/补丁号高于本机提供的版本时不兼容（那份 API 并不存在）；
+ * - 任一分量为负数一律不兼容，而不是当成“更旧的版本”。
  */
 int xy_version_check_compatibility(int major, int minor, int patch);
 
