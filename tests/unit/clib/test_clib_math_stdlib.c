@@ -22,6 +22,8 @@
  * The assertions pin the surviving contract so a later "fix" has to be deliberate.
  */
 
+#include <math.h>
+
 #include "unity.h"
 #include "xy_math.h"
 #include "xy_stdlib.h"
@@ -114,33 +116,77 @@ static void test_power_of_two_range_and_mapping_helpers(void)
 
 /* --- fixed-point trigonometry (owner: xy_math.c) ---
  *
- * Angle in degrees x100, result is sin x10000. Fractional degrees are truncated
- * (the table is integer-indexed), and the quadrant-1 branch indexes 89 - x for a
- * table whose last entry is 90, so an exact right angle reads 9998 rather than
- * 10000. Both are the current numbers, pinned here; the 1-LSB ceiling is its own
- * candidate slice because fixing it also moves xy_cos_fixed/xy_tan_fixed.
+ * Angle in degrees x100, result is sin x10000, and `sin_table[d]` is
+ * floor(sin(d degrees) * 10000) for every whole degree d in 0..90. Fractional
+ * hundredths are truncated because the table is integer-indexed.
+ *
+ * The mirror index in quadrants 1 and 3 is a contract, not an implementation
+ * detail. Those branches used to read `sin_table[89 - x]`, i.e. the entry for
+ * the degree *before* the mirror, so an exact right angle read 9998 instead of
+ * 10000 and sin(91) read 9993 where sin(91) is 9998 - five LSBs off. Spot
+ * checks did not show it because the pinned angles whose mirrored entry
+ * happened to land within a LSB looked right. The two loops below compare every
+ * whole degree against libm, so a mirrored-quadrant regression fails on the
+ * degree it breaks instead of waiting for someone to try 91.
  */
+
+static double degrees_to_radians(int32_t degrees)
+{
+    return (double)degrees * 3.14159265358979323846 / 180.0;
+}
+
+static void test_sin_fixed_tracks_libm_at_every_whole_degree(void)
+{
+    for (int32_t degrees = 0; degrees < 360; degrees++) {
+        const double expected = sin(degrees_to_radians(degrees)) * 10000.0;
+        const int32_t actual = xy_sin_fixed(degrees * 100);
+        /* One LSB: the table truncates toward zero, so a negative half sits one
+         * LSB above floor(sin * 10000). */
+        TEST_ASSERT_FLOAT_WITHIN(1.0f, (float)expected, (float)actual);
+    }
+}
+
+static void test_cos_fixed_tracks_libm_at_every_whole_degree(void)
+{
+    for (int32_t degrees = 0; degrees < 360; degrees++) {
+        const double expected = cos(degrees_to_radians(degrees)) * 10000.0;
+        const int32_t actual = xy_cos_fixed(degrees * 100);
+        TEST_ASSERT_FLOAT_WITHIN(1.0f, (float)expected, (float)actual);
+    }
+}
 
 static void test_sin_fixed_quadrants(void)
 {
     TEST_ASSERT_EQUAL_INT32(0, xy_sin_fixed(0));
+    TEST_ASSERT_EQUAL_INT32(5000, xy_sin_fixed(3000));
     TEST_ASSERT_EQUAL_INT32(7071, xy_sin_fixed(4500));
-    TEST_ASSERT_EQUAL_INT32(9998, xy_sin_fixed(9000));
+    TEST_ASSERT_EQUAL_INT32(8660, xy_sin_fixed(6000));
+    TEST_ASSERT_EQUAL_INT32(10000, xy_sin_fixed(9000));
+    TEST_ASSERT_EQUAL_INT32(9998, xy_sin_fixed(9100));
     TEST_ASSERT_EQUAL_INT32(0, xy_sin_fixed(18000));
-    TEST_ASSERT_EQUAL_INT32(-9998, xy_sin_fixed(27000));
+    TEST_ASSERT_EQUAL_INT32(-9998, xy_sin_fixed(26900));
+    TEST_ASSERT_EQUAL_INT32(-10000, xy_sin_fixed(27000));
 }
 
 static void test_sin_fixed_normalises_out_of_range_angles(void)
 {
-    TEST_ASSERT_EQUAL_INT32(-9998, xy_sin_fixed(-9000));
+    TEST_ASSERT_EQUAL_INT32(-10000, xy_sin_fixed(-9000));
+    /* 369.00 degrees normalises to 9 degrees. */
     TEST_ASSERT_EQUAL_INT32(1564, xy_sin_fixed(36900));
+    /* 364.50 degrees normalises to 4 degrees: the fractional hundredth is
+     * truncated, not rounded, because the table is integer-indexed. */
+    TEST_ASSERT_EQUAL_INT32(697, xy_sin_fixed(36450));
+    TEST_ASSERT_EQUAL_INT32(-9998, xy_sin_fixed(-9100));
 }
 
 static void test_cos_and_tan_fixed_are_derived_from_sin(void)
 {
-    TEST_ASSERT_EQUAL_INT32(9998, xy_cos_fixed(0));
+    TEST_ASSERT_EQUAL_INT32(10000, xy_cos_fixed(0));
     TEST_ASSERT_EQUAL_INT32(0, xy_cos_fixed(9000));
+    TEST_ASSERT_EQUAL_INT32(-10000, xy_cos_fixed(18000));
     TEST_ASSERT_EQUAL_INT32(10000, xy_tan_fixed(4500));
+    TEST_ASSERT_EQUAL_INT32(-10000, xy_tan_fixed(13500));
+    TEST_ASSERT_EQUAL_INT32(0, xy_tan_fixed(0));
 }
 
 int main(void)
@@ -153,6 +199,8 @@ int main(void)
     RUN_TEST(test_integer_roots_and_powers);
     RUN_TEST(test_gcd_lcm_are_positive_and_ordered);
     RUN_TEST(test_power_of_two_range_and_mapping_helpers);
+    RUN_TEST(test_sin_fixed_tracks_libm_at_every_whole_degree);
+    RUN_TEST(test_cos_fixed_tracks_libm_at_every_whole_degree);
     RUN_TEST(test_sin_fixed_quadrants);
     RUN_TEST(test_sin_fixed_normalises_out_of_range_angles);
     RUN_TEST(test_cos_and_tan_fixed_are_derived_from_sin);

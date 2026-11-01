@@ -2130,6 +2130,9 @@ xy_add_unit_test(test_clib_math_stdlib clib_math_stdlib UNITY
     ${CLIB}/xy_stdlib.c
     ${CLIB}/xy_math.c
 )
+# The trig tests compare the fixed-point tables against libm at every whole
+# degree; the implementations themselves are integer-only.
+target_link_libraries(test_clib_math_stdlib PRIVATE m)
 
 # --- Test 26: MUX manager, registration, and TLV packet contracts ---
 xy_add_unit_test(test_mux_core mux_core UNITY

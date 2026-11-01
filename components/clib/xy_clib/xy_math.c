@@ -142,24 +142,25 @@ int32_t xy_sin_fixed(int32_t angle_degrees_x100)
     // used to be computed here and never read, which only produced a warning.)
     int32_t degrees = normalized / 100;
     
-    // Determine quadrant
+    // Determine quadrant. `angle_in_quadrant` is `degrees % 90`, i.e. already
+    // in 0..89, so no clamp is needed here.
     int32_t quadrant = degrees / 90;
     int32_t angle_in_quadrant = degrees % 90;
     
     int32_t result;
     if (quadrant == 0) {
         // 0-89 degrees
-        if (angle_in_quadrant >= 90) angle_in_quadrant = 89;
         result = sin_table[angle_in_quadrant];
     } else if (quadrant == 1) {
-        // 90-179 degrees: sin(180-x) = sin(x)
-        result = sin_table[89 - angle_in_quadrant];
+        // 90-179 degrees: sin(90+x) = sin(90-x), so the mirror index is 90-x
+        // (index 90 is the table's cos(0) entry, exactly 10000).
+        result = sin_table[90 - angle_in_quadrant];
     } else if (quadrant == 2) {
         // 180-269 degrees: sin(180+x) = -sin(x)
         result = -sin_table[angle_in_quadrant];
     } else {
-        // 270-359 degrees: sin(360-x) = -sin(x)
-        result = -sin_table[89 - angle_in_quadrant];
+        // 270-359 degrees: sin(270+x) = -sin(90-x)
+        result = -sin_table[90 - angle_in_quadrant];
     }
     
     return result;
