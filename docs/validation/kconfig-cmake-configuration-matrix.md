@@ -238,7 +238,13 @@ root Kconfig 符号，且这些符号必须 `select COMPONENT_DEVICE`；表还�
 （映射过期）、符号被改名/删除、出现未映射的新消费方。变异验证：删掉 `DRIVER_STORAGE` 的 select →
 守卫 rc=1 并点名该符号，恢复后 rc=0。
 
-**本轮明确未修（独立 slice）**：`DRIVER_STORAGE=ON` 单开时构建仍 **rc=2**，与本轮无关——
-`components/drivers/storage/littlefs/xy_littlefs_w25q128.h` 无条件 `#include "lfs.h"`，而 littlefs
-的 include root 只在 `CONFIG_FS_LITTLEFS=ON` 时才加到 `xy_drivers` 上，于是这个「合法配置」
-编不过。它属于 storage 驱动的条件编译边界，不与 Device 依赖混在一刀里。
+**同一批还修掉一个「合法配置编不过」**：`DRIVER_STORAGE=ON` 单开实测 **rc=2**，
+`components/drivers/storage/littlefs/xy_littlefs_w25q128.h` 无条件 `#include "lfs.h"`、且还要
+`xy_w25q128.h`，而这两条 include root 只在 `CONFIG_FS_LITTLEFS` 打开时才挂到 `xy_drivers` 上——
+聚合 `file(GLOB_RECURSE "*.c")` 却无条件把该文件收进来。同一个洞还有第二半：即便
+`FS_ENABLED/NOR_FLASH_ENABLED/FS_LITTLEFS` 全开，聚合也找不到 `xy_w25q128.h`（它从未被加进 include 列表）。
+修法两行：`CONFIG_FS_LITTLEFS` 关闭时把 `.*/storage/littlefs/.*` 从聚合源里排除；打开时补
+`storage/flash/w25q128` 的 PRIVATE include。实测四种组合：`DRIVER_STORAGE` 单开 **rc=0**（归档里
+`xy_eeprom_24xx`/`xy_w25q128`/`xy_sd_spi` 在、littlefs 不在），`DRIVER_STORAGE+FS_LITTLEFS`
+**rc=0** 且 `xy_littlefs_w25q128.c.o`/`lfs.c.o`/`lfs_util.c.o` 各只出现一次，归档 **373 个定义 / 0 重复**；
+focused `littlefs_w25q128` 仍绿。

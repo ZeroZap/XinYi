@@ -191,6 +191,15 @@ foreach(_xy_core IN LISTS XY_SENSOR_DRIVER_CORE_SOURCES)
     list(REMOVE_AT COMPONENT_SOURCES ${_xy_core_index})
 endforeach()
 
+# The littlefs volume driver includes "lfs.h" unconditionally, so compiling it
+# without the littlefs headers cannot succeed - and the headers are only on the
+# include path when CONFIG_FS_LITTLEFS adds them below. Before this filter,
+# `DRIVER_STORAGE=ON` alone failed with `fatal error: lfs.h: No such file or
+# directory`: a legal Kconfig combination that could not compile at all.
+if(NOT CONFIG_FS_LITTLEFS)
+    list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*/storage/littlefs/.*")
+endif()
+
 # Create static library
 add_library(xy_drivers STATIC ${COMPONENT_SOURCES})
 target_link_libraries(xy_drivers PUBLIC xy_sensor_drivers_core)
@@ -205,6 +214,13 @@ endif()
 if(CONFIG_FS_LITTLEFS)
     target_include_directories(xy_drivers PUBLIC
         ${CMAKE_SOURCE_DIR}/third_party/littlefs
+    )
+    # `xy_littlefs_w25q128.h` also includes the W25Q128 driver header, which lives
+    # in a sibling directory the aggregate's include list never carried; without
+    # this the littlefs-enabled build failed on `xy_w25q128.h` instead of on
+    # `lfs.h`.
+    target_include_directories(xy_drivers PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/storage/flash/w25q128
     )
     target_compile_definitions(xy_drivers PUBLIC XY_LITTLEFS_W25Q128=1)
 endif()
