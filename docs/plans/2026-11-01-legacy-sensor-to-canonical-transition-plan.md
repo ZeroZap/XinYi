@@ -198,16 +198,37 @@ SPI 入口**：驱动若在总线上改配 SPI，链接期就红，而不是被�
 - 退出条件：每批跑完 `make test-unit` 全绿，且该批的旧头包含行数为 0。3b **已满足**。
 - 依赖：P2（顺序由探针结果定）。
 
-### P4 — 删除重复副本（1 个 slice，仅限已无消费方的）
+### P4 — 删除重复副本（2026-11-02 第一刀已完成）
 
 - 候选（**必须 P3 完成后确认零消费方才动手**）：
-  - `components/sensor/inc/xy_oled_ssd1306.h`（14 条声明中 5 条与 canonical 原型不兼容）
+  - `components/sensor/inc/xy_oled_ssd1306.h`（14 条声明中 5 条与 canonical 原型不兼容）——**仍 blocked**：
+    CTest `sensor_oled_ssd1306`（`tests/unit/CMakeLists.txt:1168`）正按 `${SENSOR}/inc` 编译
+    `components/sensor/src/xy_oled_ssd1306.c`。删这个头等于先决定"废弃 sensor 侧 SSD1306 驱动及其
+    CTest"，属产品决定（SSD1306 当前整体搁置）。
   - `components/sensor/inc/xy_mlxeeprom.h`（4 条中 2 条与 `drivers/sensor/temperature/mlx90614` 重复）
-  - `components/sensor/inc/xy_sensor{,_device,_channel,_attr,_trigger}.h` 中的重复函数声明
-  - `components/sensor/core/*.c`（P3c 迁完后）
+    ——**DONE 2026-11-02**：全仓 `#include "xy_mlxeeprom.h"` **0 处**（只有它自己那行 `@file` 注释提到这个名字），
+    文件本身还有一处坏宏（`#define MLX90614_EE_ADDR emissivity 0x20` 展开成两个 token）。删除后
+    `check_function_prototype_collisions.py` 的过期规则**当场报红**并点名两条 pin
+    （`xy_mlx90614_get_emissivity` / `_set_emissivity: pin has expired`），删掉这两条后守卫从
+    **38 → 36** 不兼容声明，自测 16/16。
+  - `components/sensor/inc/xy_sensor{,_device,_channel,_attr,_trigger}.h` 中的重复函数声明——未动；
+    `xy_sensor.h` 在 `tests/` 与 `components/sensor/` 之外仍有一个被注释掉的 example 引用，
+    框架总头属 P2/P5 范围。
+  - `components/sensor/core/*.c`（P3c 迁完后）——**DONE 2026-11-02**：`sensor_core.c`/`sensor_power.c`/
+    `sensor_trigger.c` 三个文件**没有任何构建文件引用**（1487 个 CMake/Makefile 里零命中，
+    `components/sensor/CMakeLists.txt` 只列根目录那批），`build/` 下也找不到由它们编出的 `.o`。
+    它们实现的是旧框架 `xy_sensor_*` API（与根目录同名文件是**两套 API**，不是两份副本），随 P4 一并删除。
 - 不动：`xy_i2c.h`、`xy_spi.h`、`xy_w25qxx.h`、`xy_max17043.h`、`xy_coulomb.h`、`xy_dmp.h`、`xy_ret.h`
   —— 它们全仓只有一份，只是**放错了目录**，属"搬家"而非"删除"，另开 slice 处理。
-- 退出条件：碰撞数从 23 降到 20（三条 sensor pin 全部过期并自动报红后删除）。
+- 退出条件：碰撞数从 23 降到 20（三条 sensor pin 全部过期并自动报红后删除）。**原型侧已 38 → 36**；
+  类型侧仍 23（`xy_mlxeeprom.h` 只带宏不带类型，所以今天这一刀动不到这个数）。
+
+#### 行为中性的证明方式（2026-11-02）
+
+删完以后 `make`（增量，build/pc）重编，**19 个静态归档 sha256 与删除前逐个相同**——包括
+`libsensor_component.a`。也就是说这四个文件从来没有进过任何产物：它们不是"少编了一次"，
+而是**一直没有编**，`nm`/归档顺序从此不必再替它们回答两份定义该听谁的。
+
 
 ### P5 — 守卫收紧（1 个 slice）
 
@@ -231,6 +252,8 @@ SPI 入口**：驱动若在总线上改配 SPI，链接期就红，而不是被�
    `components/sensor/` 自身）的消费方由 `check_legacy_sensor_includes.py` 逐条对账：
    基线 6 → P3b 后 **5** → MAX17043 迁移后 **4** → 三支 BQ 迁移后 **0**。这个数从此不再靠人记。
 2. **同名碰撞数**（基线 23）——P5 后应为 20，删完 sensor 副本后继续降；
+   **原型侧另有口径**：`check_function_prototype_collisions.py` 基线 38 条不兼容声明，P4 第一刀
+   （删 `xy_mlxeeprom.h` 并移除两条过期 pin）后 **36**，其中 sensor 系从 9 条降到 7 条；
 3. **总头指向**（基线：旧框架）——P2 后应为 canonical。
 
 一个 slice 只有在这三项之一真的动了才算进展；「建了新的 canonical 副本」不计分。

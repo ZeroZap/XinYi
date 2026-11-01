@@ -63,7 +63,7 @@ VENDORED: dict[str, str] = {
 #: that both claimed a name:
 #:
 #:   * crypto: `inc/` against the implementation directory, and `inc/` against `dm/` (8);
-#:   * sensor leftovers: the un-migrated framework against its canonical owners (9);
+#:   * sensor leftovers: the un-migrated framework against its canonical owners (7);
 #:   * rgb_matrix: the LCD driver tree against the serial-RGB driver tree (7);
 #:   * osal: `xy_os.h` against `inc/` against an example's own `osal_pc.h` (5);
 #:   * gui, hal rng, clib, fuel_gauge: `inc/`-style duplicates (9).
@@ -97,10 +97,6 @@ PINS: dict[str, str] = {
     "xy_oled_ssd1306_draw_pixel": "components/sensor/inc against the canonical ssd1306 driver header",
     "xy_oled_ssd1306_draw_char": "components/sensor/inc against the canonical ssd1306 driver header",
     "xy_oled_ssd1306_draw_string": "components/sensor/inc against the canonical ssd1306 driver header",
-    "xy_mlx90614_get_emissivity":
-        "components/sensor/inc/xy_mlxeeprom.h takes a bare void *i2c_handle where the canonical "
-        "drivers/sensor/temperature/mlx90614 header takes xy_mlx90614_t *dev",
-    "xy_mlx90614_set_emissivity": "same pair as xy_mlx90614_get_emissivity",
     "xy_sensor_sample_fetch":
         "components/device/inc is canonical; components/sensor/inc/xy_sensor.h is the un-migrated old "
         "framework and declares an incompatible signature",
