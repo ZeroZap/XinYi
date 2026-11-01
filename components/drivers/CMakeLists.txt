@@ -35,6 +35,47 @@ include_directories(
     sensor/adc/ina229
 )
 
+# ---------------------------------------------------------------------------
+# Canonical Device-model sensor drivers: exactly one owner
+# ---------------------------------------------------------------------------
+# These implementations are compiled here and nowhere else. Components that
+# expose them (the Sensor compatibility layer) link this library instead of
+# listing the `.c` files as their own sources. Two copies of the same driver
+# produce two archives that both define the same globals, and a static archive
+# is only searched, so which copy runs would be decided by archive order rather
+# than by the build.
+set(XY_SENSOR_DRIVER_CORE_SOURCES
+    sensor/temperature/sht30/xy_sht30.c
+    sensor/adc/ads1115/xy_ads1115.c
+    sensor/motion/mpu6050/xy_mpu6050.c
+    sensor/pressure/bmp280/xy_bmp280.c
+    sensor/light/bh1750/xy_bh1750.c
+    sensor/temperature/aht20/xy_aht20.c
+    sensor/temperature/aht10/xy_aht10.c
+    sensor/light/ap3216c/xy_ap3216c.c
+    sensor/motion/icm20608/xy_icm20608.c
+    sensor/motion/qma6100p/xy_qma6100p.c
+)
+
+add_library(xy_sensor_drivers_core STATIC ${XY_SENSOR_DRIVER_CORE_SOURCES})
+
+# The aggregate `xy_drivers` archive is only built when a driver family is
+# enabled. The canonical sensor drivers above are a shared dependency of the
+# Sensor component, so this directory can also be entered with every DRIVER_*
+# symbol off; in that case only the owner library above is built. Standalone
+# (non-Kconfig) builds never define XY_DRIVER_* and keep the aggregate.
+set(_xy_driver_family_enabled FALSE)
+foreach(_xy_family SENSOR DISPLAY STORAGE POWER WIRELESS SYSTEM)
+    if(XY_DRIVER_${_xy_family})
+        set(_xy_driver_family_enabled TRUE)
+    endif()
+endforeach()
+if(DEFINED XY_DRIVER_SENSOR AND NOT _xy_driver_family_enabled)
+    message(STATUS "Drivers: no driver family enabled; built only the canonical "
+                   "sensor driver owners (xy_sensor_drivers_core)")
+    return()
+endif()
+
 # Add subdirectories for organized drivers
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/sensor)
     add_subdirectory(sensor)
@@ -111,8 +152,28 @@ endif()
 
 file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
 
+# The canonical sensor drivers are compiled once, by `xy_sensor_drivers_core`
+# above. Take them back out of the aggregate source list, and fail the configure
+# if the list has drifted: a stale entry would silently be compiled twice again,
+# which is exactly the state this split exists to prevent.
+foreach(_xy_core IN LISTS XY_SENSOR_DRIVER_CORE_SOURCES)
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${_xy_core}")
+        message(FATAL_ERROR
+            "xy_sensor_drivers_core lists a missing source: ${_xy_core}")
+    endif()
+    list(FIND COMPONENT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/${_xy_core}" _xy_core_index)
+    if(_xy_core_index EQUAL -1)
+        message(FATAL_ERROR
+            "xy_sensor_drivers_core owner ${_xy_core} is absent from the driver "
+            "glob; the ownership split is stale and the file would be compiled "
+            "twice")
+    endif()
+    list(REMOVE_AT COMPONENT_SOURCES ${_xy_core_index})
+endforeach()
+
 # Create static library
 add_library(xy_drivers STATIC ${COMPONENT_SOURCES})
+target_link_libraries(xy_drivers PUBLIC xy_sensor_drivers_core)
 
 if(CONFIG_FS_LITTLEFS)
     target_include_directories(xy_drivers PUBLIC

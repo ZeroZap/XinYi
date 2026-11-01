@@ -29,20 +29,12 @@ set(SENSOR_SOURCES
 
 # Add driver sources from sensors/ directory
 file(GLOB SENSOR_DRIVERS "${CMAKE_CURRENT_LIST_DIR}/sensors/sensor_*.c")
-# Canonical Device-model implementations used by root Sensor compatibility
-# paths are linked here so each migrated chip has one implementation owner.
-list(APPEND SENSOR_DRIVERS
-    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/sht30/xy_sht30.c"
-    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/adc/ads1115/xy_ads1115.c"
-    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/motion/mpu6050/xy_mpu6050.c"
-    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/pressure/bmp280/xy_bmp280.c"
-    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/light/bh1750/xy_bh1750.c"
-    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/aht20/xy_aht20.c"
-    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/aht10/xy_aht10.c"
-    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/light/ap3216c/xy_ap3216c.c"
-    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/motion/icm20608/xy_icm20608.c"
-    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/motion/qma6100p/xy_qma6100p.c"
-)
+# The canonical Device-model drivers these compatibility paths use (SHT30,
+# ADS1115, MPU6050, BMP280, BH1750, AHT20, AHT10, AP3216C, ICM20608, QMA6100P)
+# are owned by components/drivers and compiled by `xy_sensor_drivers_core`.
+# They are linked below, not compiled here: a second copy would put the same
+# globals in two archives, and archive order - not the build - would decide
+# which implementation runs.
 list(APPEND SENSOR_SOURCES ${SENSOR_DRIVERS})
 
 add_library(sensor_component STATIC ${SENSOR_SOURCES})
@@ -65,4 +57,5 @@ target_include_directories(sensor_component PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/../trace/xy_log/inc
     ${CMAKE_CURRENT_LIST_DIR}/../clib/xy_clib
 )
-target_link_libraries(sensor_component PUBLIC hardware_abstraction xy_device)
+target_link_libraries(sensor_component PUBLIC hardware_abstraction xy_device
+    xy_sensor_drivers_core)

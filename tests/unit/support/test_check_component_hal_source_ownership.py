@@ -79,6 +79,12 @@ class TreeFindings(unittest.TestCase):
 
     def test_pre_fix_device_cmakelists_is_flagged(self) -> None:
         """The commit that introduced the fix must have a parent that fails the rule."""
+        if subprocess.run(["git", "rev-parse", "--git-dir"], cwd=str(REPO_ROOT),
+                          capture_output=True, text=True).returncode != 0:
+            # `canonical_host_clean_checkout` runs this suite from a `git archive`
+            # export, which has no history to read. The evidence still runs in the
+            # repository, where the revisions exist.
+            self.skipTest("no git metadata in this tree (clean source export)")
         log = subprocess.run(
             ["git", "log", "--format=%H", "--", "components/device/CMakeLists.txt"],
             capture_output=True, text=True, cwd=str(REPO_ROOT))

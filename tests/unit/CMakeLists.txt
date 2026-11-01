@@ -2016,6 +2016,12 @@ add_test(NAME component_hal_source_ownership
 add_test(NAME component_hal_source_ownership_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_check_component_hal_source_ownership.py)
 
+add_test(NAME component_source_ownership
+    COMMAND python3 ${UNIT_SUPPORT}/check_component_source_ownership.py)
+
+add_test(NAME component_source_ownership_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_component_source_ownership.py)
+
 add_test(NAME dead_kconfig_options
     COMMAND python3 ${UNIT_SUPPORT}/check_dead_kconfig_options.py)
 

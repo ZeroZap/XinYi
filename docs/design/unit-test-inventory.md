@@ -9,12 +9,14 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 383 (measured: `ctest -N` reports 383;
-  the C targets are registered through `xy_add_unit_test(...)`, so `add_test` calls in this file are
-  only the explicit Python/board entries. Re-measured in the include-guard slice, which added
-  `include_guard_collisions` + `include_guard_collisions_unit`; the previous 379 was measured in the
-  CRC catalogue slice, and the 304 before that was stale by roughly the number of CTests registered
-  since it was written, so treat this line as measured-not-maintained)
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 389 (measured: `ctest -N` on a direct
+  `tests/unit` configure reports 389, while `make test-unit` registers and runs 387 - two entries are
+  configuration-dependent. The C targets are registered through `xy_add_unit_test(...)`, so
+  `add_test` calls in this file are only the explicit Python/board entries. Re-measured in the
+  component-source-ownership slice, which added `component_source_ownership` +
+  `component_source_ownership_unit` (385 before it, 387 on the make path); the 383 before that was
+  measured in the include-guard slice, and the 304 before that was stale by roughly the number of
+  CTests registered since it was written, so treat this line as measured-not-maintained)
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which

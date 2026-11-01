@@ -243,7 +243,12 @@ foreach(_entry ${_comp_entries})
            AND NOT XY_DRIVER_STORAGE
            AND NOT XY_DRIVER_POWER
            AND NOT XY_DRIVER_WIRELESS
-           AND NOT XY_DRIVER_SYSTEM)
+           AND NOT XY_DRIVER_SYSTEM
+           # The Sensor component links the canonical driver owners
+           # (`xy_sensor_drivers_core`), so the drivers directory must be
+           # entered even when every driver family is off.
+           AND NOT XY_COMPONENT_SENSOR
+           AND NOT XY_XY_SENSOR_ENABLE)
         set(_component_enabled FALSE)
     elseif(_name STREQUAL "gui" AND NOT XY_GUI_ENABLED)
         set(_component_enabled FALSE)
