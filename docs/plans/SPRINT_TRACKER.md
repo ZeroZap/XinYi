@@ -3307,3 +3307,28 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   测不到的代码），并补「注释掉的定义不算定义」与「一个文件算一次」两个能判别的用例后，**7/7 全拦**。
 - 验证：`xy.h` TU 编译 **0 错误**；经总头可见 `struct xy_device` 与 `xy_sensor_type_t`（canonical 侧数值）；
   隔离 worktree 全量门禁 **393/393**（新增 `tag_definition_collisions` 与 `_unit` 为 #392/#393）。
+
+### 2026-11-01 Sprint 5 推进：AT 模拟器落地，AT 协议层不再依赖真 modem
+
+- 背景：Sprint 5 卡在两件事——**AT 两套自有实现并存**（`atc` 与 `ats` 都参与编译，Kconfig 却写着
+  "Vendor AT trees remain excluded"），以及 **LTE 必须选定 modem + 板级证据**才能推进。按用户指示，
+  参考 `ZeroZap/bareos` 仓库的实现与模拟实现。
+- 来源：`git@github.com:ZeroZap/bareos.git`，commit `40c50707231ca60e6c720fa971f4078e392e033a`，
+  路径 `tool/at_server_sim/`。带出处记录，符合本仓 supply-chain 口径。
+- 已落地：`tests/unit/net/at_server_sim.py` + `test_at_server_sim.py`（**37 例**原样通过）+
+  `test_at_server_pty.py`（**9 例**，端到端过 PTY）。
+  模拟器提供 EC2X / SIM76 / ESP-AT 三种 modem profile、`>` 提示符与定长二进制收发、URC 注入、
+  响应分片、以及命令丢弃/错误/部分帧/迟到响应的故障注入——**正是 AT 客户端恢复路径的测试面**。
+- 关键改动（两处，都为了在 CI 里能跑而不是只在接板子的桌面上能跑）：
+  ① 新增 `PtyTransport`：用标准库 `pty` 提供同样的字节流，`--pty` 模式**不需要 pyserial、不需要硬件**；
+  ② 配置构造抽成 `build_config()`，两条传输共用。pyserial 保持可选依赖，缺失时引擎与全部传输无关
+  测试照常运行（本机确实未安装 pyserial，实测 37 例全过）。
+- 接缝确认：XinYi 的 `xy_at_client` 提供 `set_hal(send, recv)`，与 bareos 的 adapter 同构，所以同一套
+  模拟器可以直接驱动 C 侧真实 AT 客户端，不限于 Python 客户端。
+- 自证过程中的一个坑（记录以免重犯）：我最初的双向测试**只读 master 侧**，拿到的是"客户端自己发出去
+  的字节"，看起来像像样的响应——实测发现 5/5 全 FAIL 才定位到读错方向。改成两个方向各自 select 后
+  5/5 通过。PTY 两端 `tty.setraw` 关掉回显也是必须的，否则客户端会把自己的命令当响应读到。
+- 边界：**模拟器不等于真 modem**。它覆盖协议层（命令/响应/URC/分片/故障），不覆盖 UART 流控、
+  电源时序、SIM、attach、PDP、TCP/UDP 实际链路与长稳——这些仍是 Sprint 5 的实板证据要求。
+- 下一步（Sprint 5 剩余）：AT 归属决策（`atc` 还是 `ats`）+ 把 C 侧 `xy_at_client` 通过 `set_hal`
+  接 PTY 跑端到端；LTE 仍需选定 modem。

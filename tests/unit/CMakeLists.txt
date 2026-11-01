@@ -2049,6 +2049,12 @@ add_test(NAME tag_definition_collisions
 add_test(NAME tag_definition_collisions_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_check_tag_definition_collisions.py)
 
+add_test(NAME at_server_sim
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/net/test_at_server_sim.py)
+
+add_test(NAME at_server_pty
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/net/test_at_server_pty.py)
+
 add_test(NAME crypto_crc_catalogue
     COMMAND python3 ${UNIT_SUPPORT}/check_crypto_crc_catalogue.py)
 
