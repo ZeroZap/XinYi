@@ -102,6 +102,23 @@
 中间有一个 STOP。对 SMBus 电量计这是**线上行为变化**，而本阶段明文"不为迁移顺手改协议/寄存器行为"，
 所以 3a 保持 pin，等 canonical 侧有一个重复起始的寄存器读入口再动。这不是命名问题。
 
+**阻塞已解除（2026-11-01）**：canonical 侧补齐了三个一次性事务入口，走 `xy_hal_i2c_mem_read` /
+`xy_hal_i2c_mem_write`，与旧 helper 的线上流量同形：
+
+| 入口 | 对应旧 helper |
+|---|---|
+| `xy_i2c_device_read_reg_repeated_start()` | `xy_sensor_i2c_read` / `xy_sensor_i2c_read_reg` |
+| `xy_i2c_device_read_reg16_repeated_start()` | `xy_sensor_i2c_read_reg16`（SMBus 字，低字节在前） |
+| `xy_i2c_device_write_reg_repeated_start()` | `xy_sensor_i2c_write_reg16` |
+
+**两种形状的差别是测出来的，不是写进注释的**：`test_device_bus_repeated_start` 用链接期计数桩替身
+HAL，断言 `xy_i2c_device_read_reg` 恰好 1 次 transmit + 1 次 receive + 0 次 mem_read，而新入口恰好
+1 次 mem_read + 0 次 transmit/receive。13 例。如果哪天老入口悄悄变成一次事务（或反过来），这个
+测试会红——那正是 3a 当初卡住的原因，不该只活在一段散文里。
+
+于是 3a 剩下的**只是驱动迁移本身**：把 `xy_sensor_bus_t` 换成 `xy_i2c_device_t`，四个旧调用换成上表
+三个入口。这才是 pin 仍然存在的理由，已同步写进 `check_legacy_sensor_includes.py` 的 pin 文本。
+
 #### 3b 交付
 
 `xy_bmi270.h` 是 `components/drivers/` 下**最后一个**包含旧框架的驱动头。它包含 `xy_sensor.h`

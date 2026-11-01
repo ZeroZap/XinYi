@@ -69,6 +69,61 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg,
     return XY_DEVICE_OK;
 }
 
+xy_error_t xy_i2c_device_read_reg_repeated_start(xy_i2c_device_t *dev, uint8_t reg,
+                                                 uint8_t *data, size_t len)
+{
+    if (!dev || !data || !dev->base.initialized || !dev->i2c_handle || len == 0U) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    /* One transaction with a repeated START. See the header: this is not an optimisation of
+     * xy_i2c_device_read_reg(), it is the shape a different class of device requires. */
+    xy_hal_error_t ret = xy_hal_i2c_mem_read(dev->i2c_handle, dev->dev_addr, reg,
+                                             data, len, dev->timeout);
+    if (ret != XY_HAL_OK) {
+        return XY_DEVICE_IO_ERROR;
+    }
+
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_i2c_device_read_reg16_repeated_start(xy_i2c_device_t *dev, uint8_t reg,
+                                                   uint16_t *value)
+{
+    uint8_t buffer[2];
+    xy_error_t result;
+
+    if (!value) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    result = xy_i2c_device_read_reg_repeated_start(dev, reg, buffer, sizeof(buffer));
+    if (result != XY_DEVICE_OK) {
+        /* Leave the caller's value untouched: a half-read word must never look like a measurement. */
+        return result;
+    }
+
+    /* SMBus word order. Reversing this silently scrambles every 16-bit register a caller reports. */
+    *value = (uint16_t)(((uint16_t)buffer[1] << 8) | buffer[0]);
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_i2c_device_write_reg_repeated_start(xy_i2c_device_t *dev, uint8_t reg,
+                                                  const uint8_t *data, size_t len)
+{
+    if (!dev || !data || !dev->base.initialized || !dev->i2c_handle || len == 0U) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    xy_hal_error_t ret = xy_hal_i2c_mem_write(dev->i2c_handle, dev->dev_addr, reg,
+                                              data, len, dev->timeout);
+    if (ret != XY_HAL_OK) {
+        return XY_DEVICE_IO_ERROR;
+    }
+
+    return XY_DEVICE_OK;
+}
+
 xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, 
                             const uint8_t *data, size_t len)
 {

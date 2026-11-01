@@ -258,6 +258,25 @@ typedef xy_hal_gpio_pull_t xy_gpio_pull_t;
 /* I2C Device */
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr, uint32_t timeout);
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len);
+/*
+ * A register read has two wire shapes and they are not interchangeable.
+ *
+ * xy_i2c_device_read_reg() sends the register pointer and then reads, as two HAL calls: a STOP sits
+ * between them. Devices whose register read is one transaction with a repeated START - SMBus parts such
+ * as fuel gauges, and anything that latches on the repeated START - reject or mis-latch that shape.
+ *
+ * These are the one-transaction form, through xy_hal_i2c_mem_read(). They exist because pointing such a
+ * driver at the helper above compiles cleanly and changes the traffic on the wire, which is the kind of
+ * migration defect no type system catches.
+ *
+ * The 16-bit form is a SMBus word: least significant byte first.
+ */
+xy_error_t xy_i2c_device_read_reg_repeated_start(xy_i2c_device_t *dev, uint8_t reg,
+                                                 uint8_t *data, size_t len);
+xy_error_t xy_i2c_device_read_reg16_repeated_start(xy_i2c_device_t *dev, uint8_t reg,
+                                                   uint16_t *value);
+xy_error_t xy_i2c_device_write_reg_repeated_start(xy_i2c_device_t *dev, uint8_t reg,
+                                                  const uint8_t *data, size_t len);
 xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data, size_t len);
 xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len);
 xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len);

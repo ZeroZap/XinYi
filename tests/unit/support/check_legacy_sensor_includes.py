@@ -26,6 +26,13 @@ helper issues a separate transmit and receive, i.e. a STOP in the middle of what
 do as one repeated-start transaction. P3a therefore changes wire behaviour, which the plan forbids
 inside a type-alignment stage, so it stays a decision rather than a rename.
 
+That blocker has since been removed on the canonical side: `xy_i2c_device_read_reg_repeated_start()`,
+`..._read_reg16_repeated_start()` and `..._write_reg_repeated_start()` issue the same one-transaction
+traffic the legacy helpers did, and `test_device_bus_repeated_start` asserts the number and kind of
+transfers each shape produces rather than describing them. What is left for P3a is the driver
+migration itself - swapping `xy_sensor_bus_t` for `xy_i2c_device_t` and the four legacy calls for
+these - which is why these files are still pinned.
+
 A pin is auditable in both directions: a pinned file that stops including the legacy set has
 expired and is reported, and a consumer that appears without a pin is reported.
 """
@@ -60,7 +67,8 @@ PINS: dict[str, str] = {
     "components/fuel_gauge/drivers/xy_fg_bq40z50.h":
         "uses xy_sensor_bus_t for its I2C handle; the canonical xy_i2c_device_read_reg splits the "
         "register read into transmit+receive (a STOP inside the transaction) so migrating it here "
-        "would change wire behaviour - P3a, pending a canonical repeated-start register read",
+        "would change wire behaviour unless the repeated-start helpers are used; those now exist, so "
+        "P3a is blocked only on the driver migration itself",
     "components/fuel_gauge/drivers/xy_fg_bq27z561.h": "same as xy_fg_bq40z50.h",
     "components/fuel_gauge/drivers/xy_fg_bq27z561.c": "same as xy_fg_bq40z50.h",
     "components/fuel_gauge/drivers/xy_fg_bq27z746.h": "same as xy_fg_bq40z50.h",

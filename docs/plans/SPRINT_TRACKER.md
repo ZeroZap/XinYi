@@ -3368,3 +3368,27 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   范围决策，不是测量能回答的。
 - 未改变：`release-blockers.json` 仍为 `BLOCKED_NO_GO`，B-SBOM 仍 `OPEN`；只更新了它的 evidence_gap，
   把"未知"换成实测数字与剩余四项。**没有把阻塞项说成已解决。**
+
+### 2026-11-01 P3a 解除阻塞：canonical 侧补上一次性事务的寄存器读/写
+
+- 3a 那五个 fuel-gauge 文件一直是 **blocked 而不是待办**，卡点写得很清楚：旧 helper 走
+  `xy_hal_i2c_mem_read`（寄存器写+读在**一次**事务、重复起始），canonical 的
+  `xy_i2c_device_read_reg` 是 transmit + receive **两次**调用、中间一个 STOP。类型对得上、线上不对，
+  正是类型系统抓不到的那种迁移缺陷。所以这一轮先补入口，不动驱动。
+- 新增三个入口（`components/device`）：`xy_i2c_device_read_reg_repeated_start()`、
+  `..._read_reg16_repeated_start()`（SMBus 字，低字节在前）、`..._write_reg_repeated_start()`。
+- **差值被测住，不是写在注释里**：新测试 `test_device_bus_repeated_start`（13 例）用链接期计数桩
+  替身 HAL，断言老入口恰好 1 次 `transmit` + 1 次 `receive` + 0 次 `mem_read`，新入口恰好 1 次
+  `mem_read` + 0 次 transmit/receive。哪天任一形状悄悄变了，这里会红。
+  - 这个二进制**故意**只链 `xy_device_bus_helpers.c`，不带 `FRAMEWORK_SOURCES`——后者包含 PC HAL，
+    会把同一批符号定义两遍。
+  - 桩的签名全部取自 HAL 头（`xy_hal_spi.h`/`uart`/`gpio`），签名漂移在编译期就炸，而不是在没人看的
+    链接步骤里。
+- 真 RED 记录：先写测试再实现，第一次构建报的是
+  `undefined reference to 'xy_i2c_device_read_reg_repeated_start'`，只有这两个符号，别无他错。
+- 连带订正口径：`check_legacy_sensor_includes.py` 的 5 条 pin **仍然存在**，但理由从"等一个重复起始
+  读入口"改成"等驱动迁移本身"；计划 §2.1 同步补了入口对照表与测试说明。**没有把 3a 说成已完成**——
+  四个驱动（`bq27z561` / `bq27z746` / `bq40z50` / `max17043`）还没迁，`xy_sensor_bus_t` 换成
+  `xy_i2c_device_t` 是下一轮的事。
+- 顺带记一笔：`xy_sensor_i2c_write` 也走 `mem_write`，但 canonical 的 `write_reg` 是把 reg+data 拼进
+  一次 `transmit`，对 8 位寄存器线上等价——只是"等价"得靠这个新入口而不是靠推断维持。

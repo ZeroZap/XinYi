@@ -136,6 +136,27 @@ static xy_hal_error_t aht10_command(const uint8_t* data, size_t len) {
     return XY_HAL_ERROR_INVALID_PARAM;
 }
 
+/*
+ * These fakes model a device as transmit-then-receive, which is the two-transaction shape. A
+ * repeated-start access genuinely differs on the wire, so it is refused here rather than emulated by
+ * issuing the same two calls: an emulation would make an SMBus read look tested when what ran was the
+ * other shape. A driver that starts using xy_i2c_device_read_reg_repeated_start() under this suite will
+ * fail loudly, and the fake should gain a real one-transaction model at that point.
+ */
+xy_hal_error_t xy_hal_i2c_mem_read(void *i2c, uint16_t dev_addr, uint16_t reg_addr,
+                                   uint8_t *data, size_t len, uint32_t timeout)
+{
+    (void)i2c; (void)dev_addr; (void)reg_addr; (void)data; (void)len; (void)timeout;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
+}
+
+xy_hal_error_t xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr, uint16_t reg_addr,
+                                    const uint8_t *data, size_t len, uint32_t timeout)
+{
+    (void)i2c; (void)dev_addr; (void)reg_addr; (void)data; (void)len; (void)timeout;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
+}
+
 xy_hal_error_t xy_hal_i2c_master_transmit(void* i2c, uint16_t dev_addr, const uint8_t* data,
                                           size_t len, uint32_t timeout) {
     int slot = device_slot(dev_addr);

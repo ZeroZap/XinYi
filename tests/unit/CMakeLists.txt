@@ -638,6 +638,18 @@ target_include_directories(test_device_bus_contract PRIVATE
     ${OSAL}
 )
 
+# --- I2C register read: the two wire shapes SMBus needs distinguished ---
+# Links only the bus helpers, on purpose: this binary supplies its own counting HAL stubs, so pulling in
+# FRAMEWORK_SOURCES (which carries the PC HAL) would define the same symbols twice.
+xy_add_unit_test(test_device_bus_repeated_start device_bus_repeated_start UNITY
+    ${UNIT_DEVICE}/test_device_bus_repeated_start.c
+    ${DEV}/src/xy_device_bus_helpers.c
+)
+target_include_directories(test_device_bus_repeated_start PRIVATE
+    ${TRACE}/xy_log/inc
+    ${OSAL}
+)
+
 # --- Test 6: XY_DEVICE_REGISTER auto-registration via GCC constructors ---
 xy_add_unit_test(test_auto_register auto_register UNITY
     ${UNIT_DEVICE}/test_auto_register.c
