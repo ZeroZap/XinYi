@@ -4,6 +4,7 @@
 
 #if SENSOR_USE_FLOAT
 #include <math.h>
+#include <string.h>
 
 /* Madgwick滤波器状态 */
 typedef struct {
@@ -18,15 +19,22 @@ static madgwick_state_t fusion_state = {
 
 /**
  * @brief 快速平方根倒数
+ *
+ * `long` 在 64 位宿主上是 8 字节，而 `float` 是 4 字节：`*(long *)&y` 会从
+ * 一个 4 字节对象里读出 8 字节（ASan 实测 stack-buffer-overflow），并且
+ * 指针双关本身违反严格别名规则。改用 `uint32_t` + `memcpy` 做位模式搬运，
+ * 32 位与 64 位目标行为一致。
  */
 static float inv_sqrt(float x)
 {
     float halfx = 0.5f * x;
-    float y     = x;
-    long i      = *(long *)&y;
-    i           = 0x5f3759df - (i >> 1);
-    y           = *(float *)&i;
-    y           = y * (1.5f - (halfx * y * y));
+    float y;
+    uint32_t bits;
+
+    memcpy(&bits, &x, sizeof(bits));
+    bits  = 0x5f3759dfUL - (bits >> 1);
+    memcpy(&y, &bits, sizeof(y));
+    y = y * (1.5f - (halfx * y * y));
     return y;
 }
 

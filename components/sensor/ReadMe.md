@@ -91,15 +91,21 @@ sensor_framework/
 ├── sensor_dma.c            # DMA实现
 ├── sensor_power.c          # 功耗管理
 ├── sensor_threshold.c      # 阈值检测
-├── sensor_motion.c         # 运动检测
+├── sensor_moton.c          # 运动检测（文件名保留原拼写）
 ├── sensor_fusion.c         # 传感器融合
 ├── sensor_self_test.c      # 自测试
 ├── sensor_mem_pool.c       # 静态内存池
-├── sensor_mpu6050.h/c      # MPU6050驱动示例
-├── example_basic.c         # 基础示例
-├── example_advanced.c      # 高级示例
-├── Makefile               # 构建脚本
-└── README.md              # 本文档
+├── sensors/                # 各传感器驱动（sensor_mpu6050.c 等）
+├── example/basic.c         # 基础样张
+├── example/advanced.c      # 高级样张（FIFO/校准/滤波/融合/运动/功耗/自测/阈值）
+├── example/example_multi_sensors.c  # 多传感器样张
+└── ReadMe.md               # 本文档
+
+三份样张由单元测试构建并运行（`make test-unit` 的 `sensor_example_basic`、
+`sensor_example_advanced`、`sensor_example_multi`），所以它们调用的 API 一旦与
+公开头文件脱节，构建就会失败，而不是静静腐烂。样张的 HAL 入口
+（`delay_ms`/`get_tick_ms`/`hal_i2c_mem_read`/`hal_i2c_mem_write`）由样张自己实现，
+总线句柄也由应用层提供——`*_create_*()` 会拒绝 NULL 句柄。
 
 内存占用
 最小配置 (仅核心功能)

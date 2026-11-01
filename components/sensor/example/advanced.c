@@ -2,6 +2,47 @@
 #include "sensor_mpu6050.h"
 #include <stdio.h>
 
+/*
+ * 框架要求你提供的 HAL 入口（与 basic.c 里同一组）。少了这四条，这份样张
+ * 能编过但链不起来——`delay_ms`/`get_tick_ms` 由 `sensor_config.h` 声明，
+ * 而实现只在应用层。
+ */
+
+/* 总线句柄由应用层提供：框架把 `void *` 原样交给驱动，只有驱动知道它是什么。 */
+static int g_i2c_bus_handle;
+
+void delay_ms(uint32_t ms)
+{
+    (void)ms; /* 实现延时 */
+}
+
+uint32_t get_tick_ms(void)
+{
+    return 0; /* 返回系统时间戳(ms) */
+}
+
+int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data,
+                     uint16_t len)
+{
+    (void)bus;
+    (void)addr;
+    (void)reg;
+    (void)data;
+    (void)len;
+    return 0; /* 实现I2C读取 */
+}
+
+int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data,
+                      uint16_t len)
+{
+    (void)bus;
+    (void)addr;
+    (void)reg;
+    (void)data;
+    (void)len;
+    return 0; /* 实现I2C写入 */
+}
+
 static sensor_device_t *g_accel = NULL;
 static sensor_device_t *g_gyro  = NULL;
 
@@ -11,6 +52,7 @@ static sensor_device_t *g_gyro  = NULL;
 void sensor_data_callback(sensor_device_t *sensor, sensor_data_t *data,
                           void *user_data)
 {
+    (void)user_data;
     printf("[Callback] %s: X=%d, Y=%d, Z=%d\n", sensor->info.name,
            data->value.val_3axis.x, data->value.val_3axis.y,
            data->value.val_3axis.z);
@@ -356,7 +398,10 @@ void example_threshold(void)
  */
 int main(void)
 {
-    void *i2c_bus = NULL; /* 需要初始化I2C */
+    /* 句柄不能是 NULL：`mpu6050_create_accel()` 明确拒绝 NULL 总线，传 NULL
+     * 会让这份样张在第一步就打印 "Failed to create sensors" 并返回 -1，
+     * 后面那八个特性示例一次都不会跑到。 */
+    void *i2c_bus = &g_i2c_bus_handle;
 
     printf("=== Sensor Framework Advanced Examples ===\n");
     printf("Compile-time configuration:\n");

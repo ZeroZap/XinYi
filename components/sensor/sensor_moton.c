@@ -24,21 +24,14 @@ static inline int32_t abs_int32(int32_t val)
     return (val < 0) ? -val : val;
 }
 
-#if SENSOR_USE_FLOAT
-/**
- * @brief 快速平方根倒数
+/*
+ * 这里原本还有一份 `inv_sqrt_fast()`（Quake 快速平方根倒数），全仓零调用方，
+ * 且用 `*(long *)&y` 做位搬运——`long` 在 64 位宿主上是 8 字节而 `float` 是
+ * 4 字节，从 4 字节对象里读 8 字节（ASan: stack-buffer-overflow），同时违反
+ * 严格别名规则。已删除；运动检测将来若需要该算法，唯一所有者是
+ * `components/clib/xy_clib/xy_math.c` 的 `xy_fast_inv_sqrt()`（用 union 搬运，
+ * 没有这个问题）。
  */
-static float inv_sqrt_fast(float x)
-{
-    float halfx = 0.5f * x;
-    float y     = x;
-    long i      = *(long *)&y;
-    i           = 0x5f3759df - (i >> 1);
-    y           = *(float *)&i;
-    y           = y * (1.5f - (halfx * y * y));
-    return y;
-}
-#endif
 
 /**
  * @brief 初始化运动检测
