@@ -84,17 +84,42 @@
 - 验证：`xy.h` TU 编译 0 错误；`struct xy_device` + `xy_sensor_type_t` 经总头可见（canonical 侧数值）。
 - 依赖：无。
 
-### P3 — 旧框架 core 迁移（2–3 个 slice）
+### P3 — 旧框架 core 迁移
 
-消费方 19 个，按依赖从轻到重：
+消费方按依赖从轻到重。**3b 已完成 2026-11-01**；3a 因语义差异被 pin 住（见下），3c 随 P4 一起做。
 
-| 批次 | 文件 | 特点 |
+| 批次 | 文件 | 状态 |
 |---|---|---|
-| 3a | `components/fuel_gauge/drivers/xy_fg_*.{h,c}`（5）+ 对应 5 个测试 | 只用到 `xy_sensor_device.h` 里的少量类型，改到 canonical 的等价类型 |
-| 3b | `components/drivers/sensor/motion/bmi270/xy_bmi270.h` | 已经同时包含 canonical 的 `xy_device_error.h`，只差类型对齐 |
-| 3c | `components/sensor/core/{sensor_core,sensor_trigger,sensor_power}.c`、`sensor/sensor_bus.c` | 是旧框架**自身实现**，迁完即无调用者，随 P4 一起删 |
+| 3a | `components/fuel_gauge/drivers/xy_fg_*.{h,c}`（5） | **blocked**：见 §2.1 |
+| 3b | `components/drivers/sensor/motion/bmi270/xy_bmi270.h` | **DONE 2026-11-01** |
+| 3c | `components/sensor/core/{sensor_core,sensor_trigger,sensor_power}.c`、`sensor/sensor_bus.c` | 待 3a |
 
-- 退出条件：每批跑完 `make test-unit` 全绿，且该批的旧头包含行数为 0。
+#### 2.1 3a 为什么不是类型对齐
+
+五个 fuel-gauge 文件用的是旧框架的**总线 helper**（`xy_sensor_bus_t` + `xy_sensor_i2c_read_reg16`），
+底层是 `xy_hal_i2c_mem_read`（寄存器写+读在**一次**事务里，重复起始）。canonical 的
+`xy_i2c_device_read_reg` 是 `xy_hal_i2c_master_transmit` + `xy_hal_i2c_master_receive` 两次调用，
+中间有一个 STOP。对 SMBus 电量计这是**线上行为变化**，而本阶段明文"不为迁移顺手改协议/寄存器行为"，
+所以 3a 保持 pin，等 canonical 侧有一个重复起始的寄存器读入口再动。这不是命名问题。
+
+#### 3b 交付
+
+`xy_bmi270.h` 是 `components/drivers/` 下**最后一个**包含旧框架的驱动头。它包含 `xy_sensor.h`
+只为结构体成员 `xy_sensor_device_t base`，而该成员全仓**零读取**（驱动自己用 `bus_handle`/`bus_addr`）。
+改为包含 canonical 的 `xy_device.h`：成员名不变、类型换成 canonical 的 `xy_sensor_device_t`
+（`{xy_device_t base; const struct xy_sensor_api *; void *}`）。行为零变化——15 例
+`test_bmi270` 全绿，且该成员本来就没人读。
+
+**计数变成机器判据**：新守卫 `check_legacy_sensor_includes.py`（+16 例自测，CTest
+`legacy_sensor_includes` / `_unit`）把"谁还在包含旧框架"变成可对账的清单——
+`components/sensor/` 自身与 `tests/` 之外，基线 **6 → 5**，5 条 pin 逐条写理由（3a 的语义原因）。
+三条反向规则：未 pin 的消费者即红 / pin 无理由即红 / pin 的 include 消失即过期报红。
+**自证**：改动前直接跑守卫，点名 `xy_bmi270.h` 这一条（真 RED，不是构造的）；
+自测再从 git 历史取**修复前**的该文件要求判红。假阳性处理：`examples/pc_all_components/src/main.c`
+里是 `/* #include "xy_sensor.h" */` 注释（守卫按 C 注释剥离后不算消费者）、
+`xy_i2c.h`/`xy_spi.h` 是**放错目录的唯一副本**（不是重复，属搬家问题，规则不管）。
+
+- 退出条件：每批跑完 `make test-unit` 全绿，且该批的旧头包含行数为 0。3b **已满足**。
 - 依赖：P2（顺序由探针结果定）。
 
 ### P4 — 删除重复副本（1 个 slice，仅限已无消费方的）
@@ -124,7 +149,10 @@
 
 沿用迁移计划既有口径，每个 slice 后记录三个数：
 
-1. **旧框架消费方数**（基线 19）——只能减；
+1. **旧框架消费方数**（基线 19：13 产品/示例 + 6 测试）——只能减。**P3b 后 18**。
+   其中 `components/`、`boards/`、`projects/`、`examples/` 下（即不含 `tests/` 与
+   `components/sensor/` 自身）的消费方由 `check_legacy_sensor_includes.py` 逐条对账：
+   基线 6 → 现在 **5**（全部 pin，理由见 §2.1）。这个数从此不再靠人记。
 2. **同名碰撞数**（基线 23）——P5 后应为 20，删完 sensor 副本后继续降；
 3. **总头指向**（基线：旧框架）——P2 后应为 canonical。
 

@@ -18,7 +18,7 @@
 #ifndef XY_BMI270_H
 #define XY_BMI270_H
 
-#include "xy_sensor.h"
+#include "xy_device.h"
 #include "xy_device_error.h"
 #include <stdint.h>
 #include <stdbool.h>

@@ -2049,6 +2049,12 @@ add_test(NAME tag_definition_collisions
 add_test(NAME tag_definition_collisions_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_check_tag_definition_collisions.py)
 
+add_test(NAME legacy_sensor_includes
+    COMMAND python3 ${UNIT_SUPPORT}/check_legacy_sensor_includes.py)
+
+add_test(NAME legacy_sensor_includes_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_legacy_sensor_includes.py)
+
 add_test(NAME at_modem_sim
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/net/test_at_modem_sim.py)
 
