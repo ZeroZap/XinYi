@@ -2052,6 +2052,12 @@ add_test(NAME tag_definition_collisions_unit
 add_test(NAME at_modem_sim
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/net/test_at_modem_sim.py)
 
+add_test(NAME dependency_closure
+    COMMAND python3 ${UNIT_SUPPORT}/check_dependency_closure.py)
+
+add_test(NAME dependency_closure_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_dependency_closure.py)
+
 add_test(NAME crypto_crc_catalogue
     COMMAND python3 ${UNIT_SUPPORT}/check_crypto_crc_catalogue.py)
 

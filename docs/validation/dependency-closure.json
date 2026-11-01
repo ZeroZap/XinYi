@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-11-01",
+  "status": "INCOMPLETE",
+  "purpose": "Complete dependency closure for the Pandora release scope: every vendored subtree that is compiled into the product, with the licence evidence found in the tree. This closes the 'complete dependency closure' gap named by release blocker B-SBOM; it does not close legal approval, which is not something a measurement can produce.",
+  "measurement": {
+    "subtrees": 13,
+    "with_licence_evidence": 10,
+    "redistribution_ready": 10,
+    "no_licence_evidence": [
+      "components/crypto/curve25519-cortexm0-20150813",
+      "components/drivers/storage/littlefs",
+      "components/kernel/osal/backend/cmsis_rtx"
+    ]
+  },
+  "not_covered": [
+    "MCU/: vendor SDK dumps (ST STM32Cube, WCH, HDSC, GD32). They are not compiled into the Pandora release scope as vendored source; whether any of them ship in an artifact is a release-scope decision, not a measurement.",
+    "GCC/newlib: toolchain runtime redistributed with the firmware image. Licence text is not in this repository by nature and needs the toolchain's own records."
+  ],
+  "entries": [
+    {
+      "path": "components/third_party/flashdb",
+      "upstream": "FlashDB",
+      "version": null,
+      "licence": "Apache-2.0",
+      "licence_evidence": "components/third_party/flashdb/LICENSE",
+      "redistribution_ready": true,
+      "submodule": {
+        "url": "https://gitee.com/Armink/FlashDB.git",
+        "revision": "1c7ac100e3a9124155173971602f60cfb9f2b9fe"
+      }
+    },
+    {
+      "path": "components/third_party/usb/nimble",
+      "upstream": "Apache NimBLE",
+      "version": null,
+      "licence": "Apache-2.0",
+      "licence_evidence": "components/third_party/usb/nimble/LICENSE",
+      "redistribution_ready": true,
+      "submodule": {
+        "url": "https://github.com/apache/mynewt-nimble.git",
+        "revision": "8b6f3e819118a1839e5f238bfe1797d64878dc3d"
+      }
+    },
+    {
+      "path": "components/third_party/usb/tinyusb",
+      "upstream": "TinyUSB",
+      "version": null,
+      "licence": "MIT",
+      "licence_evidence": "components/third_party/usb/tinyusb/LICENSE",
+      "redistribution_ready": true,
+      "submodule": {
+        "url": "https://github.com/hathach/tinyusb.git",
+        "revision": "939c2f91c200db2bf9874c2e6c50b3530f8a6725"
+      }
+    },
+    {
+      "path": "components/dm/coreJSON",
+      "upstream": "FreeRTOS coreJSON",
+      "version": null,
+      "licence": "MIT",
+      "licence_evidence": "components/dm/coreJSON/LICENSE",
+      "redistribution_ready": true
+    },
+    {
+      "path": "components/drivers/sensor/environment/bme680/bosch",
+      "upstream": "Bosch Sensortec BME68x SensorAPI",
+      "version": null,
+      "licence": "BSD-3-Clause",
+      "licence_evidence": "components/drivers/sensor/environment/bme680/bosch/LICENSE",
+      "redistribution_ready": true
+    },
+    {
+      "path": "components/drivers/sensor/pressure/bmp390/bosch",
+      "upstream": "Bosch Sensortec BMP3 SensorAPI",
+      "version": null,
+      "licence": "BSD-3-Clause",
+      "licence_evidence": "components/drivers/sensor/pressure/bmp390/bosch/LICENSE",
+      "redistribution_ready": true
+    },
+    {
+      "path": "components/crypto/curve25519-cortexm0-20150813",
+      "upstream": "curve25519 for Cortex-M0",
+      "version": "20150813",
+      "licence": null,
+      "licence_evidence": null,
+      "redistribution_ready": false
+    },
+    {
+      "path": "components/net/at/AT-Command-V2",
+      "upstream": "AT Command V2 samples",
+      "version": null,
+      "licence": "Apache-2.0",
+      "licence_evidence": "components/net/at/AT-Command-V2/samples/none_os/driver/src/mcu_flash.c",
+      "redistribution_ready": true
+    },
+    {
+      "path": "components/net/at/rtthread-at",
+      "upstream": "RT-Thread AT framework",
+      "version": null,
+      "licence": "Apache-2.0",
+      "licence_evidence": "components/net/at/rtthread-at/at_socket/at_socket.c",
+      "redistribution_ready": true
+    },
+    {
+      "path": "components/net/at/FreeRTOS-Cellular-Interface",
+      "upstream": "AWS FreeRTOS Cellular Interface",
+      "version": null,
+      "licence": "MIT",
+      "licence_evidence": "components/net/at/FreeRTOS-Cellular-Interface/source/cellular_pkthandler.c",
+      "redistribution_ready": true
+    },
+    {
+      "path": "components/kernel/osal/portable",
+      "upstream": "FreeRTOS Kernel",
+      "version": "10.4.6",
+      "licence": "MIT",
+      "licence_evidence": "components/kernel/osal/portable/freertos/GCC/ARM_CM33_NTZ/non_secure/portmacro.h",
+      "redistribution_ready": true
+    },
+    {
+      "path": "components/drivers/storage/littlefs",
+      "upstream": "littlefs",
+      "version": null,
+      "licence": null,
+      "licence_evidence": null,
+      "redistribution_ready": false
+    },
+    {
+      "path": "components/kernel/osal/backend/cmsis_rtx",
+      "upstream": "CMSIS-RTX",
+      "version": null,
+      "licence": null,
+      "licence_evidence": null,
+      "redistribution_ready": false
+    }
+  ]
+}

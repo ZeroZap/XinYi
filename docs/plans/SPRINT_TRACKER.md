@@ -3314,15 +3314,16 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   "Vendor AT trees remain excluded"），以及 **LTE 必须选定 modem + 板级证据**才能推进。按用户指示，
   参考 `ZeroZap/bareos` 仓库的实现与模拟实现。
 - 来源：`git@github.com:ZeroZap/bareos.git`，commit `40c50707231ca60e6c720fa971f4078e392e033a`，
-  路径 `tool/at_server_sim/`。带出处记录，符合本仓 supply-chain 口径。
-- 已落地：`tests/unit/net/at_server_sim.py` + `test_at_server_sim.py`（**37 例**原样通过）+
-  `test_at_server_pty.py`（**9 例**，端到端过 PTY）。
+  路径 `tool/at_server_sim/`。**只作参考，不作依赖**——初版我把它 583 行连 37 个测试原样复制进仓，
+  这是错的（另一个仓库不是我们的），已撤销并重写。
+- 已落地：`tests/unit/net/at_modem_sim.py`（约 230 行，XinYi 自己的实现）+ `test_at_modem_sim.py`
+  （**19 例**，含进程内与过 PTY 两层）。
   模拟器提供 EC2X / SIM76 / ESP-AT 三种 modem profile、`>` 提示符与定长二进制收发、URC 注入、
   响应分片、以及命令丢弃/错误/部分帧/迟到响应的故障注入——**正是 AT 客户端恢复路径的测试面**。
 - 关键改动（两处，都为了在 CI 里能跑而不是只在接板子的桌面上能跑）：
-  ① 新增 `PtyTransport`：用标准库 `pty` 提供同样的字节流，`--pty` 模式**不需要 pyserial、不需要硬件**；
-  ② 配置构造抽成 `build_config()`，两条传输共用。pyserial 保持可选依赖，缺失时引擎与全部传输无关
-  测试照常运行（本机确实未安装 pyserial，实测 37 例全过）。
+  ① `PtyTransport` 用标准库 `pty` 承载字节流，**不需要 pyserial、不需要硬件**（本机确实没装）；
+  ② 只保留 XinYi 客户端用得上的行为：三种 profile 命令表、`>` 提示符 + 定长上传、URC 注入、响应分片、
+     丢命令/强制错误。参考实现里那些 XinYi 用不到的故障注入档位没有跟过来——**铺满反而说明不了什么**。
 - 接缝确认：XinYi 的 `xy_at_client` 提供 `set_hal(send, recv)`，与 bareos 的 adapter 同构，所以同一套
   模拟器可以直接驱动 C 侧真实 AT 客户端，不限于 Python 客户端。
 - 自证过程中的一个坑（记录以免重犯）：我最初的双向测试**只读 master 侧**，拿到的是"客户端自己发出去
@@ -3332,3 +3333,36 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   电源时序、SIM、attach、PDP、TCP/UDP 实际链路与长稳——这些仍是 Sprint 5 的实板证据要求。
 - 下一步（Sprint 5 剩余）：AT 归属决策（`atc` 还是 `ats`）+ 把 C 侧 `xy_at_client` 通过 `set_hal`
   接 PTY 跑端到端；LTE 仍需选定 modem。
+
+### 2026-11-01 Sprint 6 / B-SBOM：依赖闭包从"未知"变成"14 项、4 项缺许可文本"
+
+- 5 个发布阻塞项里只有 B-SBOM（SBOM + 法务/许可）能在没有审批的情况下实质推进：它 4 项待办中只有
+  "complete dependency closure" 是**可测量**的，其余（再分发评审、NOTICE 包、法务批准）都要人拍板。
+- 现状口径澄清：`check_pandora_release_sbom.py` 报 `status=GENERATION_PENDING`——仓库里有的是一份
+  **策略与计划**，不是完整 SBOM；`release-input-inventory.json` 是 examples/projects 的发布输入，
+  与第三方依赖无关。两件事不能混为一谈。
+- 已交付 `docs/validation/dependency-closure.json`（由测量生成，非手写）：
+  **13 个 vendored 子树，10 个有许可证据，3 个无**。
+  无许可证据的三个（这是 B-SBOM 剩余工作里唯一具体、可执行的部分）：
+  `crypto/curve25519-cortexm0-20150813`、`drivers/storage/littlefs`、
+  `kernel/osal/backend/cmsis_rtx`。其中三个依赖是 **git submodule**，闭包同时记录 URL 与
+  **固定 revision**（`flashdb 1c7ac100`、`nimble 8b6f3e81`、`tinyusb 939c2f91`）——这正是 Sprint 6
+  要求的"固定 submodule revisions"。
+- 两处口径订正（都是测量过程中自己抓出来的）：
+  ① 最初把 `components/third_party` 当一个条目测，报告的是遍历先撞到的那个许可（Apache-2.0），
+     **把四个子目录的真实状态全盖住了**；展开后 tinyusb 正确显示 MIT（此前被聚合目录算成 Apache）。
+  ② `third_party/filesystem`、`graphics`、`network` 里**只有集成说明文档、没有代码**，把它们算作
+     依赖会虚报三个不存在的许可缺口；已排除并写明理由。
+  ③ `third_party/usb/cherry-usb` 是一个**空目录**（0 文件、git 完全不知道），我一度把它当成"无许可
+     依赖"报了出来；这是虚报，已删除。
+- 覆盖：`check_dependency_closure.py` + 16 例自测（CTest `dependency_closure` / `_unit`），把文档
+  钉在树上，四个方向都会红：① 树里有清单没提的 vendored 子树；② 清单列了已不存在的路径；③ 条目
+  声称的许可与树上证据不符；④ 汇总数字与条目自相矛盾。另有 pin：已知无许可的 4 项带理由，**第 5 项
+  出现即红**，且许可一旦补上 pin 会自动报过期。
+- 自证：8 个变异全拦。其中「SPDX 检测失效」最初**存活**——因为只关了 LICENSE 文件那条路径，而真实
+  用例走的是源码回退路径；补「只有 SPDX 标签、没有 LICENSE 文件」的用例并把锚点指对之后才可测。
+- 边界：这份闭包覆盖 `components/**` 的 vendored 代码。`MCU/`（ST/WCH/HDSC/GD32 厂商 SDK 转储）与
+  GCC/newlib 工具链运行时**未纳入**，理由写在文档 `not_covered` 字段里——它们是否随产物分发是发布
+  范围决策，不是测量能回答的。
+- 未改变：`release-blockers.json` 仍为 `BLOCKED_NO_GO`，B-SBOM 仍 `OPEN`；只更新了它的 evidence_gap，
+  把"未知"换成实测数字与剩余四项。**没有把阻塞项说成已解决。**

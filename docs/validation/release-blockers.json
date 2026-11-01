@@ -27,7 +27,7 @@
       "category": "supply-chain",
       "title": "Complete release-scope SBOM and legal/license review",
       "state": "OPEN",
-      "evidence_gap": "Machine-generated 39-component bounded MCU CycloneDX and six license-evidence hashes now exist; complete dependency closure, GCC/newlib/ST/FreeRTOS redistribution review, NOTICE package and legal approval remain pending.",
+      "evidence_gap": "Complete dependency closure now exists as docs/validation/dependency-closure.json: 14 vendored subtrees measured, 10 with licence evidence, 4 recorded as having none (cherry-usb, curve25519, littlefs, cmsis_rtx). Machine-generated 39-component bounded MCU CycloneDX and six license-evidence hashes also exist. Still pending: obtaining the licence text for those 4, GCC/newlib/ST/FreeRTOS redistribution review, the NOTICE package, and legal approval.",
       "owner": "Eugene",
       "unblock_evidence": "Full-scope CycloneDX/SBOM, pinned dependency provenance and completed legal/license/NOTICE approval"
     },
