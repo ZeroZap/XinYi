@@ -59,6 +59,26 @@ set(XY_SENSOR_DRIVER_CORE_SOURCES
 
 add_library(xy_sensor_drivers_core STATIC ${XY_SENSOR_DRIVER_CORE_SOURCES})
 
+# These drivers reach the bus through the canonical Device helpers
+# (`xy_i2c_device_*`, `xy_spi_device_*`). That is a hard requirement, not an
+# optional one: without the Device framework the archive is emitted with five to
+# seven unresolved references and nothing in the configuration can satisfy them,
+# so the breakage is deferred to whatever links the archive first. The root
+# Kconfig therefore has every `DRIVER_*` family and both Sensor symbols select
+# `COMPONENT_DEVICE`. A Kconfig configure that lost those selects stops here;
+# standalone (non-Kconfig) trees never define the `XY_*` symbols and keep the
+# previous behaviour, linking the Device target when the tree provides one.
+if(DEFINED XY_COMPONENT_DEVICE AND NOT TARGET xy_device)
+    message(FATAL_ERROR
+        "The canonical sensor drivers require the Device bus helpers, but "
+        "target 'xy_device' does not exist in this configuration. "
+        "DRIVER_*/COMPONENT_SENSOR/XY_SENSOR_ENABLE select COMPONENT_DEVICE in "
+        "the root Kconfig; restore that select rather than dropping the link.")
+endif()
+if(TARGET xy_device)
+    target_link_libraries(xy_sensor_drivers_core PUBLIC xy_device)
+endif()
+
 # The aggregate `xy_drivers` archive is only built when a driver family is
 # enabled. The canonical sensor drivers above are a shared dependency of the
 # Sensor component, so this directory can also be entered with every DRIVER_*
@@ -174,6 +194,13 @@ endforeach()
 # Create static library
 add_library(xy_drivers STATIC ${COMPONENT_SOURCES})
 target_link_libraries(xy_drivers PUBLIC xy_sensor_drivers_core)
+
+# The aggregate also carries the power/wireless/system/storage drivers, which
+# reach the bus through the same Device helpers, so Device is a public
+# dependency of everything that links this archive.
+if(TARGET xy_device)
+    target_link_libraries(xy_drivers PUBLIC xy_device)
+endif()
 
 if(CONFIG_FS_LITTLEFS)
     target_include_directories(xy_drivers PUBLIC

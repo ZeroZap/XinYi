@@ -2104,6 +2104,12 @@ add_test(NAME kconfig_fragment_agreement
 add_test(NAME kconfig_fragment_agreement_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_check_kconfig_fragment_agreement.py)
 
+add_test(NAME device_bus_dependency
+    COMMAND python3 ${UNIT_SUPPORT}/check_device_bus_dependency.py)
+
+add_test(NAME device_bus_dependency_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_device_bus_dependency.py)
+
 add_test(NAME at_modem_sim
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/net/test_at_modem_sim.py)
 

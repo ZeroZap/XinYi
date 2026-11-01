@@ -10,12 +10,14 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 4
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 407 (measured: `make test-unit` ran
-  407/407 in 378.72 s and `ctest -N` on that build tree reports `Total Tests: 407`; the direct
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 411 (measured: `make test-unit` ran
+  411/411 in 380.07 s and `ctest -N` on that build tree reports `Total Tests: 411`; the direct
   `tests/unit` configure reports the same now. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
-  entries. The `version_api` slice added two: the C target `test_version_api` and the Python
-  `release_facts` gate, taking 405 → 407. Older numbers on this line were stale by roughly the
+  entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
+  `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
+  + `_unit`); the Device-dependency slice took 409 → 411 (`device_bus_dependency` +
+  `device_bus_dependency_unit`). Older numbers on this line were stale by roughly the
   number of CTests registered since they were written, so treat the count as
   measured-not-maintained)
 - Unwired source `.c` files under `tests/unit`: 0

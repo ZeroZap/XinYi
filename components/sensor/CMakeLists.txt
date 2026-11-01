@@ -59,3 +59,16 @@ target_include_directories(sensor_component PRIVATE
 )
 target_link_libraries(sensor_component PUBLIC hardware_abstraction xy_device
     xy_sensor_drivers_core)
+
+# `xy_device` above is a target, not a library name: if the Device framework is
+# absent, CMake would quietly turn it into `-lxy_device` and the archive would
+# ship with unresolved `xy_i2c_device_*` references. `COMPONENT_SENSOR` and
+# `XY_SENSOR_ENABLE` both select `COMPONENT_DEVICE` in the root Kconfig, so this
+# branch must never be taken; if it is, the configure lost that select.
+if(NOT TARGET xy_device)
+    message(FATAL_ERROR
+        "sensor_component requires the canonical Device bus helpers, but target "
+        "'xy_device' does not exist in this configuration. COMPONENT_SENSOR and "
+        "XY_SENSOR_ENABLE select COMPONENT_DEVICE in the root Kconfig; restore "
+        "that select rather than dropping the link.")
+endif()

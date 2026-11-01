@@ -173,9 +173,9 @@ root CMake 原先无条件 auto-discover 大部分组件；即使 all-off 生成
 现在 `COMPONENT_FUEL_GAUGE` 在 root `Kconfig` 里 `select COMPONENT_DEVICE`，并且
 `components/fuel_gauge/CMakeLists.txt` 在 `xy_device` 不存在时 `FATAL_ERROR`（原先静默跳过链接）。
 矩阵含义的变化只有一处，需按新口径读：**只要 fuel gauge 保持默认 `y`，`COMPONENT_DEVICE` 就会被
-选上**；显式把 `COMPONENT_FUEL_GAUGE` 也关掉的组合（本文件里的 all-off / crypto-only / sensor-only
-等 probe）生成值不变，仍为 `CONFIG_COMPONENT_DEVICE=n`（`COMPONENT_FUEL_GAUGE=OFF;COMPONENT_DEVICE=OFF`
-实测 `n/n`，crypto-only 同样 `n`）。
+选上**；显式把 `COMPONENT_FUEL_GAUGE` 也关掉的组合（本文件里的 all-off / crypto-only 等 probe，
+它们的 Sensor 符号同样是关的）生成值不变，仍为 `CONFIG_COMPONENT_DEVICE=n`（实测 `n/n`）。
+**sensor-only probe 从下一刻起不再属于这一类**，见下一节。
 
 复现命令（默认配置下的缺陷形状）：
 
@@ -193,3 +193,52 @@ nm -u <dir>/components/fuel_gauge/libxy_fuel_gauge.a | grep xy_i2c_device
 默认构建日志——`components/device/src/xy_device_pm.c` 的 `-Wtype-limits`（"comparison is always true
 due to limited range of data type"），每平台 2 条。它们不是本轮引入的代码，是本轮让该文件第一次进入
 默认构建；记录在此以免下次被误判为新回归。
+
+### 2026-11-02 同一形态的第二处：driver/Sensor 归档也必须有 Device
+
+fuel gauge 那一处收口后，同一形态在别处还在。这次先按配置逐个量（七组：sensor-only、六个
+`DRIVER_*` 单开），建完整棵并做「归档 `nm -u` ∩ 全建置 `nm --defined-only`」对账：
+
+| 配置 | `CONFIG_COMPONENT_DEVICE`（修复前） | 未满足符号 |
+|---|---|---|
+| sensor-only（`XY_SENSOR_ENABLE=ON`、fuel gauge 关） | `n` | `libxy_sensor_drivers_core.a` **5** 个 `xy_i2c_device_*` |
+| `DRIVER_SENSOR` / `_DISPLAY` / `_POWER` / `_WIRELESS` / `_SYSTEM` 单开 | `n` | `libxy_drivers.a` **7** 个（5 `xy_i2c_device_*` + `xy_spi_device_init/transfer`），`libxy_sensor_drivers_core.a` **5** 个 |
+| all-off / crypto-only | `n` | 无（drivers 目录不进构建） |
+
+关键是**缺陷形状与 fuel gauge 完全同源**：静态归档照编，`rc=0`，没有任何归档定义这些符号，
+失败被推迟到第一个真正链接它的可执行文件——本仓库默认建置里没有这样一个可执行文件，所以长期不可见。
+
+根因有两层，都在 `components/drivers/CMakeLists.txt`：①进入该目录就无条件 `add_library(xy_sensor_drivers_core ...)`；
+②聚合 `xy_drivers` 的 source 只对 display/storage 做了 family 过滤，sensor/power/wireless/system
+的驱动**始终在聚合里**。于是任何一个 `DRIVER_*` 单开都需要 Device，而 Kconfig 一个 `select` 都没有。
+
+修法：root `Kconfig` 里 **`DRIVER_SENSOR` / `DRIVER_DISPLAY` / `DRIVER_STORAGE` / `DRIVER_POWER` /
+`DRIVER_WIRELESS` / `DRIVER_SYSTEM` / `COMPONENT_SENSOR` / `XY_SENSOR_ENABLE` 全部 `select COMPONENT_DEVICE`**；
+`components/drivers/CMakeLists.txt` 在 `xy_device` 目标缺失时 `FATAL_ERROR`（并把 `xy_device` 变成
+`xy_sensor_drivers_core` / `xy_drivers` 的 PUBLIC 依赖，让"谁提供这些符号"写在构建里），
+`components/sensor/CMakeLists.txt` 同样 fail-closed——它原先把 `xy_device` 当成库名传给
+`target_link_libraries`，目标不存在时 CMake 会静默降级成 `-lxy_device`。
+
+验证（全部真跑）：
+- 同一批七个配置修复后 **`CONFIG_COMPONENT_DEVICE=ON`**，且 `libxy_device.a` 正好提供归档需要的
+  10 个符号；逐个归档复查为「refs satisfied」，没有配置再产出不可链接的归档。
+- 两次真 RED：从 root 删掉 `XY_SENSOR_ENABLE` 的 select → configure **rc=1** 并点名
+  `target 'xy_device' does not exist`；从 root 删掉 `DRIVER_SENSOR` 的 select（同一次 configure 里
+  Sensor 全关）→ 同样 rc=1。两次按 `sha256 4cb5ad42…` 字节还原。
+
+**矩阵口径的变化（必须按新口径读）**：sensor-only 与任一 `DRIVER_*` 单开 probe 现在生成
+`CONFIG_COMPONENT_DEVICE=y`。「Sensor-only PASS」这一行此前只检查生成值、focused target 与归档对象
+列表——三项都对，但归档根本链不起来，属**假 PASS**；现在它至少是一个能链接的配置。
+`check_kconfig_fragment_agreement.py` 仍守着「这条 select 只能写在 root」，`components/sensor/Kconfig`
+里的同名 `select` 只是文档同步。
+
+新守卫 `tests/unit/support/check_device_bus_dependency.py`（CTest `device_bus_dependency` / `_unit`，
+15 例自测）：凡源文件引用 `xy_(i2c|spi|uart|adc|gpio)_device_*` 的组件树，必须在显式表里映射到
+root Kconfig 符号，且这些符号必须 `select COMPONENT_DEVICE`；表还会反向报三类腐烂——目录已无引用
+（映射过期）、符号被改名/删除、出现未映射的新消费方。变异验证：删掉 `DRIVER_STORAGE` 的 select →
+守卫 rc=1 并点名该符号，恢复后 rc=0。
+
+**本轮明确未修（独立 slice）**：`DRIVER_STORAGE=ON` 单开时构建仍 **rc=2**，与本轮无关——
+`components/drivers/storage/littlefs/xy_littlefs_w25q128.h` 无条件 `#include "lfs.h"`，而 littlefs
+的 include root 只在 `CONFIG_FS_LITTLEFS=ON` 时才加到 `xy_drivers` 上，于是这个「合法配置」
+编不过。它属于 storage 驱动的条件编译边界，不与 Device 依赖混在一刀里。

@@ -123,8 +123,13 @@ config COMPONENT_DM
 config COMPONENT_SENSOR
     bool "Sensor Framework"
     default n
+    select COMPONENT_DEVICE
     help
       Sensor abstraction layer.
+
+      The component links `xy_sensor_drivers_core` (the canonical drivers owned
+      by components/drivers), and those drivers reach the bus through the Device
+      helpers, so the Device framework cannot be absent.
 
 config COMPONENT_ACTUATOR
     bool "Actuator Framework"
@@ -162,15 +167,29 @@ endmenu # Kernel Configuration
 
 menu "Device Drivers"
 
+# Every family below resolves the same owner library: entering this directory
+# always compiles `xy_sensor_drivers_core` (components/drivers/CMakeLists.txt)
+# and an aggregate `xy_drivers` whose sensor/power/wireless/system sources are
+# not filtered by family, and those sources reach the bus through the canonical
+# Device helpers (`xy_i2c_device_*`, `xy_spi_device_*`). Measured: with
+# `COMPONENT_DEVICE=n`, `libxy_drivers.a` and `libxy_sensor_drivers_core.a` each
+# carry five to seven `xy_i2c_device_*`/`xy_spi_device_*` references that no
+# archive in that build defines - a broken static archive that only fails at
+# whatever final link happens first. So each family selects the Device
+# framework; the alternative (a driver family without a bus layer) is not a
+# configuration this tree can build.
+
 config DRIVER_SENSOR
     bool "Sensor Drivers"
     default n
+    select COMPONENT_DEVICE
     help
       Sensor device drivers (SHT30, BMP280, MPU6050, ADS1115, DHT11)
 
 config DRIVER_DISPLAY
     bool "Display Drivers"
     default n
+    select COMPONENT_DEVICE
     help
       Display device drivers (SSD1306 OLED, LCD, LED, RGB)
 
@@ -234,6 +253,7 @@ endif # DRIVER_DISPLAY
 config DRIVER_STORAGE
     bool "Storage Drivers"
     default n
+    select COMPONENT_DEVICE
     help
       Storage device drivers (EEPROM 24xx, W25Qxx Flash, SDCard)
 
@@ -241,18 +261,21 @@ config DRIVER_STORAGE
 config DRIVER_POWER
     bool "Power Management Drivers"
     default n
+    select COMPONENT_DEVICE
     help
       Power management drivers (BQ25620 Charger, Fuel Gauge)
 
 config DRIVER_WIRELESS
     bool "Wireless Drivers"
     default n
+    select COMPONENT_DEVICE
     help
       Wireless drivers (RC522 RFID, etc.)
 
 config DRIVER_SYSTEM
     bool "System Drivers"
     default n
+    select COMPONENT_DEVICE
     help
       System drivers (Key, RTC, Watchdog)
 
@@ -554,8 +577,18 @@ menu "Additional Components"
 config XY_SENSOR_ENABLE
     bool "Sensor Component"
     default y
+    select COMPONENT_DEVICE
     help
       Sensor framework and drivers.
+
+      Same hard requirement as `COMPONENT_SENSOR`: the component's canonical
+      drivers are Device-model drivers. Measured before this select existed: a
+      sensor-only configuration generated `CONFIG_COMPONENT_DEVICE=n` and left
+      `libxy_sensor_drivers_core.a` with five undefined `xy_i2c_device_*`
+      references that nothing in that build defined. The matrix previously
+      recorded that combination as PASS because only generated values and
+      archive object lists were inspected - every archive "built", none could
+      link.
 
 config XY_ACTUATOR_ENABLE
     bool "Actuator Component"
