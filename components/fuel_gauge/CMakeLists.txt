@@ -22,9 +22,21 @@ add_library(fuel_gauge_component ALIAS xy_fuel_gauge)
 target_include_directories(xy_fuel_gauge PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers
+    ${CMAKE_CURRENT_SOURCE_DIR}/../device/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../hal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../sensor/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../trace/xy_log/inc
 )
 
 target_link_libraries(xy_fuel_gauge PUBLIC sensor_component xy_trace)
+
+# The drivers reach the bus through the canonical Device helpers
+# (xy_i2c_device_*_repeated_start), so the owning library must be linked when
+# that component is part of the configuration. `sensor_component` already pulls
+# it in transitively; naming it here keeps the dependency true when only the
+# fuel-gauge component is selected. Guarded because the target does not exist in
+# every configuration, and a plain library name would fail at link time instead.
+if(TARGET xy_device)
+    target_link_libraries(xy_fuel_gauge PUBLIC xy_device)
+endif()
 target_compile_definitions(xy_fuel_gauge PUBLIC XY_COMPONENT_FUEL_GAUGE=1)

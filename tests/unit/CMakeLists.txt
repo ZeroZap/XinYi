@@ -2961,6 +2961,7 @@ xy_add_unit_test(test_fg_max17043 fg_max17043 UNITY
 target_include_directories(test_fg_max17043 PRIVATE
     ${ROOT}/components/fuel_gauge/drivers
     ${ROOT}/components/fuel_gauge/inc
+    ${DEV}/inc
     ${SENSOR}/inc
 )
 

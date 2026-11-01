@@ -90,9 +90,9 @@
 
 | 批次 | 文件 | 状态 |
 |---|---|---|
-| 3a | `components/fuel_gauge/drivers/xy_fg_*.{h,c}`（5） | **blocked**：见 §2.1 |
+| 3a | `components/fuel_gauge/drivers/xy_fg_*.{h,c}`（5） | **进行中**：`xy_fg_max17043` 已迁（2026-11-01），BQ40Z50/BQ27Z561/BQ27Z746 待迁 |
 | 3b | `components/drivers/sensor/motion/bmi270/xy_bmi270.h` | **DONE 2026-11-01** |
-| 3c | `components/sensor/core/{sensor_core,sensor_trigger,sensor_power}.c`、`sensor/sensor_bus.c` | 待 3a |
+| 3c | `components/sensor/core/{sensor_core,sensor_trigger,sensor_power}.c`、`sensor/sensor_bus.c` | 待 3a 全部迁完 |
 
 #### 2.1 3a 为什么不是类型对齐
 
@@ -118,6 +118,32 @@ HAL，断言 `xy_i2c_device_read_reg` 恰好 1 次 transmit + 1 次 receive + 0 
 
 于是 3a 剩下的**只是驱动迁移本身**：把 `xy_sensor_bus_t` 换成 `xy_i2c_device_t`，四个旧调用换成上表
 三个入口。这才是 pin 仍然存在的理由，已同步写进 `check_legacy_sensor_includes.py` 的 pin 文本。
+
+#### 2.2 3a 第一支：MAX17043（2026-11-01）
+
+MAX17043 是四个电量计里最窄的一支（`read_reg16` + `write_reg16`），所以先做它。改动只有三处形态：
+
+- 头文件：`#include "xy_sensor_device.h"` → `"xy_device.h"`，成员 `xy_sensor_bus_t bus` →
+  `xy_i2c_device_t bus`（**成员名不变**，调用点其余部分不用动）。
+- 读：`xy_sensor_i2c_read_reg16()` → `xy_i2c_device_read_reg16_repeated_start()`，仍走 3 次重试，
+  成功判据从 `== 0` 改为 `== XY_DEVICE_OK`（两者同为 0，比较语义不变）。
+- 写：旧 helper 收 `uint16_t`，canonical 的写入口收**字节缓冲**，所以驱动自己按 SMBus 低字节在前
+  组 2 字节再调 `xy_i2c_device_write_reg_repeated_start()`。这不是新协议，是把旧 helper 内部做的事
+  搬到调用点。
+- 注册：`xy_sensor_bus_config_i2c()` → `xy_i2c_device_init(..., MAX17043_IO_TIMEOUT_MS)`。**超时是刻意
+  保留的 100 ms**：旧 `sensor_bus.c` 给每次传输 `XY_SENSOR_BUS_TIMEOUT_MS = 100`，而
+  `xy_i2c_device_init()` 传 0 会变成 1000 ms——那是一次静默放宽，测试里现在断言 `timeout == 100`
+  钉住它。
+
+**形状是被测试钉住的**：`test_fg_max17043` 的 FFF 替身只定义
+`xy_i2c_device_read_reg16_repeated_start` / `xy_i2c_device_write_reg_repeated_start` /
+`xy_i2c_device_init`。变异验证：把驱动改回调用 `xy_i2c_device_read_reg`（split-STOP 形状），
+链接期直接 `undefined reference to 'xy_i2c_device_read_reg'`——迁移回旧形状不是靠 review 拦住，
+而是靠替身签名拦住。还原后 22 例全绿。守卫计数同步从 5 → **4**：
+`legacy_sensor_includes ok (9 legacy framework headers, 4 consumers and all of them pinned, 4 pins)`。
+
+剩下的三支 BQ 都是同一形态，但各自还多一条读路径（BQ40Z50 读 2/4 字节、BQ27Z561 读 1 字节与
+`read_reg`），下一切片继续。
 
 #### 3b 交付
 
@@ -166,10 +192,11 @@ HAL，断言 `xy_i2c_device_read_reg` 恰好 1 次 transmit + 1 次 receive + 0 
 
 沿用迁移计划既有口径，每个 slice 后记录三个数：
 
-1. **旧框架消费方数**（基线 19：13 产品/示例 + 6 测试）——只能减。**P3b 后 18**。
+1. **旧框架消费方数**（基线 19：13 产品/示例 + 6 测试）——只能减。**P3b 后 18**，
+   **P3a 第一支（MAX17043）后 17**。
    其中 `components/`、`boards/`、`projects/`、`examples/` 下（即不含 `tests/` 与
    `components/sensor/` 自身）的消费方由 `check_legacy_sensor_includes.py` 逐条对账：
-   基线 6 → 现在 **5**（全部 pin，理由见 §2.1）。这个数从此不再靠人记。
+   基线 6 → P3b 后 **5** → MAX17043 迁移后 **4**（全部 pin，理由见 §2.1）。这个数从此不再靠人记。
 2. **同名碰撞数**（基线 23）——P5 后应为 20，删完 sensor 副本后继续降；
 3. **总头指向**（基线：旧框架）——P2 后应为 canonical。
 

@@ -13,7 +13,7 @@
 #define XY_FG_MAX17043_H
 
 #include "xy_fuel_gauge.h"
-#include "xy_sensor_device.h"
+#include "xy_device.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,11 +28,16 @@ extern "C" {
  * @brief MAX17043 per-instance driver data.
  *
  * Callers that register more than one MAX17043 provide one of these per
- * instance; the driver stores bus configuration, the driver-private init
- * flag, cached sample data, and cached alert thresholds here.
+ * instance; the driver stores the canonical I2C device handle, the
+ * driver-private init flag, cached sample data, and cached alert thresholds
+ * here.
+ *
+ * `bus` is an `xy_i2c_device_t`, not a bus description: the register access
+ * goes through the repeated-start helpers in `xy_device.h`, because an SMBus
+ * word read is one transaction and the plain helper splits it with a STOP.
  */
 typedef struct {
-    xy_sensor_bus_t bus;
+    xy_i2c_device_t bus;
     bool initialized;
     xy_fuel_gauge_data_t data;
     xy_fuel_gauge_alert_t alert;

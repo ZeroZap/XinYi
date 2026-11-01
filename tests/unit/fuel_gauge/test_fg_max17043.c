@@ -2,7 +2,7 @@
 #include "fff.h"
 #include "xy_fg_max17043.h"
 #include "xy_fuel_gauge.h"
-#include "xy_sensor_device.h"
+#include "xy_device.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -18,46 +18,45 @@ DEFINE_FFF_GLOBALS;
 static uint16_t fake_regs[256];
 static uint8_t fake_read_failures[256];
 static uint8_t fake_write_failures[256];
-static xy_sensor_bus_t last_bus;
+static xy_i2c_device_t last_bus;
 static uint8_t last_write_reg;
 static uint16_t last_write_value;
 
 FAKE_VALUE_FUNC(uint32_t, xy_os_tick_get)
-FAKE_VOID_FUNC(xy_sensor_bus_config_i2c, xy_sensor_bus_t *, void *, uint8_t)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_read_reg16, xy_sensor_bus_t *, uint8_t, uint16_t *)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_write_reg16, xy_sensor_bus_t *, uint8_t, uint16_t)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_read, xy_sensor_bus_t *, uint8_t, uint8_t *, uint16_t)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_write, xy_sensor_bus_t *, uint8_t, const uint8_t *, uint16_t)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_read_reg, xy_sensor_bus_t *, uint8_t, uint8_t *)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_write_reg, xy_sensor_bus_t *, uint8_t, uint8_t)
-FAKE_VALUE_FUNC(int, xy_sensor_spi_read, xy_sensor_bus_t *, uint8_t, uint8_t *, uint16_t)
-FAKE_VALUE_FUNC(int, xy_sensor_spi_write, xy_sensor_bus_t *, uint8_t, const uint8_t *, uint16_t)
-FAKE_VALUE_FUNC(int, xy_sensor_check_device_id, xy_sensor_bus_t *, uint8_t, uint8_t)
-FAKE_VOID_FUNC(xy_sensor_bus_config_spi, xy_sensor_bus_t *, void *, uint8_t)
+FAKE_VALUE_FUNC(xy_error_t, xy_i2c_device_init, xy_i2c_device_t *, void *, uint16_t, uint32_t)
+FAKE_VALUE_FUNC(xy_error_t, xy_i2c_device_read_reg16_repeated_start,
+                xy_i2c_device_t *, uint8_t, uint16_t *)
+FAKE_VALUE_FUNC(xy_error_t, xy_i2c_device_write_reg_repeated_start,
+                xy_i2c_device_t *, uint8_t, const uint8_t *, size_t)
 
-static void xy_sensor_bus_config_i2c_impl(xy_sensor_bus_t *bus, void *handle, uint8_t address)
+static xy_error_t xy_i2c_device_init_impl(xy_i2c_device_t *dev, void *handle,
+                                          uint16_t address, uint32_t timeout)
 {
-    TEST_ASSERT_NOT_NULL(bus);
-    bus->type = XY_SENSOR_BUS_I2C;
-    bus->bus_handle = handle;
-    bus->address = address;
-    bus->chip_select = 0;
-    last_bus = *bus;
+    TEST_ASSERT_NOT_NULL(dev);
+    memset(dev, 0, sizeof(*dev));
+    dev->i2c_handle = handle;
+    dev->dev_addr = address;
+    dev->timeout = timeout ? timeout : 1000U;
+    dev->base.initialized = true;
+    last_bus = *dev;
+    return XY_DEVICE_OK;
 }
 
-static int xy_sensor_i2c_read_reg16_impl(xy_sensor_bus_t *bus, uint8_t reg, uint16_t *value)
+static xy_error_t xy_i2c_device_read_reg16_impl(xy_i2c_device_t *dev, uint8_t reg,
+                                                uint16_t *value)
 {
-    TEST_ASSERT_NOT_NULL(bus);
-    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_NOT_NULL(value);
 
     if (fake_read_failures[reg] > 0) {
         fake_read_failures[reg]--;
-        return -1;
+        return XY_DEVICE_IO_ERROR;
     }
 
     *value = fake_regs[reg];
-    return 0;
+    return XY_DEVICE_OK;
 }
 
 static void fake_fail_reads(uint8_t reg, uint8_t failures)
@@ -70,49 +69,38 @@ static void fake_fail_writes(uint8_t reg, uint8_t failures)
     fake_write_failures[reg] = failures;
 }
 
-static int xy_sensor_i2c_write_reg16_impl(xy_sensor_bus_t *bus, uint8_t reg, uint16_t value)
+static xy_error_t xy_i2c_device_write_reg16_impl(xy_i2c_device_t *dev, uint8_t reg,
+                                                 const uint8_t *data, size_t len)
 {
-    TEST_ASSERT_NOT_NULL(bus);
-    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(data);
+    TEST_ASSERT_EQUAL_UINT(2U, len);
 
     if (fake_write_failures[reg] > 0) {
         fake_write_failures[reg]--;
-        return -1;
+        return XY_DEVICE_IO_ERROR;
     }
 
-    fake_regs[reg] = value;
+    /* SMBus word order: the driver must put the least significant byte first. */
+    last_write_value = (uint16_t)(((uint16_t)data[1] << 8) | data[0]);
+    fake_regs[reg] = last_write_value;
     last_write_reg = reg;
-    last_write_value = value;
-    return 0;
+    return XY_DEVICE_OK;
 }
 
 static void reset_sensor_fakes(void)
 {
     RESET_FAKE(xy_os_tick_get);
-    RESET_FAKE(xy_sensor_bus_config_i2c);
-    RESET_FAKE(xy_sensor_i2c_read_reg16);
-    RESET_FAKE(xy_sensor_i2c_write_reg16);
-    RESET_FAKE(xy_sensor_i2c_read);
-    RESET_FAKE(xy_sensor_i2c_write);
-    RESET_FAKE(xy_sensor_i2c_read_reg);
-    RESET_FAKE(xy_sensor_i2c_write_reg);
-    RESET_FAKE(xy_sensor_spi_read);
-    RESET_FAKE(xy_sensor_spi_write);
-    RESET_FAKE(xy_sensor_check_device_id);
-    RESET_FAKE(xy_sensor_bus_config_spi);
+    RESET_FAKE(xy_i2c_device_init);
+    RESET_FAKE(xy_i2c_device_read_reg16_repeated_start);
+    RESET_FAKE(xy_i2c_device_write_reg_repeated_start);
     FFF_RESET_HISTORY();
 
     xy_os_tick_get_fake.return_val = 1000;
-    xy_sensor_bus_config_i2c_fake.custom_fake = xy_sensor_bus_config_i2c_impl;
-    xy_sensor_i2c_read_reg16_fake.custom_fake = xy_sensor_i2c_read_reg16_impl;
-    xy_sensor_i2c_write_reg16_fake.custom_fake = xy_sensor_i2c_write_reg16_impl;
-    xy_sensor_i2c_read_fake.return_val = -1;
-    xy_sensor_i2c_write_fake.return_val = -1;
-    xy_sensor_i2c_read_reg_fake.return_val = -1;
-    xy_sensor_i2c_write_reg_fake.return_val = -1;
-    xy_sensor_spi_read_fake.return_val = -1;
-    xy_sensor_spi_write_fake.return_val = -1;
-    xy_sensor_check_device_id_fake.return_val = -1;
+    xy_i2c_device_init_fake.custom_fake = xy_i2c_device_init_impl;
+    xy_i2c_device_read_reg16_repeated_start_fake.custom_fake = xy_i2c_device_read_reg16_impl;
+    xy_i2c_device_write_reg_repeated_start_fake.custom_fake = xy_i2c_device_write_reg16_impl;
 }
 
 void setUp(void)
@@ -152,21 +140,23 @@ void test_max17043_registers_default_i2c_bus(void)
     xy_fuel_gauge_t *fg = registered_max17043();
 
     TEST_ASSERT_NOT_NULL(fg);
-    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_bus_config_i2c_fake.call_count);
-    TEST_ASSERT_EQUAL_PTR((void *)0x17043, xy_sensor_bus_config_i2c_fake.arg1_val);
-    TEST_ASSERT_EQUAL_UINT8(MAX17043_ADDR, xy_sensor_bus_config_i2c_fake.arg2_val);
-    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, last_bus.type);
-    TEST_ASSERT_EQUAL_PTR((void *)0x17043, last_bus.bus_handle);
-    TEST_ASSERT_EQUAL_UINT8(MAX17043_ADDR, last_bus.address);
+    TEST_ASSERT_EQUAL_UINT(1, xy_i2c_device_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR((void *)0x17043, xy_i2c_device_init_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT16(MAX17043_ADDR, xy_i2c_device_init_fake.arg2_val);
+    TEST_ASSERT_TRUE(last_bus.base.initialized);
+    TEST_ASSERT_EQUAL_PTR((void *)0x17043, last_bus.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT16(MAX17043_ADDR, last_bus.dev_addr);
+    /* The legacy bus helper gave each transfer 100 ms; the migration must not widen that. */
+    TEST_ASSERT_EQUAL_UINT32(100, last_bus.timeout);
 }
 
 void test_max17043_register_rejects_null_i2c_handle_without_bus_side_effects(void)
 {
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_max17043_register(NULL, 0));
-    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0, xy_i2c_device_init_fake.call_count);
     TEST_ASSERT_NULL(xy_fuel_gauge_device_get("MAX17043"));
-    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
-    TEST_ASSERT_NULL(last_bus.bus_handle);
+    TEST_ASSERT_EQUAL_UINT16(0, last_bus.dev_addr);
+    TEST_ASSERT_NULL(last_bus.i2c_handle);
 }
 
 void test_max17043_register_duplicate_does_not_reconfigure_bus(void)
@@ -176,9 +166,9 @@ void test_max17043_register_duplicate_does_not_reconfigure_bus(void)
     memset(&last_bus, 0, sizeof(last_bus));
 
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_max17043_register((void *)0xBAD, 0x44));
-    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
-    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.bus_handle);
-    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+    TEST_ASSERT_EQUAL_UINT(0, xy_i2c_device_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT16(0, last_bus.dev_addr);
 }
 
 void test_max17043_init_writes_default_config(void)
@@ -188,13 +178,12 @@ void test_max17043_init_writes_default_config(void)
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_TRUE_MESSAGE(fg->initialized, "MAX17043 init should mark the gauge initialized");
-    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT8(REG_VER, xy_sensor_i2c_read_reg16_fake.arg1_val);
-    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_write_reg16_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT8(REG_CONFIG, xy_sensor_i2c_write_reg16_fake.arg1_val);
-    TEST_ASSERT_EQUAL_UINT16(0, xy_sensor_i2c_write_reg16_fake.arg2_val);
-    TEST_ASSERT_EQUAL_UINT8(REG_CONFIG, last_write_reg);
+    TEST_ASSERT_EQUAL_UINT(1, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(REG_VER, xy_i2c_device_read_reg16_repeated_start_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT(1, xy_i2c_device_write_reg_repeated_start_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(REG_CONFIG, xy_i2c_device_write_reg_repeated_start_fake.arg1_val);
     TEST_ASSERT_EQUAL_UINT16(0, last_write_value);
+    TEST_ASSERT_EQUAL_UINT8(REG_CONFIG, last_write_reg);
 }
 
 void test_max17043_init_retries_transient_version_read_failure(void)
@@ -207,9 +196,9 @@ void test_max17043_init_retries_transient_version_read_failure(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_TRUE_MESSAGE(fg->initialized,
                              "MAX17043 init should mark initialized after transient version read");
-    TEST_ASSERT_EQUAL_UINT(2, xy_sensor_i2c_read_reg16_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT8(REG_VER, xy_sensor_i2c_read_reg16_fake.arg1_val);
-    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_write_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(2, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(REG_VER, xy_i2c_device_read_reg16_repeated_start_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT(1, xy_i2c_device_write_reg_repeated_start_fake.call_count);
 }
 
 void test_max17043_init_propagates_persistent_version_read_failure(void)
@@ -221,9 +210,9 @@ void test_max17043_init_propagates_persistent_version_read_failure(void)
 
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_init(fg));
     TEST_ASSERT_FALSE(fg->initialized);
-    TEST_ASSERT_EQUAL_UINT(3, xy_sensor_i2c_read_reg16_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT8(REG_VER, xy_sensor_i2c_read_reg16_fake.arg1_val);
-    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_i2c_write_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(3, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(REG_VER, xy_i2c_device_read_reg16_repeated_start_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT(0, xy_i2c_device_write_reg_repeated_start_fake.call_count);
     TEST_ASSERT_EQUAL_UINT16(0xFFFF, last_write_value);
 }
 
@@ -237,8 +226,8 @@ void test_max17043_init_retries_transient_config_write_failure(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_TRUE_MESSAGE(fg->initialized,
                              "MAX17043 init should mark initialized after transient config write");
-    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT(2, xy_sensor_i2c_write_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(2, xy_i2c_device_write_reg_repeated_start_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(REG_CONFIG, last_write_reg);
     TEST_ASSERT_EQUAL_UINT16(0, last_write_value);
 }
@@ -252,8 +241,8 @@ void test_max17043_init_propagates_persistent_config_write_failure(void)
 
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_init(fg));
     TEST_ASSERT_FALSE(fg->initialized);
-    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT(3, xy_sensor_i2c_write_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(3, xy_i2c_device_write_reg_repeated_start_fake.call_count);
     TEST_ASSERT_EQUAL_UINT16(0xFFFF, last_write_value);
 }
 
@@ -299,8 +288,8 @@ void test_max17043_fetch_and_channel_get(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(-208, value);
 
-    TEST_ASSERT_GREATER_OR_EQUAL_UINT(4, xy_sensor_i2c_read_reg16_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT8(REG_CRATE, xy_sensor_i2c_read_reg16_fake.arg1_val);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(4, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(REG_CRATE, xy_i2c_device_read_reg16_repeated_start_fake.arg1_val);
 }
 
 void test_max17043_fetch_failure_preserves_cached_snapshot(void)
@@ -404,7 +393,7 @@ void test_max17043_fetch_retries_transient_register_read_failures(void)
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT32(19000, fg->latest.timestamp);
-    TEST_ASSERT_EQUAL_UINT(7, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(7, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(3906, value);
@@ -508,7 +497,7 @@ void test_max17043_direct_api_guards_preserve_outputs(void)
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED, fg->api->fetch(fg));
-    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
 
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       fg->api->channel_get(NULL, XY_FG_DATA_VOLTAGE, &value));
@@ -650,10 +639,10 @@ void test_max17043_register_instance_isolates_multiple_instances(void)
     TEST_ASSERT_TRUE(fg_a.data != fg_b.data);
 
     /* Distinct bus configuration per instance */
-    TEST_ASSERT_EQUAL_PTR((void *)0xA000, priv_a.bus.bus_handle);
-    TEST_ASSERT_EQUAL_UINT8(0x10, priv_a.bus.address);
-    TEST_ASSERT_EQUAL_PTR((void *)0xB000, priv_b.bus.bus_handle);
-    TEST_ASSERT_EQUAL_UINT8(0x20, priv_b.bus.address);
+    TEST_ASSERT_EQUAL_PTR((void *)0xA000, priv_a.bus.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT16(0x10, priv_a.bus.dev_addr);
+    TEST_ASSERT_EQUAL_PTR((void *)0xB000, priv_b.bus.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT16(0x20, priv_b.bus.dev_addr);
 
     /* Independent initialization */
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(&fg_a));
@@ -709,9 +698,9 @@ void test_max17043_register_instance_rejects_null_inputs_without_side_effects(vo
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_max17043_register_instance(&no_name, &priv, (void *)0x1, 0));
 
-    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
-    TEST_ASSERT_NULL(last_bus.bus_handle);
+    TEST_ASSERT_EQUAL_UINT(0, xy_i2c_device_init_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT16(0, last_bus.dev_addr);
+    TEST_ASSERT_NULL(last_bus.i2c_handle);
 }
 
 void test_max17043_register_instance_rejects_duplicate_name_without_reconfiguring_bus(void)
@@ -727,9 +716,9 @@ void test_max17043_register_instance_rejects_duplicate_name_without_reconfigurin
     TEST_ASSERT_EQUAL(XY_FG_ERROR,
                       xy_fuel_gauge_max17043_register_instance(&fg_dup, &priv_dup,
                                                                (void *)0xBAD, 0x44));
-    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
-    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.bus_handle);
-    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+    TEST_ASSERT_EQUAL_UINT(0, xy_i2c_device_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT16(0, last_bus.dev_addr);
     TEST_ASSERT_NULL(fg_dup.api);
     TEST_ASSERT_NULL(fg_dup.data);
 }

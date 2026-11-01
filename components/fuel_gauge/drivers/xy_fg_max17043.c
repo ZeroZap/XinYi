@@ -29,17 +29,20 @@
 
 #define MAX17043_IO_RETRIES     3
 
+/*: Whole-call budget for one register access, in milliseconds. The legacy bus helper used the same
+ *: figure; keeping it here means the migration does not quietly widen a wedged-bus timeout. */
+#define MAX17043_IO_TIMEOUT_MS  100U
+
 static int max17043_read_reg16(xy_fg_max17043_data_t *priv, uint8_t reg, uint16_t *value)
 {
-    int ret = -1;
-
     if (!priv || !value) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
+    /* Repeated-start form: an SMBus word read is one transaction. The plain
+     * xy_i2c_device_read_reg() splits it with a STOP. */
     for (int attempt = 0; attempt < MAX17043_IO_RETRIES; ++attempt) {
-        ret = xy_sensor_i2c_read_reg16(&priv->bus, reg, value);
-        if (ret == 0) {
+        if (xy_i2c_device_read_reg16_repeated_start(&priv->bus, reg, value) == XY_DEVICE_OK) {
             return XY_FG_OK;
         }
     }
@@ -49,15 +52,19 @@ static int max17043_read_reg16(xy_fg_max17043_data_t *priv, uint8_t reg, uint16_
 
 static int max17043_write_reg16(xy_fg_max17043_data_t *priv, uint8_t reg, uint16_t value)
 {
-    int ret = -1;
+    uint8_t buffer[2];
 
     if (!priv) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
+    /* SMBus word order: least significant byte first. */
+    buffer[0] = (uint8_t)(value & 0xFFU);
+    buffer[1] = (uint8_t)(value >> 8);
+
     for (int attempt = 0; attempt < MAX17043_IO_RETRIES; ++attempt) {
-        ret = xy_sensor_i2c_write_reg16(&priv->bus, reg, value);
-        if (ret == 0) {
+        if (xy_i2c_device_write_reg_repeated_start(&priv->bus, reg, buffer,
+                                                   sizeof(buffer)) == XY_DEVICE_OK) {
             return XY_FG_OK;
         }
     }
@@ -239,7 +246,10 @@ int xy_fuel_gauge_max17043_register_instance(xy_fuel_gauge_t *fg,
     }
 
     memset(priv, 0, sizeof(*priv));
-    xy_sensor_bus_config_i2c(&priv->bus, i2c_handle, addr ? addr : MAX17043_ADDR);
+    if (xy_i2c_device_init(&priv->bus, i2c_handle, addr ? addr : MAX17043_ADDR,
+                           MAX17043_IO_TIMEOUT_MS) != XY_DEVICE_OK) {
+        return XY_FG_ERROR;
+    }
 
     fg->api = &max17043_driver_api;
     fg->data = priv;

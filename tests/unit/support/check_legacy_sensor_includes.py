@@ -20,11 +20,15 @@ source. The driver header is gone (P3b): `xy_bmi270.h` included `xy_sensor.h` fo
 `xy_sensor_device_t base` member that nothing in the tree reads, and including the canonical
 `xy_device.h` instead gives the same member name the canonical type.
 
-The five fuel-gauge files are pinned rather than migrated, and the pin says why: they use the
-legacy *bus helpers* (`xy_sensor_bus_t`, `xy_sensor_i2c_read_reg16`), and the canonical I2C device
-helper issues a separate transmit and receive, i.e. a STOP in the middle of what these SMBus gauges
-do as one repeated-start transaction. P3a therefore changes wire behaviour, which the plan forbids
-inside a type-alignment stage, so it stays a decision rather than a rename.
+MAX17043 is gone too (P3a, first driver): it now holds an `xy_i2c_device_t` and reads/writes
+through the repeated-start helpers, so its register traffic is unchanged.
+
+The four BQ fuel-gauge files below are pinned rather than migrated, and the pin says why: they
+use the legacy *bus helpers* (`xy_sensor_bus_t`, `xy_sensor_i2c_read_reg16`), and the canonical
+I2C device helper issues a separate transmit and receive, i.e. a STOP in the middle of what
+these SMBus gauges do as one repeated-start transaction. P3a therefore changes wire behaviour,
+which the plan forbids inside a type-alignment stage, so it stays a decision rather than a
+rename.
 
 That blocker has since been removed on the canonical side: `xy_i2c_device_read_reg_repeated_start()`,
 `..._read_reg16_repeated_start()` and `..._write_reg_repeated_start()` issue the same one-transaction
@@ -72,7 +76,6 @@ PINS: dict[str, str] = {
     "components/fuel_gauge/drivers/xy_fg_bq27z561.h": "same as xy_fg_bq40z50.h",
     "components/fuel_gauge/drivers/xy_fg_bq27z561.c": "same as xy_fg_bq40z50.h",
     "components/fuel_gauge/drivers/xy_fg_bq27z746.h": "same as xy_fg_bq40z50.h",
-    "components/fuel_gauge/drivers/xy_fg_max17043.h": "same as xy_fg_bq40z50.h",
 }
 
 #: The framework's own tree is the one place allowed to include the framework.
