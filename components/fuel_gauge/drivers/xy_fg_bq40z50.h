@@ -14,7 +14,7 @@
 #define XY_FG_BQ40Z50_H
 
 #include "xy_fuel_gauge.h"
-#include "xy_sensor_device.h"
+#include "xy_device.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,13 +29,18 @@ extern "C" {
  * @brief BQ40Z50 per-instance driver data.
  *
  * Callers that register more than one BQ40Z50 provide one of these per
- * instance; the driver stores the bus configuration, the driver-private init
- * flag, cached sample data, cached alert thresholds, the cached battery/
- * protection/balance status, the detected cell count, cached per-cell
- * voltages, and the private average-current cache here.
+ * instance; the driver stores the canonical I2C device handle, the
+ * driver-private init flag, cached sample data, cached alert thresholds, the
+ * cached battery/protection/balance status, the detected cell count, cached
+ * per-cell voltages, and the private average-current cache here.
+ *
+ * `bus` is an `xy_i2c_device_t`, not a bus description: every register access
+ * goes through the repeated-start helpers in `xy_device.h`, because these
+ * SMBus gauge reads are one transaction and the plain helper splits them with
+ * a STOP.
  */
 typedef struct {
-    xy_sensor_bus_t bus;
+    xy_i2c_device_t bus;
     bool initialized;
     xy_fuel_gauge_data_t data;
     xy_fuel_gauge_alert_t alert;

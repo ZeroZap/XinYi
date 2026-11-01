@@ -45,6 +45,11 @@
 
 #define BQ27Z746_READ_RETRIES   3
 
+/*: Whole-call budget for one register access, in milliseconds. The legacy sensor bus gave every
+ *: transfer this figure; keeping it here means the migration does not quietly widen a wedged-bus
+ *: timeout, because xy_i2c_device_init() reads a zero timeout as 1000 ms. */
+#define BQ27Z746_IO_TIMEOUT_MS  100U
+
 /**
  * @brief 读取寄存器 (16 位)
  */
@@ -52,16 +57,17 @@ static int bq27z746_read_reg16(xy_fg_bq27z746_data_t *priv,
                                 uint8_t reg, uint16_t *value)
 {
     uint8_t buf[2];
-    int ret;
-    
-    ret = XY_FG_ERROR;
+    xy_error_t ret = XY_DEVICE_IO_ERROR;
+
+    /* Repeated-start form: a gauge register read is one transaction. The plain
+     * xy_i2c_device_read_reg() splits it with a STOP. */
     for (int attempt = 0; attempt < BQ27Z746_READ_RETRIES; attempt++) {
-        ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 2);
-        if (ret == 0) {
+        ret = xy_i2c_device_read_reg_repeated_start(&priv->bus, reg, buf, sizeof(buf));
+        if (ret == XY_DEVICE_OK) {
             break;
         }
     }
-    if (ret != 0) {
+    if (ret != XY_DEVICE_OK) {
         return XY_FG_ERROR;
     }
     
@@ -372,7 +378,10 @@ int xy_fuel_gauge_bq27z746_register_instance(xy_fuel_gauge_t *fg,
     }
 
     memset(priv, 0, sizeof(*priv));
-    xy_sensor_bus_config_i2c(&priv->bus, i2c_handle, addr ? addr : BQ27Z746_ADDR);
+    if (xy_i2c_device_init(&priv->bus, i2c_handle, addr ? addr : BQ27Z746_ADDR,
+                           BQ27Z746_IO_TIMEOUT_MS) != XY_DEVICE_OK) {
+        return XY_FG_ERROR;
+    }
 
     fg->api = &bq27z746_driver_api;
     fg->data = priv;

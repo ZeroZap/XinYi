@@ -20,22 +20,19 @@ source. The driver header is gone (P3b): `xy_bmi270.h` included `xy_sensor.h` fo
 `xy_sensor_device_t base` member that nothing in the tree reads, and including the canonical
 `xy_device.h` instead gives the same member name the canonical type.
 
-MAX17043 is gone too (P3a, first driver): it now holds an `xy_i2c_device_t` and reads/writes
-through the repeated-start helpers, so its register traffic is unchanged.
+MAX17043 was the first to go (P3a, first driver), and the three BQ gauges followed, which leaves this
+rule with **no pins at all**: outside `components/sensor/` and the test tree, nothing includes the
+legacy framework. The pin mechanism stays because it is the auditable form of "we know, and here is
+why"; an empty table is a measurement, not a deletion.
 
-The four BQ fuel-gauge files below are pinned rather than migrated, and the pin says why: they
-use the legacy *bus helpers* (`xy_sensor_bus_t`, `xy_sensor_i2c_read_reg16`), and the canonical
-I2C device helper issues a separate transmit and receive, i.e. a STOP in the middle of what
-these SMBus gauges do as one repeated-start transaction. P3a therefore changes wire behaviour,
-which the plan forbids inside a type-alignment stage, so it stays a decision rather than a
-rename.
-
-That blocker has since been removed on the canonical side: `xy_i2c_device_read_reg_repeated_start()`,
-`..._read_reg16_repeated_start()` and `..._write_reg_repeated_start()` issue the same one-transaction
-traffic the legacy helpers did, and `test_device_bus_repeated_start` asserts the number and kind of
-transfers each shape produces rather than describing them. What is left for P3a is the driver
-migration itself - swapping `xy_sensor_bus_t` for `xy_i2c_device_t` and the four legacy calls for
-these - which is why these files are still pinned.
+What the pins said while they existed is worth keeping, because it is the reason the migration was
+not a rename: the fuel-gauge drivers used the legacy *bus helpers* (`xy_sensor_bus_t`,
+`xy_sensor_i2c_read_reg16`), and the canonical `xy_i2c_device_read_reg()` issues a separate transmit
+and receive - a STOP in the middle of what these SMBus gauges do as one repeated-start transaction.
+Pointing them at that helper would have compiled and changed the traffic on the wire. The canonical
+side grew `xy_i2c_device_read_reg_repeated_start()`, `..._read_reg16_repeated_start()` and
+`..._write_reg_repeated_start()` (asserted by `test_device_bus_repeated_start`), and then the four
+drivers moved onto those, each keeping the legacy 100 ms transfer budget explicitly.
 
 A pin is auditable in both directions: a pinned file that stops including the legacy set has
 expired and is reported, and a consumer that appears without a pin is reported.
@@ -67,16 +64,12 @@ LEGACY_FRAMEWORK = {
 
 #: Consumers of the legacy framework that have not been migrated, with the reason. Resolving one
 #: means giving it a canonical equivalent, not renaming an include.
-PINS: dict[str, str] = {
-    "components/fuel_gauge/drivers/xy_fg_bq40z50.h":
-        "uses xy_sensor_bus_t for its I2C handle; the canonical xy_i2c_device_read_reg splits the "
-        "register read into transmit+receive (a STOP inside the transaction) so migrating it here "
-        "would change wire behaviour unless the repeated-start helpers are used; those now exist, so "
-        "P3a is blocked only on the driver migration itself",
-    "components/fuel_gauge/drivers/xy_fg_bq27z561.h": "same as xy_fg_bq40z50.h",
-    "components/fuel_gauge/drivers/xy_fg_bq27z561.c": "same as xy_fg_bq40z50.h",
-    "components/fuel_gauge/drivers/xy_fg_bq27z746.h": "same as xy_fg_bq40z50.h",
-}
+#:
+#: Empty since P3a finished: the four fuel-gauge files that used to be pinned here now hold
+#: `xy_i2c_device_t` and read through the repeated-start helpers. The table stays because the next
+#: consumer - if one ever appears - has to argue for itself here instead of quietly adding a second
+#: definition of `xy_sensor_type_t` to the tree.
+PINS: dict[str, str] = {}
 
 #: The framework's own tree is the one place allowed to include the framework.
 EXEMPT_TREES = ("components/sensor",)
@@ -207,9 +200,11 @@ def main() -> int:
         return 1
     consumers = [path for path in scanned_files()
                  if legacy_includes(path.read_text(encoding="utf-8", errors="replace"))]
+    detail = f"{len(consumers)} consumers"
+    if PINS:
+        detail += " and all of them pinned"
     print(f"legacy_sensor_includes ok ({len(LEGACY_FRAMEWORK)} legacy framework headers, "
-          f"{len(consumers)} consumers and all of them pinned, "
-          f"{len(PINS)} pins)")
+          f"{detail}, {len(PINS)} pins)")
     return 0
 
 

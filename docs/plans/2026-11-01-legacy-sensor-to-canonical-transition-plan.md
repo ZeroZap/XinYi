@@ -90,9 +90,9 @@
 
 | 批次 | 文件 | 状态 |
 |---|---|---|
-| 3a | `components/fuel_gauge/drivers/xy_fg_*.{h,c}`（5） | **进行中**：`xy_fg_max17043` 已迁（2026-11-01），BQ40Z50/BQ27Z561/BQ27Z746 待迁 |
+| 3a | `components/fuel_gauge/drivers/xy_fg_*.{h,c}`（5） | **DONE 2026-11-01**：MAX17043 先迁（§2.2），BQ27Z746/BQ27Z561/BQ40Z50 同批收尾（§2.3） |
 | 3b | `components/drivers/sensor/motion/bmi270/xy_bmi270.h` | **DONE 2026-11-01** |
-| 3c | `components/sensor/core/{sensor_core,sensor_trigger,sensor_power}.c`、`sensor/sensor_bus.c` | 待 3a 全部迁完 |
+| 3c | `components/sensor/core/{sensor_core,sensor_trigger,sensor_power}.c`、`sensor/sensor_bus.c` | 待 3a 全部迁完 → **unblocked** |
 
 #### 2.1 3a 为什么不是类型对齐
 
@@ -117,7 +117,7 @@ HAL，断言 `xy_i2c_device_read_reg` 恰好 1 次 transmit + 1 次 receive + 0 
 测试会红——那正是 3a 当初卡住的原因，不该只活在一段散文里。
 
 于是 3a 剩下的**只是驱动迁移本身**：把 `xy_sensor_bus_t` 换成 `xy_i2c_device_t`，四个旧调用换成上表
-三个入口。这才是 pin 仍然存在的理由，已同步写进 `check_legacy_sensor_includes.py` 的 pin 文本。
+三个入口。这才是 pin 当时仍然存在的理由（pin 已随 §2.3 一起归零）。
 
 #### 2.2 3a 第一支：MAX17043（2026-11-01）
 
@@ -144,6 +144,39 @@ MAX17043 是四个电量计里最窄的一支（`read_reg16` + `write_reg16`）�
 
 剩下的三支 BQ 都是同一形态，但各自还多一条读路径（BQ40Z50 读 2/4 字节、BQ27Z561 读 1 字节与
 `read_reg`），下一切片继续。
+
+#### 2.3 3a 收尾：三支 BQ（2026-11-01）
+
+BQ27Z746、BQ27Z561、BQ40Z50 同批迁完，形状与 MAX17043 一致，差别只在读路径的宽度：
+
+| 驱动 | 旧调用 | canonical 入口 |
+|---|---|---|
+| BQ27Z746 | `xy_sensor_i2c_read(…, 2)` | `xy_i2c_device_read_reg_repeated_start(…, 2)` |
+| BQ27Z561 | `xy_sensor_i2c_read_reg16()` / `…_read_reg()` | `…_read_reg16_repeated_start()` / `…_read_reg_repeated_start(…, 1)` |
+| BQ40Z50 | `xy_sensor_i2c_read(…, 2)` / `(…, 4)` / `read_reg16()` | `…_read_reg_repeated_start(…, 2)` / `(…, 4)` / `…_read_reg16_repeated_start()` |
+
+每条驱动仍保留自己的 3 次重试与 100 ms 单次预算（`BQ27Z746_IO_TIMEOUT_MS` 等），**不是**
+`xy_i2c_device_init()` 的 0 → 1000 ms 默认值。BQ40Z50 的 `read_balance_status()` 顺手把
+`int ret = …; if (ret == 0)` 的旧整数约定改成直接判 `== XY_DEVICE_OK`，行为不变。
+
+**两条变异都是真 RED**（BQ27Z746 上做的，其余同构）：把 `IO_TIMEOUT_MS` 改成 `0U` →
+`test_bq27z746_registers_default_i2c_bus` 报 `Expected 100 Was 0`；把读改回 split-STOP 的
+`xy_i2c_device_read_reg` → 链接期 `undefined reference to 'xy_i2c_device_read_reg'`。两处都按
+`sha256` 校验字节还原后全绿。
+
+**守卫计数 4 → 0**：`legacy_sensor_includes ok (9 legacy framework headers, 0 consumers, 0 pins)`，
+`PINS` 表保留为空表——它不是被删掉的规则，而是"当前确实没有消费方"的量测结果。
+`test_fuel_gauge_smbus_hardware_smoke_example` 的替身同步换成三个 canonical 入口，并且**故意不定义
+SPI 入口**：驱动若在总线上改配 SPI，链接期就红，而不是被一个空替身静默放过。
+
+**边界**：这几支驱动在写方向上不产生字节级证据（BQ27Z561/BQ27Z746/BQ40Z50 只读不写，MAX17043 只写
+`0x0000`），字节序仍由 `test_device_bus_repeated_start` 的 16 位读侧覆盖；无实板运行时。
+
+**新增的依赖尚未写进 Kconfig**：四支驱动现在硬依赖 `components/device`，而
+`COMPONENT_FUEL_GAUGE` 没有 `depends on COMPONENT_DEVICE`；`build/pc` 恰好是 `DEVICE=n` +
+`FUEL_GAUGE=y`，静态库照编、`nm -u` 里留四个 `xy_i2c_device_*` 未定义符号。也就是说缺的是
+"final link 才红"而不是"配置时就红"。补依赖会让 `build/pc` 丢掉 fuel gauge（那本身也是一个
+产品决定），所以留给下一轮显式决策。
 
 #### 3b 交付
 
@@ -193,10 +226,10 @@ MAX17043 是四个电量计里最窄的一支（`read_reg16` + `write_reg16`）�
 沿用迁移计划既有口径，每个 slice 后记录三个数：
 
 1. **旧框架消费方数**（基线 19：13 产品/示例 + 6 测试）——只能减。**P3b 后 18**，
-   **P3a 第一支（MAX17043）后 17**。
+   **P3a 第一支（MAX17043）后 17**，**P3a 收尾（三支 BQ）后 13**。
    其中 `components/`、`boards/`、`projects/`、`examples/` 下（即不含 `tests/` 与
    `components/sensor/` 自身）的消费方由 `check_legacy_sensor_includes.py` 逐条对账：
-   基线 6 → P3b 后 **5** → MAX17043 迁移后 **4**（全部 pin，理由见 §2.1）。这个数从此不再靠人记。
+   基线 6 → P3b 后 **5** → MAX17043 迁移后 **4** → 三支 BQ 迁移后 **0**。这个数从此不再靠人记。
 2. **同名碰撞数**（基线 23）——P5 后应为 20，删完 sensor 副本后继续降；
 3. **总头指向**（基线：旧框架）——P2 后应为 canonical。
 

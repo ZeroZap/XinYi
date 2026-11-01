@@ -14,7 +14,7 @@
 #define XY_FG_BQ27Z746_H
 
 #include "xy_fuel_gauge.h"
-#include "xy_sensor_device.h"
+#include "xy_device.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,12 +29,16 @@ extern "C" {
  * @brief BQ27Z746 per-instance driver data.
  *
  * Callers that register more than one BQ27Z746 provide one of these per
- * instance; the driver stores bus configuration, the driver-private init
- * flag, cached sample data, cached alert thresholds, the private
- * average-current cache, cached flags, and the device-type bytes here.
+ * instance; the driver stores the canonical I2C device handle, the
+ * driver-private init flag, cached sample data, cached alert thresholds, the
+ * private average-current cache, cached flags, and the device-type bytes here.
+ *
+ * `bus` is an `xy_i2c_device_t`, not a bus description: every register access
+ * goes through `xy_i2c_device_read_reg_repeated_start()`, because these SMBus
+ * gauge reads are one transaction and the plain helper splits them with a STOP.
  */
 typedef struct {
-    xy_sensor_bus_t bus;
+    xy_i2c_device_t bus;
     bool initialized;
     xy_fuel_gauge_data_t data;
     xy_fuel_gauge_alert_t alert;

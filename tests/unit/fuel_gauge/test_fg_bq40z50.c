@@ -1,7 +1,7 @@
 #include "unity.h"
 #include "fff.h"
 #include "xy_fg_bq40z50.h"
-#include "xy_sensor_device.h"
+#include "xy_device.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -23,24 +23,23 @@
 #define REG_PROT_STATUS 0x66
 #define REG_BAL_STATUS  0x68
 
+/*: The legacy sensor bus allowed 100 ms per transfer. The migration has to keep that figure
+ *: explicit, because xy_i2c_device_init() reads a zero timeout as 1000 ms - a tenfold widening
+ *: of the wedged-bus budget that nothing else in this suite would notice. */
+#define EXPECTED_IO_TIMEOUT_MS 100U
+
 static uint8_t fake_regs[256][4];
 static uint8_t fake_read_failures[256];
-static xy_sensor_bus_t last_bus;
+static xy_i2c_device_t last_bus;
 
 DEFINE_FFF_GLOBALS;
 
 FAKE_VALUE_FUNC(uint32_t, xy_os_tick_get)
-FAKE_VOID_FUNC(xy_sensor_bus_config_i2c, xy_sensor_bus_t *, void *, uint8_t)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_read, xy_sensor_bus_t *, uint8_t, uint8_t *, uint16_t)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_write, xy_sensor_bus_t *, uint8_t, const uint8_t *, uint16_t)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_read_reg, xy_sensor_bus_t *, uint8_t, uint8_t *)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_write_reg, xy_sensor_bus_t *, uint8_t, uint8_t)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_read_reg16, xy_sensor_bus_t *, uint8_t, uint16_t *)
-FAKE_VALUE_FUNC(int, xy_sensor_i2c_write_reg16, xy_sensor_bus_t *, uint8_t, uint16_t)
-FAKE_VALUE_FUNC(int, xy_sensor_spi_read, xy_sensor_bus_t *, uint8_t, uint8_t *, uint16_t)
-FAKE_VALUE_FUNC(int, xy_sensor_spi_write, xy_sensor_bus_t *, uint8_t, const uint8_t *, uint16_t)
-FAKE_VALUE_FUNC(int, xy_sensor_check_device_id, xy_sensor_bus_t *, uint8_t, uint8_t)
-FAKE_VOID_FUNC(xy_sensor_bus_config_spi, xy_sensor_bus_t *, void *, uint8_t)
+FAKE_VALUE_FUNC(xy_error_t, xy_i2c_device_init, xy_i2c_device_t *, void *, uint16_t, uint32_t)
+FAKE_VALUE_FUNC(xy_error_t, xy_i2c_device_read_reg_repeated_start,
+                xy_i2c_device_t *, uint8_t, uint8_t *, size_t)
+FAKE_VALUE_FUNC(xy_error_t, xy_i2c_device_read_reg16_repeated_start,
+                xy_i2c_device_t *, uint8_t, uint16_t *)
 
 static void fake_set16(uint8_t reg, uint16_t value)
 {
@@ -66,32 +65,32 @@ static uint16_t fake_get16(uint8_t reg)
     return ((uint16_t)fake_regs[reg][1] << 8) | fake_regs[reg][0];
 }
 
-static int xy_sensor_i2c_read_once(uint8_t reg, uint16_t *value)
+static xy_error_t xy_i2c_device_init_impl(xy_i2c_device_t *dev, void *handle,
+                                          uint16_t address, uint32_t timeout)
 {
-    if (fake_read_failures[reg] > 0) {
-        fake_read_failures[reg]--;
-        return -1;
-    }
-
-    *value = fake_get16(reg);
-    return 0;
+    TEST_ASSERT_NOT_NULL(dev);
+    memset(dev, 0, sizeof(*dev));
+    dev->i2c_handle = handle;
+    dev->dev_addr = address;
+    dev->timeout = timeout ? timeout : 1000U;
+    dev->base.initialized = true;
+    last_bus = *dev;
+    return XY_DEVICE_OK;
 }
 
-static void xy_sensor_bus_config_i2c_impl(xy_sensor_bus_t *bus, void *handle, uint8_t address)
+static void assert_canonical_device(const xy_i2c_device_t *dev)
 {
-    TEST_ASSERT_NOT_NULL(bus);
-    bus->type = XY_SENSOR_BUS_I2C;
-    bus->bus_handle = handle;
-    bus->address = address;
-    bus->chip_select = 0;
-    last_bus = *bus;
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "the driver must reach a live I2C device");
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
 }
 
-static int xy_sensor_i2c_read_impl(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *data, uint16_t len)
+static xy_error_t xy_i2c_device_read_reg_impl(xy_i2c_device_t *dev, uint8_t reg,
+                                              uint8_t *data, size_t len)
 {
-    TEST_ASSERT_NOT_NULL(bus);
-    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
+    assert_canonical_device(dev);
     TEST_ASSERT_NOT_NULL(data);
+    /* A gauge word is two bytes and a gauge block is four; anything else is a driver bug. */
     if (len == 2U) {
         TEST_ASSERT_EQUAL_UINT(2U, len);
     } else {
@@ -100,48 +99,40 @@ static int xy_sensor_i2c_read_impl(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *d
 
     if (fake_read_failures[reg] > 0) {
         fake_read_failures[reg]--;
-        return -1;
+        return XY_DEVICE_IO_ERROR;
     }
 
     memcpy(data, fake_regs[reg], len);
-    return 0;
+    return XY_DEVICE_OK;
 }
 
-static int xy_sensor_i2c_read_reg16_impl(xy_sensor_bus_t *bus, uint8_t reg, uint16_t *value)
+static xy_error_t xy_i2c_device_read_reg16_impl(xy_i2c_device_t *dev, uint8_t reg,
+                                                uint16_t *value)
 {
-    TEST_ASSERT_NOT_NULL(bus);
-    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
+    assert_canonical_device(dev);
     TEST_ASSERT_NOT_NULL(value);
-    return xy_sensor_i2c_read_once(reg, value);
+
+    if (fake_read_failures[reg] > 0) {
+        fake_read_failures[reg]--;
+        return XY_DEVICE_IO_ERROR;
+    }
+
+    *value = fake_get16(reg);
+    return XY_DEVICE_OK;
 }
 
 static void reset_sensor_fakes(void)
 {
     RESET_FAKE(xy_os_tick_get);
-    RESET_FAKE(xy_sensor_bus_config_i2c);
-    RESET_FAKE(xy_sensor_i2c_read);
-    RESET_FAKE(xy_sensor_i2c_write);
-    RESET_FAKE(xy_sensor_i2c_read_reg);
-    RESET_FAKE(xy_sensor_i2c_write_reg);
-    RESET_FAKE(xy_sensor_i2c_read_reg16);
-    RESET_FAKE(xy_sensor_i2c_write_reg16);
-    RESET_FAKE(xy_sensor_spi_read);
-    RESET_FAKE(xy_sensor_spi_write);
-    RESET_FAKE(xy_sensor_check_device_id);
-    RESET_FAKE(xy_sensor_bus_config_spi);
+    RESET_FAKE(xy_i2c_device_init);
+    RESET_FAKE(xy_i2c_device_read_reg_repeated_start);
+    RESET_FAKE(xy_i2c_device_read_reg16_repeated_start);
     FFF_RESET_HISTORY();
 
     xy_os_tick_get_fake.return_val = 1000;
-    xy_sensor_bus_config_i2c_fake.custom_fake = xy_sensor_bus_config_i2c_impl;
-    xy_sensor_i2c_read_fake.custom_fake = xy_sensor_i2c_read_impl;
-    xy_sensor_i2c_read_reg16_fake.custom_fake = xy_sensor_i2c_read_reg16_impl;
-    xy_sensor_i2c_write_fake.return_val = -1;
-    xy_sensor_i2c_read_reg_fake.return_val = -1;
-    xy_sensor_i2c_write_reg_fake.return_val = -1;
-    xy_sensor_i2c_write_reg16_fake.return_val = -1;
-    xy_sensor_spi_read_fake.return_val = -1;
-    xy_sensor_spi_write_fake.return_val = -1;
-    xy_sensor_check_device_id_fake.return_val = -1;
+    xy_i2c_device_init_fake.custom_fake = xy_i2c_device_init_impl;
+    xy_i2c_device_read_reg_repeated_start_fake.custom_fake = xy_i2c_device_read_reg_impl;
+    xy_i2c_device_read_reg16_repeated_start_fake.custom_fake = xy_i2c_device_read_reg16_impl;
 }
 
 void setUp(void)
@@ -190,18 +181,20 @@ void test_bq40z50_registers_default_i2c_bus(void)
     xy_fuel_gauge_t *fg = registered_bq40z50();
 
     TEST_ASSERT_NOT_NULL(fg);
-    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_bus_config_i2c_fake.call_count);
-    TEST_ASSERT_EQUAL_PTR((void *)0x4050, xy_sensor_bus_config_i2c_fake.arg1_val);
-    TEST_ASSERT_EQUAL_UINT8(BQ40Z50_ADDR, xy_sensor_bus_config_i2c_fake.arg2_val);
-    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, last_bus.type);
-    TEST_ASSERT_EQUAL_PTR((void *)0x4050, last_bus.bus_handle);
-    TEST_ASSERT_EQUAL_UINT8(BQ40Z50_ADDR, last_bus.address);
+    TEST_ASSERT_EQUAL_UINT(1, xy_i2c_device_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR((void *)0x4050, xy_i2c_device_init_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT8(BQ40Z50_ADDR, xy_i2c_device_init_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT32(EXPECTED_IO_TIMEOUT_MS, xy_i2c_device_init_fake.arg3_val);
+    TEST_ASSERT_EQUAL_UINT32(EXPECTED_IO_TIMEOUT_MS, last_bus.timeout);
+    TEST_ASSERT_TRUE(last_bus.base.initialized);
+    TEST_ASSERT_EQUAL_PTR((void *)0x4050, last_bus.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT8(BQ40Z50_ADDR, last_bus.dev_addr);
 }
 
 void test_bq40z50_register_rejects_null_handle_without_i2c_side_effects(void)
 {
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_bq40z50_register(NULL, 0));
-    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0, xy_i2c_device_init_fake.call_count);
     TEST_ASSERT_NULL(xy_fuel_gauge_device_get("BQ40Z50"));
 }
 
@@ -212,9 +205,9 @@ void test_bq40z50_register_duplicate_does_not_reconfigure_bus(void)
     memset(&last_bus, 0, sizeof(last_bus));
 
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_bq40z50_register((void *)0xBAD, 0x44));
-    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
-    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.bus_handle);
-    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+    TEST_ASSERT_EQUAL_UINT(0, xy_i2c_device_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT8(0, last_bus.dev_addr);
 }
 
 void test_bq40z50_init_fetch_channel_and_pack_helpers(void)
@@ -226,7 +219,7 @@ void test_bq40z50_init_fetch_channel_and_pack_helpers(void)
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_TRUE_MESSAGE(fg->initialized, "BQ40Z50 core device should be initialized");
-    TEST_ASSERT_GREATER_OR_EQUAL_UINT(4, xy_sensor_i2c_read_fake.call_count);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(4, xy_i2c_device_read_reg_repeated_start_fake.call_count);
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_charging(fg));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_discharging(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_full(fg));
@@ -234,13 +227,13 @@ void test_bq40z50_init_fetch_channel_and_pack_helpers(void)
     TEST_ASSERT_EQUAL_UINT32(0x00000051, xy_fuel_gauge_bq40z50_get_protection_status(fg));
     TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
 
-    xy_sensor_i2c_read_fake.call_count = 0;
+    xy_i2c_device_read_reg_repeated_start_fake.call_count = 0;
     xy_os_tick_get_fake.return_val = 5050;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT(1, xy_os_tick_get_fake.call_count);
     TEST_ASSERT_EQUAL_UINT32(5050, fg->latest.timestamp);
-    TEST_ASSERT_GREATER_OR_EQUAL_UINT(15, xy_sensor_i2c_read_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT8(REG_BAL_STATUS, xy_sensor_i2c_read_fake.arg1_val);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(15, xy_i2c_device_read_reg_repeated_start_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(REG_BAL_STATUS, xy_i2c_device_read_reg_repeated_start_fake.arg1_val);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(15234, value);
@@ -561,7 +554,7 @@ void test_bq40z50_public_helpers_use_cached_snapshot_without_i2c_side_effects(vo
     fake_set16(REG_BAT_STATUS, 0x0002);
     fake_set32(REG_PROT_STATUS, 0x00000000);
     fake_set16(REG_BAL_STATUS, 0x000A);
-    xy_sensor_i2c_read_fake.call_count = 0;
+    xy_i2c_device_read_reg_repeated_start_fake.call_count = 0;
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_bq40z50_get_battery_voltage(fg, &voltage));
     TEST_ASSERT_EQUAL_UINT16(15234, voltage);
@@ -575,7 +568,7 @@ void test_bq40z50_public_helpers_use_cached_snapshot_without_i2c_side_effects(vo
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_protected(fg));
     TEST_ASSERT_EQUAL_UINT32(0x00000051, xy_fuel_gauge_bq40z50_get_protection_status(fg));
     TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
-    TEST_ASSERT_EQUAL_UINT(0U, xy_sensor_i2c_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_i2c_device_read_reg_repeated_start_fake.call_count);
 }
 
 void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
@@ -589,11 +582,11 @@ void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
 
     fake_fail_reads(REG_CURR, 1);
-    xy_sensor_i2c_read_fake.call_count = 0;
+    xy_i2c_device_read_reg_repeated_start_fake.call_count = 0;
     xy_os_tick_get_fake.return_val = 5050;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT32(5050, fg->latest.timestamp);
-    TEST_ASSERT_GREATER_OR_EQUAL_UINT(15, xy_sensor_i2c_read_fake.call_count);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(15, xy_i2c_device_read_reg_repeated_start_fake.call_count);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(-654, value);
 
@@ -644,7 +637,7 @@ void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
     TEST_ASSERT_EQUAL_UINT16(15234, voltage);
     TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
 
-    xy_sensor_i2c_read_fake.call_count = 0;
+    xy_i2c_device_read_reg_repeated_start_fake.call_count = 0;
     xy_os_tick_get_fake.return_val = 8080;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT32(8080, fg->latest.timestamp);
@@ -801,32 +794,32 @@ void test_bq40z50_balance_read_uses_bounded_retry_without_fetch_side_effects(voi
     TEST_ASSERT_EQUAL_UINT8(0xAA, balance);
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_bq40z50_read_balance_status(fg, NULL));
-    TEST_ASSERT_EQUAL_UINT(0U, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
                       xy_fuel_gauge_bq40z50_read_balance_status(fg, &balance));
     TEST_ASSERT_EQUAL_UINT8(0xAA, balance);
-    TEST_ASSERT_EQUAL_UINT(0U, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
 
     fake_set16(REG_BAL_STATUS, 0x000C);
     fake_fail_reads(REG_BAL_STATUS, 2);
-    xy_sensor_i2c_read_reg16_fake.call_count = 0;
+    xy_i2c_device_read_reg16_repeated_start_fake.call_count = 0;
     TEST_ASSERT_EQUAL(XY_FG_OK,
                       xy_fuel_gauge_bq40z50_read_balance_status(fg, &balance));
     TEST_ASSERT_EQUAL_UINT8(0x0C, balance);
-    TEST_ASSERT_EQUAL_UINT(3U, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
 
     balance = 0xAA;
     fake_set16(REG_BAL_STATUS, 0x000D);
     fake_fail_reads(REG_BAL_STATUS, 3);
-    xy_sensor_i2c_read_reg16_fake.call_count = 0;
+    xy_i2c_device_read_reg16_repeated_start_fake.call_count = 0;
     TEST_ASSERT_EQUAL(XY_FG_ERROR,
                       xy_fuel_gauge_bq40z50_read_balance_status(fg, &balance));
     TEST_ASSERT_EQUAL_UINT8(0xAA, balance);
-    TEST_ASSERT_EQUAL_UINT(3U, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_i2c_device_read_reg16_repeated_start_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
 }
 
@@ -910,10 +903,10 @@ void test_bq40z50_register_instance_isolates_multiple_instances(void)
     TEST_ASSERT_TRUE(fg_a.data != fg_b.data);
 
     /* Distinct bus configuration per instance */
-    TEST_ASSERT_EQUAL_PTR((void *)0xA040, priv_a.bus.bus_handle);
-    TEST_ASSERT_EQUAL_UINT8(0x10, priv_a.bus.address);
-    TEST_ASSERT_EQUAL_PTR((void *)0xB040, priv_b.bus.bus_handle);
-    TEST_ASSERT_EQUAL_UINT8(0x20, priv_b.bus.address);
+    TEST_ASSERT_EQUAL_PTR((void *)0xA040, priv_a.bus.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT8(0x10, priv_a.bus.dev_addr);
+    TEST_ASSERT_EQUAL_PTR((void *)0xB040, priv_b.bus.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT8(0x20, priv_b.bus.dev_addr);
 
     /* Independent initialization */
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(&fg_a));
@@ -985,9 +978,9 @@ void test_bq40z50_register_instance_rejects_null_inputs_without_side_effects(voi
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_bq40z50_register_instance(&no_name, &priv, (void *)0x1, 0));
 
-    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
-    TEST_ASSERT_NULL(last_bus.bus_handle);
+    TEST_ASSERT_EQUAL_UINT(0, xy_i2c_device_init_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, last_bus.dev_addr);
+    TEST_ASSERT_NULL(last_bus.i2c_handle);
 }
 
 void test_bq40z50_register_instance_rejects_duplicate_name_without_reconfiguring_bus(void)
@@ -1003,9 +996,9 @@ void test_bq40z50_register_instance_rejects_duplicate_name_without_reconfiguring
     TEST_ASSERT_EQUAL(XY_FG_ERROR,
                       xy_fuel_gauge_bq40z50_register_instance(&fg_dup, &priv_dup,
                                                               (void *)0xBAD, 0x44));
-    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
-    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.bus_handle);
-    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+    TEST_ASSERT_EQUAL_UINT(0, xy_i2c_device_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT8(0, last_bus.dev_addr);
     TEST_ASSERT_NULL(fg_dup.api);
     TEST_ASSERT_NULL(fg_dup.data);
 }

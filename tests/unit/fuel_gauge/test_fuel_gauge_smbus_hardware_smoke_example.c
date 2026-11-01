@@ -9,7 +9,7 @@
 #include "unity.h"
 #include "xy_fg_bq27z561.h"
 #include "xy_fg_bq40z50.h"
-#include "xy_sensor_device.h"
+#include "xy_device.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -45,7 +45,7 @@ static uint32_t g_tick;
 static unsigned g_i2c_config_calls;
 static unsigned g_i2c_read_calls;
 static unsigned g_failed_reads;
-static xy_sensor_bus_t g_last_bus;
+static xy_i2c_device_t g_last_bus;
 
 uint32_t xy_os_tick_get(void)
 {
@@ -71,121 +71,65 @@ static void fail_reads(uint8_t reg, uint8_t failures)
     g_read_failures[reg] = failures;
 }
 
-void xy_sensor_bus_config_i2c(xy_sensor_bus_t *bus, void *handle, uint8_t address)
+/* The drivers reach the bus through the canonical Device helpers, so this fixture supplies those
+ * and nothing else. There is deliberately no SPI entry point defined: if a gauge driver ever starts
+ * configuring SPI on this bus, the build fails at link time instead of a stub silently succeeding. */
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr,
+                             uint32_t timeout)
 {
-    TEST_ASSERT_NOT_NULL(bus);
-    bus->type = XY_SENSOR_BUS_I2C;
-    bus->bus_handle = handle;
-    bus->address = address;
-    bus->chip_select = 0;
-    g_last_bus = *bus;
+    TEST_ASSERT_NOT_NULL(dev);
+    memset(dev, 0, sizeof(*dev));
+    dev->i2c_handle = i2c_handle;
+    dev->dev_addr = addr;
+    dev->timeout = timeout ? timeout : 1000U;
+    dev->base.initialized = true;
+    g_last_bus = *dev;
     g_i2c_config_calls++;
+    return XY_DEVICE_OK;
 }
 
-void xy_sensor_bus_config_spi(xy_sensor_bus_t *bus, void *handle, uint8_t chip_select)
+static xy_error_t fake_repeated_start_read(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data,
+                                           size_t len)
 {
-    (void)bus;
-    (void)handle;
-    (void)chip_select;
-    TEST_FAIL_MESSAGE("Fuel Gauge SMBus smoke must not configure SPI");
-}
-
-int xy_sensor_i2c_read(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    TEST_ASSERT_NOT_NULL(bus);
-    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_NOT_NULL(data);
-    if (len != 2U && len != 4U) {
-        TEST_FAIL_MESSAGE("Fuel Gauge SMBus smoke only models 2-byte/4-byte register reads");
+    /* One byte (SOH), a SMBus word, or a four-byte block: the three widths these gauges read. */
+    if (len != 1U && len != 2U && len != 4U) {
+        TEST_FAIL_MESSAGE("Fuel Gauge SMBus smoke only models 1-byte/2-byte/4-byte register reads");
     }
 
     g_i2c_read_calls++;
     if (g_read_failures[reg] > 0U) {
         g_read_failures[reg]--;
         g_failed_reads++;
-        return -1;
+        return XY_DEVICE_IO_ERROR;
     }
 
     memcpy(data, g_regs[reg], len);
-    return 0;
+    return XY_DEVICE_OK;
 }
 
-int xy_sensor_i2c_write(xy_sensor_bus_t *bus, uint8_t reg, const uint8_t *data, uint16_t len)
+xy_error_t xy_i2c_device_read_reg_repeated_start(xy_i2c_device_t *dev, uint8_t reg,
+                                                 uint8_t *data, size_t len)
 {
-    (void)bus;
-    (void)reg;
-    (void)data;
-    (void)len;
-    return -1;
+    return fake_repeated_start_read(dev, reg, data, len);
 }
 
-int xy_sensor_i2c_read_reg(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *value)
-{
-    TEST_ASSERT_NOT_NULL(bus);
-    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
-    TEST_ASSERT_NOT_NULL(value);
-
-    g_i2c_read_calls++;
-    if (g_read_failures[reg] > 0U) {
-        g_read_failures[reg]--;
-        g_failed_reads++;
-        return -1;
-    }
-
-    *value = g_regs[reg][0];
-    return 0;
-}
-
-int xy_sensor_i2c_write_reg(xy_sensor_bus_t *bus, uint8_t reg, uint8_t value)
-{
-    (void)bus;
-    (void)reg;
-    (void)value;
-    return -1;
-}
-
-int xy_sensor_i2c_read_reg16(xy_sensor_bus_t *bus, uint8_t reg, uint16_t *value)
+xy_error_t xy_i2c_device_read_reg16_repeated_start(xy_i2c_device_t *dev, uint8_t reg,
+                                                   uint16_t *value)
 {
     uint8_t buf[2];
-    int ret = xy_sensor_i2c_read(bus, reg, buf, sizeof(buf));
-    if (ret == 0) {
-        *value = ((uint16_t)buf[1] << 8) | buf[0];
+
+    TEST_ASSERT_NOT_NULL(value);
+    if (fake_repeated_start_read(dev, reg, buf, sizeof(buf)) != XY_DEVICE_OK) {
+        return XY_DEVICE_IO_ERROR;
     }
-    return ret;
-}
 
-int xy_sensor_i2c_write_reg16(xy_sensor_bus_t *bus, uint8_t reg, uint16_t value)
-{
-    (void)bus;
-    (void)reg;
-    (void)value;
-    return -1;
-}
-
-int xy_sensor_spi_read(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    (void)reg;
-    (void)data;
-    (void)len;
-    return -1;
-}
-
-int xy_sensor_spi_write(xy_sensor_bus_t *bus, uint8_t reg, const uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    (void)reg;
-    (void)data;
-    (void)len;
-    return -1;
-}
-
-int xy_sensor_check_device_id(xy_sensor_bus_t *bus, uint8_t whoami_reg, uint8_t expected_id)
-{
-    (void)bus;
-    (void)whoami_reg;
-    (void)expected_id;
-    return -1;
+    /* SMBus word order, the same convention the canonical helper applies. */
+    *value = (uint16_t)(((uint16_t)buf[1] << 8) | buf[0]);
+    return XY_DEVICE_OK;
 }
 
 void setUp(void)
@@ -262,8 +206,8 @@ static void test_smoke_documents_bq40z50_smbus_init_fetch_flow(void)
     uint8_t soc = 0U;
 
     TEST_ASSERT_EQUAL_UINT(1U, g_i2c_config_calls);
-    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, g_last_bus.type);
-    TEST_ASSERT_EQUAL_UINT8(BQ40Z50_ADDR, g_last_bus.address);
+    TEST_ASSERT_TRUE(g_last_bus.base.initialized);
+    TEST_ASSERT_EQUAL_UINT8(BQ40Z50_ADDR, g_last_bus.dev_addr);
 
     g_tick = 5050U;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
@@ -310,8 +254,8 @@ static void test_smoke_documents_bq27z561_single_cell_fetch_flow(void)
     int16_t current = 0;
     uint8_t soc = 0U;
 
-    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, g_last_bus.type);
-    TEST_ASSERT_EQUAL_UINT8(BQ27Z561_ADDR, g_last_bus.address);
+    TEST_ASSERT_TRUE(g_last_bus.base.initialized);
+    TEST_ASSERT_EQUAL_UINT8(BQ27Z561_ADDR, g_last_bus.dev_addr);
 
     g_regs[BQ27Z561_REG_SOC][0] = 75U;
     g_tick = 5610U;

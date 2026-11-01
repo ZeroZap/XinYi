@@ -61,6 +61,11 @@
 #define BQ40Z50_PROT_OTC        (1 << 5)    /* 充电过温 */
 #define BQ40Z50_PROT_OTD        (1 << 6)    /* 放电过温 */
 
+/*: Whole-call budget for one register access, in milliseconds. The legacy sensor bus gave every
+ *: transfer this figure; keeping it here means the migration does not quietly widen a wedged-bus
+ *: timeout, because xy_i2c_device_init() reads a zero timeout as 1000 ms. */
+#define BQ40Z50_IO_TIMEOUT_MS   100U
+
 /**
  * @brief 读取寄存器 (16 位)
  */
@@ -68,16 +73,17 @@ static int bq40z50_read_reg16(xy_fg_bq40z50_data_t *priv,
                               uint8_t reg, uint16_t *value)
 {
     uint8_t buf[2];
-    int ret;
-    
-    ret = XY_FG_ERROR;
+    xy_error_t ret = XY_DEVICE_IO_ERROR;
+
+    /* Repeated-start form: a gauge register read is one transaction. The plain
+     * xy_i2c_device_read_reg() splits it with a STOP. */
     for (int attempt = 0; attempt < BQ40Z50_READ_RETRIES; attempt++) {
-        ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 2);
-        if (ret == 0) {
+        ret = xy_i2c_device_read_reg_repeated_start(&priv->bus, reg, buf, sizeof(buf));
+        if (ret == XY_DEVICE_OK) {
             break;
         }
     }
-    if (ret != 0) {
+    if (ret != XY_DEVICE_OK) {
         return XY_FG_ERROR;
     }
     
@@ -94,16 +100,15 @@ static int bq40z50_read_reg32(xy_fg_bq40z50_data_t *priv,
                               uint8_t reg, uint32_t *value)
 {
     uint8_t buf[4];
-    int ret;
-    
-    ret = XY_FG_ERROR;
+    xy_error_t ret = XY_DEVICE_IO_ERROR;
+
     for (int attempt = 0; attempt < BQ40Z50_READ_RETRIES; attempt++) {
-        ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 4);
-        if (ret == 0) {
+        ret = xy_i2c_device_read_reg_repeated_start(&priv->bus, reg, buf, sizeof(buf));
+        if (ret == XY_DEVICE_OK) {
             break;
         }
     }
-    if (ret != 0) {
+    if (ret != XY_DEVICE_OK) {
         return XY_FG_ERROR;
     }
     
@@ -386,10 +391,9 @@ int xy_fuel_gauge_bq40z50_read_balance_status(xy_fuel_gauge_t *fg,
     }
 
     uint16_t value;
-    int ret = XY_FG_ERROR;
-    for (int attempt = 0; attempt < BQ40Z50_READ_RETRIES; attempt++) {
-        ret = xy_sensor_i2c_read_reg16(&priv->bus, BQ40Z50_REG_BAL_STATUS, &value);
-        if (ret == 0) {
+    for (int attempt = 0; attempt < BQ40Z50_READ_RETRIES; ++attempt) {
+        if (xy_i2c_device_read_reg16_repeated_start(&priv->bus, BQ40Z50_REG_BAL_STATUS,
+                                                    &value) == XY_DEVICE_OK) {
             *balance_status = (uint8_t)value;
             return XY_FG_OK;
         }
@@ -561,7 +565,10 @@ int xy_fuel_gauge_bq40z50_register_instance(xy_fuel_gauge_t *fg,
     }
 
     memset(priv, 0, sizeof(*priv));
-    xy_sensor_bus_config_i2c(&priv->bus, i2c_handle, addr ? addr : BQ40Z50_ADDR);
+    if (xy_i2c_device_init(&priv->bus, i2c_handle, addr ? addr : BQ40Z50_ADDR,
+                           BQ40Z50_IO_TIMEOUT_MS) != XY_DEVICE_OK) {
+        return XY_FG_ERROR;
+    }
 
     fg->api = &bq40z50_driver_api;
     fg->data = priv;

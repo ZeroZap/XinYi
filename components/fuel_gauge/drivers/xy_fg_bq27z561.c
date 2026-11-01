@@ -9,7 +9,6 @@
 
 #include "xy_fg_bq27z561.h"
 #include "xy_log.h"
-#include "xy_sensor_device.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -28,14 +27,21 @@
 #define BQ27Z561_REG_SOH        0x7A
 #define BQ27Z561_IO_RETRIES     3
 
+/*: Whole-call budget for one register access, in milliseconds. The legacy sensor bus gave every
+ *: transfer this figure; keeping it here means the migration does not quietly widen a wedged-bus
+ *: timeout, because xy_i2c_device_init() reads a zero timeout as 1000 ms. */
+#define BQ27Z561_IO_TIMEOUT_MS  100U
+
 static int bq27z561_read_reg16(xy_fg_bq27z561_data_t *priv, uint8_t reg, uint16_t *value)
 {
     if (!priv || !value) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
+    /* Repeated-start form: a gauge register read is one transaction. The plain
+     * xy_i2c_device_read_reg() splits it with a STOP. */
     for (int attempt = 0; attempt < BQ27Z561_IO_RETRIES; ++attempt) {
-        if (xy_sensor_i2c_read_reg16(&priv->bus, reg, value) == 0) {
+        if (xy_i2c_device_read_reg16_repeated_start(&priv->bus, reg, value) == XY_DEVICE_OK) {
             return XY_FG_OK;
         }
     }
@@ -50,7 +56,7 @@ static int bq27z561_read_reg8(xy_fg_bq27z561_data_t *priv, uint8_t reg, uint8_t 
     }
 
     for (int attempt = 0; attempt < BQ27Z561_IO_RETRIES; ++attempt) {
-        if (xy_sensor_i2c_read_reg(&priv->bus, reg, value) == 0) {
+        if (xy_i2c_device_read_reg_repeated_start(&priv->bus, reg, value, 1U) == XY_DEVICE_OK) {
             return XY_FG_OK;
         }
     }
@@ -285,7 +291,10 @@ int xy_fuel_gauge_bq27z561_register_instance(xy_fuel_gauge_t *fg,
     }
 
     memset(priv, 0, sizeof(*priv));
-    xy_sensor_bus_config_i2c(&priv->bus, i2c_handle, addr ? addr : BQ27Z561_ADDR);
+    if (xy_i2c_device_init(&priv->bus, i2c_handle, addr ? addr : BQ27Z561_ADDR,
+                           BQ27Z561_IO_TIMEOUT_MS) != XY_DEVICE_OK) {
+        return XY_FG_ERROR;
+    }
 
     fg->api = &bq27z561_driver_api;
     fg->data = priv;
