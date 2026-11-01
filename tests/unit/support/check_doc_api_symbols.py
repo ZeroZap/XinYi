@@ -9,14 +9,23 @@ are created by `xy_os_thread_new()` with an attribute struct, and the crypto umb
 `xy_tiny_crypto.h`. Compiled as written, the sample produces twelve errors - and nothing in the
 repository noticed, because prose is not built.
 
-So this judges the two things a copied snippet asserts:
+So this judges the three things a copied snippet asserts:
 
   1. an identifier - every `xy_*` token inside a fenced C block must appear in some header;
-  2. an include - every `#include "name.h"` must name a header that exists.
+  2. an include - every `#include "name.h"` must name a header that exists;
+  3. a location - every backticked repository path (`examples/...`, `components/...`, `docs/...`)
+     must exist.
 
-Both are checked against headers read through `read_code()`, so a symbol that only appears in a
-comment does not count as declared. That direction matters: a name mentioned in a header's prose
-is exactly the kind of thing a doc author would copy.
+The first two are checked against headers read through `read_code()`, so a symbol that only appears
+in a comment does not count as declared. That direction matters: a name mentioned in a header's
+prose is exactly the kind of thing a doc author would copy.
+
+The third rule exists because the first two were not enough: `QUICK_START.md` told a new reader that
+the sensor example was `examples/sensor_demo` and that the OSAL guide was
+`docs/components/kernel/osal/README.md`. Measured against the tree, **four of the five "reading
+order" links and three of the four example rows pointed at paths that do not exist** - the component
+docs had been moved one level down (into `components/<x>/`) and nothing read the document as a set of
+claims. A path is a claim.
 
 Scope is `docs/getting-started/`, the documents that instruct. Architecture notes, proposals and
 the API reference legitimately describe APIs that are being designed - judging them would punish
@@ -28,7 +37,10 @@ shell blocks are not API claims - a shell block's `make <target>` is a different
 fences are read by the shared `source_scan.fenced_blocks()` so a `~~~` block, a nested
 four-backtick block and a block whose terminator went missing are all read the way CommonMark
 says rather than by one regex over the whole document. A block may declare its own helper, so a
-name the block defines itself is not reported.
+name the block defines itself is not reported. The path rule reads prose as well, because a table
+row names a location as firmly as a sentence does; a line that tells the reader to *create* the path
+(`创建` / `新建` / `create`) is an instruction, not a claim that it exists, and a placeholder
+(`<name>`, `...`) is not a path yet.
 
 Presence is not correctness: this says a symbol exists, not that the sample uses it properly. The
 two samples were also compiled - as written, against the real include roots, for both crypto
@@ -62,6 +74,16 @@ EXEMPT: dict[str, str] = {}
 TOKEN = re.compile(r"\bxy_[A-Za-z0-9_]+\b")
 INCLUDE = re.compile(r'^\s*#\s*include\s+"([^"]+)"')
 DEFINES_ITSELF = re.compile(r"^\s*#\s*define\s+(xy_[A-Za-z0-9_]+)")
+
+#: Top-level directories a document may point a reader at. Restricting the prefix to these keeps
+#: the rule off prose that merely contains a slash.
+PATH_ROOTS = ("examples", "components", "boards", "tests", "projects", "tools", "docs")
+PATH_REFERENCE = re.compile(
+    r"`((?:" + "|".join(PATH_ROOTS) + r")/[A-Za-z0-9_./-]+)`")
+#: A line that tells the reader to create the path is not a claim that it exists today.
+CREATION_WORDS = ("创建", "新建", "create", "Create", "your")
+#: ... and a placeholder is not a path yet.
+PLACEHOLDERS = ("...", "<", ">", "*")
 
 
 def documents() -> list[Path]:
@@ -101,21 +123,50 @@ def code_blocks(text: str) -> list[tuple[int, list[str]]]:
     return blocks
 
 
+def path_references(text: str) -> list[tuple[int, str]]:
+    """(line number, path) for every repository path this document points a reader at.
+
+    Placeholders and lines that ask the reader to create something are skipped: neither asserts
+    that the path is there today, and reporting them would punish a document for explaining how to
+    start a new one.
+    """
+    found: list[tuple[int, str]] = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        if any(word in line for word in CREATION_WORDS):
+            continue
+        for match in PATH_REFERENCE.finditer(line):
+            token = match.group(1).rstrip("/")
+            if any(mark in token for mark in PLACEHOLDERS):
+                continue
+            found.append((number, token))
+    return found
+
+
 def findings(paths: list[Path] | None = None,
              symbols: set[str] | None = None,
-             names: set[str] | None = None) -> list[str]:
+             names: set[str] | None = None,
+             root: Path | None = None) -> list[str]:
     walked_symbols: set[str] = set()
     walked_names: set[str] = set()
     if symbols is None or names is None:
         walked_symbols, walked_names = header_index()
     index_symbols = symbols if symbols is not None else walked_symbols
     index_names = names if names is not None else walked_names
+    tree = ROOT if root is None else root
+    sweep = paths is None
     candidates = documents() if paths is None else paths
     problems: list[str] = []
     inspected_blocks = 0
+    inspected_paths = 0
     for path in candidates:
         text = path.read_text(encoding="utf-8", errors="replace")
         relative = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.name
+        for number, token in path_references(text):
+            inspected_paths += 1
+            if not (tree / token).exists():
+                problems.append(
+                    f"{relative}:{number}: points readers at `{token}`, which does not exist in "
+                    f"this tree - a reader who follows it finds nothing")
         for start, lines in code_blocks(text):
             inspected_blocks += 1
             local = {m.group(1) for line in lines for m in [DEFINES_ITSELF.match(line)] if m}
@@ -144,6 +195,10 @@ def findings(paths: list[Path] | None = None,
         problems.append(
             f"no fenced C block was found under {', '.join(DOC_ROOTS)} - the walk is broken, and a "
             f"walk that inspects nothing reports the same result as a clean one")
+    if sweep and inspected_paths == 0:
+        problems.append(
+            f"no repository path reference was found under {', '.join(DOC_ROOTS)} - the path walk "
+            f"is broken, and a walk that inspects nothing reports the same result as a clean one")
     return problems
 
 

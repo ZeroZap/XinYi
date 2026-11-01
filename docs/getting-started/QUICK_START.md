@@ -352,19 +352,19 @@ cmake -B build/stm32u5 -S . -DHAL_PLATFORM=STM32U5 -DCMAKE_BUILD_TYPE=Release
 ### 推荐阅读顺序
 
 1. **架构理解** → `docs/architecture_analysis.md`
-2. **OSAL 使用** → `docs/components/kernel/osal/README.md`
-3. **HAL 移植** → `docs/components/hal/PORTING_GUIDE.md`
-4. **设备开发** → `docs/components/device/DEVICE_ARCHITECTURE.md`
-5. **组件生态** → `docs/COMPONENT_STATUS_REPORT.md`
+2. **OSAL 使用** → `components/kernel/osal/README.md`
+3. **HAL 移植** → `docs/hardware/porting.md`
+4. **设备开发** → `components/device/DEVICE_ARCHITECTURE.md`
+5. **组件生态** → `docs/COMPONENTS_STATUS.md`
 
 ### 示例项目
 
 | 示例 | 路径 | 说明 |
 |------|------|------|
 | Blinky | `examples/stm32u5_demo/` | LED 闪烁 |
-| Sensor | `examples/sensor_demo/` | 传感器读取 |
-| Network | `examples/net_demo/` | 网络通信 |
-| FOTA | `examples/fota_demo/` | 固件升级 |
+| Sensor | `components/sensor/examples/sensor_demo.c` | 传感器读取（canonical Device 样张，由 CTest `sensor_device_example` 编译并运行） |
+| Network | `examples/net_mqtt_example/` | MQTT 通信 |
+| FOTA | `examples/fota_example/` | 固件升级 |
 
 ### 高级主题
 

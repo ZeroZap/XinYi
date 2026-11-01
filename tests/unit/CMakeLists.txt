@@ -1602,6 +1602,31 @@ target_compile_options(test_gps_example PRIVATE
 )
 target_link_libraries(test_gps_example m)
 
+# --- Sensor sample as a build-and-run guard ---
+# `components/sensor/examples/sensor_demo.c` taught the legacy `xy_sensor.h` framework, which
+# `components/sensor/core/` used to implement and which P4 deleted: thirteen of the fifteen
+# functions the sample called have no definition anywhere in the tree, three were never declared,
+# and one call was a C++ lambda in a `.c` file - it did not even pass a syntax check, and no target
+# compiled it. It is now a canonical Device-model sample (application -> xy_sht30 -> xy_i2c_device_*
+# -> xy_hal_i2c_*) and it runs here: implicit declarations are errors, every `check()` is a real
+# contract, and the sample supplies only the three HAL entry points it asserts on
+# (`test_sensor_demo_backend_stub.c` stubs the rest of the bus-helper backend).
+xy_add_unit_test(test_sensor_device_example sensor_device_example
+    ${SENSOR}/examples/sensor_demo.c
+    ${DRV}/sensor/temperature/sht30/xy_sht30.c
+    ${DEV}/src/xy_device_bus_helpers.c
+    ${UNIT_SENSOR}/test_sensor_demo_backend_stub.c
+)
+target_include_directories(test_sensor_device_example PRIVATE
+    ${DEV}/inc
+    ${DRV}/sensor/temperature/sht30
+    ${ROOT}/components/hal/inc
+    ${ROOT}/components/clib/xy_clib
+)
+target_compile_options(test_sensor_device_example PRIVATE
+    -Wall -Wextra -Werror=implicit-function-declaration
+)
+
 
 xy_add_unit_test(test_magnetic_i2c_sensors sensor_magnetic_i2c_sensors UNITY
     ${UNIT_SENSOR}/test_magnetic_i2c_sensors.c

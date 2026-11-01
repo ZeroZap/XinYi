@@ -4,22 +4,22 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 210 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
-  the previous line said 210 when the tree held 209 — that number was a slice behind)
-- Unity-style files: 206 (measured `grep -l unity.h` over those files)
+- Total C files under `tests/unit`: 211 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
+  the previous line said 210, and the sample slice added `test_sensor_demo_backend_stub.c`)
+- Unity-style files: 206 (measured `grep -l unity.h` over those files; the new stub is a helper, not a runner)
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
-- Plain/support helper C files without obvious Unity/assert markers: 4
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 411 (measured: `make test-unit` ran
-  411/411 in 380.07 s and `ctest -N` on that build tree reports `Total Tests: 411`; the direct
-  `tests/unit` configure reports the same now. The C targets are registered through
+- Plain/support helper C files without obvious Unity/assert markers: 5
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 412 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 412`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
   + `_unit`); the Device-dependency slice took 409 → 411 (`device_bus_dependency` +
-  `device_bus_dependency_unit`). Older numbers on this line were stale by roughly the
-  number of CTests registered since they were written, so treat the count as
-  measured-not-maintained)
+  `device_bus_dependency_unit`); the sensor-sample slice took 411 → 412
+  (`sensor_device_example`, which compiles and runs `components/sensor/examples/sensor_demo.c`).
+  Older numbers on this line were stale by roughly the number of CTests registered since they were
+  written, so treat the count as measured-not-maintained)
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -273,6 +273,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_icm20608_sensor.c` | `unity` | 0 | ICM20608 legacy IMU I2C/SPI identity/init/read/failure contracts |
 | `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS legacy parser GGA/RMC/GSV/checksum/registry contracts; `gps_parse_nmea`/`gps_parse_byte` come from `sensor_gps.h` (they used to be re-declared locally, which is what a header omitting its own driver's API forces), and only the deliberately unpublished legacy `gps_sensor_read()` bridge is still hand-declared. Also pins that `gps_sleep(NULL)`/`gps_wakeup(NULL)` are rejected instead of dereferencing. |
 | `tests/unit/sensor/test_gps_example_tick_stub.c` | `plain/helper` | 0 | Frozen `xy_os_tick_get()` for the `sensor_gps_example` target; not a standalone CTest source. |
+| `tests/unit/sensor/test_sensor_demo_backend_stub.c` | `plain/helper` | 0 | SPI/UART/GPIO/mem-I2C/registry stubs for the `sensor_device_example` target. `components/sensor/examples/sensor_demo.c` supplies the three HAL entry points it asserts on; this file stubs the rest of `xy_device_bus_helpers.c`'s backend so the sample does not have to carry harness code. Returns `NOT_SUPPORTED`, so a driver that switched to one of these paths fails instead of passing against a rubber stamp. |
 | `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12 legacy low-power accel init/read/config failure contracts |
 | `tests/unit/sensor/test_st_silan_accel_sensors.c` | `unity` | 0 | LIS2DH12/LIS2DW12/SC7A20/Silan SC7A20 accel init/read/config failure contracts |
 | `tests/unit/sensor/test_lsm6_imu_sensors.c` | `unity` | 0 | LSM6DSL/LSM6DSO/LSM6DSR legacy IMU I2C/SPI config/read/failure contracts |

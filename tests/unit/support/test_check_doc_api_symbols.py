@@ -126,6 +126,48 @@ class DocApiSymbolsTest(unittest.TestCase):
         problems = guard.findings([empty], SYMBOLS, NAMES)
         self.assertTrue(any("the walk is broken" in p for p in problems), problems)
 
+    # ---------------------------------------------------------------------------------------------
+    # A path is a claim too. Same shape as the symbol cases: what the rule does with a token, not
+    # whether this tree happens to have the directory today.
+    # ---------------------------------------------------------------------------------------------
+
+    def judged_paths(self, text: str) -> list[str]:
+        path = self.root / "LOCATIONS.md"
+        path.write_text("# Doc\n\n" + text + "\n" + fenced(WITNESS), encoding="utf-8")
+        return guard.findings([path], SYMBOLS, NAMES, root=self.root)
+
+    def test_a_path_a_reader_can_follow_passes(self) -> None:
+        (self.root / "examples" / "demo").mkdir(parents=True)
+        self.assertEqual([], self.judged_paths("The sample is `examples/demo/`."))
+
+    def test_a_path_no_reader_can_follow_is_reported(self) -> None:
+        # The original defect: four of five reading-order links and three of four example rows
+        # pointed at paths that had been moved one directory down.
+        problems = self.judged_paths("| Sensor | `examples/sensor_demo/` | reads it |")
+        self.assertTrue(any("examples/sensor_demo" in p and "does not exist" in p for p in problems),
+                        problems)
+
+    def test_a_line_that_asks_the_reader_to_create_the_path_is_not_a_claim(self) -> None:
+        # "Create examples/my_first_app/main.c" is an instruction, not an assertion that it exists.
+        self.assertEqual([], self.judged_paths("创建文件 `examples/my_first_app/main.c`："))
+
+    def test_a_placeholder_is_not_a_path_yet(self) -> None:
+        self.assertEqual([], self.judged_paths("Put it in `examples/<your_app>/main.c`."))
+
+    def test_a_sweep_that_finds_no_path_reports_itself_broken(self) -> None:
+        # Same reasoning as the fence walk: inspecting nothing must not look like a clean result.
+        documents = self.root / "docs" / "getting-started"
+        documents.mkdir(parents=True)
+        (documents / "QUICK_START.md").write_text(fenced(WITNESS), encoding="utf-8")
+        saved_root, saved_roots = guard.ROOT, guard.DOC_ROOTS
+        guard.ROOT, guard.DOC_ROOTS = self.root, ("docs/getting-started",)
+        try:
+            problems = guard.findings(symbols=SYMBOLS, names=NAMES)
+        finally:
+            guard.ROOT, guard.DOC_ROOTS = saved_root, saved_roots
+        self.assertTrue(any("path walk is broken" in p for p in problems), problems)
+
+
 
 if __name__ == "__main__":
     unittest.main()
