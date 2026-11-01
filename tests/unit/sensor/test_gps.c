@@ -19,8 +19,12 @@ uint32_t xy_os_tick_get(void)
     return g_tick;
 }
 
-sensor_err_t gps_parse_nmea(gps_device_t *dev, const char *nmea_str, uint16_t len);
-sensor_err_t gps_parse_byte(gps_device_t *dev, uint8_t byte);
+/* `gps_parse_nmea` / `gps_parse_byte` are declared by `sensor_gps.h` — this
+ * file used to re-declare them locally, which is exactly what a header that
+ * omits its own implementation's API forces a consumer to do. The only symbol
+ * still hand-declared here is the legacy `sensor_device_t` bridge, which is
+ * deliberately not published while the old sensor framework is being retired.
+ */
 sensor_err_t gps_sensor_read(sensor_device_t *sensor, sensor_data_t *data);
 
 void setUp(void)
@@ -167,6 +171,22 @@ static void test_register_find_unregister_and_capacity_guard(void)
     TEST_ASSERT_EQUAL_UINT8(0U, gps_get_count());
 }
 
+static void test_sleep_and_wakeup_reject_null_before_touching_state(void)
+{
+    gps_device_t dev = make_gps("gps-power");
+
+    dev.base.status = SENSOR_STATUS_ERROR;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, gps_sleep(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, gps_wakeup(NULL));
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, gps_sleep(&dev));
+    TEST_ASSERT_EQUAL_INT(SENSOR_STATUS_IDLE, dev.base.status);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, gps_wakeup(&dev));
+    TEST_ASSERT_EQUAL_INT(SENSOR_STATUS_READY, dev.base.status);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -176,5 +196,6 @@ int main(void)
     RUN_TEST(test_gsv_updates_visible_satellite_fields);
     RUN_TEST(test_sensor_read_exports_cached_position_scaled_with_timestamp);
     RUN_TEST(test_register_find_unregister_and_capacity_guard);
+    RUN_TEST(test_sleep_and_wakeup_reject_null_before_touching_state);
     return UNITY_END();
 }

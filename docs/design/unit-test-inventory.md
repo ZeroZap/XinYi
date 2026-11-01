@@ -4,19 +4,20 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 209
+- Total C files under `tests/unit`: 210
 - Unity-style files: 203
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
-- Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 404 (measured: `ctest -N` on the direct
-  `tests/unit` configure reports 404 and `make test-unit` ran 404/404 - the two used to differ
-  because a couple of entries are configuration-dependent. The C targets are registered through
-  `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
-  entries. Last measured in the `clib_math_example`/`clib_example` slice, which added three C
-  targets to the 401 of the `clib_math_header` slice before it; older numbers on this line were
-  stale by roughly the number of CTests registered since they were written, so treat the count as
-  measured-not-maintained)
+- Plain/support helper C files without obvious Unity/assert markers: 7
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 405 (measured: `make test-unit` ran
+  405/405 and `ctest -N` on that build tree reports 405; the direct `tests/unit` configure still
+  reports fewer because a couple of entries are configuration-dependent, so the two used to differ.
+  The C targets are registered through `xy_add_unit_test(...)`, so `add_test` calls in this file
+  are only the explicit Python/board entries. Last measured in the `sensor_gps_example` slice,
+  which added one C target (`test_gps_example`) and one support stub
+  (`sensor/test_gps_example_tick_stub.c`) to the 404 of the `clib_example` slice before it; older
+  numbers on this line were stale by roughly the number of CTests registered since they were
+  written, so treat the count as measured-not-maintained)
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -267,7 +268,8 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_env_i2c_sensors.c` | `unity` | 0 | AHT10 legacy env I2C init/read/failure contracts |
 | `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy `sensor_bmp280.c` pressure/temperature calibration/read/failure contracts |
 | `tests/unit/sensor/test_icm20608_sensor.c` | `unity` | 0 | ICM20608 legacy IMU I2C/SPI identity/init/read/failure contracts |
-| `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS legacy parser GGA/RMC/GSV/checksum/registry contracts |
+| `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS legacy parser GGA/RMC/GSV/checksum/registry contracts; `gps_parse_nmea`/`gps_parse_byte` come from `sensor_gps.h` (they used to be re-declared locally, which is what a header omitting its own driver's API forces), and only the deliberately unpublished legacy `gps_sensor_read()` bridge is still hand-declared. Also pins that `gps_sleep(NULL)`/`gps_wakeup(NULL)` are rejected instead of dereferencing. |
+| `tests/unit/sensor/test_gps_example_tick_stub.c` | `plain/helper` | 0 | Frozen `xy_os_tick_get()` for the `sensor_gps_example` target; not a standalone CTest source. |
 | `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12 legacy low-power accel init/read/config failure contracts |
 | `tests/unit/sensor/test_st_silan_accel_sensors.c` | `unity` | 0 | LIS2DH12/LIS2DW12/SC7A20/Silan SC7A20 accel init/read/config failure contracts |
 | `tests/unit/sensor/test_lsm6_imu_sensors.c` | `unity` | 0 | LSM6DSL/LSM6DSO/LSM6DSR legacy IMU I2C/SPI config/read/failure contracts |

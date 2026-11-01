@@ -272,25 +272,37 @@ static sensor_err_t gps_parse_gsv(gps_device_t *dev, const char *gsv_str)
  */
 sensor_err_t gps_parse_nmea(gps_device_t *dev, const char *nmea_str, uint16_t len)
 {
+    char sentence[GPS_NMEA_BUF_SIZE];
+
     if (dev == NULL || nmea_str == NULL || len == 0) {
         return SENSOR_EINVAL;
     }
 
+    /* 各语句解析器用 strtok() 切分字段，而 strtok() 会**写回**它切分的缓冲区。
+     * 公开契约是 `const char *`，所以绝不能原地切分调用方的字符串——传字符串
+     * 字面量（最自然的用法）时那是一次只读页写入，实测直接 SIGSEGV。这里解析
+     * 一份有界本地副本；放不下的语句明确拒绝而不是截断，因为截断会改变字段布局。 */
+    if (len >= GPS_NMEA_BUF_SIZE) {
+        return SENSOR_EINVAL;
+    }
+    memcpy(sentence, nmea_str, len);
+    sentence[len] = '\0';
+
     /* 校验和检查 (可选) */
-    if (dev->config.checksum_check && !gps_validate_checksum(nmea_str)) {
+    if (dev->config.checksum_check && !gps_validate_checksum(sentence)) {
         dev->parse_errors++;
         return SENSOR_ERROR;
     }
 
     /* 识别 NMEA 语句类型 */
-    if (strncmp(nmea_str + 3, "GGA,", 4) == 0) {
-        return gps_parse_gga(dev, nmea_str);
-    } else if (strncmp(nmea_str + 3, "RMC,", 4) == 0) {
-        return gps_parse_rmc(dev, nmea_str);
-    } else if (strncmp(nmea_str + 3, "VTG,", 4) == 0) {
-        return gps_parse_vtg(dev, nmea_str);
-    } else if (strncmp(nmea_str + 3, "GSV,", 4) == 0) {
-        return gps_parse_gsv(dev, nmea_str);
+    if (strncmp(sentence + 3, "GGA,", 4) == 0) {
+        return gps_parse_gga(dev, sentence);
+    } else if (strncmp(sentence + 3, "RMC,", 4) == 0) {
+        return gps_parse_rmc(dev, sentence);
+    } else if (strncmp(sentence + 3, "VTG,", 4) == 0) {
+        return gps_parse_vtg(dev, sentence);
+    } else if (strncmp(sentence + 3, "GSV,", 4) == 0) {
+        return gps_parse_gsv(dev, sentence);
     }
 
     return SENSOR_EOK;
@@ -442,6 +454,10 @@ uint8_t gps_get_count(void)
 /* ==================== GPS 功耗管理 ==================== */
 sensor_err_t gps_sleep(gps_device_t *dev)
 {
+    if (dev == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     /* 发送待机命令到 GPS 模块 */
     /* 具体实现依赖硬件 */
     dev->base.status = SENSOR_STATUS_IDLE;
@@ -450,6 +466,10 @@ sensor_err_t gps_sleep(gps_device_t *dev)
 
 sensor_err_t gps_wakeup(gps_device_t *dev)
 {
+    if (dev == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     /* 唤醒 GPS 模块 */
     dev->base.status = SENSOR_STATUS_READY;
     return SENSOR_EOK;
@@ -466,13 +486,17 @@ bool gps_is_fixed(gps_device_t *dev)
 
 sensor_err_t gps_get_position(gps_device_t *dev, double *lat, double *lon, float *alt)
 {
-    if (dev == NULL || !gps_is_fixed(dev)) {
+    if (dev == NULL) {
+        return SENSOR_EINVAL;
+    }
+    if (!gps_is_fixed(dev)) {
         return SENSOR_ERROR;
     }
 
-    *lat = dev->data.latitude;
-    *lon = dev->data.longitude;
-    *alt = dev->data.altitude;
+    /* 与 gps_get_satellites()/gps_get_dop() 同一约定：不关心的输出可以传 NULL。*/
+    if (lat) *lat = dev->data.latitude;
+    if (lon) *lon = dev->data.longitude;
+    if (alt) *alt = dev->data.altitude;
 
     return SENSOR_EOK;
 }
@@ -563,7 +587,7 @@ sensor_err_t gps_set_update_rate(gps_device_t *dev, uint32_t rate_hz)
 
     /* 发送更新率命令到 GPS 模块 */
     char cmd[32];
-    snprintf(cmd, sizeof(cmd), "$PUBX,41,1,0007,0001,%d,0*..\r\n", rate_hz);
+    snprintf(cmd, sizeof(cmd), "$PUBX,41,1,0007,0001,%u,0*..\r\n", (unsigned)rate_hz);
 
     return SENSOR_EOK;
 }

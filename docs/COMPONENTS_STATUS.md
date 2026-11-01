@@ -145,7 +145,7 @@ pmbus_get_status(&pmbus, &status);
 - [x] 60+ 传感器驱动 (详见 `sensors/` 目录)
 - [x] GPS 驱动 (NMEA 协议)
 - [x] FIFO/中断/校准支持
-- [x] 示例代码 (`examples/gps_example.c`)
+- [x] 示例代码 (`examples/gps_example.c`，由 CTest `sensor_gps_example` 编译并执行)
 
 **传感器类型**:
 | 类型 | 数量 | 示例 |

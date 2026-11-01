@@ -1,269 +1,315 @@
 /**
  * SPDX-License-Identifier: MIT
  * @file    gps_example.c
- * @brief   GPS Sensor Example - XinYi Framework
- * @version 1.0.0
+ * @brief   GPS (NMEA) sensor sample - self-checking, host-runnable
+ * @version 2.0.0
  *
- * 演示如何使用 GPS Sensor 驱动
+ * 演示 `sensor_gps.h` 的真实公开面：注册/查找/注销、NMEA 整句与逐字节解析、
+ * 位置/时间/卫星/DOP 查询、距离与方位计算、待机与唤醒、参数设置。
+ *
+ * 这份样张是**可执行的契约**，不是说明文字：它由 CTest `sensor_gps_example`
+ * 编译并运行，任何一条 check 失败都让 `main()` 返回非零。因此
+ *
+ *  - 样张里出现的每个函数都必须在 `sensor_gps.h` 里有声明（编译期强制）；
+ *  - 每条断言的期望值都是从驱动源码算出来的真实值，不是"看起来合理"的值。
+ *
+ * 刻意**不使用 `assert()`**：Release 构建会定义 `NDEBUG`，`assert()` 会退化成
+ * 空语句，样张就什么也检查不了。也刻意不依赖任何真实 UART/GPS 模块——NMEA
+ * 语句作为字符串喂给解析器，因此在 PC 上可复现。
  */
+
+#include <stdio.h>
+#include <string.h>
 
 #include "sensor_gps.h"
 #include "xy_os.h"
-#include "xy_trace.h"
 
-/* ==================== 示例配置 ==================== */
-#define GPS_UART_BAUD        9600
-#define GPS_UPDATE_RATE_HZ   1
-#define GPS_NMEA_OUTPUT      (GPS_NMEA_GGA | GPS_NMEA_RMC | GPS_NMEA_GSV)
+/* ==================== 自检骨架 ==================== */
 
-/* ==================== 全局变量 ==================== */
-static gps_device_t g_gps_dev;
-static bool g_gps_fixed = false;
+static int g_checks;
+static int g_failures;
 
-/* ==================== GPS 事件回调 ==================== */
-void gps_data_callback(gps_device_t *dev, gps_data_t *data, void *user_data)
+static void check(bool condition, const char *what)
 {
-    (void)user_data;
-
-    if (data->data_valid) {
-        g_gps_fixed = true;
-
-        /* 打印位置信息 */
-        printf("\r\n=== GPS Data ===\r\n");
-        printf("Time: %02u:%02u:%02u.%03u UTC\r\n",
-               data->hour, data->minute, data->second, data->millisecond);
-        printf("Date: %04u-%02u-%02u\r\n",
-               data->year, data->month, data->day);
-        printf("Position: %.6f, %.6f\r\n", data->latitude, data->longitude);
-        printf("Altitude: %.1f m\r\n", data->altitude);
-        printf("Speed: %.2f m/s\r\n", data->speed);
-        printf("Course: %.1f deg\r\n", data->course);
-        printf("Quality: %d, Satellites: %u\r\n",
-               data->quality, data->satellites_used);
-        printf("HDOP: %.1f\r\n", data->hdop);
+    g_checks++;
+    if (!condition) {
+        g_failures++;
+        printf("FAIL: %s\n", what);
     }
 }
 
-/* ==================== GPS 初始化示例 ==================== */
-int gps_example_init(void)
+static void check_str(const char *what, const char *expected, const char *actual)
 {
-    sensor_err_t err;
+    g_checks++;
+    if (actual == NULL || strcmp(expected, actual) != 0) {
+        g_failures++;
+        printf("FAIL: %s (expected \"%s\", got \"%s\")\n", what, expected,
+               actual == NULL ? "(null)" : actual);
+    }
+}
 
-    /* 初始化 GPS 设备 */
-    gps_device_t *dev = &g_gps_dev;
+/* ==================== 样例数据 ==================== */
 
-    /* 配置 GPS 参数 */
-    dev->config.baudrate = GPS_UART_BAUD;
-    dev->config.update_rate = GPS_UPDATE_RATE_HZ;
-    dev->config.nmea_output = GPS_NMEA_OUTPUT;
-    dev->config.checksum_check = true;
+/* 一条真实的 GGA 语句（1 Hz 输出，8 颗卫星参与定位，海拔 545.4 m）。 */
+static const char GGA_SENTENCE[] =
+    "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47";
 
-    /* 设置基础信息 */
-    dev->base.info.name = "GPS_AT6558";
+/* 同一条语句，校验和故意改成 *00。 */
+static const char GGA_BAD_CHECKSUM[] =
+    "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*00";
+
+/* 带 CRLF 结尾的 RMC 语句，用于逐字节喂入路径。校验和 *61 是按
+ * "$GPRMC,092204,A,4250.5589,S,14718.5084,E,000.5,054.7,191194,020.3,E" 的
+ * 逐字节 XOR 算出来的真值（tests/unit/sensor/test_gps.c 里同一条语句写的是
+ * *68，只是因为那个用例把 checksum_check 关了，所以从来没被验证过）。 */
+static const char RMC_SENTENCE[] =
+    "$GPRMC,092204,A,4250.5589,S,14718.5084,E,000.5,054.7,191194,020.3,E*61\r\n";
+
+static void gps_sample_init(gps_device_t *dev, const char *name)
+{
+    memset(dev, 0, sizeof(*dev));
+
+    /* `base.info.name` 是定长数组，必须拷贝，不能整体赋值。 */
+    strncpy(dev->base.info.name, name, SENSOR_NAME_MAX_LEN - 1U);
+    dev->base.info.name[SENSOR_NAME_MAX_LEN - 1U] = '\0';
     dev->base.info.type = SENSOR_TYPE_GPS;
     dev->base.info.vendor = "AT";
     dev->base.info.model = "AT6558";
 
-    /* 注册设备 */
-    err = gps_register(dev);
-    if (err != SENSOR_EOK) {
-        printf("GPS register failed: %d\r\n", err);
-        return -1;
-    }
-
-    printf("GPS device registered\r\n");
-
-    /* 设置回调 */
-    /* gps_set_callback(dev, gps_data_callback, NULL); */
-
-    return 0;
+    dev->config.baudrate = 9600U;
+    dev->config.data_bits = 8U;
+    dev->config.stop_bits = 1U;
+    dev->config.parity = 'N';
+    dev->config.update_rate = 1U;
+    dev->config.nmea_output = GPS_NMEA_GGA | GPS_NMEA_RMC | GPS_NMEA_GSV;
+    dev->config.checksum_check = true;
 }
 
-/* ==================== UART 数据输入示例 ==================== */
-/**
- * @brief   从 UART 接收 NMEA 数据
- *
- * 在实际应用中，这个函数应该在 UART 中断或轮询中调用
- */
-void gps_uart_input(uint8_t byte)
+/* ==================== 1. 注册 / 查找 / 注销 ==================== */
+
+static void demo_registry(void)
 {
-    gps_parse_byte(&g_gps_dev, byte);
+    gps_device_t dev;
+    gps_device_t duplicate;
+
+    gps_sample_init(&dev, "GPS_AT6558");
+    gps_sample_init(&duplicate, "GPS_AT6558");
+
+    check(gps_register(NULL) == SENSOR_EINVAL, "gps_register(NULL) rejected");
+
+    check(gps_register(&dev) == SENSOR_EOK, "gps_register(dev) accepted");
+    check(dev.base.status == SENSOR_STATUS_READY, "register marks device READY");
+    check(gps_get_count() == 1U, "gps_get_count() == 1 after register");
+
+    check(gps_find("GPS_AT6558") == &dev, "gps_find() returns registered device");
+    check(gps_find(NULL) == NULL, "gps_find(NULL) returns NULL");
+    check(gps_find("no-such-gps") == NULL, "gps_find(unknown) returns NULL");
+
+    /* 重名设备被拒绝，注册表不变。 */
+    check(gps_register(&duplicate) == SENSOR_EINVAL, "duplicate name rejected");
+    check(gps_get_count() == 1U, "rejected register leaves count at 1");
+
+    check(gps_unregister(NULL) == SENSOR_EINVAL, "gps_unregister(NULL) rejected");
+    check(gps_unregister(&dev) == SENSOR_EOK, "gps_unregister(dev) accepted");
+    check(dev.base.status == SENSOR_STATUS_IDLE, "unregister marks device IDLE");
+    check(gps_get_count() == 0U, "gps_get_count() == 0 after unregister");
+    check(gps_unregister(&dev) == SENSOR_ENODEV, "second unregister -> SENSOR_ENODEV");
 }
 
-/**
- * @brief   处理完整的 NMEA 语句
- */
-void gps_process_nmea_string(const char *nmea_str)
-{
-    uint16_t len = strlen(nmea_str);
-    gps_parse_nmea(&g_gps_dev, nmea_str, len);
-}
+/* ==================== 2. 整句解析与查询 ==================== */
 
-/* ==================== 读取 GPS 数据示例 ==================== */
-void gps_read_example(void)
+static void demo_parse_and_query(void)
 {
+    gps_device_t dev;
+    gps_device_t unfixed;
     gps_data_t data;
+    double lat = 0.0;
+    double lon = 0.0;
+    float alt = 0.0f;
+    float hdop = 0.0f;
+    float pdop = 0.0f;
+    float vdop = 0.0f;
+    uint32_t timestamp = 0U;
+    uint8_t count = 0xFFU;
+    uint8_t used = 0xFFU;
+    uint8_t visible = 0xFFU;
 
-    /* 读取当前 GPS 数据 */
-    sensor_err_t err = gps_read_data(&g_gps_dev, &data);
-    if (err != SENSOR_EOK) {
-        printf("GPS read failed\r\n");
-        return;
-    }
+    gps_sample_init(&dev, "GPS_query");
+    gps_sample_init(&unfixed, "GPS_unfixed");
 
-    if (data.data_valid) {
-        printf("Lat: %.6f, Lon: %.6f, Alt: %.1f\r\n",
-               data.latitude, data.longitude, data.altitude);
-    } else {
-        printf("GPS not fixed\r\n");
-    }
+    check(gps_read_data(NULL, &data) == SENSOR_EINVAL, "gps_read_data(NULL, data) rejected");
+    check(gps_read_data(&dev, NULL) == SENSOR_EINVAL, "gps_read_data(dev, NULL) rejected");
+    check(gps_is_fixed(NULL) == false, "gps_is_fixed(NULL) is false");
+
+    /* 解析之前没有定位。 */
+    check(gps_is_fixed(&dev) == false, "device is not fixed before any sentence");
+
+    /* 未定位时 gps_get_position 明确失败，且不写输出。 */
+    check(gps_get_position(NULL, &lat, &lon, &alt) == SENSOR_EINVAL,
+          "gps_get_position(NULL, ...) rejected");
+    check(gps_get_position(&unfixed, &lat, &lon, &alt) == SENSOR_ERROR,
+          "gps_get_position() before fix -> SENSOR_ERROR");
+
+    /* 参数校验。 */
+    check(gps_parse_nmea(NULL, GGA_SENTENCE, (uint16_t)strlen(GGA_SENTENCE)) == SENSOR_EINVAL,
+          "gps_parse_nmea(NULL, ...) rejected");
+    check(gps_parse_nmea(&dev, NULL, 10U) == SENSOR_EINVAL, "gps_parse_nmea(dev, NULL) rejected");
+    check(gps_parse_nmea(&dev, GGA_SENTENCE, 0U) == SENSOR_EINVAL,
+          "gps_parse_nmea(dev, sentence, 0) rejected");
+
+    /* 整句解析。 */
+    check(gps_parse_nmea(&dev, GGA_SENTENCE, (uint16_t)strlen(GGA_SENTENCE)) == SENSOR_EOK,
+          "GGA sentence parsed");
+    check(dev.frame_count == 0U, "整句路径不计 frame_count（只有逐字节路径计）");
+
+    check(gps_is_fixed(&dev) == true, "device is fixed after a valid GGA");
+    check(dev.data.quality == GPS_QUALITY_GPS_SPS, "GGA quality -> GPS_QUALITY_GPS_SPS");
+    check(dev.data.satellites_used == 8U, "GGA satellites_used == 8");
+    check(dev.data.hour == 12U && dev.data.minute == 35U && dev.data.second == 19U,
+          "GGA time fields 12:35:19");
+
+    /* 4807.038 N / 01131.000 E -> 48.1173 / 11.51666 度 */
+    check(gps_read_data(&dev, &data) == SENSOR_EOK, "gps_read_data(dev, data) accepted");
+    check(data.data_valid, "cached data is valid");
+    check(data.latitude > 48.1172 && data.latitude < 48.1174, "GGA latitude == 48.1173 deg");
+    check(data.longitude > 11.5166 && data.longitude < 11.5168, "GGA longitude == 11.51666 deg");
+    check(data.altitude > 545.39f && data.altitude < 545.41f, "GGA altitude == 545.4 m");
+    check(data.hdop > 0.89f && data.hdop < 0.91f, "GGA hdop == 0.9");
+
+    check(gps_get_position(&dev, &lat, &lon, &alt) == SENSOR_EOK, "gps_get_position() after fix");
+    check(lat > 48.1172 && lat < 48.1174, "gps_get_position() latitude");
+    check(lon > 11.5166 && lon < 11.5168, "gps_get_position() longitude");
+    check(alt > 545.39f && alt < 545.41f, "gps_get_position() altitude");
+
+    /* 输出指针可以被单独忽略。 */
+    check(gps_get_position(&dev, NULL, NULL, NULL) == SENSOR_EOK,
+          "gps_get_position() accepts all-NULL outputs");
+
+    check(gps_get_time(&dev, &timestamp) == SENSOR_EOK, "gps_get_time() accepted");
+    check(timestamp > 0U, "gps_get_time() returns a non-zero stamp");
+    check(gps_get_time(NULL, &timestamp) == SENSOR_EINVAL, "gps_get_time(NULL, ...) rejected");
+
+    check(gps_get_satellites(&dev, &count, &used, &visible) == SENSOR_EOK,
+          "gps_get_satellites() accepted");
+    check(used == 8U, "gps_get_satellites() used == 8");
+    check(count == 0U, "gps_get_satellites() visible count stays 0 without GSV");
+    check(gps_get_satellites(&dev, NULL, NULL, NULL) == SENSOR_EOK,
+          "gps_get_satellites() accepts all-NULL outputs");
+
+    check(gps_get_dop(&dev, &hdop, &pdop, &vdop) == SENSOR_EOK, "gps_get_dop() accepted");
+    check(hdop > 0.89f && hdop < 0.91f, "gps_get_dop() hdop == 0.9");
+    check(pdop == 0.0f && vdop == 0.0f, "GGA leaves pdop/vdop at 0");
+    check(gps_get_dop(NULL, &hdop, &pdop, &vdop) == SENSOR_EINVAL, "gps_get_dop(NULL, ...) rejected");
+
+    /* 校验和错误的语句被拒绝、计入 parse_errors，且缓存不被破坏。 */
+    check(gps_parse_nmea(&dev, GGA_BAD_CHECKSUM, (uint16_t)strlen(GGA_BAD_CHECKSUM)) == SENSOR_ERROR,
+          "bad checksum -> SENSOR_ERROR");
+    check(dev.parse_errors == 1U, "bad checksum counted in parse_errors");
+    check(gps_is_fixed(&dev) == true, "rejected sentence leaves the cached fix intact");
+
+    /* 关闭校验和后同一条语句被接受。 */
+    dev.config.checksum_check = false;
+    check(gps_parse_nmea(&dev, GGA_BAD_CHECKSUM, (uint16_t)strlen(GGA_BAD_CHECKSUM)) == SENSOR_EOK,
+          "checksum_check=false accepts it");
 }
 
-/* ==================== 位置查询示例 ==================== */
-void gps_position_example(void)
+/* ==================== 3. 逐字节（UART）解析 ==================== */
+
+static void demo_byte_stream(void)
 {
-    double lat, lon;
-    float alt;
+    gps_device_t dev;
+    size_t i;
 
-    if (gps_is_fixed(&g_gps_dev)) {
-        gps_get_position(&g_gps_dev, &lat, &lon, &alt);
-        printf("Current position: %.6f, %.6f (%.1f m)\r\n", lat, lon, alt);
-    }
-}
+    gps_sample_init(&dev, "GPS_bytes");
+    dev.config.checksum_check = true;
 
-/* ==================== 距离计算示例 ==================== */
-void gps_distance_example(void)
-{
-    /* 北京天安门坐标 */
-    double lat1 = 39.9088;
-    double lon1 = 116.3974;
+    check(gps_parse_byte(NULL, '$') == SENSOR_EINVAL, "gps_parse_byte(NULL) rejected");
 
-    /* 北京故宫坐标 */
-    double lat2 = 39.9134;
-    double lon2 = 116.3970;
-
-    /* 计算距离 */
-    float distance = gps_distance(lat1, lon1, lat2, lon2);
-    printf("Distance from Tiananmen to Forbidden City: %.0f m\r\n", distance);
-
-    /* 计算方位 */
-    float bearing = gps_bearing(lat1, lon1, lat2, lon2);
-    printf("Bearing: %.1f deg\r\n", bearing);
-}
-
-/* ==================== 功耗管理示例 ==================== */
-void gps_power_example(void)
-{
-    /* 进入低功耗模式 */
-    printf("GPS entering sleep mode...\r\n");
-    gps_sleep(&g_gps_dev);
-
-    /* 模拟延时 */
-    xy_os_sleep(5000);  // 5秒
-
-    /* 唤醒 */
-    printf("GPS waking up...\r\n");
-    gps_wakeup(&g_gps_dev);
-}
-
-/* ==================== 主任务示例 ==================== */
-void gps_main_task(void *arg)
-{
-    (void)arg;
-
-    /* 初始化 GPS */
-    if (gps_example_init() != 0) {
-        printf("GPS init failed\r\n");
-        return;
-    }
-
-    /* 主循环 */
-    while (1) {
-        /* 读取 GPS 数据 */
-        gps_read_example();
-
-        /* 检查是否定位成功 */
-        if (g_gps_fixed) {
-            /* 执行距离计算示例 */
-            gps_distance_example();
+    for (i = 0U; i < strlen(RMC_SENTENCE); i++) {
+        if (gps_parse_byte(&dev, (uint8_t)RMC_SENTENCE[i]) != SENSOR_EOK) {
+            check(false, "gps_parse_byte() failed mid-sentence");
+            return;
         }
-
-        /* 延时 */
-        xy_os_sleep(1000);  // 1秒
     }
+
+    check(dev.frame_count == 1U, "one frame counted after CRLF");
+    check(dev.nmea_buf_idx == 0U, "frame buffer resets after a complete frame");
+    check(dev.data.data_valid == true, "RMC status 'A' sets data_valid");
+    /* RMC 不写 quality，而 gps_is_fixed() 要求 quality > INVALID：只收 RMC 时
+     * "数据有效"与"已定位"是两件事，这条不对称是驱动当前的真实契约。 */
+    check(gps_is_fixed(&dev) == false, "RMC alone leaves gps_is_fixed() false (quality untouched)");
+    check(dev.data.speed > 0.257f && dev.data.speed < 0.258f, "RMC speed == 0.257 m/s");
+    check(dev.data.course > 54.69f && dev.data.course < 54.71f, "RMC course == 54.7 deg");
+    check(dev.data.day == 19U && dev.data.month == 11U && dev.data.year == 2094U,
+          "RMC date fields 19-11-2094");
 }
 
-/* ==================== 模拟测试数据 ==================== */
-/**
- * @brief   模拟 NMEA 数据测试
- */
-void gps_simulate_nmea(void)
+/* ==================== 4. 距离 / 方位 ==================== */
+
+static void demo_geo_math(void)
 {
-    /* 模拟 GGA 语句 */
-    const char *gga = "$GPGGA,123519.000,3954.4789,N,11623.7834,E,1,08,0.9,545.5,M,46.9,M,,*47";
-    gps_process_nmea_string(gga);
+    /* 赤道上经度差 1 度 = 111194.9 m（R = 6371 km）。 */
+    float d = gps_distance(0.0, 0.0, 0.0, 1.0);
+    float b = gps_bearing(0.0, 0.0, 0.0, 1.0);
+    float same = gps_distance(39.9088, 116.3974, 39.9088, 116.3974);
 
-    /* 模拟 RMC 语句 */
-    const char *rmc = "$GPRMC,123519.000,A,3954.4789,N,11623.7834,E,0.0,0.0,300320,,,A*77";
-    gps_process_nmea_string(rmc);
+    check(d > 111194.0f && d < 111196.0f, "gps_distance(1 deg at equator) == 111194.9 m");
+    check(b > 89.99f && b < 90.01f, "gps_bearing(east) == 90 deg");
+    check(same > -0.001f && same < 0.001f, "gps_distance(same point) == 0");
 
-    /* 读取并验证 */
-    gps_data_t data;
-    gps_read_data(&g_gps_dev, &data);
-
-    if (data.data_valid) {
-        printf("\r\nSimulated GPS read:\r\n");
-        printf("  Lat: %.6f (expected ~39.9)\r\n", data.latitude);
-        printf("  Lon: %.6f (expected ~116.4)\r\n", data.longitude);
-        printf("  Alt: %.1f m\r\n", data.altitude);
-        printf("  Quality: %d\r\n", data.quality);
-    }
+    /* 方位角归一到 [0, 360)：西向应为 270。 */
+    b = gps_bearing(0.0, 0.0, 0.0, -1.0);
+    check(b > 269.99f && b < 270.01f, "gps_bearing(west) == 270 deg");
 }
 
-/* ==================== 使用示例 ==================== */
-/**
- * @code
- * // 1. 初始化
- * gps_example_init();
- *
- * // 2. 在 UART 中断中输入数据
- * void UART1_IRQHandler(void) {
- *     uint8_t c = UART1->DR;
- *     gps_uart_input(c);
- * }
- *
- * // 3. 定期读取
- * while (1) {
- *     gps_read_example();
- *     xy_os_sleep(1000);
- * }
- *
- * // 4. 距离计算
- * float d = gps_distance(39.9088, 116.3974, 40.0000, 116.5000);
- *
- * // 5. 低功耗
- * gps_sleep(&g_gps_dev);  // 进入休眠
- * xy_os_sleep(60000);     // 60秒后唤醒
- * gps_wakeup(&g_gps_dev);
- * @endcode
- */
+/* ==================== 5. 功耗 / 命令 / 配置 ==================== */
 
-/* ==================== 测试入口 ==================== */
-#ifdef TEST_GPS
+static void demo_control(void)
+{
+    gps_device_t dev;
+
+    gps_sample_init(&dev, "GPS_control");
+
+    check(gps_sleep(NULL) == SENSOR_EINVAL, "gps_sleep(NULL) rejected");
+    check(gps_wakeup(NULL) == SENSOR_EINVAL, "gps_wakeup(NULL) rejected");
+
+    check(gps_sleep(&dev) == SENSOR_EOK, "gps_sleep() accepted");
+    check(dev.base.status == SENSOR_STATUS_IDLE, "sleep marks device IDLE");
+    check(gps_wakeup(&dev) == SENSOR_EOK, "gps_wakeup() accepted");
+    check(dev.base.status == SENSOR_STATUS_READY, "wakeup marks device READY");
+
+    check(gps_send_command(&dev, "$PCAS02,1000*2E\r\n", 18U) == SENSOR_EOK,
+          "gps_send_command() placeholder returns SENSOR_EOK");
+
+    check(gps_set_baudrate(NULL, 9600U) == SENSOR_EINVAL, "gps_set_baudrate(NULL) rejected");
+    check(gps_set_baudrate(&dev, 115200U) == SENSOR_EOK, "gps_set_baudrate() accepted");
+    check(dev.config.baudrate == 115200U, "set_baudrate commits the new value");
+
+    check(gps_set_update_rate(NULL, 1U) == SENSOR_EINVAL, "gps_set_update_rate(NULL) rejected");
+    check(gps_set_update_rate(&dev, 0U) == SENSOR_EINVAL, "update_rate 0 rejected");
+    check(gps_set_update_rate(&dev, 11U) == SENSOR_EINVAL, "update_rate 11 rejected");
+    check(dev.config.update_rate == 1U, "rejected update_rate leaves config unchanged");
+    check(gps_set_update_rate(&dev, 5U) == SENSOR_EOK, "update_rate 5 accepted");
+    check(dev.config.update_rate == 5U, "set_update_rate commits the new value");
+
+    /* gps_get_uptime() 的当前语义是"平台 tick"（见头文件说明），不是数据老化时长。 */
+    check(gps_get_uptime(NULL) == 0U, "gps_get_uptime(NULL) == 0");
+    check(gps_get_uptime(&dev) == xy_os_tick_get(),
+          "gps_get_uptime() == OS tick while last_update_time has no writer");
+
+    check_str("name round-trips through the fixed-size field", "GPS_control", dev.base.info.name);
+}
+
+/* ==================== 入口 ==================== */
+
 int main(void)
 {
-    printf("GPS Example Test\r\n");
+    demo_registry();
+    demo_parse_and_query();
+    demo_byte_stream();
+    demo_geo_math();
+    demo_control();
 
-    /* 初始化 */
-    gps_example_init();
-
-    /* 模拟 NMEA 数据 */
-    gps_simulate_nmea();
-
-    /* 距离计算测试 */
-    gps_distance_example();
-
-    printf("\r\nTest complete\r\n");
-    return 0;
+    printf("gps_example: %d checks, %d failed\n", g_checks, g_failures);
+    return g_failures == 0 ? 0 : 1;
 }
-#endif

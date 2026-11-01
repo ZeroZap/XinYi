@@ -326,42 +326,151 @@ gps_device_t *gps_find(const char *name);
  */
 uint8_t gps_get_count(void);
 
-/* ==================== 标准 GPS 驱动适配 ==================== */
+/* ==================== NMEA 数据输入 ==================== */
 
-/* AT6558 / LC86L (NMEA 协议) */
-extern const gps_ops_t gps_at6558_ops;
+/**
+ * @brief   解析一条完整 NMEA 语句
+ * @param   dev:       GPS 设备指针
+ * @param   nmea_str:  以 '\0' 结尾的语句（是否带 CRLF 均可）
+ * @param   len:       语句长度（不含结尾 '\0'）
+ * @return  SENSOR_EOK=已解析；SENSOR_ERROR=校验和拒绝；SENSOR_EINVAL=参数无效
+ * @note    `dev->config.checksum_check` 为 true 时，校验和不符的语句被拒绝并
+ *          计入 `dev->parse_errors`，缓存数据保持不变。无法识别的语句类型
+ *          返回 SENSOR_EOK 且不修改缓存。
+ */
+sensor_err_t gps_parse_nmea(gps_device_t *dev, const char *nmea_str, uint16_t len);
 
-/* U-Blox (NMEA + UBX 协议) */
-extern const gps_ops_t gps_ublox_ops;
+/**
+ * @brief   逐字节送入 NMEA 数据流（用于 UART 中断/轮询）
+ * @param   dev:  GPS 设备指针
+ * @param   byte: 收到的字节
+ * @return  SENSOR_EOK / SENSOR_EINVAL
+ * @note    以 '$' 复位帧缓冲，以 '\n' 结束一帧并解析；每收满一帧
+ *          `dev->frame_count` 加一。
+ */
+sensor_err_t gps_parse_byte(gps_device_t *dev, uint8_t byte);
 
-/* 通用 NMEA 驱动 */
-extern const gps_ops_t gps_generic_ops;
+/* ==================== 数据读取 ==================== */
 
-/* ==================== 示例: 注册 GPS 设备 ==================== */
+/**
+ * @brief   拷贝缓存的定位数据
+ * @param   dev:  GPS 设备指针
+ * @param   data: 输出缓冲（失败时不修改）
+ * @return  SENSOR_EOK / SENSOR_EINVAL
+ */
+sensor_err_t gps_read_data(gps_device_t *dev, gps_data_t *data);
+
+/**
+ * @brief   是否已定位
+ * @return  true=`data_valid` 且 `quality > GPS_QUALITY_INVALID`
+ * @note    **两半来自不同语句**：`data_valid` 由 RMC 的状态字段（A/V）或 GGA 的
+ *          质量字段设置，而 `quality` 只有 GGA 会写。因此只收到 RMC 时
+ *          `data_valid == true` 但 `gps_is_fixed() == false`——要判断"能给出坐标"，
+ *          必须以 GGA 为准（或同时判 `data_valid`）。CTest `sensor_gps_example`
+ *          把这条不对称钉成断言。
+ */
+bool gps_is_fixed(gps_device_t *dev);
+
+/**
+ * @brief   读取位置
+ * @param   lat/lon/alt: 输出指针（任一可为 NULL 表示不关心）
+ * @return  SENSOR_EOK / SENSOR_ERROR=尚未定位 / SENSOR_EINVAL
+ */
+sensor_err_t gps_get_position(gps_device_t *dev, double *lat, double *lon, float *alt);
+
+/**
+ * @brief   读取时间戳
+ * @param   timestamp: 输出 Unix 时间戳（秒）
+ * @return  SENSOR_EOK / SENSOR_EINVAL
+ * @note    当前实现按每月 30 天、每年 365 天近似换算，跨月/跨年的绝对误差
+ *          未消除；用于同一会话内的时间先后判断是安全的，不可用作日历真值。
+ */
+sensor_err_t gps_get_time(gps_device_t *dev, uint32_t *timestamp);
+
+/**
+ * @brief   读取卫星数量
+ * @param   count:             可见卫星数（GSV 累计，任一输出可为 NULL）
+ * @param   satellites_used:   参与定位的卫星数（GGA）
+ * @param   satellites_visible: 同 count
+ */
+sensor_err_t gps_get_satellites(gps_device_t *dev, uint8_t *count,
+                                uint8_t *satellites_used, uint8_t *satellites_visible);
+
+/**
+ * @brief   读取精度因子
+ * @param   hdop/pdop/vdop: 输出指针（任一可为 NULL）
+ */
+sensor_err_t gps_get_dop(gps_device_t *dev, float *hdop, float *pdop, float *vdop);
+
+/**
+ * @brief   距最近一次数据更新的毫秒数
+ * @return  当前实现返回 **OS tick**（`xy_os_tick_get()`）；`dev` 为 NULL 时为 0
+ * @note    实现是 `sensor_get_tick() - dev->last_update_time`，而 `last_update_time`
+ *          目前**没有任何写入方**，减法项恒为 0，所以现在等价于"上电至今的毫秒数"。
+ *          要让它变成"数据老化"，必须先有地方写 `last_update_time`——那会改变本
+ *          函数的语义，属修改公开契约，需先决定。CTest `sensor_gps_example` 把当前
+ *          语义（= OS tick）钉成断言，因此这个改动不会悄悄发生。
+ */
+uint32_t gps_get_uptime(gps_device_t *dev);
+
+/* ==================== 控制与功耗 ==================== */
+
+/**
+ * @brief   进入待机（仅提交 `base.status = SENSOR_STATUS_IDLE`）
+ * @return  SENSOR_EOK / SENSOR_EINVAL
+ * @note    模块侧命令尚未实现（依赖具体 UART 驱动）。
+ */
+sensor_err_t gps_sleep(gps_device_t *dev);
+
+/**
+ * @brief   唤醒（仅提交 `base.status = SENSOR_STATUS_READY`）
+ * @return  SENSOR_EOK / SENSOR_EINVAL
+ */
+sensor_err_t gps_wakeup(gps_device_t *dev);
+
+/**
+ * @brief   向模块发送命令
+ * @note    占位实现：当前不做任何 I/O 也不需要 dev，永远返回 SENSOR_EOK。
+ */
+sensor_err_t gps_send_command(gps_device_t *dev, const char *cmd, uint16_t len);
+
+/**
+ * @brief   设置波特率（只更新 `dev->config.baudrate`，不产生总线流量）
+ */
+sensor_err_t gps_set_baudrate(gps_device_t *dev, uint32_t baudrate);
+
+/**
+ * @brief   设置更新率
+ * @param   rate_hz: 1..10
+ * @return  SENSOR_EOK / SENSOR_EINVAL（0 或 >10 被拒绝，配置保持不变）
+ */
+sensor_err_t gps_set_update_rate(gps_device_t *dev, uint32_t rate_hz);
+
+/* ==================== 示例: 注册并使用 GPS 设备 ==================== */
 /*
- * 使用示例:
+ * 完整可编译、可运行的样张见 `components/sensor/examples/gps_example.c`
+ * （由 CTest `sensor_gps_example` 编译并执行）。
  *
- * gps_device_t my_gps = {
- *     .base.ops = (const sensor_ops_t *)&gps_at6558_ops,
- *     .config.baudrate = 9600,
- *     .config.update_rate = 1,
- * };
+ * gps_device_t my_gps;
+ * memset(&my_gps, 0, sizeof(my_gps));
+ * strncpy(my_gps.base.info.name, "GPS_AT6558", SENSOR_NAME_MAX_LEN - 1U);
+ * my_gps.base.info.type = SENSOR_TYPE_GPS;
+ * my_gps.config.baudrate = 9600U;
+ * my_gps.config.checksum_check = true;
  *
  * gps_register(&my_gps);
  *
  * // 在 UART 中断或轮询中:
- * uint8_t c;
- * while (uart_read_byte(&c) == 0) {
- *     gps_at6558_ops.parse_byte(&my_gps, c);
- * }
+ * gps_parse_byte(&my_gps, byte);
  *
  * // 读取数据:
  * gps_data_t data;
- * gps_at6558_ops.read(&my_gps, &data);
- * if (data.data_valid) {
+ * if (gps_read_data(&my_gps, &data) == SENSOR_EOK && data.data_valid) {
  *     printf("Lat: %.6f, Lon: %.6f, Alt: %.1f\n",
  *            data.latitude, data.longitude, data.altitude);
  * }
+ *
+ * // 注意: `base.info.name` 是定长数组，不能用 `dev->base.info.name = "..."` 赋值。
  */
 
 #endif /* __XY_GPS_H__ */

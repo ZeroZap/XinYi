@@ -1571,6 +1571,29 @@ target_include_directories(test_gps BEFORE PRIVATE
 )
 target_link_libraries(test_gps PRIVATE m)
 
+# --- GPS sample as a build-and-run guard ---
+# `components/sensor/examples/gps_example.c` is excluded from the component glob
+# and no other target named it, so it drifted freely: it called seven `gps_*`
+# functions the header never declared, included a header that does not exist
+# (`xy_trace.h`) and assigned a string literal to `base.info.name` (a char
+# array). It is compiled and executed here, and implicit declarations are
+# errors, so the sample cannot keep teaching a surface that is not published.
+xy_add_unit_test(test_gps_example sensor_gps_example
+    ${SENSOR}/examples/gps_example.c
+    ${SENSOR}/sensors/sensor_gps.c
+    ${UNIT_SENSOR}/test_gps_example_tick_stub.c
+)
+target_include_directories(test_gps_example BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+    ${ROOT}/components/kernel/osal
+    ${ROOT}/components/clib/xy_clib
+)
+target_compile_options(test_gps_example PRIVATE
+    -Wall -Wextra -Werror=implicit-function-declaration
+)
+target_link_libraries(test_gps_example m)
+
 
 xy_add_unit_test(test_magnetic_i2c_sensors sensor_magnetic_i2c_sensors UNITY
     ${UNIT_SENSOR}/test_magnetic_i2c_sensors.c
