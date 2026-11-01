@@ -172,11 +172,37 @@ SPI 入口**：驱动若在总线上改配 SPI，链接期就红，而不是被�
 **边界**：这几支驱动在写方向上不产生字节级证据（BQ27Z561/BQ27Z746/BQ40Z50 只读不写，MAX17043 只写
 `0x0000`），字节序仍由 `test_device_bus_repeated_start` 的 16 位读侧覆盖；无实板运行时。
 
-**新增的依赖尚未写进 Kconfig**：四支驱动现在硬依赖 `components/device`，而
-`COMPONENT_FUEL_GAUGE` 没有 `depends on COMPONENT_DEVICE`；`build/pc` 恰好是 `DEVICE=n` +
-`FUEL_GAUGE=y`，静态库照编、`nm -u` 里留四个 `xy_i2c_device_*` 未定义符号。也就是说缺的是
-"final link 才红"而不是"配置时就红"。补依赖会让 `build/pc` 丢掉 fuel gauge（那本身也是一个
-产品决定），所以留给下一轮显式决策。
+**依赖已写进 Kconfig（2026-11-02 收口）**：四支驱动硬依赖 `components/device`，而
+`COMPONENT_FUEL_GAUGE` 当时没有任何依赖表达。实测口径是"默认配置编出的归档根本链不起来"，不是
+"少写一行依赖"：默认 PC 配置（`COMPONENT_DEVICE=n`、`COMPONENT_FUEL_GAUGE=y`）下
+`libxy_fuel_gauge.a` 带 4 个 `xy_i2c_device_*` 未定义符号，而整个建置里**零个归档定义它们**
+（`nm -u` + 全归档 `nm --defined-only` 交叉对账）。默认建置没有任何可执行文件链接它，所以这个洞
+只在"某天有人真去用它"时才炸——`build/pc` 里那份 10 月 10 日的旧 `libxy_device.a` 还恰好把这个
+缺口挡住了。
+
+修法两处，缺一不可：
+
+- 权威 `Kconfig` 的 `COMPONENT_FUEL_GAUGE` 增加 `select COMPONENT_DEVICE`；
+- `components/fuel_gauge/CMakeLists.txt` 的 `if(TARGET xy_device)` **静默跳过**改成
+  `if(NOT TARGET xy_device) message(FATAL_ERROR ...)`，让"配置丢了这条 select"在 configure 阶段
+  就红，而不是晚到某个 final link。变异验证：删掉 root 的 `select` → configure 以
+  `CMake Error ... 'xy_device' does not exist` 返回 1；`sha256 ae15bfe9…` 字节还原后 configure 绿，
+  归档 4 个 Device 符号全部在建置内可满足。
+
+**顺带量到的一层**：`cmake/kconfig_parser.py` 只读 root `Kconfig` 且明确拒绝 `source`，所以 23 个
+`components/**/Kconfig` 全是**构建不读的文档**。这不是猜测——第一步就把 `select` 加进
+`components/fuel_gauge/Kconfig`，`.config` 仍然是 `CONFIG_COMPONENT_DEVICE=n`，看起来修好了其实
+一行都没生效。为让这个陷阱不再靠人记得，新增守卫
+`check_kconfig_fragment_agreement.py`（+10 例自测，CTest `kconfig_fragment_agreement` / `_unit`）：
+fragment 不得声明 root 没有的 `select`、不得携带 root 没有的 `depends on`（5 条差异 pin 了理由，
+根是更严的一侧），pin 一旦不再差异自动报过期；67 个只在 fragment 里出现的符号作为清单打印，计为
+存量而非过失。真 RED 是在真树上做的：删掉 root 的 `select`（fragment 仍声称）→ 守卫点名
+`COMPONENT_FUEL_GAUGE selects COMPONENT_DEVICE but the root Kconfig does not`。
+
+**未一并修**：同一形态在 `libxy_sensor_drivers_core.a` 上还有 6 个 `xy_i2c_device_*` 未定义符号
+（默认配置 `XY_SENSOR_ENABLE=y` 会编这个归档，而 `COMPONENT_DEVICE=n`）。它要的是"canonical driver
+owners 是否硬依赖 Device"这个决定，不是照抄一行 `select`，所以留作下一轮显式决策。
+
 
 #### 3b 交付
 

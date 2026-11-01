@@ -1,3 +1,16 @@
 config COMPONENT_FUEL_GAUGE
     bool "FUEL_GAUGE Component"
     default y
+    select COMPONENT_DEVICE
+    help
+      Fuel gauge core plus the BQ27Z746/BQ27Z561/BQ40Z50/MAX17043 drivers.
+
+      The drivers reach the bus through the canonical Device helpers
+      (`xy_i2c_device_read_reg16_repeated_start()` and friends), so this
+      component cannot be built without COMPONENT_DEVICE.
+
+      NOTE: this fragment is not read by the build. `cmake/kconfig_parser.py`
+      parses the root `Kconfig` only (it refuses `source`), so the
+      authoritative definition lives in `Kconfig` under "Additional
+      Components" and this file mirrors it. Change both, and let
+      `check_kconfig_fragment_agreement.py` keep them consistent.

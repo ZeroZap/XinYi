@@ -3412,3 +3412,30 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `xy_i2c_device_t` 是下一轮的事。
 - 顺带记一笔：`xy_sensor_i2c_write` 也走 `mem_write`，但 canonical 的 `write_reg` 是把 reg+data 拼进
   一次 `transmit`，对 8 位寄存器线上等价——只是"等价"得靠这个新入口而不是靠推断维持。
+
+### 2026-11-02 默认配置编出的 fuel gauge 归档链不起来，而"修法"写在了没人读的文件里
+
+- 起点是上一轮遗留的一句：四支 fuel-gauge 驱动迁到 canonical Device 入口后硬依赖
+  `components/device`，而 `COMPONENT_FUEL_GAUGE` 没有任何依赖表达，"缺的是 final link 才红"。
+  这一轮把它量成了具体事实，而不是一行依赖说明。
+- **实测**：默认 PC 配置（`COMPONENT_DEVICE=n`、`COMPONENT_FUEL_GAUGE=y`）编出的
+  `libxy_fuel_gauge.a` 带 4 个 `xy_i2c_device_*` 未定义符号，全归档 `nm --defined-only` 交叉对账
+  显示**建置内零个归档定义它们**；默认建置没有可执行文件链接它，所以这个洞一直没炸。
+  `build/pc` 里那份 **10 月 10 日**的旧 `libxy_device.a` 还恰好把缺口挡住了——stale 归档替真实
+  依赖关系打了掩护。
+- **第一次"修复"是无效的**：`select COMPONENT_DEVICE` 写进 `components/fuel_gauge/Kconfig`，
+  重新配置后 `.config` 仍是 `CONFIG_COMPONENT_DEVICE=n`。原因不是笔误：`cmake/kconfig_parser.py`
+  只读 root `Kconfig` 并明确拒绝 `source`，23 个 `components/**/Kconfig` 都是构建不读的文档。
+  是 `components/fuel_gauge/CMakeLists.txt` 新加的 fail-closed 检查把这次无效修复当场顶住
+  （`CMake Error ... target 'xy_device' does not exist`），否则它会被当成改好了。
+- **交付**：① root `Kconfig` 的 `COMPONENT_FUEL_GAUGE` 增加 `select COMPONENT_DEVICE`；
+  ② 该组件 `if(TARGET xy_device)` 静默跳过改为 `if(NOT TARGET xy_device) FATAL_ERROR`，配置丢了
+  select 就在 configure 阶段红；③ 新守卫 `check_kconfig_fragment_agreement.py`（+10 例自测，
+  CTest `kconfig_fragment_agreement` / `_unit`）把"fragment 不得比 root 承诺更多"变成可对账规则，
+  5 条 `depends on` 差异 pin 理由、pin 过期自动报红，67 个只存在于 fragment 的符号作为存量清单打印。
+- **两次真 RED**：删 root 的 select → configure rc=1（fail-closed 分支）；同样删法（fragment 仍
+  声称）→ 守卫点名 `COMPONENT_FUEL_GAUGE selects COMPONENT_DEVICE but the root Kconfig does not`。
+  两次都按 `sha256 ae15bfe9…` 字节还原后复绿。
+- **边界**：纯 Host/config 层，无实板运行时。同一形态在 `libxy_sensor_drivers_core.a` 上仍有 6 个
+  `xy_i2c_device_*` 未定义符号，要的是"canonical driver owners 是否硬依赖 Device"的产品决定，
+  未擅自照抄 `select`。

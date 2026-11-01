@@ -31,12 +31,19 @@ target_include_directories(xy_fuel_gauge PUBLIC
 target_link_libraries(xy_fuel_gauge PUBLIC sensor_component xy_trace)
 
 # The drivers reach the bus through the canonical Device helpers
-# (xy_i2c_device_*_repeated_start), so the owning library must be linked when
-# that component is part of the configuration. `sensor_component` already pulls
-# it in transitively; naming it here keeps the dependency true when only the
-# fuel-gauge component is selected. Guarded because the target does not exist in
-# every configuration, and a plain library name would fail at link time instead.
-if(TARGET xy_device)
-    target_link_libraries(xy_fuel_gauge PUBLIC xy_device)
+# (xy_i2c_device_*_repeated_start). That is a hard requirement, not an optional
+# one: without it the archive is emitted with four undefined `xy_i2c_device_*`
+# references and nothing in the configuration can satisfy them, so the breakage
+# is deferred to whatever links the archive. `COMPONENT_FUEL_GAUGE` selects
+# `COMPONENT_DEVICE` in Kconfig, so this branch must never be taken; if it is,
+# the configuration lost that select and the build stops here instead of
+# shipping a library that cannot link.
+if(NOT TARGET xy_device)
+    message(FATAL_ERROR
+        "xy_fuel_gauge requires the canonical Device bus helpers, but target "
+        "'xy_device' does not exist in this configuration. COMPONENT_FUEL_GAUGE "
+        "selects COMPONENT_DEVICE in components/fuel_gauge/Kconfig; restore that "
+        "select rather than dropping the link.")
 endif()
+target_link_libraries(xy_fuel_gauge PUBLIC xy_device)
 target_compile_definitions(xy_fuel_gauge PUBLIC XY_COMPONENT_FUEL_GAUGE=1)

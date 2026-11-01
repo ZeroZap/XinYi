@@ -584,8 +584,18 @@ config COMPONENT_SYS
 config COMPONENT_FUEL_GAUGE
     bool "Fuel Gauge"
     default y
+    select COMPONENT_DEVICE
     help
       Battery fuel gauge support.
+
+      The core and the BQ27Z746/BQ27Z561/BQ40Z50/MAX17043 drivers reach the
+      bus through the canonical Device helpers
+      (`xy_i2c_device_read_reg16_repeated_start()` and friends), so this
+      component cannot be built without COMPONENT_DEVICE. Leaving the
+      dependency implicit produced a default PC configure whose
+      `libxy_fuel_gauge.a` carried four `xy_i2c_device_*` references that
+      nothing in that configuration defined - a broken archive that only
+      failed at some later final link.
 
 config COMPONENT_BMS
     bool "BMS (Battery Management)"

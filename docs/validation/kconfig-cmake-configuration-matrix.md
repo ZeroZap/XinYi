@@ -162,3 +162,34 @@ git diff --check
 命令行 override 原先在默认依赖解析之后直接写入 resolved values，因此可以启用父依赖关闭的子符号。此行为会让配置文件声称启用某个 Display 子功能，但 root CMake source selection 仍缺少完整父功能上下文。解析器现在会在 override/select 收敛期间重复关闭依赖不满足的 bool 符号，并由回归测试锁定 fail-closed 行为。
 
 root CMake 原先无条件 auto-discover 大部分组件；即使 all-off 生成值正确，Device、Crypto、Drivers、Net 等 target 仍会进入构建，Crypto 子库尤其会绕过任何组件内 guard。root discovery 现按 Kconfig 生成的 `XY_*` 值跳过关闭组件，all-off target inventory 作为 focused probe 防止“配置关闭、源码仍编译”的假矩阵。
+
+### 2026-11-02 组件间依赖：fuel gauge 必须和 Device 一起出现
+
+四支 fuel-gauge 驱动走 canonical Device 总线入口后，`COMPONENT_FUEL_GAUGE` 与
+`COMPONENT_DEVICE` 之间存在**硬依赖**，而 Kconfig 里没有任何表达。实测：默认 PC 配置
+（`COMPONENT_DEVICE=n`、`COMPONENT_FUEL_GAUGE=y`）生成的 `libxy_fuel_gauge.a` 带 4 个
+`xy_i2c_device_*` 未定义符号，全归档交叉对账显示建置内**零个归档**定义它们。
+
+现在 `COMPONENT_FUEL_GAUGE` 在 root `Kconfig` 里 `select COMPONENT_DEVICE`，并且
+`components/fuel_gauge/CMakeLists.txt` 在 `xy_device` 不存在时 `FATAL_ERROR`（原先静默跳过链接）。
+矩阵含义的变化只有一处，需按新口径读：**只要 fuel gauge 保持默认 `y`，`COMPONENT_DEVICE` 就会被
+选上**；显式把 `COMPONENT_FUEL_GAUGE` 也关掉的组合（本文件里的 all-off / crypto-only / sensor-only
+等 probe）生成值不变，仍为 `CONFIG_COMPONENT_DEVICE=n`（`COMPONENT_FUEL_GAUGE=OFF;COMPONENT_DEVICE=OFF`
+实测 `n/n`，crypto-only 同样 `n`）。
+
+复现命令（默认配置下的缺陷形状）：
+
+```bash
+cmake -B <dir> -S . -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
+cmake --build <dir> --target xy_fuel_gauge -j$(nproc)
+nm -u <dir>/components/fuel_gauge/libxy_fuel_gauge.a | grep xy_i2c_device
+# 修复前：4 个 U，建置内无定义；修复后：CONFIG_COMPONENT_DEVICE=y，xy_device 提供全部 4 个符号
+```
+
+`check_kconfig_fragment_agreement.py`（CTest `kconfig_fragment_agreement` / `_unit`）防止这条
+`select` 只被写进构建不读的 `components/fuel_gauge/Kconfig`。
+
+**连带观察（未修）**：默认 L4/U5 配置现在也会编 `components/device`，把两处**既存**warning 一并带进
+默认构建日志——`components/device/src/xy_device_pm.c` 的 `-Wtype-limits`（"comparison is always true
+due to limited range of data type"），每平台 2 条。它们不是本轮引入的代码，是本轮让该文件第一次进入
+默认构建；记录在此以免下次被误判为新回归。
