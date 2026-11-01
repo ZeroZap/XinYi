@@ -136,9 +136,11 @@ int32_t xy_sin_fixed(int32_t angle_degrees_x100)
     int32_t normalized = angle_degrees_x100 % 36000;
     if (normalized < 0) normalized += 36000;
     
-    // Convert to degrees
+    // Convert to degrees. Fractional degrees are truncated: the table below is
+    // integer-indexed and this function has never interpolated between entries,
+    // so the residue of / 100 is intentionally not used. (A `fraction` variable
+    // used to be computed here and never read, which only produced a warning.)
     int32_t degrees = normalized / 100;
-    int32_t fraction = (normalized % 100) * 100; // 0-10000
     
     // Determine quadrant
     int32_t quadrant = degrees / 90;

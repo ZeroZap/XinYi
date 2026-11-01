@@ -118,6 +118,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/actuator/test_actuator_framework.c` | `unity` | 18 |
 | `tests/unit/analog_devices/test_analog_devices.c` | `unity` | 11 |
 | `tests/unit/clib/test_clib_core.c` | `unity` | 0 |
+| `tests/unit/clib/test_clib_math_stdlib.c` | `unity` | 0 | Links `xy_stdio.c` + `xy_stdlib.c` + `xy_math.c` into one executable on purpose: a duplicate non-static definition in the CLIB archive becomes a link error instead of an archive-order coin flip. Pins conversion and fixed-point-math contracts only; float parsing stays unsupported (see backlog A16). |
 | `tests/unit/crypto/test_25519.c` | `unity` | 0 |
 | `tests/unit/crypto/test_25519_m0.c` | `unity` | 6 |
 | `tests/unit/crypto/test_cipher_hmac.c` | `unity` | 0 |

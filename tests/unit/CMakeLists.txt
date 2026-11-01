@@ -2120,6 +2120,17 @@ xy_add_unit_test(test_clib clib_component UNITY
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 
+# --- Test 25b: CLIB conversions and fixed-point math share one owner per symbol ---
+# xy_stdio.c / xy_stdlib.c / xy_math.c are linked into one executable on purpose:
+# before this slice the archive held two (conversions: three) definitions of 28
+# symbols, and `ar` order silently decided which one ran.
+xy_add_unit_test(test_clib_math_stdlib clib_math_stdlib UNITY
+    ${UNIT_CLIB}/test_clib_math_stdlib.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_stdlib.c
+    ${CLIB}/xy_math.c
+)
+
 # --- Test 26: MUX manager, registration, and TLV packet contracts ---
 xy_add_unit_test(test_mux_core mux_core UNITY
     ${UNIT_MUX}/test_mux_core.c
