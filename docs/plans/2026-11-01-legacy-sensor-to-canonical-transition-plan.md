@@ -16,7 +16,7 @@
 | 同一个名字被两处以上定义 | **23**（17 定义体不同、6 相同） | 同上 |
 | 其中属于旧 sensor 框架的 | **3**（`xy_sensor_type_t`、`xy_sensor_device_t`、`xy_sensor_value_t`） | 同上 |
 | `components/sensor/inc/` 头文件 | 14（仅 5 个属 sensor 框架本身） | `ls` |
-| 旧框架头与别处**重复声明**的函数 | **10**（oled 6、mlx90614 2、sensor.h 2） | 交叉声明扫描 |
+| 旧框架头与别处**原型不兼容**的函数 | **9**（oled 5、mlx90614 2、sensor.h 2） | `check_function_prototype_collisions.py` |
 | 旧框架消费方（非 inc/ 内部） | **19**（13 产品/示例 + 6 测试） | `grep -l` |
 | canonical Device 消费方 | 59 | `grep -l` |
 | 总头 `components/xy.h` 指向 | **旧框架**（第 75 行 `sensor/inc/xy_sensor.h`），canonical 完全不在总头里 | `grep` |
@@ -42,12 +42,20 @@
 - 退出条件：守卫进 gate，第 24 处碰撞出现即红。**已满足**。
 - 本阶段不改任何源码，只让"看不见"变成"有成文理由的清单"。
 
-### P1 — 把重复声明纳入守卫（1 个 slice）
+### P1 — 把重复声明纳入守卫（1 个 slice，`DONE` 2026-11-01）
 
-- 缺口：现有守卫只判 **typedef**，不判**函数原型**。上面 10 处重复函数它一个都看不见。
-- 动作：把 `check_type_definition_collisions` 扩成"声明冲突"守卫，覆盖同名函数的**原型差异**
-  （参数个数/类型、返回类型），继续沿用 pin + 反向规则。
-- 退出条件：10 处重复函数全部被点名并 pin 上理由；自测含判别力用例（参数个数差、返回类型差）。
+- 缺口：上一条守卫只判 **typedef**，不判**函数原型**。上面 9 处它一个都看不见。
+- 已交付：`check_function_prototype_collisions.py` + 16 例自测。全仓 **3904 个函数名**，其中
+  **38 个被两处以上以不兼容原型声明**，逐条 pin 理由，沿用同一套反向规则（pin 无理由 / pin 的
+  不兼容已消失 / pin 的文件不存在）。
+- 口径：**只判不兼容**。C 允许同名同原型的重复声明（合法且常见），只有不兼容才是缺陷——这是它与
+  typedef 守卫的口径差异：typedef 每次重复都非法。
+- 退出条件：9 处旧框架函数全部点名并 pin。**已满足**（含在 38 处之内）。
+- 自己抓到的三处假阳性（都已修，不是靠放宽阈值）：
+  ① 比较时把**参数名**算成差异（`key_bits` vs `key_size`）——C 里是同一个函数，剥掉参数名后
+  `xy_aes_init`、`xy_oled_ssd1306_refresh` 两条 pin 自动过期并被守卫点名删除；
+  ② 波次数字从「10 处」订正为「9 处」，oled 从 6 订正为 5；
+  ③ 首次实现把 `extern "C"` 块当类型体整块丢弃，导致整份头文件一个声明都读不到（自测用例锁住）。
 - 依赖：无。
 
 ### P2 — 总头切到 canonical（1 个 slice，风险最高，单独做）
@@ -75,7 +83,7 @@
 ### P4 — 删除重复副本（1 个 slice，仅限已无消费方的）
 
 - 候选（**必须 P3 完成后确认零消费方才动手**）：
-  - `components/sensor/inc/xy_oled_ssd1306.h`（14 条声明中 6 条与 canonical 重复）
+  - `components/sensor/inc/xy_oled_ssd1306.h`（14 条声明中 5 条与 canonical 原型不兼容）
   - `components/sensor/inc/xy_mlxeeprom.h`（4 条中 2 条与 `drivers/sensor/temperature/mlx90614` 重复）
   - `components/sensor/inc/xy_sensor{,_device,_channel,_attr,_trigger}.h` 中的重复函数声明
   - `components/sensor/core/*.c`（P3c 迁完后）

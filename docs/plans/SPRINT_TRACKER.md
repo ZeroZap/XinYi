@@ -3240,3 +3240,44 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 下一步（需 Eugene 定）：23 处按两个形状分批收口——「组件装了两遍」那一批（crypto inc/ 与
   xy_chacha、gui、pm、rgb_matrix、clib）偏向合并成单一 owner；「两套并行框架」那一批
   （device 对 sensor）属架构路线选择，不是清理。
+
+### 2026-11-01 P1 完成：同一个函数名，两处不兼容的声明
+
+- 缺陷：本页上一条（类型名两处定义）的同族问题——**同一个函数名在两个头文件里各有一套不兼容
+  的原型**。C 允许同名重复声明，但要求所有声明一致；不一致时编译器留下先看到的那份并据此转换
+  调用，另一份就是**静默的栈破坏**，不是报错。
+- 证据（三条都是实测原型，不是推断）：
+  ① `xy_base64_decode`：`components/crypto/inc/xy_tiny_crypto.h` 是
+  `int (const char *, size_t, uint8_t *, size_t)`，`components/dm/xy_base64/xy_base64.h` 是
+  `uint32_t (const uint8_t *, uint32_t, uint8_t *)`——参数个数和返回类型都不同。
+  ② `xy_fuel_gauge_init`：`components/pm`（`inc/xy_pm.h` 与 `fuel-gauge/xy_fuel_gauge.h` 两处）是
+  `int (const xy_fuel_gauge_config_t *)`，`components/fuel_gauge/inc` 是
+  `xy_fuel_gauge_status_t (xy_fuel_gauge_t *)`——两套 fuel gauge 栈用同一个名字写不同函数。
+  ③ `xy_gui_draw_line`：`components/gui/xy_gui.h` 是 `int (xy_gui_t *, ...)`，
+  `components/gui/inc/xy_gui_draw.h` 是 `void (...)` 且参数表完全不同。
+- 量出的规模：全仓 **3904 个函数名**，其中 **38 个被两处以上以不兼容原型声明**。
+  八个家族：crypto `inc/` 对实现目录与对 `dm/`（8）、旧 sensor 存留对 canonical（9）、
+  `rgb_matrix` 两个驱动树（7）、`osal` 三处（5）、gui（3）、hal rng（2）、clib 分配器（2）、
+  fuel_gauge（2）。逐条 pin 理由。
+- 口径（与 typedef 守卫的差别，必须说清）：typedef 每次重复都**非法**，所以那个守卫要把每一处
+  重复都钉住；函数的同名同原型重复声明**合法且常见**，所以只判**不兼容**。
+- 覆盖：`check_function_prototype_collisions.py` + 16 例自测（CTest
+  `function_prototype_collisions` / `_unit`）。五处 vendored 排除（curve25519、AT-Command-V2、
+  rtthread-at、FreeRTOS-Cellular-Interface、FreeRTOS 移植层），各自写明理由。
+- 三次假阳性，都是守卫自己抓的，没有靠放宽阈值掩盖：
+  ① 比较时把**参数名**算成差异——C 里 `int f(int count)` 与 `int f(int flags)` 是同一个函数。
+  剥掉参数名后，我先前 pin 的 `xy_aes_init`（`key_bits`/`key_size`）与 `xy_oled_ssd1306_refresh`
+  （`dev`/`oled`）**当场被「pin 已过期」规则点名并删除**；对应地，波次数字从「10 处」订正为
+  「9 处」，oled 从 6 订正为 5。
+  ② 首版把 `extern "C" { ... }` 当类型体整块丢弃，**整份头文件一个声明都读不到**（表现为「0 处
+  碰撞」，看起来像好消息）。改成透明展开后真实数字才出来。
+  ③ 展开后没有**递归**处理内层花括号，`static inline` 包装函数的函数体漏进下一条语句，把被调用
+  的函数读成"被声明的函数"。改成递归。
+- 反证：8 个变异全部拦下——判定恒空、不要求 pin、保留参数名、正向找括号、透明块只拷贝不递归、
+  `extern "C"` 当类型体、不排除 vendored、去掉空走查检查。
+  其中「只拷贝不递归」最初**存活**：因为当时的实现里另有一条 `" return "` 过滤在同一件事上重复
+  防御，两者任一都能挡住，等于两个机制互相掩护、谁都测不出来。去掉冗余的那条后它才可测，现已
+  **8/8**。
+- 边界：**只钉住，不解归属**。38 处没有一处是"顺手改一下就对"——每一处都要决定哪一侧是真实
+  API 并迁移调用方，属架构决策。本 slice 的价值是把它们从"编译器不吭声"变成"有清单、有理由、
+  第 39 处出现即红"。
