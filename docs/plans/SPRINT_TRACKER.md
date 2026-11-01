@@ -3281,3 +3281,29 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 边界：**只钉住，不解归属**。38 处没有一处是"顺手改一下就对"——每一处都要决定哪一侧是真实
   API 并迁移调用方，属架构决策。本 slice 的价值是把它们从"编译器不吭声"变成"有清单、有理由、
   第 39 处出现即红"。
+
+### 2026-11-01 P2 完成：总头切到 canonical，炸出第三类碰撞（struct tag）
+
+- 动作：`components/xy.h` 第 75 行由 `sensor/inc/xy_sensor.h` 改为 `device/inc/xy_device.h`。按用户决定
+  （**以 canonical 为准**），旧 sensor 框架头不再经总头可达；它的 19 个消费方都是直接包含旧头，不受影响。
+- 探针结果与预期相反（好消息）：整仓**只有 2 个文件包含总头**（`xy.h` 自己 + `examples/
+  pc_all_components/src/main.c`），且都不使用旧 sensor 类型。原以为"一切总头就全炸"没有发生。
+- **探针炸出的真问题**：`struct xy_device` 在 `components/xy_def.h:153` 与
+  `components/device/inc/xy_device.h:194` 各定义一次，总头同时包含两者 → 切换后**任何含总头的 TU 都
+  编译不过**（实测 `redefinition of 'struct xy_device'`）。
+  这是 **struct tag 碰撞**，不是 typedef，所以前两个守卫（typedef 1162 名、函数原型 3904 名）**一个都
+  看不见**——盲区就在这里。
+- 核实那份是死代码：`struct xy_obj`、`xy_spinlock`、`xy_dlist_t` 及成员全仓**零引用**，来自一个未落地
+  的 RT-Thread 式内核移植；`xy_base_t` 外部还有 2 处用（保留）。已删除该三结构块并写明原因。
+- 补第三个守卫 `check_tag_definition_collisions.py`（+16 例自测，CTest `tag_definition_collisions` /
+  `_unit`）：全仓 **153 个 tag**，**3 个两处以上定义**，逐条 pin。
+  其中 **2 处是新发现**：`struct at_dev_attr` / `struct at_dev_ops` 在 `atc/core/xy_atc.h` 与
+  `ats/xy_ats.h` 各一份——**正是 Sprint 5 卡着的"AT 两套自有实现并存"**，现在它是可见、有理由、可追踪
+  的条目，而不是口头待办。
+- 口径：tag 判**存在**不判内容——C 里同一 tag 定义两次就是错，即使定义体一模一样；而 `struct x` 与
+  `union x` 是不同命名空间，不构成碰撞。
+- 自证抓到一段死代码：最初 8 个变异中 3 个存活（花括号配对 ×2、注释剥离 ×1），原因是**定义体提取
+  根本没人用**——判定只看"哪几个文件定义了这个 tag"，配对错不错都改变不了结论。整段删除（而不是留一段
+  测不到的代码），并补「注释掉的定义不算定义」与「一个文件算一次」两个能判别的用例后，**7/7 全拦**。
+- 验证：`xy.h` TU 编译 **0 错误**；经总头可见 `struct xy_device` 与 `xy_sensor_type_t`（canonical 侧数值）；
+  隔离 worktree 全量门禁 **393/393**（新增 `tag_definition_collisions` 与 `_unit` 为 #392/#393）。

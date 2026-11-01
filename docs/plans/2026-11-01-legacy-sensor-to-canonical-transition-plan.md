@@ -17,9 +17,10 @@
 | 其中属于旧 sensor 框架的 | **3**（`xy_sensor_type_t`、`xy_sensor_device_t`、`xy_sensor_value_t`） | 同上 |
 | `components/sensor/inc/` 头文件 | 14（仅 5 个属 sensor 框架本身） | `ls` |
 | 旧框架头与别处**原型不兼容**的函数 | **9**（oled 5、mlx90614 2、sensor.h 2） | `check_function_prototype_collisions.py` |
+| 全仓 struct/union/enum **tag** | 153，其中 **3** 个两处定义 | `check_tag_definition_collisions.py` |
 | 旧框架消费方（非 inc/ 内部） | **19**（13 产品/示例 + 6 测试） | `grep -l` |
 | canonical Device 消费方 | 59 | `grep -l` |
-| 总头 `components/xy.h` 指向 | **旧框架**（第 75 行 `sensor/inc/xy_sensor.h`），canonical 完全不在总头里 | `grep` |
+| 总头 `components/xy.h` 指向 | **canonical**（P2 后已切到 `device/inc/xy_device.h`） | `grep` |
 
 三处**硬冲突**（不是措辞差异，实测编译报错）：
 
@@ -58,14 +59,30 @@
   ③ 首次实现把 `extern "C"` 块当类型体整块丢弃，导致整份头文件一个声明都读不到（自测用例锁住）。
 - 依赖：无。
 
-### P2 — 总头切到 canonical（1 个 slice，风险最高，单独做）
+### P2 — 总头切到 canonical（1 个 slice，风险最高，单独做，`DONE` 2026-11-01）
 
 - 现状：`components/xy.h` 第 75 行包含旧框架，canonical 不在总头里 → 所有用总头的地方都在旧轨上。
-- 动作：`xy.h` 改为包含 `device/inc/xy_device.h`，并**移出**旧 sensor 框架头；旧头改为显式 opt-in。
-- 为什么单独做：这一步会让"同时包含两套"从潜伏变成现实，必然暴露 P3 之前的所有冲突——它是一次
-  **探针**，量出真实调用面，而不是一次重构。
-- 退出条件：`xy.h` 消费方（examples/pc_all_components 等）编译通过；旧框架头的显式包含点全部列出。
-- 风险：暴露的冲突数未知。若超过 20 处，停下回到 P1 补判据再继续。
+- 已交付：`xy.h` 改为包含 `device/inc/xy_device.h`，旧 sensor 头移出总头。
+- **探针结果：整仓只有 2 个文件包含总头**（一个是 `xy.h` 自己，另一个是
+  `examples/pc_all_components/src/main.c`），且都不使用旧 sensor 类型。切之前担心的"19 个消费方全炸"
+  没有发生——那 19 个都是直接包含旧头，不经总头。
+- **探针炸出的真问题（这次最大的收获）**：`struct xy_device` 在 `components/xy_def.h:153` 和
+  `components/device/inc/xy_device.h:194` 各定义一次。总头同时包含两者，所以切换后**任何包含总头的
+  TU 都无法编译**（`redefinition of 'struct xy_device'`）。
+  这是 **struct tag 碰撞**——不是 typedef，所以此前两个守卫一个都看不见。
+  核实 `xy_def.h` 那份是死代码：`struct xy_obj`、`xy_spinlock`、`xy_dlist_t` 及其成员全仓**零引用**，
+  来自一个未落地的 RT-Thread 式内核移植。已删除（保留 `xy_base_t`，它外部还有 2 处用）。
+- **顺带补上第三个守卫**：`check_tag_definition_collisions.py`（+16 例自测）。全仓 **153 个 tag**，
+  **3 个被两处以上定义**，全部 pin 理由。其中两处是新发现：
+  `struct at_dev_attr` / `struct at_dev_ops` 在 `atc/core/xy_atc.h` 与 `ats/xy_ats.h` 各一份——
+  **正是 Sprint 5 卡住的 AT 两套并存问题**。
+- 口径：tag 判**存在**不判内容。C 里同一个 tag 定义两次就是错误，即使定义体完全相同；而
+  `struct x` 与 `union x` 是不同命名空间，不构成碰撞。
+- 自证：7 个变异全拦。最初 8 个变异里 3 个存活，暴露**定义体提取是死代码**（判定只看哪几个文件
+  定义，配不配对花括号都改变不了结论）——已整段删除，而不是留一段测不到的代码。
+- 退出条件：总头消费方编译通过；旧框架头的显式包含点全部列出。**已满足**。
+- 验证：`xy.h` TU 编译 0 错误；`struct xy_device` + `xy_sensor_type_t` 经总头可见（canonical 侧数值）。
+- 依赖：无。
 
 ### P3 — 旧框架 core 迁移（2–3 个 slice）
 

@@ -72,7 +72,13 @@
 /* ==================== 设备驱动 ==================== */
 
 #if XY_FEATURE_SENSOR
-#include "sensor/inc/xy_sensor.h"
+/*
+ * components/device is canonical; components/sensor/inc/xy_sensor.h is the un-migrated old framework and
+ * cannot be included in the same translation unit (same type names, different values). Consumers of the old
+ * framework include its headers directly, so nothing here needs to reach it. See
+ * docs/plans/2026-11-01-legacy-sensor-to-canonical-transition-plan.md.
+ */
+#include "device/inc/xy_device.h"
 #endif
 
 #if XY_FEATURE_FUEL_GAUGE

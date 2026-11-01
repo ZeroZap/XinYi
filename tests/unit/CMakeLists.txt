@@ -2043,6 +2043,12 @@ add_test(NAME function_prototype_collisions
 add_test(NAME function_prototype_collisions_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_check_function_prototype_collisions.py)
 
+add_test(NAME tag_definition_collisions
+    COMMAND python3 ${UNIT_SUPPORT}/check_tag_definition_collisions.py)
+
+add_test(NAME tag_definition_collisions_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_tag_definition_collisions.py)
+
 add_test(NAME crypto_crc_catalogue
     COMMAND python3 ${UNIT_SUPPORT}/check_crypto_crc_catalogue.py)
 

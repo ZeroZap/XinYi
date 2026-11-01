@@ -139,28 +139,14 @@ typedef struct xy_dlist {
     } while (0)
 
 
-struct xy_obj {
-#if XY_NAME_MAX > 0
-    char name[XY_NAME_MAX];
-#endif
-    uint8_t type;
-    uint8_t flag;
-
-    xy_dlist_t dlist;
-};
-struct xy_obj *xy_obj_t;
-
-struct xy_device {
-    struct xy_obj parent;
-
-    uint8_t ref_count;
-    uint8_t device_id;
-};
-
-struct xy_spinlock {
-#ifdef XY_USING_DEBUG
-    xy_uint32_t critical_level;
-#endif /* RT_USING_DEBUG */
-    xy_base_t lock;
-};
+/*
+ * A three-struct object model used to live here - `struct xy_obj`, `struct xy_device`, `struct xy_spinlock`
+ * - from an abandoned RT-Thread-shaped kernel port. It was compiled unconditionally and had no users left
+ * (zero references to `struct xy_obj`, `xy_spinlock` or its members anywhere in the tree), but it still
+ * defined `struct xy_device` next to the Device framework's own, so no translation unit could include both
+ * `xy_def.h` and `components/device/inc/xy_device.h`. components/device is canonical; that one is gone.
+ *
+ * The dlist macros above are now orphaned by its removal and can follow it out; they are left alone here
+ * because deleting them is a cleanup of its own and this change is about the type collision.
+ */
 #endif
