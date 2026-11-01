@@ -145,9 +145,12 @@ A: 使用 CMake 或 Kconfig：
 # CMake
 mkdir build && cd build
 cmake .. -DBUILD_TESTING=ON
+```
 
-# Kconfig（需要 kconfig-frontends）
-make menuconfig
+```bash
+# Kconfig 选项：本仓没有 menuconfig 目标（也没有 .config 读回），
+# 在仓库根目录用 overrides 设置，多个选项用分号分隔
+make KCONFIG_OVERRIDES="BUILD_TESTING=ON"
 ```
 
 **Q: 如何运行测试？**

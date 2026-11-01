@@ -36,6 +36,7 @@ reader's build looks exactly as terse as before.
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 from pathlib import Path
@@ -311,13 +312,13 @@ def reader_docs(root: Path = ROOT) -> dict[str, str]:
     docs: dict[str, str] = {}
     for path in (root / "README.md", root / "AGENTS.md", root / "CLAUDE.md"):
         if path.exists():
-            docs[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8",
-                                                                     errors="replace")
+            docs[path.relative_to(root).as_posix()] = path.read_text(  # prose: reader docs are markdown
+                encoding="utf-8", errors="replace")
     for path in sorted((root / "docs").rglob("*.md")):
         if "history" in path.relative_to(root).parts:
             continue
-        docs[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8",
-                                                                 errors="replace")
+        docs[path.relative_to(root).as_posix()] = path.read_text(  # prose: reader docs are markdown
+            encoding="utf-8", errors="replace")
     return docs
 
 
@@ -417,12 +418,19 @@ def requested_variables(rest: str) -> list[str]:
     return names
 
 
-def judged_make_commands(docs: dict[str, str]):
-    """Every `make` line whose namespace can only be the root Makefile's.
+def make_commands(docs: dict[str, str]):
+    """Every `make` line in the reader docs, tagged with whether its block changed directory.
 
-    A block that changed directory, or a command that names another Makefile with `-C`/`-f`, is
-    reading a different file - CMake's generated one does define library targets and does honour
-    `VERBOSE`. Both `make` rules below judge exactly this set, so they cannot drift apart.
+    A block that changed directory, or a command that names another Makefile with `-C`/`-f`, is not
+    necessarily reading the root Makefile - CMake's generated one does define library targets and does
+    honour `VERBOSE`. It is still a command a reader will paste, though, so it is judged too, against a
+    wider set of targets (`cross_namespace_findings`). All three `make` rules read this one generator,
+    so they cannot drift apart.
+
+    The tag is the whole point of this function existing separately: treating "changed directory" as
+    "not our business" skipped the commands *and* the phantom ones with them - `make test-unit` after a
+    plain `cd <repo>` is the root Makefile's, and `make flash` after `cd build` exists in no Makefile
+    at all, yet both were passed over by the same line of code.
     """
     for where, text in sorted(docs.items()):
         if where in PROPOSAL_DOCUMENTS:
@@ -435,9 +443,22 @@ def judged_make_commands(docs: dict[str, str]):
                     moved = True
                     continue
                 command = MAKE_COMMAND.match(stripped)
-                if command is None or moved or OTHER_MAKEFILE.search(stripped):
+                if command is None or OTHER_MAKEFILE.search(stripped):
                     continue
-                yield where, command.group("rest") or ""
+                yield where, command.group("rest") or "", moved
+
+
+def judged_make_commands(docs: dict[str, str]):
+    """Every `make` line whose namespace can only be the root Makefile's.
+
+    A block that changed directory, or a command that names another Makefile with `-C`/`-f`, is
+    reading a different file - CMake's generated one does define library targets and does honour
+    `VERBOSE`. Both `make` rules below judge exactly this set, so they cannot drift apart. The commands
+    this leaves out are not unjudged: `cross_namespace_findings` takes them.
+    """
+    for where, rest, moved in make_commands(docs):
+        if not moved:
+            yield where, rest
 
 
 def requested_targets(rest: str) -> list[str]:
@@ -498,6 +519,87 @@ def make_variable_findings(docs: dict[str, str], variables: set[str]) -> list[st
     return problems
 
 
+#: Targets every CMake Makefile generator produces in any build directory. A reader who ran `cmake`
+#: and then typed `make install` is talking to CMake, not to this repository's Makefile.
+CMAKE_GENERATED_TARGETS = frozenset({
+    "all", "clean", "help", "install", "install/local", "install/strip", "package", "package_source",
+    "test", "edit_cache", "rebuild_cache", "list_install_components", "depend", "preinstall",
+})
+
+#: Directories whose CMake files declare no target a reader could be naming: vendored sources and
+#: build output. Walking them would credit `make <name>` with a target that is not in this repository.
+CMAKELESS_DIRECTORIES = frozenset({"build", "third_party", ".git", "MCU", ".venv", "__pycache__"})
+
+#: `add_executable`/`add_library`/`add_custom_target` and the first word after the parenthesis. Only a
+#: literal name counts, so the variable case is decided here rather than by a regex that has to guess:
+#: an earlier pattern skipped the `${...}` and happily collected the *next* word, which for
+#: `add_library(${NAME} STATIC x.c)` is `STATIC`.
+DECLARED_TARGET = re.compile(r"add_(?:custom_target|executable|library)\s*\(\s*([^\s)]+)")
+
+#: What a CMake target name may look like. A `${...}` reference fails this and is skipped, not expanded.
+LITERAL_TARGET_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_.+-]*")
+
+
+def declared_targets(root: Path = ROOT) -> set[str]:
+    """Every named CMake target this repository declares, for use as an alternate namespace.
+
+    A fenced block that changed directory may be sitting in a build directory, where `make <target>`
+    names a CMake target rather than a Makefile rule. Those names are not knowable without configuring
+    the tree, but the names *this repository declares* are, and a command naming one of them is a real
+    command. `build/` and `third_party/` are skipped: crediting a vendored target would let a phantom
+    name through for a reason the reader cannot act on.
+    """
+    names: set[str] = set()
+    for directory, subdirectories, filenames in os.walk(root):
+        subdirectories[:] = [name for name in subdirectories if name not in CMAKELESS_DIRECTORIES]
+        for filename in filenames:
+            if filename != "CMakeLists.txt" and not filename.endswith(".cmake"):
+                continue
+            try:
+                # read_hash_code() rather than read_text(): a commented-out
+                # `add_custom_target(flash ...)` would otherwise credit `make flash` with a target the
+                # build does not have, which is exactly the phantom this rule exists to catch.
+                text = read_hash_code(Path(directory) / filename)
+            except OSError:
+                continue
+            for match in DECLARED_TARGET.finditer(text):
+                if LITERAL_TARGET_NAME.fullmatch(match.group(1)):
+                    names.add(match.group(1))
+    return names
+
+
+def cross_namespace_findings(docs: dict[str, str], root_targets: set[str],
+                             declared: set[str]) -> list[str]:
+    """A `make <target>` in a block that changed directory must still name something that exists.
+
+    The directory change was treated as a blanket exemption, and it exempted both kinds of command at
+    once. Measured over the reader documents: 47 `make` commands sit in blocks that `cd` somewhere, and
+    33 of them are ordinary root Makefile usage - `cd <repo>` then `make test-unit`. The exemption was
+    not protecting those from anything, it was just not looking. The remaining ones included
+    `make menuconfig` and `make flash`, which no Makefile in this repository or in a generated build
+    directory defines: `cd build && make flash` gets `No rule to make target`, and
+    `cd examples/my_first_app/build` cannot even be entered, because the document never shipped that
+    directory.
+
+    So the namespace is widened rather than abandoned: a name is accepted if the root Makefile defines
+    it, if CMake generates it in every build directory, or if some CMake file in this repository
+    declares it as a target. A name in none of those three is one a reader cannot run wherever the
+    block put them.
+    """
+    problems: list[str] = []
+    for where, rest, moved in make_commands(docs):
+        if not moved:
+            continue
+        for name in requested_targets(rest):
+            if name in root_targets or name in CMAKE_GENERATED_TARGETS or name in declared:
+                continue
+            problems.append(
+                f"{where}: a fenced command runs `make {name}` after changing directory, but that "
+                f"name is neither a root Makefile target nor a CMake target this repository declares "
+                f"or a generated build directory provides")
+    return problems
+
+
 def main() -> int:
     root_text = read_hash_code(ROOT_CMAKE)
     osal_text = read_hash_code(OSAL_CMAKE)
@@ -514,6 +616,7 @@ def main() -> int:
     makefile = read_hash_code(ROOT_MAKEFILE)
     problems.extend(make_target_findings(docs, makefile_targets(makefile)))
     problems.extend(make_variable_findings(docs, makefile_variables(makefile)))
+    problems.extend(cross_namespace_findings(docs, makefile_targets(makefile), declared_targets()))
     if problems:
         print("osal_backend_advertise failed:")
         for problem in problems:

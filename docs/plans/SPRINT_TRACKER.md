@@ -3140,3 +3140,54 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   即整条 Kconfig→OSAL 配置链是断的：那个文件无论被不被 source 都影响不到构建。
   取舍：删掉这些装饰性 Kconfig，还是给 parser 加 `source` 并把消费端改成吃 `CONFIG_` 前缀——
   后者会改变每次 build 的生成配置，属架构决策，不做单方面改动。
+
+### 2026-11-01 S6-264 收口：`cd` 豁免在两个方向上都错了
+
+- 缺陷：`check_osal_backend_advertise.judged_make_commands()` 把「块里出现过 `cd`」当成整体豁免，
+  一行 `if command is None or moved or ...` 同时放过了两类完全不同的命令。实测 47 条被豁免的 `make`
+  命令里，**33 条是正常的根 Makefile 用法**（`cd XinYi` 之后 `make test-unit`），豁免对它们没有任何
+  保护意义，纯粹是没在看；真正幻觉的 4 条反而被同时放过：`docs/about/index.md` 的 `make menuconfig`、
+  `docs/hardware/boards.md` 两处与 `docs/getting-started/QUICK_START.md` 一处的 `make flash`。
+- 证据：`make help` 列出的 10 个 target 里没有 `menuconfig` 也没有 `flash`；本仓 CMake 里没有
+  `add_custom_target(flash ...)`（只有 third_party/tinyusb 的 `COMMAND ... flash`，属别人的规则）；
+  `grep menuconfig` 除守卫自身用例与 third_party 外无命中。`QUICK_START.md` 更彻底——它教读者
+  `mkdir -p examples/my_first_app/build && cd 进去 && cmake ..`，而 `examples/my_first_app` 这个目录
+  **在全仓不存在**，读者连 `cd` 都做不到；即使手工建出来也没有 CMakeLists.txt，`cmake ..` 直接失败。
+- 修法（按「生效的那套是唯一权威」）：不再豁免，而是**加宽命名空间**。`cd` 之后执行的 target 必须在
+  三者之一里成立——根 Makefile 定义的 target、CMake 在每个构建目录都会生成的目标
+  （`all`/`clean`/`install`/`test`/`package`/`edit_cache`… 14 个）、或本仓 CMake 文件里
+  `add_executable`/`add_library`/`add_custom_target` 声明过的字面量名字。三者都不在的名字，读者无论
+  被那个块带到了哪里都敲不出来。
+- 代码结构：把 `judged_make_commands()` 拆成 `make_commands()`（yield `(where, rest, moved)`）+
+  薄包装。这样三条 `make` 规则共用同一份遍历，「不会各自漂移」这条原有不变式得以保留而不是被第三份
+  循环破坏。新规则 `cross_namespace_findings()` 只吃 `moved=True` 的那部分，与 `make_target_findings`
+  严格互补，同一个幻觉目标不会被报两次。
+- 顺带修掉的文档（生效的是根 Makefile，所以改文档）：`about/index.md` 去掉 `menuconfig`，改成在仓库
+  根用 `make KCONFIG_OVERRIDES=`；`boards.md` 两处 `make flash` 改为「本仓没有该目标 + 用编程器自带
+  工具」并指向 `toolchain.md` 里已存在的 `st-flash` / `WCH-LinkRV` 写法；`QUICK_START.md`「编译运行」
+  整块重写为根 Makefile 驱动（`make HAL_PLATFORM=PC` / `make HAL_PLATFORM=STM32L4
+  STM32L4_BOARD=pandora_stm32l475`），并指明仓库里真正带 CMakeLists.txt 的示例是
+  `examples/component_demo`、`examples/mux_example` 等。
+- 反证：新规则在修文档前报出**正好 4 条**，且 33 条合法根命令**零误报**；自测 13 例（71→84），
+  6 个变异全部拦下——规则恒空（3 FAIL）、去掉 CMake 生成集合（1）、去掉 declared 集合（1）、
+  不过滤 `moved` 连原地块也判（1）、不剪枝 `third_party`（1）、`declared_targets` 不剥注释（1）。
+- 过程订正（本轮自查）：`declared_targets()` 第一版正则是
+  `(?:\$\{[^}]*\}\s+)?([A-Za-z_]…)`，对 `add_library(${NAME} STATIC x.c)` 会跳过 `${NAME}` 再把
+  **`STATIC`** 当成目标名收进去。是 `test_a_variable_name_is_skipped_rather_than_expanded` 抓出来的，
+  改成「取括号后第一个词 + `fullmatch` 字面量校验」，变量引用直接判非字面量而不是靠正则猜。
+- 验证：隔离 worktree（`/tmp/xyverify2`，只放本 slice 的 6 个文件）跑 `make test-unit`，**382/382**；
+  守卫本体 `osal_backend_advertise ok`；自测 84 例；`git diff --check` 通过。
+- 元守卫抓到我这一轮的四处违规，值得记下来（`guards_read_code`）：新函数 `declared_targets()` 用
+  `CMakeLists.txt` 分派 + `.read_text()`，于是整个文件被判成「CMake 行走者」，连 `reader_docs()`
+  读 **markdown** 的两行也被一并报红。修法是按守卫自带的精确机制各就各位，而不是给文件打一张全票豁免：
+  ① `declared_targets()` 改用 `read_hash_code()`（这一条本来就是对的——注释里的
+  `add_custom_target(flash ...)` 正该被剥掉，否则幻影目标会被它自己认证）；
+  ② `reader_docs()` 那两行加 `# prose: reader docs are markdown`（markdown 必须按原样读，围栏是读出来
+  之后才判的，这是 `# prose:` 的正当用法）；
+  ③ 自测文件因 fixture 里写了 `.c` 字面量被判定「读 C 源码」，按其设计加进 `EXEMPTIONS` 并写明理由。
+  修后 `guards_read_code ok registered=54 exempted=12`。
+- 边界：只收「`cd` 块里的幻觉 target」这一类。**未改 `PROPOSAL_DOCUMENTS` 的提案文档**（它们明确是
+  未曾落地的提案，按原意豁免）；`-C`/`-f` 指向别的 Makefile 的命令仍完全不判，因为那个文件的
+  target 集合不在这棵树的视野里。未上板、未烧录。
+- 副作用（正面）：`docs/**` 里 15 个写 `-DBUILD_TESTING=` 的文件现在真的生效了，因为上一笔
+  `184177e2` 让显式 `-D` 不再被 `FORCE` 吞掉；本笔只是让它们指向的目录与 target 也变成真的。

@@ -184,22 +184,17 @@ int main(void)
 ### 编译运行
 
 ```bash
-# 创建构建目录
-mkdir -p examples/my_first_app/build
-cd examples/my_first_app/build
-
-# CMake 配置
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../../../cmake/arm-gcc.cmake
-
-# 编译
-make
-
-# 烧录 (STM32)
-make flash
-
-# 或直接运行 (PC 仿真)
-./my_first_app
+# 构建由仓库根目录的 Makefile 驱动。示例目录里没有 CMakeLists.txt，
+# 在 examples/my_first_app/build 里手敲 cmake 会直接失败。
+make HAL_PLATFORM=PC                                        # PC 仿真构建
+make HAL_PLATFORM=STM32L4 STM32L4_BOARD=pandora_stm32l475   # Pandora 板级镜像
 ```
+
+产物落在各平台的构建目录下（默认 `build/<platform>/`）。`make help` 列出真实存在的 target 与变量。
+
+烧录：本仓没有 `make flash` 目标，用编程器自带的工具烧构建出的镜像，写法见
+`docs/getting-started/toolchain.md`。仓库里可直接构建的示例见 `examples/component_demo`、
+`examples/mux_example` 等（各自带 CMakeLists.txt）。
 
 ---
 

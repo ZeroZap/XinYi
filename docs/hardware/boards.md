@@ -107,8 +107,9 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/arm-gcc.cmake \
          -DHAL_PLATFORM=STM32U5
 make -j$(nproc)
 
-# 烧录
-make flash
+# 烧录：本仓没有 make flash 目标，用编程器自带的工具烧构建出的镜像
+#   ST-Link: st-flash --reset write <image>.bin 0x08000000
+# 其余编程器写法见 docs/getting-started/toolchain.md
 ```
 
 ---
@@ -146,8 +147,9 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/wch-gcc.cmake \
          -DBOARD=CH32U5_EVT
 make -j$(nproc)
 
-# 烧录 (WCH-Link)
-make flash
+# 烧录：本仓没有 make flash 目标，用 WCH-Link 自带工具烧构建出的镜像
+#   WCH-LinkRV -t -f <image>.bin
+# 其余写法见 docs/getting-started/toolchain.md
 ```
 
 ---

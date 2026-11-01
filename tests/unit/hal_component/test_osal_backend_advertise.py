@@ -7,6 +7,7 @@ command in docs/design must name a backend the build actually accepts.
 """
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -520,6 +521,110 @@ class RepositoryTests(unittest.TestCase):
         problems += guard.make_target_findings(
             docs, guard.makefile_targets(guard.read_hash_code(guard.ROOT_MAKEFILE)))
         self.assertEqual(problems, [])
+
+
+class CrossNamespaceTests(unittest.TestCase):
+    """A `make` command after a directory change must still name something that exists.
+
+    This is the rule that replaces "a block with a `cd` in it is not our business". That exemption was
+    wrong in both directions at once: it passed over ordinary root-Makefile usage (`cd <repo>` then
+    `make test-unit`, 33 of them) and over phantom targets (`make menuconfig`, `make flash`) with the
+    same line of code.
+    """
+
+    MAKEFILE = """
+.PHONY: all test-unit distclean
+all: build
+test-unit:
+\t@echo test
+distclean:
+\t@rm -rf build
+"""
+
+    def judge(self, markdown: str, declared: set[str] | None = None) -> list[str]:
+        docs = {"README.md": markdown}
+        return guard.cross_namespace_findings(
+            docs, guard.makefile_targets(self.MAKEFILE), set() if declared is None else declared)
+
+    def test_a_root_target_after_entering_the_repository_is_not_a_problem(self):
+        # The case the old exemption skipped most often, and the least interesting one: this is exactly
+        # what the root Makefile is for.
+        self.assertEqual(self.judge("```bash\ncd XinYi\nmake test-unit\n```\n"), [])
+
+    def test_a_target_no_makefile_defines_is_reported(self):
+        problems = self.judge("```bash\nmkdir build && cd build\ncmake ..\nmake flash\n```\n")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("make flash", problems[0])
+        self.assertIn("after changing directory", problems[0])
+
+    def test_a_menu_config_target_is_reported(self):
+        problems = self.judge("```bash\ncd build\nmake menuconfig\n```\n")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("make menuconfig", problems[0])
+
+    def test_a_target_cmake_generates_in_every_build_directory_passes(self):
+        # `make install` inside a build directory is CMake's rule, not this repository's - which is the
+        # whole reason the directory change was exempted in the first place.
+        self.assertEqual(self.judge("```bash\ncd build\nmake install\n```\n"), [])
+
+    def test_a_target_this_repository_declares_passes(self):
+        markdown = "```bash\ncd build\nmake xy_crypto\n```\n"
+        self.assertEqual(self.judge(markdown, declared={"xy_crypto"}), [])
+        problems = self.judge(markdown, declared=set())
+        self.assertEqual(len(problems), 1)
+
+    def test_only_blocks_that_changed_directory_are_this_rules_business(self):
+        # A phantom target in a block that stayed put is already `make_target_findings`'s, and reporting
+        # it twice would make the second rule look like it found something of its own.
+        self.assertEqual(self.judge("```bash\nmake flash\n```\n"), [])
+
+    def test_dash_c_names_another_makefile_and_is_left_alone(self):
+        self.assertEqual(self.judge("```bash\nmake -C tools/thing flash\n```\n"), [])
+
+    def test_a_commented_out_command_is_not_an_instruction(self):
+        self.assertEqual(self.judge("```bash\ncd build\n# make flash\n```\n"), [])
+
+
+class DeclaredTargetTests(unittest.TestCase):
+    """The alternate namespace is read off the tree, and must not credit what the reader cannot use."""
+
+    def build_tree(self, files: dict[str, str]) -> Path:
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        for relative, text in files.items():
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+        return root
+
+    def test_literal_target_names_are_collected(self):
+        root = self.build_tree({"CMakeLists.txt": (
+            "add_executable(app main.c)\nadd_library(lib STATIC x.c)\n"
+            "add_custom_target(flash ALL COMMAND echo)\n")})
+        self.assertEqual(guard.declared_targets(root), {"app", "lib", "flash"})
+
+    def test_a_variable_name_is_skipped_rather_than_expanded(self):
+        root = self.build_tree({"CMakeLists.txt": "add_library(${NAME} STATIC x.c)\n"})
+        self.assertEqual(guard.declared_targets(root), set())
+
+    def test_vendored_and_build_directories_do_not_count(self):
+        # Crediting a vendored target would let a phantom name through for a reason the reader cannot
+        # act on - the name exists, but not in anything they are building.
+        root = self.build_tree({
+            "CMakeLists.txt": "add_library(mine STATIC x.c)\n",
+            "third_party/lib/CMakeLists.txt": "add_library(theirs STATIC y.c)\n",
+            "build/x/CMakeLists.txt": "add_library(stale STATIC z.c)\n",
+        })
+        self.assertEqual(guard.declared_targets(root), {"mine"})
+
+    def test_a_commented_out_declaration_is_not_a_declaration(self):
+        root = self.build_tree({"CMakeLists.txt": "# add_library(gone STATIC x.c)\n"})
+        self.assertEqual(guard.declared_targets(root), set())
+
+    def test_the_real_tree_declares_targets(self):
+        # A non-empty answer, so a walk that silently reads nothing cannot pass for a clean one.
+        self.assertTrue(guard.declared_targets())
 
 
 if __name__ == "__main__":
