@@ -2031,6 +2031,12 @@ add_test(NAME dead_kconfig_options_unit
 add_test(NAME kconfig_standard_overrides
     COMMAND python3 ${UNIT_SUPPORT}/test_kconfig_standard_overrides.py)
 
+add_test(NAME type_definition_collisions
+    COMMAND python3 ${UNIT_SUPPORT}/check_type_definition_collisions.py)
+
+add_test(NAME type_definition_collisions_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_type_definition_collisions.py)
+
 add_test(NAME crypto_crc_catalogue
     COMMAND python3 ${UNIT_SUPPORT}/check_crypto_crc_catalogue.py)
 

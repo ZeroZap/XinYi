@@ -3195,3 +3195,48 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   target 集合不在这棵树的视野里。未上板、未烧录。
 - 副作用（正面）：`docs/**` 里 15 个写 `-DBUILD_TESTING=` 的文件现在真的生效了，因为上一笔
   `184177e2` 让显式 `-D` 不再被 `FORCE` 吞掉；本笔只是让它们指向的目录与 target 也变成真的。
+
+### 2026-11-01 一个类型名，两处定义：谁最后被包含，谁决定它是什么意思
+
+- 缺陷：S6-264 之后的同族问题——**同一个类型名在两个头文件里各有一份定义**。此前 tracker 只记了
+  `xy_sensor_type_t` 一处，全仓量下来是 **23 处**。历史原因有两个，都是结构性的而非笔误：
+  ① 一个组件被装了两遍（`inc/` 一份 + 根目录/子目录一份）；② 两套并行框架覆盖同一主题
+  （`device` 对 `sensor`、显示驱动对 `sensor` 树里那份同名驱动头）。
+- 证据（三条逐一实测，不是推断）：
+  ① `xy_sensor_type_t`：`components/device/inc` 是 `TEMP=0`、成员叫 `ACCELEROMETER/GYROSCOPE/`
+  `MAGNETOMETER`；`components/sensor/inc` 是 `TEMP=1`、成员叫 `ACCEL/GYRO/MAGN`。同 TU 包含两者
+  （两个方向都试过）得到 `redeclaration of enumerator`、`conflicting types for 'xy_sensor_type_t'`，
+  并且连带 `xy_sensor_value_t`、`struct xy_sensor_device`、`xy_sensor_device_t` 全部冲突、
+  `xy_sensor_sample_fetch` 出现两份不兼容原型。只包含其中一份时，温度/湿度在两个子系统里差 1。
+  ② `xy_aes_ctx_t`：**同一个目录** `components/crypto/inc/` 里，`xy_aes.h` 是
+  `{uint8_t key[32]; uint8_t round_keys[15][16]; int rounds;}`（约 272 B），`xy_tiny_crypto.h` 是
+  `{uint32_t round_keys[60]; int rounds;}`（约 244 B）。同目录意味着**没有任何 include 顺序能救**，
+  含两者实测 2 个编译错误；按小的一份分配、按大的一份填写就是越界写。
+  ③ `xy_fuel_gauge_status_t`：`components/pm/inc` 的成员是 `XY_FUEL_GAUGE_*`，`components/fuel_gauge/inc`
+  的成员是 `XY_FG_*`——同一个枚举名，两套词汇，消费者看到哪套取决于先包含了谁。
+- 量出的规模：`read_code()` 剥注释 + 花括号配对提取，全仓 **1162 个 typedef 名**，其中 **23 个被两处
+  以上定义**（**17 处定义体不同**、6 处定义体相同）。另有 2 个 vendored 子树排除：curve25519 与
+  AT-Command-V2 各自带了一份 STM32 标准外设/CMSIS 头，它们对 `GPIOSpeed_TypeDef` 天然分歧，报出来
+  只会把真问题埋掉。
+- 覆盖：新增 `check_type_definition_collisions.py`（+ 15 例自测，CTest `type_definition_collisions` /
+  `_unit`）。判的是**定义体**而不是类型名：`typedef enum {...} X` 与 `typedef struct {...} X` 同名
+  同样算碰撞；定义体经 `read_code()` 剥注释、空白归一后比较，所以「注释里写了差异」不构成差异、
+  「换了格式」也不构成。23 处逐条 pin 了理由，并配三条反向规则：**pin 没有理由**、**pin 的碰撞已
+  消失**（定义只剩一处）、**pin 的名字已无人定义**，全部判红——pin 不能烂在那儿。
+- 反证：6 个变异全部拦下——判定恒空（4 FAIL）、不要求 pin（4）、去掉空走查检查（1）、不排除
+  vendored（3）、不剥注释（1）、退回「结构体提取不到」的旧正则（11）。
+- 两次自查，都是守卫自己抓的：
+  ① 第一版 pin 表里写了 `HAL_StatusTypeDef`（测试 fake 对厂商头），可 `corpus()` 跳过 `tests/`，
+  于是守卫的 **pin 过期** 规则当场点名「now defined once」——不是漏报，是我写错，已删。
+  ② 第一版提取用正则 `typedef[^;]*?\}\s*NAME;`，**`typedef struct { int a; } X;` 的体内有分号，
+  正则跨不过去**，于是所有结构体被静默漏掉，碰撞「只有 6 处」。改成花括号配对后真实数是 **23 处**，
+  多出来的 `xy_sensor_device_t`/`xy_gui_color_t`/`xy_oled_ssd1306_t`/`xy_div_t` 等全是之前看不见的。
+- 验证：隔离 worktree（`/tmp/xyv3`，只放本 slice 的 3 个文件）跑 `make test-unit`，**386/386**；
+  `guard_module_hygiene` 在注册前后先红后绿（82 守卫 / 65 测试文件）；`guards_read_code` 绿；
+  `git diff --check` 干净。
+- 边界：**只钉住，不解归属**。23 处里没有一处是「随手改一下就对」的——每一处都要先决定哪一侧是
+  owner，属架构决策。本 slice 的价值是把「看不见」变成「有成文理由的清单」，并让第 24 处出现时当场
+  报错。未上板、未烧录。
+- 下一步（需 Eugene 定）：23 处按两个形状分批收口——「组件装了两遍」那一批（crypto inc/ 与
+  xy_chacha、gui、pm、rgb_matrix、clib）偏向合并成单一 owner；「两套并行框架」那一批
+  （device 对 sensor）属架构路线选择，不是清理。
