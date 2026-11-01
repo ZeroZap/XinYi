@@ -134,6 +134,7 @@ void stdlib_example(void)
 - 位操作宏: `xy_set_bit`, `xy_clear_bit`, `xy_toggle_bit`
 - 数值转换: `xy_dec2bcd`, `xy_bcd2dec`, `xy_hex2bcd`
 - 软除法: `xy_u32_div10`, `xy_u32_mod10`
+- 软除法开关: `XY_USE_SOFT_DIV`（`xy_config.h`，默认 `0`=硬件除法，`1`=软件路径）。它是**数值**宏，源码用 `#if !XY_USE_SOFT_DIV` / `#if XY_USE_SOFT_DIV` 判断；早期用 `#if(n)def` 判断，于是 `0` 也会选中软件路径、开关实际无效。`xy_u32_div10` 此前没有头文件声明，现已补进 `xy_common.h`。两条路径由 CTest `clib_example` / `clib_example_softdiv` 用同一份样张逐值比对。
 
 **示例**:
 ```c

@@ -9,13 +9,14 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 401 (measured: `ctest -N` on a direct
-  `tests/unit` configure reports 401, while `make test-unit` registers and runs 400 - two entries are
-  configuration-dependent. The C targets are registered through `xy_add_unit_test(...)`, so
-  `add_test` calls in this file are only the explicit Python/board entries. Last measured in the
-  fixed-point-trig `clib_math_header` slice, which added one C target to the 400/398 pair before it;
-  the older numbers on this line were stale by roughly the number of CTests registered since they
-  were written, so treat the count as measured-not-maintained)
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 404 (measured: `ctest -N` on the direct
+  `tests/unit` configure reports 404 and `make test-unit` ran 404/404 - the two used to differ
+  because a couple of entries are configuration-dependent. The C targets are registered through
+  `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
+  entries. Last measured in the `clib_math_example`/`clib_example` slice, which added three C
+  targets to the 401 of the `clib_math_header` slice before it; older numbers on this line were
+  stale by roughly the number of CTests registered since they were written, so treat the count as
+  measured-not-maintained)
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -52,6 +53,8 @@
 | `components/sensor/sensor_self_test.c` | Production Sensor self-test implementation | Keep in component source; covered through `tests/unit/sensor/test_sensor_framework.c`. |
 | `projects/Bank/ontroller-charger-test.c` | Imported project-local patch transcript, not an active CTest source | Leave out of unit conversion; treat as project-specific legacy material unless the Bank project is intentionally rehabilitated. |
 | `tools/tests/*.py` | Host-side Python tool tests (z-serial + HIL harnesses), run by `make test-tools` | Keep separate from the C Unity/CTest inventory; the C counts above stay authoritative for firmware code. |
+| `components/clib/xy_clib/xy_math_example.c` | Public-API sample, excluded from `libxy_xy_clib` by the `_example\.c$` glob filter | Compiled and run by CTest `clib_math_example`; self-checking `main` (73 checks) instead of `assert()`, because Release defines `NDEBUG`. |
+| `components/clib/xy_clib/examples/clib_example.c` | Public-API sample, same glob exclusion | Compiled and run twice: CTest `clib_example` (hardware-division path) and `clib_example_softdiv` (`-DXY_USE_SOFT_DIV=1`); the pair is what proves the two division paths agree. |
 
 ## Component Breakdown
 

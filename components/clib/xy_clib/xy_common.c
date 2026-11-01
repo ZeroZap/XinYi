@@ -2,7 +2,7 @@
 
 uint64_t xy_u64_div10(uint64_t u64val)
 {
-#ifndef XY_USE_SOFT_DIV
+#if !XY_USE_SOFT_DIV
     return u64val / 10;
 #else
     uint64_t q64, r64;
@@ -32,7 +32,7 @@ uint64_t xy_u64_div10(uint64_t u64val)
 
 uint32_t xy_u32_div10(uint32_t u32val)
 {
-#ifndef XY_USE_SOFT_DIV
+#if !XY_USE_SOFT_DIV
     return u32val / 10;
 #else
     uint32_t q32, r32;
@@ -48,7 +48,7 @@ uint32_t xy_u32_div10(uint32_t u32val)
 
 uint8_t xy_u8_mod10(uint8_t val)
 {
-#ifndef XY_USE_SOFT_DIV
+#if !XY_USE_SOFT_DIV
     return val % 10;
 #else
     uint8_t quotient = (uint8_t)(((uint16_t)val * 205) >> 11);
@@ -58,7 +58,7 @@ uint8_t xy_u8_mod10(uint8_t val)
 
 uint16_t xy_u16_mod10(uint16_t val)
 {
-#ifndef XY_USE_SOFT_DIV
+#if !XY_USE_SOFT_DIV
     return val % 10;
 #else
     // 使用更精确的乘数 52429 (0xCCCD) 和 19位位移
@@ -70,7 +70,7 @@ uint16_t xy_u16_mod10(uint16_t val)
 
 uint32_t xy_u32_mod10(uint32_t val)
 {
-#ifndef XY_USE_SOFT_DIV
+#if !XY_USE_SOFT_DIV
     return val % 10;
 #else
     uint32_t quotient = (uint32_t)(((uint64_t)val * 0xCCCCCCCD) >> 35);
@@ -115,7 +115,7 @@ uint32_t xy_dec2bcd(uint32_t dec)
 {
     uint32_t bcd  = 0;
     uint8_t shift = 0;
-#ifdef XY_USE_SOFT_DIV
+#if XY_USE_SOFT_DIV
     while (dec > 0) {
         uint8_t digit = xy_u32_mod10(dec);
         bcd |= (digit << shift);

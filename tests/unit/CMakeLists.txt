@@ -2145,6 +2145,56 @@ xy_add_unit_test(test_clib_math_header clib_math_header UNITY
 target_compile_options(test_clib_math_header PRIVATE -Werror=implicit-function-declaration)
 target_link_libraries(test_clib_math_header PRIVATE m)
 
+# --- The bundled CLIB examples are artifacts, not prose ---
+# Both files sat in the tree with no build reference at all: the library glob
+# excludes `_example\.c$`, so neither had ever been compiled by anything. They
+# are built and run here, and implicit declarations are errors, so a sample
+# cannot keep teaching a function that no header declares.
+xy_add_unit_test(test_clib_math_example clib_math_example
+    ${CLIB}/xy_math_example.c
+    ${CLIB}/xy_math.c
+)
+target_compile_options(test_clib_math_example PRIVATE
+    -Wall -Wextra -Werror=implicit-function-declaration
+)
+
+xy_add_unit_test(test_clib_example clib_example
+    ${CLIB}/examples/clib_example.c
+    ${CLIB}/xy_common.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_stdlib.c
+    ${CLIB}/xy_math.c
+    ${CLIB}/xy_ctype.c
+    ${CLIB}/xy_filter.c
+    ${CLIB}/xy_sort.c
+    ${CLIB}/xy_rb.c
+)
+target_compile_options(test_clib_example PRIVATE
+    -Wall -Wextra -Werror=implicit-function-declaration
+)
+
+# The same sample built with the software-division path selected. `xy_common.c`
+# shipped that path unconditionally because `XY_USE_SOFT_DIV` was tested with
+# `#if(n)def` (so `#define XY_USE_SOFT_DIV 0` selected it); with the value now
+# honoured, this target is what proves the two paths agree value-for-value.
+xy_add_unit_test(test_clib_example_softdiv clib_example_softdiv
+    ${CLIB}/examples/clib_example.c
+    ${CLIB}/xy_common.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_stdlib.c
+    ${CLIB}/xy_math.c
+    ${CLIB}/xy_ctype.c
+    ${CLIB}/xy_filter.c
+    ${CLIB}/xy_sort.c
+    ${CLIB}/xy_rb.c
+)
+target_compile_options(test_clib_example_softdiv PRIVATE
+    -Wall -Wextra -Werror=implicit-function-declaration
+)
+target_compile_definitions(test_clib_example_softdiv PRIVATE XY_USE_SOFT_DIV=1)
+
 # --- Test 26: MUX manager, registration, and TLV packet contracts ---
 xy_add_unit_test(test_mux_core mux_core UNITY
     ${UNIT_MUX}/test_mux_core.c

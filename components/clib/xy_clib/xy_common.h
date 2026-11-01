@@ -38,8 +38,12 @@ typedef struct xy_list_node {
      | (((x) & 0x0000ff00) << 8) | (((x) & 0x000000ff) << 24))
 #define xy_ntohl(x)     xy_htonl(x)
 #define xy_htons(x)     ((((x) & 0xff00) >> 8) | (((x) & 0x00ff) << 8))
-#define xy_rotl32(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
-#define xy_rotr32(x, n) (((x) >> (n)) | ((x) << (32 - (n))))
+/* The uint32_t casts are part of the contract, not decoration: with a 64-bit
+ * `unsigned long` (any host build) an un-cast shift produces a 64-bit result,
+ * so `xy_rotl32(0x80000001, 1)` returned 0x100000003 instead of 0x3. The
+ * 32-bit target hid that, since there `unsigned long` is already 32 bits. */
+#define xy_rotl32(x, n) (((uint32_t)(x) << (n)) | ((uint32_t)(x) >> (32 - (n))))
+#define xy_rotr32(x, n) (((uint32_t)(x) >> (n)) | ((uint32_t)(x) << (32 - (n))))
 #define xy_rotl64(x, n) (((x) << (n)) | ((x) >> (64 - (n))))
 #define xy_rotr64(x, n) (((x) >> (n)) | ((x) << (64 - (n))))
 
@@ -135,6 +139,11 @@ list_for_node_safe(head,n,t){
 }
 */
 uint64_t xy_u64_div10(uint64_t u64val);
+
+/* Advertised by CLIB_DETAILED_DESCRIPTION.md and used by xy_dec2bcd()'s
+ * software-division path, but declared nowhere until this line: a consumer
+ * that called it got an implicit declaration (C99 warning, -Werror error). */
+uint32_t xy_u32_div10(uint32_t u32val);
 
 uint8_t xy_u8_mod10(uint8_t val);
 uint16_t xy_u16_mod10(uint16_t val);
