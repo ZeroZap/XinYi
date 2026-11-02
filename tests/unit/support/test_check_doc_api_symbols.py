@@ -93,6 +93,24 @@ class DocApiSymbolsTest(unittest.TestCase):
             "#define xy_led_pin 13\n"
             "xy_hal_gpio_write(xy_led_pin, 1);\n"))
 
+    def test_a_naming_pattern_is_not_a_call(self) -> None:
+        # `HAL_Component_Design_Overview.md` writes `xy_hal_<peripheral>_<operation>()` to describe
+        # how names are shaped. The token regex stopped at the `<` and reported `xy_hal_` as a call,
+        # which is the same category error the path rule already answers with `PLACEHOLDERS`.
+        self.assertEqual([], self.judged("xy_hal_<peripheral>_<operation>()\n"))
+
+    def test_a_template_block_may_include_the_header_it_tells_you_to_create(self) -> None:
+        # The file-structure template writes `@file module_name.c` and then includes the header that
+        # file will have. Matching stems mean the include is a placeholder for the reader's module.
+        self.assertEqual([], self.judged(
+            "/**\n"
+            " * @file module_name.c\n"
+            " */\n"
+            '#include "module_name.h"\n'))
+        # ... but only the block's own file: any other missing header is still a broken claim.
+        problems = self.judged('/**\n * @file module_name.c\n */\n#include "not_a_header.h"\n')
+        self.assertTrue(any("not_a_header.h" in p for p in problems), problems)
+
     def test_a_shell_block_is_not_an_api_claim(self) -> None:
         # `make <target>` is a different rule, owned by a different guard. Judging shell blocks here
         # would report every build command as an undeclared symbol.
@@ -153,6 +171,15 @@ class DocApiSymbolsTest(unittest.TestCase):
 
     def test_a_placeholder_is_not_a_path_yet(self) -> None:
         self.assertEqual([], self.judged_paths("Put it in `examples/<your_app>/main.c`."))
+
+    def test_a_line_that_asserts_the_path_is_absent_is_not_a_claim(self) -> None:
+        # `xinyi-component-quality-loop.md` says the repository **没有** `tests/CMakeLists.txt`.
+        # That sentence is the opposite of a pointer: the reader is told not to look. Reporting it
+        # would make an accurate statement about the tree impossible to write down.
+        self.assertEqual([], self.judged_paths("当前仓库没有 `tests/CMakeLists.txt`。"))
+        # ... and the loophole stays shut: a plain pointer at the same path is still a finding.
+        problems = self.judged_paths("统一入口在 `tests/CMakeLists.txt`。")
+        self.assertTrue(any("tests/CMakeLists.txt" in p for p in problems), problems)
 
     def test_a_sweep_that_finds_no_path_reports_itself_broken(self) -> None:
         # Same reasoning as the fence walk: inspecting nothing must not look like a clean result.
@@ -280,6 +307,34 @@ class DocApiSymbolsTest(unittest.TestCase):
         walked = [p.relative_to(guard.ROOT).as_posix() for p in guard.documents()]
         self.assertIn("docs/api/API_REFERENCE.md", walked, walked)
 
+    def test_a_dated_design_record_is_skipped_and_an_undated_page_is_judged(self) -> None:
+        # `docs/design` holds both answers to "what does the tree look like": the proposal that
+        # decided something on a date, and the page that describes it now. The date in the filename
+        # is the record's own banner, so the walk takes the undated page and leaves the other alone.
+        design = self.root / "docs" / "design"
+        design.mkdir(parents=True)
+        (design / "LIVE.md").write_text(fenced("xy_dead_api();\n"), encoding="utf-8")
+        (design / "decision-proposal-2026-08-11.md").write_text(fenced("xy_dead_api();\n"),
+                                                                encoding="utf-8")
+        saved = guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT
+        guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT = self.root, ("docs/design",), {}
+        try:
+            walked = [p.name for p in guard.documents()]
+        finally:
+            guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT = saved
+        self.assertEqual(["LIVE.md"], walked)
+
+    def test_the_real_tree_sweeps_the_live_design_pages_and_not_the_dated_records(self) -> None:
+        # Footprint on the checked-in tree: `docs/design` is where the current design lives, so the
+        # undated pages must be in the walk, and the thirty-two dated decisions must not be. If the
+        # root leaves DOC_ROOTS the first assertion goes red; if the record rule stops working the
+        # second one does.
+        walked = [p.relative_to(guard.ROOT).as_posix() for p in guard.documents()]
+        design = [p for p in walked if p.startswith("docs/design/")]
+        self.assertIn("docs/design/XinYi_Project_Overview.md", design, design)
+        self.assertEqual([], [p for p in design if guard.DATED_RECORD.search(p)], design)
+        self.assertGreaterEqual(len(design), 10, design)
+
     # ---------------------------------------------------------------------------------------------
     # A path in a sentence about the past is history, not a pointer - but only the verb makes it so.
     # ---------------------------------------------------------------------------------------------
@@ -289,6 +344,12 @@ class DocApiSymbolsTest(unittest.TestCase):
         # is not being sent there; reporting it punishes an accurate record of the migration.
         self.assertEqual([], self.judged_paths(
             "旧 `components/charger/` compatibility component 已在迁移后移除。"))
+
+    def test_a_line_recording_that_a_path_was_merged_is_history(self) -> None:
+        # `test_layout_analysis.md` records that `test_filter.c` **已并入** `test_clib_core.c`.
+        # A merge is a removal with a destination; reporting it punishes the accurate record.
+        self.assertEqual([], self.judged_paths(
+            "- `components/clib/xy_clib/test_filter.c` 已并入 `tests/unit/clib/test_clib_core.c`"))
 
     def test_a_bare_mention_of_an_old_path_still_fails(self) -> None:
         # The loophole that has to stay shut: calling a missing directory "legacy" is not a

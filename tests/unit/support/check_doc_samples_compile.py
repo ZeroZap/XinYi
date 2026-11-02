@@ -68,6 +68,13 @@ class Sample(NamedTuple):
     includes: tuple[str, ...]
     #: Include roots, relative to the repository root, in the order the page's intended headers need.
     roots: tuple[str, ...]
+    #: Content selectors. When non-empty, only the blocks whose text contains one of these markers
+    #: are compiled. A design page can carry a module-file preamble and a new-file template beside
+    #: its usage sample, and those two are patterns rather than samples - neither compiles at file
+    #: scope by construction. Selecting by *content* instead of by line number means an edit above
+    #: the sample cannot silently move the selector onto the template, and a selector that stops
+    #: matching anything is reported rather than skipped.
+    markers: tuple[str, ...] = ()
 
 
 SAMPLES: tuple[Sample, ...] = (
@@ -99,6 +106,17 @@ SAMPLES: tuple[Sample, ...] = (
             "components/drivers/sensor/temperature/sht30",
             "components/drivers/sensor/motion/mpu6050",
         ),
+    ),
+    # The project overview taught `xy_hal_uart_open(port, baudrate)` / `xy_hal_uart_close(handle)`:
+    # a handle-allocating API that never existed, next to the real handle-based one. The name sweep
+    # catches the two names; this compiles the call, so the arity and the config struct are judged by
+    # the header too. Its other two C blocks are a module preamble (`#define`, `#include` and log
+    # calls at file scope) and a new-file template, which is what `markers` is for.
+    Sample(
+        doc="docs/design/XinYi_Project_Overview.md",
+        includes=("xy_hal_uart.h",),
+        roots=("components/hal/inc",),
+        markers=("xy_hal_uart_send(uart",),
     ),
 )
 
@@ -152,17 +170,25 @@ def findings(samples: tuple[Sample, ...] | None = None, root: Path | None = None
                 f"is gone - the list has drifted from the tree")
             continue
         blocks = code_blocks(path)
+        selected = [block for block in blocks
+                    if not sample.markers or any(mark in block[1] for mark in sample.markers)]
         if not blocks:
             problems.append(
                 f"{sample.doc}: no fenced C block was found - the extractor is broken, and a page "
                 f"with no blocks compiles exactly as cleanly as a correct one")
             continue
-        inspected += len(blocks)
-        status, output = run_compiler(translation_unit(sample.doc, blocks, sample.includes),
+        if not selected:
+            problems.append(
+                f"{sample.doc}: none of its {len(blocks)} C blocks contains "
+                f"{', '.join(repr(mark) for mark in sample.markers)} - the selector no longer points "
+                f"at the sample, and compiling nothing reads the same as passing")
+            continue
+        inspected += len(selected)
+        status, output = run_compiler(translation_unit(sample.doc, selected, sample.includes),
                                       sample.roots, compiler, tree)
         if status != 0:
             problems.append(
-                f"{sample.doc}: its {len(blocks)} C blocks do not compile against the headers it "
+                f"{sample.doc}: its {len(selected)} C blocks do not compile against the headers it "
                 f"documents - a signature the header contradicts is a call the reader cannot write:\n"
                 f"{output}")
     if inspected == 0:

@@ -138,6 +138,43 @@ class DocSamplesCompileTest(unittest.TestCase):
         self.assertTrue(any("the walk is broken" in p for p in problems), problems)
 
     # ---------------------------------------------------------------------------------------------
+    # A page may carry patterns beside its sample. The selector is content-anchored, because a line
+    # number would land on whatever an earlier edit shifted it onto.
+    # ---------------------------------------------------------------------------------------------
+
+    def judged_marked(self, body: str, markers: tuple[str, ...]) -> list[str]:
+        doc = self.root / "SAMPLE.md"
+        doc.write_text(body, encoding="utf-8")
+        sample = guard.Sample(doc="SAMPLE.md", includes=HAL_INCLUDES, roots=HAL_ROOTS,
+                              markers=markers)
+        return guard.findings(samples=(sample,), root=self.root, compiler=self.compiler)
+
+    def test_a_selective_page_judges_its_sample_and_skips_the_patterns(self) -> None:
+        # Same shape as the project overview: a template block that cannot compile at file scope,
+        # then the usage sample. With the selector set, only the sample is compiled.
+        page = (fenced("xy_hal_pin_config_t template_only;\n")
+                + fenced("/* ---- the sample ---- */\n"
+                         + CORRECT
+                         + "void use(void) { xy_hal_gpio_write(0, 1, 1); }\n"))
+        self.assertEqual([], self.judged_marked(page, ("---- the sample ----",)))
+
+    def test_a_selector_that_matches_nothing_is_reported(self) -> None:
+        # The selector has to be able to fail, or a renamed marker would quietly compile nothing and
+        # the page would look as clean as a correct one.
+        problems = self.judged_marked(fenced(CORRECT), ("a marker that is not in the page",))
+        self.assertTrue(any("the selector no longer points" in p for p in problems), problems)
+
+    def test_the_selected_sample_is_still_judged(self) -> None:
+        # ... and the selector must not turn into an exemption: a bad prototype in the selected block
+        # is still a finding.
+        page = (fenced("plain_fragment_at_file_scope;\n")
+                + fenced("/* ---- the sample ---- */\n"
+                         "xy_hal_error_t xy_hal_gpio_init(xy_hal_gpio_port_t port, uint16_t pin,\n"
+                         "                                const xy_hal_gpio_config_t *config);\n"))
+        problems = self.judged_marked(page, ("---- the sample ----",))
+        self.assertTrue(any("do not compile" in p for p in problems), problems)
+
+    # ---------------------------------------------------------------------------------------------
     # Footprint on the checked-in tree: the list must still name a page that exists, and the page
     # must still be the page being judged.
     # ---------------------------------------------------------------------------------------------
@@ -146,6 +183,15 @@ class DocSamplesCompileTest(unittest.TestCase):
         docs = [sample.doc for sample in guard.SAMPLES]
         self.assertIn("docs/api/API_REFERENCE.md", docs)
         self.assertEqual([], [doc for doc in docs if not (ROOT / doc).is_file()])
+
+    def test_the_real_list_names_the_project_overview_sample(self) -> None:
+        # The page taught `xy_hal_uart_open()`. The name sweep now sees the names; this case is what
+        # keeps the *signature* of the corrected sample inside a compiler's reach.
+        docs = [sample.doc for sample in guard.SAMPLES]
+        self.assertIn("docs/design/XinYi_Project_Overview.md", docs)
+        sample = [s for s in guard.SAMPLES if s.doc == "docs/design/XinYi_Project_Overview.md"][0]
+        self.assertTrue(sample.markers, "the overview page must select its sample by content")
+        self.assertEqual([], [root for root in sample.roots if not (ROOT / root).is_dir()])
 
 
 if __name__ == "__main__":

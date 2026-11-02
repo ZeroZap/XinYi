@@ -33,7 +33,12 @@
   `docs/hal/HAL_UNIFIED_API.md` teach — against the real PC HAL backend); the API-reference slice
   took 418 → 420 (`doc_samples_compile`, which compiles `docs/api/API_REFERENCE.md`'s 13 fenced C
   blocks against the headers the page documents, and `doc_samples_compile_unit`, its 12-case
-  self-test).
+  self-test). The design-docs slice added no CTest entry but widened both documentation guards:
+  `doc_api_symbols` now sweeps `docs/design`'s thirteen undated pages and skips the thirty-two dated
+  decisions by filename (48 → 61 documents), with six new self-test cases (31 → 37), and
+  `doc_samples_compile` gained a content-anchored block selector so the project overview's corrected
+  `xy_hal_uart_*` sample is compiled instead of the module preamble and new-file template beside it
+  (1 → 2 documents, 12 → 16 blocks, self-test 12 → 16).
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which

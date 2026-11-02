@@ -123,9 +123,26 @@
 ```c
 #include "xy_hal_uart.h"
 
-void *uart = xy_hal_uart_open(UART_PORT_1, 115200);
-xy_hal_uart_send(uart, data, len, 1000);
-xy_hal_uart_close(uart);
+/* 句柄由平台给出（板上是 &huart2），HAL 只使用它，不分配它 */
+void uart_demo(void *uart)
+{
+    xy_hal_uart_config_t config = {
+        .baudrate = 115200,
+        .wordlen  = XY_HAL_UART_WORDLEN_8B,
+        .stopbits = XY_HAL_UART_STOPBITS_1,
+        .parity   = XY_HAL_UART_PARITY_NONE,
+        .flowctrl = XY_HAL_UART_FLOWCTRL_NONE,
+        .mode     = XY_HAL_UART_MODE_TX_RX,
+    };
+    uint8_t buffer[16];
+
+    if (xy_hal_uart_init(uart, &config) != XY_HAL_OK) {
+        return;
+    }
+    xy_hal_uart_send(uart, (const uint8_t *)"Hello, XinYi!\n", 14, 100);
+    xy_hal_uart_recv(uart, buffer, sizeof(buffer), 100);
+    xy_hal_uart_deinit(uart);
+}
 ```
 
 ---
@@ -296,7 +313,7 @@ xy_log_e("错误：操作失败\n");
 
 | 组件 | 位置 | 用途 |
 |------|------|------|
-| **电池管理** | `components/Bank/` | 电源银行、电池充电、电量计 |
+| **电池管理** | 独立产品线（本仓尚无组件目录） | 电源银行、电池充电、电量计 |
 | **状态机** | `components/sys/` | 分层状态机框架 |
 | **定时器系统** | `components/sys/xy_timer/` | 软件定时器、调度 |
 | **IPC** | `components/ipc/` | 进程间通信 |
@@ -462,6 +479,8 @@ xy_log_e("错误：操作失败\n");
 | **格式化** | 提交前应用 clang-format |
 
 ### 文件结构
+
+（模板：把 `module_name` 换成你的模块名）
 
 ```c
 /**

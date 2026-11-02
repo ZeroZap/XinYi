@@ -29,11 +29,36 @@ claims. A path is a claim.
 
 Scope is the documents that instruct: `docs/getting-started/`, the HAL API reference
 (`docs/hal/`), the curated API index (`docs/api/`), the HAL component's own usage docs
-(`components/hal/`), and - since every newcomer lands on one - every `README.md` under
-`components/`. That last sweep is README-only on purpose:
+(`components/hal/`), the current design set (`docs/design/`), and - since every newcomer lands on
+one - every `README.md` under `components/`. That last sweep is README-only on purpose:
 `*_PLAN.md`, migration notes and the imported vendor trees are records, and judging them as usage
 would punish writing the plan down, which is the mistake this repository has already made once.
 `docs/history` records what was true when it was recorded and is not rewritten.
+
+`docs/design` is the awkward directory and is judged the same way a README sweep is: only the pages
+that describe the tree *now*. Thirty-two of its forty-five pages carry a date in the filename
+(`xinyi-crypto-source-ownership-map-2026-08-12.md`, `xinyi-gui-font-asset-generation-proposal-2026-08-11.md`),
+and a dated filename is the banner the exemption list has to insist on: the page says what was
+decided on that day, and rewriting its paths would falsify the record rather than fix a defect. So
+`record_document()` skips dated names inside `docs/design` only, and the thirteen undated pages -
+`XinYi_Project_Overview.md`, `Code_Style_Design_Guide.md`, `test_layout_analysis.md`,
+`xinyi-component-quality-loop.md`, `HAL_Component_Design_Overview.md` and their neighbours - are
+judged. Measured on the first run: **fourteen findings across those thirteen pages**, two of them
+the defect this whole file exists for.
+
+The findings also taught the rule set three things it had been reading too literally:
+
+- `xy_hal_<peripheral>_<operation>()` in `HAL_Component_Design_Overview.md` is a naming pattern. The
+  token regex stopped at the `<` and reported `xy_hal_` as a call, which is the same category error
+  the path rule already handled with `PLACEHOLDERS`: a name still being filled in is not a name.
+- a module-file template that writes `@file module_name.c` and then `#include "module_name.h"` is
+  describing the file a reader will create, not including a header that exists. The block's own
+  `@file` names it, so the include is skipped when the two stems agree - and only then.
+- `test_layout_analysis.md` records that `components/clib/xy_clib/test_filter.c` **已并入**
+  `tests/unit/clib/test_clib_core.c`, and `xinyi-component-quality-loop.md` says the repository
+  **没有** `tests/CMakeLists.txt`. Both are sentences about a path, neither is a pointer at one, and
+  both were reported. A merge verb now joins the removal verbs, and a line asserting absence joins
+  them too - an absent path a reader is *told* is absent is not a broken link.
 
 `docs/api` was added after its page was measured: `API_REFERENCE.md` taught `xy_os_thread_create()`
 and `xy_os_thread_t`, neither of which any header declares - the thread entry is `xy_os_thread_new()`
@@ -102,7 +127,17 @@ from source_scan import code_only, fenced_blocks, read_code  # noqa: E402
 ROOT = Path(__file__).resolve().parents[3]
 #: Directories judged as usage. `docs/api` is the curated API index - the page a reader opens to
 #: learn a signature, which makes it the most literal example of the thing this guard exists for.
-DOC_ROOTS = ("docs/getting-started", "docs/hal", "docs/api", "components/hal")
+#: `docs/design` is here because it is where the current design lives; its dated pages are records
+#: and `record_document()` skips them (see the module docstring).
+DOC_ROOTS = ("docs/getting-started", "docs/hal", "docs/api", "docs/design", "components/hal")
+#: A date in the filename is a record's own banner: `xinyi-ipc-event-group-proposal-2026-08-08.md`
+#: states what was decided on 2026-08-08. Rewriting its paths would replace the record with a
+#: quieter document, and the same reasoning that keeps `docs/history` out of this sweep applies.
+DATED_RECORD = re.compile(r"-\d{4}-\d{2}-\d{2}\.md$")
+#: Directories where a dated filename means record. Kept narrow on purpose: `docs/design` is the one
+#: directory whose undated pages are claims and whose dated pages are decisions, so the rule earns
+#: its keep there and nowhere else needs the exception.
+RECORD_ROOTS = ("docs/design",)
 #: Roots swept for `README.md` only. A component README is its front door - the page a newcomer
 #: copies from - so every one of them makes a compile claim. Restricting this sweep to README
 #: keeps design records (`*_PLAN.md`, migration notes, vendor articles) out of it; those are
@@ -161,6 +196,13 @@ EXEMPT: dict[str, str] = {
 TOKEN = re.compile(r"\bxy_[A-Za-z0-9_]+\b")
 INCLUDE = re.compile(r'^\s*#\s*include\s+"([^"]+)"')
 DEFINES_ITSELF = re.compile(r"^\s*#\s*define\s+(xy_[A-Za-z0-9_]+)")
+#: The `@file` line of a Doxygen header block: `@file module_name.c` names the file the block is
+#: about, which is how a template block declares that the header it includes is one a reader will
+#: create. Only a stem match makes an include a placeholder - everything else is still judged.
+OWN_FILE = re.compile(r"[@\\]file\s+([A-Za-z0-9_]+)\.[ch]\b")
+#: A token that runs into `<` is a naming pattern, exactly as `PLACEHOLDERS` treats a path:
+#: `xy_hal_<peripheral>_<operation>()` says how names are shaped, not that `xy_hal_` is a function.
+PATTERN_MARKERS = ("<", ">")
 
 #: Top-level directories a document may point a reader at. Restricting the prefix to these keeps
 #: the rule off prose that merely contains a slash.
@@ -171,11 +213,28 @@ PATH_REFERENCE = re.compile(
 CREATION_WORDS = ("创建", "新建", "create", "Create", "your")
 #: A line that records where something *used to be* is history, not a pointer. Only removal and
 #: migration verbs count: a bare mention of an old directory ("the legacy `components/charger/`
-#: framework") still fails, because a reader can still try to open it.
+#: framework") still fails, because a reader can still try to open it. Merge and converge verbs are
+#: in the same family - `test_filter.c` was not deleted, it was folded into `test_clib_core.c`.
 HISTORY_WORDS = ("removed", "Removed", "no longer", "deleted", "删除", "移除", "已迁移", "migrated",
-                 "renamed")
+                 "renamed", "并入", "合并", "收敛", "merged", "converged")
+#: A line that asserts the path is *absent* is not a pointer at it - the reader has been told.
+#: Unlike a bare old-path mention, there is no way to follow this sentence and be surprised.
+ABSENCE_WORDS = ("不存在", "没有", "does not exist", "not present", "nothing at")
 #: ... and a placeholder is not a path yet.
 PLACEHOLDERS = ("...", "<", ">", "*")
+
+
+def record_document(relative: str) -> bool:
+    """True when a swept path is a dated record rather than a page describing the tree today.
+
+    Only inside `RECORD_ROOTS`. The date must sit in the filename, because that is what a reader
+    sees in a directory listing and what the author wrote to announce "this is what we decided
+    then" - the same announcement the `EXEMPT` list demands of a banner, in the only place a page
+    can make it without editing its body.
+    """
+    if not any(relative == root or relative.startswith(root + "/") for root in RECORD_ROOTS):
+        return False
+    return bool(DATED_RECORD.search(relative.rsplit("/", 1)[-1]))
 
 
 def documents() -> list[Path]:
@@ -185,7 +244,8 @@ def documents() -> list[Path]:
         if not directory.is_dir():
             continue
         for path in sorted(directory.rglob("*.md")):
-            if path.relative_to(ROOT).as_posix() in EXEMPT:
+            relative = path.relative_to(ROOT).as_posix()
+            if relative in EXEMPT or record_document(relative):
                 continue
             found.append(path)
     for root in README_ROOTS:
@@ -279,6 +339,8 @@ def path_references(text: str) -> list[tuple[int, str]]:
             continue
         if any(word in line for word in HISTORY_WORDS):
             continue
+        if any(word in line for word in ABSENCE_WORDS):
+            continue
         for match in PATH_REFERENCE.finditer(line):
             token = match.group(1).rstrip("/")
             if any(mark in token for mark in PLACEHOLDERS):
@@ -315,6 +377,10 @@ def findings(paths: list[Path] | None = None,
         for start, lines in code_blocks(text):
             inspected_blocks += 1
             local = {m.group(1) for line in lines for m in [DEFINES_ITSELF.match(line)] if m}
+            # A template block names the file it is about (`@file module_name.c`) and then includes
+            # the header that file will have. Matching stems make the include a placeholder for the
+            # reader's own module; any other missing header is still a broken claim.
+            own = {m.group(1) for line in lines for m in [OWN_FILE.search(line)] if m}
             # A sample's own comments are prose: a block that writes down "the old spelling was
             # xy_hal_pin_write()" is explaining, not calling. Same rule as read_code() for headers.
             code = code_only("\n".join(lines)).splitlines()
@@ -323,12 +389,20 @@ def findings(paths: list[Path] | None = None,
                 include = INCLUDE.match(line)
                 if include:
                     header = Path(include.group(1)).name
+                    if Path(header).stem in own:
+                        continue
                     if header not in index_names:
                         problems.append(
                             f"{where}: includes \"{header}\", which is not a header in this repository - "
                             f"the reader cannot compile it")
                     continue
-                for token in TOKEN.findall(line):
+                for match in TOKEN.finditer(line):
+                    token = match.group()
+                    # `xy_hal_<peripheral>_<operation>()` is a naming pattern: the `<` says the name
+                    # is not finished. Reporting `xy_hal_` as a call is the same mistake as reading
+                    # a `<name>` path as a location.
+                    if line[match.end():match.end() + 1] in PATTERN_MARKERS:
+                        continue
                     if token in index_symbols or token in local:
                         continue
                     near = difflib.get_close_matches(token, index_symbols, n=1)

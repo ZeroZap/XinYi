@@ -382,4 +382,4 @@ extern "C" {
 - **C99 标准**: 语言规范
 - **Doxygen**: 文档生成工具
 - **Clang-Format**: 代码格式化工具
-- **项目文件**: `docs/rules/100-code_style/xy_code_style.md`、`xy_code_style.h`、`xy_code_style.c`
+- **项目文件**: `docs/rules/code_style.md`（格式化规则）、`docs/rules/C_Coding_Standard.md`（C 编码规范）
