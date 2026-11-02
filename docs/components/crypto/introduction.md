@@ -276,17 +276,16 @@ ctest --test-dir build/tests/unit -R '^crypto_(crc|random|encode|hash|cipher_hma
 
 ## 📚 相关文档
 
-- [算法详情](algorithms.md)
-- [API 参考](api-reference.md)
-- [使用示例](examples.md)
-- [平台选择指南](platform-guide.md)
+- [Crypto 组件源码约定](../../../components/crypto/README.md)
+- [Crypto API 参考](../../api/API_REFERENCE.md)
+- [HAL 统一 API](../../hal/HAL_UNIFIED_API.md)
 
 ---
 
 ## 📞 获取帮助
 
-- 📚 [API 文档](api-reference.md)
-- ❓ [常见问题](../about/faq.md)
+- 📚 [API 文档](../../api/API_REFERENCE.md)
+- ❓ [常见问题](../../about/faq.md)
 - 🐛 [报告问题](https://github.com/ZeroZap/XinYi/issues)
 
 ---

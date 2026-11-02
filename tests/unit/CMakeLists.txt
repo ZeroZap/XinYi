@@ -2232,6 +2232,16 @@ add_test(NAME doc_samples_compile
 add_test(NAME doc_samples_compile_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_check_doc_samples_compile.py)
 
+# A third claim about the same pages: `doc_api_symbols` judges the names in a snippet,
+# `doc_samples_compile` its signatures, and this one whether a reader can follow any of it. The
+# front door navigated to a planned tree (`build-system/`, `testing/`, one page per HAL peripheral)
+# that was never written, and the site config navigated to the same one.
+add_test(NAME doc_relative_links
+    COMMAND python3 ${UNIT_SUPPORT}/check_doc_relative_links.py)
+
+add_test(NAME doc_relative_links_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_doc_relative_links.py)
+
 add_test(NAME include_guard_collisions
     COMMAND python3 ${UNIT_SUPPORT}/check_include_guard_collisions.py)
 

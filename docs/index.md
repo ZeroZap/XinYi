@@ -1,103 +1,68 @@
 # XinYi 文档索引
 
+本页只列出**仓库中真实存在**的文档。早期版本索引里的一整套规划目录
+（`build-system/`、`testing/`、`architecture/`、`coding-standards/`、每个外设一页的 HAL 文档）
+从未落地，链接因此全是死链；现在改以实际目录结构为准。
+
 ## 快速导航
 
 ### 🚀 快速开始
 
+- [**5 分钟上手**](getting-started/QUICK_START.md) - 第一条可编译、可运行的路径
+- [**开发者指南**](getting-started/DEVELOPER_GUIDE.md) - 完整开发流程
+- [**工具链与环境**](getting-started/toolchain.md) - 交叉编译器与工具链位置
 - [**构建指南**](BUILD_GUIDE.md) - 构建目录说明和常用命令
-- [**API 参考**](API_REFERENCE.md) - 完整 API 文档
+- [**入门总览**](getting-started/introduction.md) - 项目定位与目录结构
 
 ### 📚 组件文档
 
-- [**HAL (硬件抽象层)**](components/hal/README.md)
-  - [GPIO](components/hal/xy_hal_gpio.md)
-  - [UART](components/hal/xy_hal_uart.md)
-  - [SPI](components/hal/xy_hal_spi.md)
-  - [I2C](components/hal/xy_hal_i2c.md)
-  - [ADC](components/hal/xy_hal_adc.md)
-  - [PWM](components/hal/xy_hal_pwm.md)
-  - [Timer](components/hal/xy_hal_timer.md)
-  - [RTC](components/hal/xy_hal_rtc.md)
-  - [DMA](components/hal/xy_hal_dma.md)
-  - [Flash](components/hal/xy_hal_flash.md)
-  - [Watchdog](components/hal/xy_hal_wdg.md)
-  - [RNG](components/hal/xy_hal_rng.md)
+- [**组件总览**](components/index.md) - 各组件状态、证据边界与 Sprint 事实
 
-- [**OSAL (操作系统抽象层)**](components/kernel/osal/README.md)
-  - [API 参考](components/kernel/osal/API_REFERENCE.md)
-  - [后端对比](components/kernel/osal/BACKEND_COMPARISON.md)
-  - [使用示例](components/kernel/osal/examples/)
+| 组件 | 文档 | 组件 | 文档 |
+|------|------|------|------|
+| OSAL | [简介](components/osal/introduction.md) | HAL | [简介](components/hal/introduction.md) |
+| Crypto | [简介](components/crypto/introduction.md) | CLib | [简介](components/clib/introduction.md) |
+| DM | [简介](components/dm/introduction.md) | NET | [简介](components/net/introduction.md) |
+| Sensor | [简介](components/sensor/introduction.md) | Device | [简介](components/device/introduction.md) |
+| IPC | [简介](components/ipc/introduction.md) | PM | [简介](components/pm/introduction.md) |
+| PID | [简介](components/pid/introduction.md) | ADDC | [简介](components/addc/introduction.md) |
+| FOTA | [简介](components/fota/introduction.md) | GUI | [简介](components/gui/introduction.md) |
+| Trace | [简介](components/trace/introduction.md) | 驱动模板 | [组件驱动模板](components/device/DRIVER_TEMPLATE.md) |
 
-- [**Device (设备框架)**](components/device/README.md)
-  - [设备模型](components/device/DEVICE_MODEL.md)
-  - [驱动开发](components/device/DRIVER_DEV.md)
-  - [总线模型](components/device/BUS_MODEL.md)
+### 🔧 API 参考
 
-- [**CLIB (C 标准库)**](components/clib/xy_clib/README.md)
-  - [API 参考](components/clib/xy_clib/xy_clib_apis.md)
-  - [使用指南](components/clib/xy_clib/USAGE_GUIDE.md)
+- [**API 索引**](api/index.md) - 按组件浏览的入口
+- [**API 参考**](api/API_REFERENCE.md) - 已核对的函数签名
+- [**HAL 统一 API**](hal/HAL_UNIFIED_API.md) - 句柄模型与外设接口
 
-- [**Crypto (密码学)**](components/crypto/README.md)
-  - [加密算法](components/crypto/ALGORITHMS.md)
-  - [API 参考](components/crypto/API_REFERENCE.md)
+### 🧭 硬件与平台
 
-- [**DM (数据管理)**](components/dm/README.md)
-  - [存储管理](components/dm/STORAGE.md)
-  - [数据格式](components/dm/FORMAT.md)
+- [**硬件概览**](hardware/index.md) - 支持的 MCU 与外设
+- [**开发板支持**](hardware/boards.md) - Pandora STM32L475VE 等板级事实
+- [**移植到新平台**](hardware/porting.md) - HAL 后端接入步骤
+- [**RTOS 选择指南**](hardware/rtos_selection_guide.md) - FreeRTOS/RT-Thread/RTX 对比
+- [**Pandora 板级记录**](hardware/pandora_stm32l475/) - 板级边界与证据
 
-- [**Net (网络)**](components/net/README.md)
-  - [协议栈](components/net/PROTOCOLS.md)
-  - [API 参考](components/net/API_REFERENCE.md)
+### 🧪 验证与计划
 
-- [**Trace (跟踪/日志)**](components/trace/README.md)
-  - [日志系统](components/trace/xy_log/README.md)
-  - [命令系统](components/trace/xy_cmd/README.md)
+- [**组件证据矩阵**](validation/component-evidence-matrix.md) - 每个组件到 B1/B2 的差距
+- [**HAL 平台证据矩阵**](validation/hal-platform-evidence-matrix.md) - 逐平台、逐外设状态
+- [**Sprint 跟踪看板**](plans/SPRINT_TRACKER.md) - 当前执行状态与阻塞
 
-### 🛠️ 开发工具
+### 📐 规范与设计
 
-- [**智能代理系统**](tools/smart_agent/README.md)
-  - [项目经理代理](tools/smart_agent/pm_agent.md)
-  - [架构师代理](tools/smart_agent/arch_agent.md)
-  - [开发工程师代理](tools/smart_agent/dev_agent.md)
-  - [测试工程师代理](tools/smart_agent/test_agent.md)
+- [**RULEBOOK**](rules/RULEBOOK.md) - 开发规则
+- [**代码风格**](rules/code_style.md) - 详细编码规范
+- [**C 编码标准（完整）**](rules/C_Coding_Standard_Full.md)
+- [**项目概览**](design/XinYi_Project_Overview.md)
+- [**单元测试清单**](design/unit-test-inventory.md) - 活跃 CTest 与覆盖归属
 
-- [**构建系统**](build-system/README.md)
-  - [CMake 配置](build-system/cmake.md)
-  - [Kconfig 配置](build-system/kconfig.md)
-  - [Makefile 使用](build-system/make.md)
+### ❓ 其他
 
-- [**编码规范**](coding-standards/README.md)
-  - [C 语言规范](coding-standards/c_coding_standard.md)
-  - [命名约定](coding-standards/naming_convention.md)
-  - [代码风格](coding-standards/code_style.md)
-
-### 🏗️ 架构文档
-
-- [**整体架构**](architecture/overview.md)
-- [**组件模型**](architecture/component_model.md)
-- [**设备模型**](architecture/device_model.md)
-- [**构建依赖**](architecture/build_dependency.md)
-- [**配置系统**](architecture/config_system.md)
-
-### 🧪 测试文档
-
-- [**测试策略**](testing/strategy.md)
-- [**单元测试**](testing/unit_test.md)
-- [**集成测试**](testing/integration_test.md)
-- [**性能测试**](testing/performance_test.md)
-
-### 📖 入门指南
-
-- [**快速开始**](getting-started/quickstart.md)
-- [**安装指南**](getting-started/installation.md)
-- [**开发教程**](getting-started/tutorial.md)
-- [**移植指南**](getting-started/porting_guide.md)
-
-### ❓ 常见问题
-
-- [**FAQ**](faq.md)
-- [**故障排除**](troubleshooting.md)
-- [**性能调优**](performance_tuning.md)
+- [**常见问题**](about/faq.md)
+- [**更新记录**](about/changelog.md)
+- [**贡献指南**](contribute/index.md)
+- [**示例代码**](samples/index.md)
 
 ---
 
@@ -128,9 +93,10 @@
 ### 编写规范
 
 1. 使用标准 Markdown 格式
-2. 遵循 [编码规范](coding-standards/code_style.md)
+2. 遵循 [编码规范](rules/code_style.md)
 3. 提供实际代码示例
-4. 保持文档与代码同步
+4. 保持文档与代码同步 —— 相对链接必须能从当前页面打开，`check_doc_relative_links.py` 会在
+   `make test-unit` 中判定
 
 ### 模板
 
@@ -177,6 +143,6 @@
 
 ---
 
-**最后更新**: 2026-02-28  
-**维护者**: XinYi Team  
+**最后更新**: 2026-11-02
+**维护者**: XinYi Team
 **许可证**: Apache License 2.0

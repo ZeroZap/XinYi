@@ -8,7 +8,7 @@
 ## 🚀 快速开始
 
 - [**构建指南**](BUILD_GUIDE.md) - **重要** - 构建目录说明和常用命令
-- [**快速入门**](getting-started/quickstart.md) - 5 分钟上手
+- [**快速入门**](getting-started/QUICK_START.md) - 5 分钟上手
 
 ---
 
@@ -49,7 +49,7 @@
 
 ### 🚀 快速开始 (getting-started/)
 
-- [快速入门](getting-started/quickstart.md) - 5 分钟上手
+- [快速入门](getting-started/QUICK_START.md) - 5 分钟上手
 
 ### 💻 硬件支持 (hardware/)
 
@@ -68,13 +68,13 @@
 ### 📋 编码规范 (rules/)
 
 - [RULEBOOK](rules/RULEBOOK.md) - 开发规则
-- [代码风格](rules/100-code_style/xy_code_style.md) - 详细编码规范
+- [代码风格](rules/code_style.md) - 详细编码规范
 
 ### 🗂️ 杂项文档 (misc/)
 
-- [6A 工作流](misc/6A 工作流详解.md) - 开发工作流说明
-- [嵌入式产品日志设计](misc/嵌入式产品日志设计.md) - 日志系统设计
-- [文档结构](misc/doc_struture.md) - 文档目录说明
+- [6A 工作流](misc/6A工作流详解.md) - 开发工作流说明
+- [日志系统](components/trace/introduction.md) - 日志/trace 组件设计与证据边界
+- [仓库阅读指南](rules/repo_guide.md) - 仓库结构、约定与阅读顺序
 - [AI 提示词](misc/ai-prompts/) - AI 辅助开发提示
 - [AI 技能](misc/ai-skills/) - AI 技能配置
 
@@ -104,7 +104,7 @@
 ## 🔍 快速查找
 
 ### 新手入门
-1. [快速入门](getting-started/quickstart.md)
+1. [快速入门](getting-started/QUICK_START.md)
 2. [项目概述](design/XinYi_Project_Overview.md)
 3. [示例代码](samples/index.md)
 

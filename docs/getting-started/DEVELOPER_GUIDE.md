@@ -266,8 +266,8 @@ make
 
 #### 第 1 周：基础了解
 
-- [ ] 阅读 [项目概述](docs/getting-started/introduction.md)
-- [ ] 学习 [代码风格规范](docs/rules/C_Coding_Standard_Full.md)
+- [ ] 阅读 [项目概述](introduction.md)
+- [ ] 学习 [代码风格规范](../rules/C_Coding_Standard_Full.md)
 - [ ] 运行示例项目
 - [ ] 理解项目结构
 
@@ -421,18 +421,18 @@ int process_data(uint8_t *data, size_t len) {
 
 | 文档 | 说明 |
 |------|------|
-| [项目概述](docs/getting-started/introduction.md) | 项目愿景和架构 |
-| [快速入门](docs/getting-started/quickstart.md) | 5 分钟上手 |
-| [代码风格](docs/rules/C_Coding_Standard_Full.md) | 完整编码规范 |
-| [组件文档](docs/components/index.md) | 各组件详细说明 |
-| [API 参考](docs/api/index.md) | API 文档 |
+| [项目概述](introduction.md) | 项目愿景和架构 |
+| [快速入门](QUICK_START.md) | 5 分钟上手 |
+| [代码风格](../rules/C_Coding_Standard_Full.md) | 完整编码规范 |
+| [组件文档](../components/index.md) | 各组件详细说明 |
+| [API 参考](../api/index.md) | API 文档 |
 
 ---
 
 ## 🤝 获取帮助
 
-- 📚 [文档索引](docs/README.md)
-- ❓ [常见问题](docs/about/faq.md)
+- 📚 [文档索引](../README.md)
+- ❓ [常见问题](../about/faq.md)
 - 💬 [GitHub Discussions](https://github.com/ZeroZap/XinYi/discussions)
 - 🐛 [报告问题](https://github.com/ZeroZap/XinYi/issues)
 

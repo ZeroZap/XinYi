@@ -26,7 +26,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_os_thread_create()` | 创建任务 | `xy_os.h` |
 | `xy_os_timer_sw_create()` | 创建定时器 | `xy_os_timer_sw.h` |
 
-[详细 API](../components/osal/api-reference.md)
+[组件文档与证据边界](../components/osal/introduction.md)
 
 ---
 
@@ -40,7 +40,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_hal_i2c_init()` | 初始化 I2C | `xy_hal_i2c.h` |
 | `xy_hal_timer_init()` | 初始化 Timer | `xy_hal_timer.h` |
 
-[详细 API](../components/hal/api-reference.md)
+[组件文档与证据边界](../components/hal/introduction.md)
 
 ---
 
@@ -55,7 +55,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_base64_encode()` | Base64 编码 | `xy_tiny_crypto.h` |
 | `xy_crc32()` | CRC32 校验 | `xy_tiny_crypto.h` |
 
-[详细 API](../components/crypto/api-reference.md)
+[组件文档与证据边界](../components/crypto/introduction.md)
 
 ---
 
@@ -69,7 +69,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_memcpy()` | 内存复制 | `xy_string.h` |
 | `xy_memset()` | 内存设置 | `xy_string.h` |
 
-[详细 API](../components/clib/api-reference.md)
+[组件文档与证据边界](../components/clib/introduction.md)
 
 ---
 
@@ -82,7 +82,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_tlv_iterator_init()` | 迭代器初始化 | `xy_tlv.h` |
 | `xy_tlv_find_by_type()` | 按类型查找 | `xy_tlv.h` |
 
-[详细 API](../components/dm/api-reference.md)
+[组件文档与证据边界](../components/dm/introduction.md)
 
 ---
 
@@ -95,7 +95,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `mb_slave_init()` | 初始化 Modbus | `mb_slave.h` |
 | `mb_slave_process()` | 处理 Modbus | `mb_slave.h` |
 
-[详细 API](../components/net/api-reference.md)
+[组件文档与证据边界](../components/net/introduction.md)
 
 ---
 
@@ -107,7 +107,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_sensor_read()` | 读取传感器 | `sensor_core.h` |
 | `xy_sensor_calibrate()` | 校准传感器 | `sensor_calibration.h` |
 
-[详细 API](../components/sensor/api-reference.md)
+[组件文档与证据边界](../components/sensor/introduction.md)
 
 ---
 
@@ -121,7 +121,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_observer_init()` | 初始化观察者 | `xy_observer.h` |
 | `xy_subject_notify()` | 通知观察者 | `xy_observer.h` |
 
-[详细 API](../components/ipc/api-reference.md)
+[组件文档与证据边界](../components/ipc/introduction.md)
 
 ---
 
@@ -134,7 +134,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_fuel_gauge_init()` | 初始化电量计 | `xy_fuel_gauge.h` |
 | `xy_fuel_gauge_get_soc()` | 获取 SOC | `xy_fuel_gauge.h` |
 
-[详细 API](../components/pm/api-reference.md)
+[组件文档与证据边界](../components/pm/introduction.md)
 
 ---
 
@@ -146,7 +146,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_pid_compute()` | PID 计算 | `xy_pid.h` |
 | `xy_pid_reset()` | 重置 PID | `xy_pid.h` |
 
-[详细 API](../components/pid/api-reference.md)
+[组件文档与证据边界](../components/pid/introduction.md)
 
 ---
 
@@ -159,7 +159,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_dac_init()` | 初始化 DAC | `xy_adc.h` |
 | `xy_dac_set_voltage()` | 设置 DAC 电压 | `xy_adc.h` |
 
-[详细 API](../components/addc/api-reference.md)
+[组件文档与证据边界](../components/addc/introduction.md)
 
 ---
 

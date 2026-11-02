@@ -152,7 +152,7 @@ make test
 
 ### 4. 开始开发
 
-参考 [快速入门指南](quickstart.md) 开始你的第一个项目！
+参考 [快速入门指南](QUICK_START.md) 开始你的第一个项目！
 
 ---
 
@@ -160,7 +160,7 @@ make test
 
 | 类别 | 文档 |
 |------|------|
-| 快速开始 | [快速入门](quickstart.md) |
+| 快速开始 | [快速入门](QUICK_START.md) |
 | 组件文档 | [组件总览](../components/index.md) |
 | API 参考 | [API 索引](../api/index.md) |
 | 编码规范 | [代码风格指南](../design/Code_Style_Design_Guide.md) |
@@ -185,7 +185,7 @@ make test
 
 ## 📞 获取帮助
 
-- 📚 [文档索引](README.md)
+- 📚 [文档索引](../README.md)
 - ❓ [常见问题](../about/faq.md)
 - 💬 [GitHub Discussions](https://github.com/ZeroZap/XinYi/discussions)
 - 🐛 [报告问题](https://github.com/ZeroZap/XinYi/issues)

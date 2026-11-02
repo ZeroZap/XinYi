@@ -13,8 +13,8 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 420 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 420`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 422 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 422`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -45,7 +45,13 @@
   documents (self-test 37 → 41); `doc_samples_compile` now requires **every** marker to still select
   a block (an OR selector with one stale marker silently compiled a smaller set) and compiles
   `docs/hardware/porting.md`'s naming contract and functional demo (2 → 3 documents, 16 → 19 blocks,
-  self-test 16 → 18).
+  self-test 16 → 18). The relative-link slice took 420 → 422 (`doc_relative_links`, which judges
+  whether a reader can open what a page links to, and `doc_relative_links_unit`, its 30-case
+  self-test): the front door `docs/index.md` navigated a planned tree that was never written (66 of
+  its links dead), 21 entries in `docs/components/index.md` were written from the repository root
+  while the page sits one level down, and `docs/mkdocs.yml` offered 39 of 58 navigation entries for
+  pages that do not exist. The sweep covers 85 documents and 231 relative links; `docs/history`,
+  `docs/plans`, dated `docs/design` records and imported vendor READMEs are skipped with reasons.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which

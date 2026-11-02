@@ -60,9 +60,9 @@
 - 软件定时器与 Tick：Host contract；不能外推为所有 RTOS backend runtime 通过
 
 **文档**:
-- [简介](components/osal/introduction.md)
-- [快速开始](components/osal/quickstart.md)
-- [API 参考](components/osal/api-reference.md)
+- [简介](osal/introduction.md)
+- [快速开始](../getting-started/QUICK_START.md)
+- [API 参考](../api/API_REFERENCE.md)
 
 ---
 
@@ -83,9 +83,9 @@
 - PC simulation（Host contract）
 
 **文档**:
-- [简介](components/hal/introduction.md)
-- [支持平台](components/hal/platforms.md)
-- [API 参考](components/hal/api-reference.md)
+- [简介](hal/introduction.md)
+- [支持平台](../hardware/boards.md)
+- [API 参考](../hal/HAL_UNIFIED_API.md)
 
 ---
 
@@ -102,9 +102,9 @@
 - ✅ 随机数生成
 
 **文档**:
-- [简介](components/crypto/introduction.md)
-- [算法列表](components/crypto/algorithms.md)
-- [API 参考](components/crypto/api-reference.md)
+- [简介](crypto/introduction.md)
+- [算法列表](../../components/crypto/README.md)
+- [API 参考](../api/API_REFERENCE.md)
 
 ---
 
@@ -112,17 +112,17 @@
 
 查看各组件详细文档：
 
-- [CLib - 自定义 C 库](components/clib/index.md)
-- [DM - 数据管理](components/dm/index.md)
-- [NET - 网络协议](components/net/index.md)
-- [Sensor - 传感器框架](components/sensor/index.md)
-- [IPC - 进程间通信](components/ipc/index.md)
-- [PM - 电源管理](components/pm/index.md)
-- [PID - 控制算法](components/pid/index.md)
-- [ADDC - ADC/DAC 辅助](components/addc/index.md)
-- [FOTA - 固件升级](components/fota/index.md)
-- [GUI - 图形界面](components/gui/index.md)
-- [Trace - 日志系统](components/trace/index.md)
+- [CLib - 自定义 C 库](clib/introduction.md)
+- [DM - 数据管理](dm/introduction.md)
+- [NET - 网络协议](net/introduction.md)
+- [Sensor - 传感器框架](sensor/introduction.md)
+- [IPC - 进程间通信](ipc/introduction.md)
+- [PM - 电源管理](pm/introduction.md)
+- [PID - 控制算法](pid/introduction.md)
+- [ADDC - ADC/DAC 辅助](addc/introduction.md)
+- [FOTA - 固件升级](fota/introduction.md)
+- [GUI - 图形界面](gui/introduction.md)
+- [Trace - 日志系统](trace/introduction.md)
 
 FOTA：Host fail-closed contract；board Flash、bootloader、secure provider 与实板 pending。其
 Host metadata journal、callback 和错误边界不能升级为可烧录镜像、真实掉电恢复或安全批准。
@@ -166,7 +166,7 @@ Host metadata journal、callback 和错误边界不能升级为可烧录镜像�
 
 ## 📞 需要帮助？
 
-- 📚 [组件开发指南](components/index.md)
+- 📚 [文档中心](../README.md)
 - ❓ [常见问题](../about/faq.md)
 - 💬 [GitHub Discussions](https://github.com/ZeroZap/XinYi/discussions)
 

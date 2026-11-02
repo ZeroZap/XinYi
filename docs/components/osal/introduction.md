@@ -329,17 +329,17 @@ ctest --test-dir build/tests/unit -R '^osal_baremetal$' --output-on-failure
 
 ## 📚 相关文档
 
-- [RTOS 选择指南](../docs/rtos_selection_guide.md)
-- [API 参考](api-reference.md)
-- [示例代码](examples.md)
-- [移植指南](porting.md)
+- [RTOS 选择指南](../../hardware/rtos_selection_guide.md)
+- [OSAL API 参考](../../api/API_REFERENCE.md)
+- [移植到新平台](../../hardware/porting.md)
+- [OSAL 组件源码约定](../../../components/kernel/osal/README.md)
 
 ---
 
 ## 📞 获取帮助
 
-- 📚 [API 文档](api-reference.md)
-- ❓ [常见问题](../about/faq.md)
+- 📚 [API 文档](../../api/API_REFERENCE.md)
+- ❓ [常见问题](../../about/faq.md)
 - 🐛 [报告问题](https://github.com/ZeroZap/XinYi/issues)
 
 ---

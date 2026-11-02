@@ -275,5 +275,5 @@ RT-Thread 与 CMSIS-RTX 后端**在本构建中不可达**：`components/kernel/
 ## 参考
 
 - [Third Party README](../../third_party/README.md)
-- [OSAL README](components/kernel/osal/README.md)
-- [构建指南](docs/build_guide.md)
+- [OSAL README](../../components/kernel/osal/README.md)
+- [构建指南](../BUILD_GUIDE.md)

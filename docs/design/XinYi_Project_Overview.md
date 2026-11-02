@@ -462,9 +462,9 @@ xy_log_e("错误：操作失败\n");
 
 所有代码**必须**遵循:
 
-1. **[xy_code_style.md](docs/rules/100-code_style/xy_code_style.md)** - 详细的 C 编码约定
-2. **[RULEBOOK.md](docs/rules/RULEBOOK.md)** - 开发规则和指南
-3. **[.clang-format](.clang-format)** - 自动化代码格式化
+1. **[xy_code_style.md](../rules/code_style.md)** - 详细的 C 编码约定
+2. **[RULEBOOK.md](../rules/RULEBOOK.md)** - 开发规则和指南
+3. **[.clang-format](../../.clang-format)** - 自动化代码格式化
 
 ### 快速参考
 
@@ -668,8 +668,8 @@ make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON;FOTA_ENABLED=ON"
 ### 提交代码前
 
 1. **阅读文档**
-   - [RULEBOOK.md](docs/rules/RULEBOOK.md) - 开发规则
-   - [xy_code_style.md](docs/rules/100-code_style/xy_code_style.md) - 编码标准
+   - [RULEBOOK.md](../rules/RULEBOOK.md) - 开发规则
+   - [xy_code_style.md](../rules/code_style.md) - 编码标准
 
 2. **格式化代码**
    ```bash
@@ -774,10 +774,10 @@ Fixes: #issue_number
 
 ### 文档
 
-- **主 README**: [ReadMe.md](ReadMe.md)
-- **中文 README**: [ReadMe-cn.md](ReadMe-cn.md)
-- **开发规则**: [RULEBOOK.md](docs/rules/RULEBOOK.md)
-- **编码标准**: [xy_code_style.md](docs/rules/100-code_style/xy_code_style.md)
+- **主 README**: [README.md](../../README.md)
+- **中文规则**: [RULEBOOK.zh-CN.md](../rules/RULEBOOK.zh-CN.md)
+- **开发规则**: [RULEBOOK.md](../rules/RULEBOOK.md)
+- **编码标准**: [xy_code_style.md](../rules/code_style.md)
 - **组件文档**: 各组件目录中的 README.md
 
 ### 获取帮助

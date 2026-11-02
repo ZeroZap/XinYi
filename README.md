@@ -634,8 +634,8 @@ Application Projects
 
 All code **MUST** follow:
 
-1. **[xy_code_style.md](xy_code_style.md)** - Detailed C coding conventions
-2. **[RULEBOOK.md](RULEBOOK.md)** - Development rules and guidelines
+1. **[docs/rules/code_style.md](docs/rules/code_style.md)** - Detailed C coding conventions
+2. **[docs/rules/RULEBOOK.md](docs/rules/RULEBOOK.md)** - Development rules and guidelines
 3. **[.clang-format](.clang-format)** - Automated code formatting
 
 ### Quick Reference
@@ -838,8 +838,8 @@ Each component includes:
 ### Before Submitting Code
 
 1. **Read Documentation**
-   - [RULEBOOK.md](RULEBOOK.md) - Development rules
-   - [xy_code_style.md](xy_code_style.md) - Coding standards
+   - [docs/rules/RULEBOOK.md](docs/rules/RULEBOOK.md) - Development rules
+   - [docs/rules/code_style.md](docs/rules/code_style.md) - Coding standards
 
 2. **Format Code**
    ```bash
@@ -944,10 +944,10 @@ Fixes: #issue_number
 
 ### Documentation
 
-- **Main README**: [ReadMe.md](ReadMe.md)
-- **Chinese README**: [ReadMe-cn.md](ReadMe-cn.md)
-- **Development Rules**: [RULEBOOK.md](RULEBOOK.md)
-- **Coding Standards**: [xy_code_style.md](xy_code_style.md)
+- **Documentation Centre**: [docs/README.md](docs/README.md)
+- **Chinese Rules**: [docs/rules/RULEBOOK.zh-CN.md](docs/rules/RULEBOOK.zh-CN.md)
+- **Development Rules**: [docs/rules/RULEBOOK.md](docs/rules/RULEBOOK.md)
+- **Coding Standards**: [docs/rules/code_style.md](docs/rules/code_style.md)
 - **Component Docs**: Individual README.md in each component
 
 ### Getting Help

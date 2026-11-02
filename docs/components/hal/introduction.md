@@ -247,17 +247,17 @@ ctest -R test_hal --output-on-failure
 
 ## 📚 相关文档
 
-- [支持平台](platforms.md)
-- [API 参考](api-reference.md)
-- [移植指南](porting.md)
-- [错误码](error-codes.md)
+- [HAL 统一 API](../../hal/HAL_UNIFIED_API.md)
+- [硬件与开发板概览](../../hardware/boards.md)
+- [移植到新平台](../../hardware/porting.md)
+- [HAL 组件源码约定](../../../components/hal/README.md)
 
 ---
 
 ## 📞 获取帮助
 
-- 📚 [API 文档](api-reference.md)
-- ❓ [常见问题](../about/faq.md)
+- 📚 [API 文档](../../hal/HAL_UNIFIED_API.md)
+- ❓ [常见问题](../../about/faq.md)
 - 🐛 [报告问题](https://github.com/ZeroZap/XinYi/issues)
 
 ---

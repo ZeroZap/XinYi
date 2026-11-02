@@ -49,72 +49,60 @@ theme:
 nav:
   - 首页: index.md
   - 快速开始:
-    - 简介: getting-started/introduction.md
-    - 特性一览: getting-started/features.md
-    - 5 分钟上手: getting-started/quickstart.md
-    - 开发环境: getting-started/toolchain.md
-    - 构建指南: getting-started/build.md
-    - 运行测试: getting-started/testing.md
+    - 文档中心: README.md
+    - 项目简介: getting-started/introduction.md
+    - 5 分钟上手: getting-started/QUICK_START.md
+    - 开发者指南: getting-started/DEVELOPER_GUIDE.md
+    - 开发环境与工具链: getting-started/toolchain.md
+    - 构建指南: BUILD_GUIDE.md
   - 组件文档:
     - 组件总览: components/index.md
-    - OSAL:
-      - 简介: components/osal/introduction.md
-      - 快速开始: components/osal/quickstart.md
-      - 配置指南: components/osal/configuration.md
-      - API 参考: components/osal/api-reference.md
-      - 示例代码: components/osal/examples.md
-    - HAL:
-      - 简介: components/hal/introduction.md
-      - 支持平台: components/hal/platforms.md
-      - 外设驱动: components/hal/drivers.md
-      - API 参考: components/hal/api-reference.md
-      - 移植指南: components/hal/porting.md
-    - Crypto:
-      - 简介: components/crypto/introduction.md
-      - 算法列表: components/crypto/algorithms.md
-      - API 参考: components/crypto/api-reference.md
-      - 使用示例: components/crypto/examples.md
-    - CLib: components/clib/index.md
-    - DM: components/dm/index.md
-    - NET: components/net/index.md
-    - Sensor: components/sensor/index.md
-    - IPC: components/ipc/index.md
-    - PM: components/pm/index.md
-    - PID: components/pid/index.md
-    - ADDC: components/addc/index.md
-    - FOTA: components/fota/index.md
-    - GUI: components/gui/index.md
+    - OSAL: components/osal/introduction.md
+    - HAL: components/hal/introduction.md
+    - Crypto: components/crypto/introduction.md
+    - CLib: components/clib/introduction.md
+    - DM: components/dm/introduction.md
+    - NET: components/net/introduction.md
+    - Sensor: components/sensor/introduction.md
+    - Device: components/device/introduction.md
+    - IPC: components/ipc/introduction.md
+    - PM: components/pm/introduction.md
+    - PID: components/pid/introduction.md
+    - ADDC: components/addc/introduction.md
+    - FOTA: components/fota/introduction.md
+    - GUI: components/gui/introduction.md
+    - Trace: components/trace/introduction.md
+    - 驱动模板: components/device/DRIVER_TEMPLATE.md
   - API 参考:
     - 索引: api/index.md
-    - 按组件: api/by-component.md
-    - 按功能: api/by-function.md
-    - 全局宏: api/macros.md
-    - 错误码: api/error-codes.md
-    - 术语表: api/glossary.md
-  - 示例代码:
-    - 概述: samples/index.md
-    - Hello World: samples/hello-world.md
-    - 组件示例: samples/components.md
-    - 综合项目: samples/projects.md
-  - 工具链:
-    - 概述: toolchain/index.md
-    - 构建系统: toolchain/build-system.md
-    - 测试框架: toolchain/test-framework.md
-    - CI/CD: toolchain/cicd.md
-    - 代码风格: toolchain/code-style.md
+    - 函数签名: api/API_REFERENCE.md
+    - 汇总参考: API_REFERENCE.md
+    - HAL 统一 API: hal/HAL_UNIFIED_API.md
   - 硬件支持:
     - 概述: hardware/index.md
     - 支持的开发板: hardware/boards.md
     - 移植指南: hardware/porting.md
+    - RTOS 选择: hardware/rtos_selection_guide.md
+  - 验证与计划:
+    - 组件证据矩阵: validation/component-evidence-matrix.md
+    - HAL 平台证据矩阵: validation/hal-platform-evidence-matrix.md
+    - Sprint 跟踪: plans/SPRINT_TRACKER.md
+  - 规范与设计:
+    - RULEBOOK: rules/RULEBOOK.md
+    - 代码风格: rules/code_style.md
+    - C 编码标准: rules/C_Coding_Standard_Full.md
+    - 仓库阅读指南: rules/repo_guide.md
+    - 项目概览: design/XinYi_Project_Overview.md
+    - 单元测试清单: design/unit-test-inventory.md
+  - 示例代码:
+    - 概述: samples/index.md
   - 贡献指南:
     - 概述: contribute/index.md
     - 代码风格: contribute/code-style.md
     - 提交 PR: contribute/submit-pr.md
-    - 报告 Bug: contribute/bug-report.md
   - 关于:
     - 项目简介: about/index.md
     - 更新日志: about/changelog.md
-    - 路线图: about/roadmap.md
     - 常见问题: about/faq.md
 
 # 插件配置
