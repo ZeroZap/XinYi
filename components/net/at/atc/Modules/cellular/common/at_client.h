@@ -101,8 +101,20 @@ typedef struct {
 
 /**
  * @brief 初始化AT客户端
+ *
+ * 返回单例客户端。**已经注册过的设备会在这里被释放**——重复调用不会泄漏，
+ * 但此前拿到的 @ref at_device_t 指针随即失效。先调用 at_urc_deinit() 归还
+ * URC 分发槽位，再重新初始化，否则那个槽位会指向已释放的内存。
  */
 at_client_t *at_client_init(void);
+
+/**
+ * @brief 释放所有已注册设备并清空注册表
+ *
+ * 与 at_client_init() 的区别只是不重新建立客户端。调用后所有 at_device_t*
+ * 失效。
+ */
+void at_client_deinit(void);
 
 /**
  * @brief 注册AT设备
@@ -154,11 +166,17 @@ int at_readline(at_device_t *dev, char *buffer, uint32_t size);
 
 /**
  * @brief 等待特定响应
+ *
+ * @param dev    AT设备；NULL、未挂 tick/读字节回调的设备一律返回 false
+ * @param expect 期待的响应片段；NULL 返回 false
+ * @return true 表示在超时前读到了包含 expect 的行
  */
 bool at_expect(at_device_t *dev, const char *expect, uint32_t timeout);
 
 /**
  * @brief 获取设备统计信息
+ *
+ * @param err 错误计数：AT_RESP_ERROR（模块回 ERROR）与 AT_RESP_TIMEOUT 各计一次
  */
 void at_get_stats(at_device_t *dev, uint32_t *tx, uint32_t *rx, uint32_t *err);
 #endif /* AT_CLIENT_H */

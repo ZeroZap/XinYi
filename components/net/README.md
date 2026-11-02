@@ -65,28 +65,53 @@ remain direct opt-ins with Host contracts only, pending controller/modem board e
 
 ## AT Client/Server Architecture
 
-### Available Implementations
+### The built owners
 
-1. **AT-Command-V2** - Modern AT command framework with command registration
-2. **ats** - Lightweight AT command server
-3. **atc** - Basic AT command client
-4. **FreeRTOS-Cellular-Interface** - FreeRTOS integration for cellular modules
-5. **rtthread-at** - RT-Thread OS AT package
+Only two AT implementations are compiled by this repository: `at_client.c` (with
+`at_client.h`) for the client and `xy_ats.c` for the server. The client is opt-in
+(`XY_PROTO_AT_CLIENT=ON`) and needs three port callbacks: read one byte, write a
+buffer, and a monotonic millisecond tick. Everything else under
+`components/net/at/` — the `atc` module tree, AT-Command-V2, FreeRTOS-Cellular-Interface
+and RT-Thread AT — is reference/imported material, not linked into `xy_net`.
+
+**`atc/core/xy_at_client.h` is a design sketch, not an API you can call.** Nothing in
+this tree defines `xy_at_client_create()`, `xy_at_create_resp()`, `xy_at_exec_cmd()`,
+`xy_at_delete_resp()`, `xy_at_client_delete()` or `xy_at_client_set_hal()`; a program
+written against that header compiles and then fails to link with six undefined
+references. The header carries the same warning for the next reader.
 
 ### Quick Start (Active AT Client)
 
+The runnable form of this listing is `components/net/examples/at_client_quickstart.c`:
+`make test-unit` compiles and runs it as CTest `net_at_quickstart`, so this sample
+cannot drift from the implementation again (the previous revision of this section
+taught an API with no implementation at all).
+
 ```c
-#include "xy_at_client.h"
+#include "at_client.h"
 
-xy_at_client_t *client = xy_at_client_create("modem", 256, 1024);
-xy_at_client_set_hal(client, modem_get_char, modem_send, modem_recv);
+static int modem_read_byte(at_device_t *dev);                    /* -1 when idle  */
+static void modem_write(at_device_t *dev, const uint8_t *data, uint32_t len);
+static at_tick_t modem_tick(void);                               /* milliseconds  */
 
-xy_at_response_t *resp = xy_at_create_resp(256, 0, 1000);
-xy_at_exec_cmd(client, resp, "AT");
+void modem_demo(void)
+{
+    at_client_init();
+    at_device_t *dev = at_device_register("modem", modem_read_byte, modem_write,
+                                          modem_tick, NULL);
 
-xy_at_delete_resp(resp);
-xy_at_client_delete(client);
+    if (at_send_command(dev, "AT", NULL, NULL, 100) == AT_RESP_OK) {
+        /* a query usually answers with its own line first: at_expect() skips noise */
+        at_expect(dev, "+CSQ:", 100);
+    }
+
+    at_client_deinit();   /* releases every registered device */
+}
 ```
+
+`at_client_init()` is a reset, not an add: it releases anything a previous call
+registered, so the device pointers from before it are invalid. Call `at_urc_deinit()`
+first if the device was also attached to URC dispatch.
 
 ## Modbus RTU Slave
 

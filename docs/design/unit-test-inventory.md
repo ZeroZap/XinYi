@@ -13,8 +13,8 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 416 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 416`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 417 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 417`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -25,7 +25,9 @@
   `sensor_example_advanced`, `sensor_example_multi`, each compiling and running one of
   `basic.c` / `advanced.c` / `example_multi_sensors.c`); the AT URC slice took 415 → 416 (`at_urc`,
   which compiles `at_urc.c` — previously referenced by no build at all — and runs it against the
-  `at_client.c` `at_readline()` implementation).
+  `at_client.c` `at_readline()` implementation); the AT quick-start slice took 416 → 417
+  (`net_at_quickstart`, which compiles and runs `components/net/examples/at_client_quickstart.c` —
+  the sample `components/net/README.md` teaches — against the real `at_client.c`).
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -207,7 +209,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/mux/test_mux_i2c.c` | `unity` | 37 |
 | `tests/unit/mux/test_mux_spi.c` | `unity` | 12 |
 | `tests/unit/mux/test_mux_uart.c` | `unity` | 13 |
-| `tests/unit/net/test_at_client_core.c` | `unity` | 23 |
+| `tests/unit/net/test_at_client_core.c` | `unity` | 26 |
 | `tests/unit/net/test_at_server_core.c` | `unity` | 10 |
 | `tests/unit/net/test_at_urc_core.c` | `unity` | 25 | AT URC dispatcher: device-slot lifecycle (cap `AT_MAX_DEVICES`, idempotent init, deinit), `dev->user_data` left to the caller, handler register/unregister/set_enable/clear with stable ids, prefix/suffix/contain/exact line semantics, first-match-wins, built-in `ATE`/`RDY` fallback that user handlers can override, stats, re-entrancy refusal, 255-byte line truncation, and `at_urc_poll()` through `at_readline()`. |
 | `tests/unit/net/test_can.c` | `unity` | 0 |

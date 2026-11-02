@@ -34,11 +34,32 @@ static bool default_resp_handler(at_device_t *dev, const char *resp_line,
     return false; /* 继续处理下一行 */
 }
 
+/* 释放注册表里的每一个设备（at_client_init() 与 at_client_deinit() 共用） */
+static void at_release_devices(void)
+{
+    for (uint8_t i = 0; i < g_at_client.device_count; i++) {
+        free(g_at_client.devices[i]);
+        g_at_client.devices[i] = NULL;
+    }
+    g_at_client.device_count   = 0;
+    g_at_client.default_device = 0;
+}
+
 /* 初始化AT客户端 */
 at_client_t *at_client_init(void)
 {
+    /* at_client_init() 在这份实现里就是“重置单例”：不释放上一次注册的设备，
+       重复调用会让它们永远无法归还——ASan 实测一枚 1128 字节的 direct leak。 */
+    at_release_devices();
     memset(&g_at_client, 0, sizeof(g_at_client));
     return &g_at_client;
+}
+
+/* 释放所有设备并清空注册表 */
+void at_client_deinit(void)
+{
+    at_release_devices();
+    memset(&g_at_client, 0, sizeof(g_at_client));
 }
 
 /* 注册AT设备 */
@@ -130,6 +151,12 @@ at_resp_type_t at_send_command(at_device_t *dev, const char *cmd,
 
     /* 等待并处理响应（带超时） */
     at_resp_type_t result = at_process_response(dev);
+
+    /* 错误计数是 at_get_stats() 的第三个输出，此前没有任何地方写过它，
+       于是调用者永远读到 0——一个计数从来不会增加的计数器比没有更糟。 */
+    if (result == AT_RESP_ERROR || result == AT_RESP_TIMEOUT) {
+        dev->error_count++;
+    }
 
     dev->is_busy = false;
     AT_MUTEX_UNLOCK(dev->mutex);
@@ -238,6 +265,10 @@ int at_send_raw(at_device_t *dev, const uint8_t *data, uint32_t len)
 /* 等待特定响应 */
 bool at_expect(at_device_t *dev, const char *expect, uint32_t timeout)
 {
+    if (!dev || !dev->get_tick || !dev->read_byte || !expect) {
+        return false;
+    }
+
     at_tick_t start = dev->get_tick();
     char buffer[256];
 

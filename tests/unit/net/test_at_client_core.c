@@ -57,6 +57,9 @@ void setUp(void)
 
 void tearDown(void)
 {
+    /* at_device_register() 里的设备是 malloc 出来的；不放回去，每一条用例都会把
+       它留在单例里。tearDown 里归还，测试二进制在 ASan/LSan 下才是干净的。 */
+    at_client_deinit();
 }
 
 static at_tick_t mock_get_tick_impl(void)
@@ -252,6 +255,92 @@ static void test_raw_readline_expect_and_stats(void)
     TEST_ASSERT_GREATER_OR_EQUAL_UINT32(sizeof(raw), tx);
 }
 
+static void test_expect_refuses_invalid_input(void)
+{
+    reset_io();
+    at_client_init();
+
+    /* NULL 设备过去在 at_expect() 里直接 dev->get_tick() —— 实测 SIGSEGV（rc=139）。
+       公共 API 的无效入参一律返回 false，且不碰总线。 */
+    TEST_ASSERT_FALSE(at_expect(NULL, "OK", 10));
+    TEST_ASSERT_EQUAL_UINT32(0, g_tx_len);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_read_byte_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_get_tick_fake.call_count);
+
+    at_device_t *dev = at_device_register("modem", mock_read_byte, mock_write, mock_get_tick, NULL);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_FALSE(at_expect(dev, NULL, 10));
+
+    /* 手搭出来的设备（没经过 register）可能缺回调；同样拒绝而不是解引用。 */
+    at_device_t bare = {0};
+    bare.get_tick = mock_get_tick;
+    TEST_ASSERT_FALSE(at_expect(&bare, "OK", 10));
+    bare.read_byte = mock_read_byte;
+    bare.get_tick = NULL;
+    TEST_ASSERT_FALSE(at_expect(&bare, "OK", 10));
+}
+
+static void test_error_and_timeout_are_counted(void)
+{
+    reset_io();
+    at_client_init();
+    at_device_t *dev = at_device_register("modem", mock_read_byte, mock_write, mock_get_tick, NULL);
+    TEST_ASSERT_NOT_NULL(dev);
+
+    uint32_t tx = 0, rx = 0, err = 0;
+
+    mock_feed("OK\r\n");
+    TEST_ASSERT_EQUAL(AT_RESP_OK, at_send_command(dev, "AT", NULL, NULL, 100));
+    at_get_stats(dev, &tx, &rx, &err);
+    TEST_ASSERT_EQUAL_UINT32(0, err);
+
+    /* error_count 此前没有任何写入点：at_get_stats() 的第三个输出永远是 0。 */
+    reset_io();
+    mock_feed("ERROR\r\n");
+    TEST_ASSERT_EQUAL(AT_RESP_ERROR, at_send_command(dev, "AT+BAD", NULL, NULL, 100));
+    at_get_stats(dev, &tx, &rx, &err);
+    TEST_ASSERT_EQUAL_UINT32(1, err);
+
+    reset_io();
+    mock_feed("");
+    TEST_ASSERT_EQUAL(AT_RESP_TIMEOUT, at_send_command(dev, "AT", NULL, NULL, 3));
+    at_get_stats(dev, &tx, &rx, &err);
+    TEST_ASSERT_EQUAL_UINT32(2, err);
+
+    /* 成功的一条不计数。 */
+    reset_io();
+    mock_feed("OK\r\n");
+    TEST_ASSERT_EQUAL(AT_RESP_OK, at_send_command(dev, "AT", NULL, NULL, 100));
+    at_get_stats(dev, &tx, &rx, &err);
+    TEST_ASSERT_EQUAL_UINT32(2, err);
+}
+
+static void test_deinit_releases_the_registry(void)
+{
+    reset_io();
+    at_client_t *client = at_client_init();
+    TEST_ASSERT_NOT_NULL(client);
+
+    at_device_t *dev = at_device_register("modem", mock_read_byte, mock_write, mock_get_tick, NULL);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_EQUAL_UINT8(1, client->device_count);
+
+    at_client_deinit();
+    TEST_ASSERT_EQUAL_UINT8(0, client->device_count);
+    TEST_ASSERT_EQUAL_UINT8(0, client->default_device);
+    TEST_ASSERT_NULL(client->devices[0]);
+
+    /* 注册表空了：没有默认设备可发，旧指针也不再被认作注册成员。 */
+    TEST_ASSERT_EQUAL(AT_RESP_ERROR, at_send_cmd("AT", NULL, NULL, 100));
+    TEST_ASSERT_EQUAL_INT(-1, at_set_default_device(dev));
+
+    /* 重新注册从 id 0 开始，说明计数确实被清过，而不是只把条目指空。 */
+    at_device_t *again = at_device_register("again", mock_read_byte, mock_write, mock_get_tick, NULL);
+    TEST_ASSERT_NOT_NULL(again);
+    TEST_ASSERT_EQUAL_UINT8(0, again->id);
+    TEST_ASSERT_EQUAL_UINT8(1, client->device_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -260,5 +349,8 @@ int main(void)
     RUN_TEST(test_send_command_validation_and_busy_state);
     RUN_TEST(test_ok_error_timeout_and_custom_response);
     RUN_TEST(test_raw_readline_expect_and_stats);
+    RUN_TEST(test_expect_refuses_invalid_input);
+    RUN_TEST(test_error_and_timeout_are_counted);
+    RUN_TEST(test_deinit_releases_the_registry);
     return UNITY_END();
 }

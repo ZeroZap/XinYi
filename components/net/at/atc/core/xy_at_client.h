@@ -5,6 +5,16 @@
  * @date 2025-10-27
  *
  * @note This implementation uses XY OSAL for cross-platform compatibility
+ *
+ * @warning DESIGN SKETCH - NOTHING IN THIS TREE IMPLEMENTS IT. No `.c` file under
+ *          `components/` defines any of the `xy_at_client_*` / `xy_at_*` functions
+ *          declared below, so a program written against this header compiles and then
+ *          fails to link (`xy_at_client_create`, `xy_at_client_set_hal`,
+ *          `xy_at_client_delete`, `xy_at_create_resp`, `xy_at_exec_cmd`,
+ *          `xy_at_delete_resp` were all undefined in a link probe). The AT client this
+ *          repository actually builds is `at_client.h` / `at_client.c`, next to this
+ *          file under `atc/Modules/cellular/common/`; `components/net/README.md` and
+ *          `components/net/examples/at_client_quickstart.c` show that one.
  */
 
 #ifndef _XY_AT_CLIENT_H_

@@ -2718,6 +2718,21 @@ xy_add_unit_test(test_at_urc at_urc UNITY
     ${NET}/at/atc/Modules/cellular/common/at_client.c # at_readline() for at_urc_poll()
 )
 
+# --- Test 32c: the AT client quick start in components/net/README.md, compiled and run ---
+# 那份快速上手过去是 `xy_at_client_create()` / `xy_at_create_resp()` / `xy_at_exec_cmd()`
+# 一族：`atc/core/xy_at_client.h` 声明了它们，全仓**没有一个 `.c` 定义过**——按原样抄下来
+# 编译先报 incompatible-pointer-types，链接再点名 5 个 undefined reference，而没有任何目标
+# 编译过那份样张。现在样张按真正被构建的所有者 `at_client.c` 写，并作为这条 CTest 运行：
+# 隐式声明是错误，每一处 check() 都是真契约，端口侧只提供样例断言的那三样回调。
+xy_add_unit_test(test_net_at_quickstart net_at_quickstart
+    ${NET}/examples/at_client_quickstart.c
+    ${NET}/at/atc/Modules/cellular/common/at_client.c
+)
+target_compile_options(test_net_at_quickstart PRIVATE
+    -Wall -Wextra -Werror=implicit-function-declaration
+)
+
+
 # --- Test 33: FOTA lifecycle, CRC, download, and flash-op contracts ---
 xy_add_unit_test(test_fota_core fota_core UNITY
     ${UNIT_FOTA}/test_fota_core.c
