@@ -72,9 +72,9 @@
  *
  * // 主循环
  * while (1) {
- *     xy_enter_critical();
+ *     xy_os_sys_enter_critical();
  *     xy_sm_process_sample(&obj.sm, 10);  // 10ms驱动一次
- *     xy_exit_critical();
+ *     xy_os_sys_exit_critical();
  * }
  * @endcode
  *

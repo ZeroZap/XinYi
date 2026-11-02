@@ -30,7 +30,7 @@ All unsupported functions return appropriate error codes (`XY_OS_ERROR`, `NULL`,
 
 - **State**: Tracks kernel state (INACTIVE → READY → RUNNING)
 - **Lock**: Simple lock counter, increments on lock, decrements on unlock
-- **Tick**: Delegates to `xy_tick_get()` from `components/kernel/xy_tick.h`
+- **Tick**: Delegates to `xy_tick_get()` from `components/kernel/misc/xy_tick.h`
 
 ### Delay
 
@@ -94,7 +94,7 @@ xy_os_kernel_restore_lock(lock);
 
 ### Requirements
 
-- `components/kernel/xy_tick.h` must be available
+- `components/kernel/misc/xy_tick.h` must be available
 - `xy_tick_get()` must return current tick count
 - Tick frequency should be 1kHz (1ms per tick)
 
@@ -136,7 +136,7 @@ No special linker requirements.
 
 To migrate from bare-metal to RTOS:
 
-1. Replace `components/osal/baremetal/xy_os_baremetal.c` with RTOS backend
+1. Replace `components/kernel/osal/backend/baremetal/xy_os_baremetal.c` with RTOS backend
 2. No application code changes needed (same API)
 3. Add RTOS-specific initialization
 4. Convert main loop to RTOS task
@@ -193,14 +193,14 @@ Potential improvements:
 
 ```c
 // main.c
-#include "components/osal/xy_os.h"
-#include "bsp/xy_hal/inc/xy_hal.h"
+#include "xy_os.h"
+#include "xy_hal.h"
 
 void system_init(void)
 {
-    // HAL init
-    xy_hal_init();
-    
+    // HAL init: 没有 xy_hal_init()，SYS 后端自己的入口是 xy_hal_sys_init()
+    xy_hal_sys_init();
+
     // OSAL init
     xy_os_kernel_init();
     xy_os_kernel_start();

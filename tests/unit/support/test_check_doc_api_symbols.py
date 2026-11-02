@@ -222,6 +222,74 @@ class DocApiSymbolsTest(unittest.TestCase):
         self.assertEqual(["README.md"], found)
         self.assertEqual([], problems)
 
+    # ---------------------------------------------------------------------------------------------
+    # The README sweep: every component front door is a usage claim, and nothing else under
+    # `components/` is.
+    # ---------------------------------------------------------------------------------------------
+
+    def swept(self) -> list[str]:
+        """Documents the real walk picks up, relative to a temporary root.
+
+        `README_ROOTS` is deliberately left as the module defines it: a helper that re-states the
+        root would keep passing with the sweep unwired, which is the failure the footprint test
+        exists to catch.
+        """
+        saved = guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT
+        guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT = self.root, (), {}
+        try:
+            return [p.relative_to(self.root).as_posix() for p in guard.documents()]
+        finally:
+            guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT = saved
+
+    def test_a_component_readme_is_swept_and_a_design_record_next_to_it_is_not(self) -> None:
+        # The defect this sweep was added for: nine component READMEs taught APIs that do not
+        # exist. The plan beside them describes work in progress and must stay out of the sweep,
+        # or the rule starts punishing the act of writing a plan.
+        component = self.root / "components" / "ipc"
+        component.mkdir(parents=True)
+        (component / "README.md").write_text(fenced("xy_broker_init();\n"), encoding="utf-8")
+        (component / "IPC_PLAN.md").write_text(fenced("xy_future_api();\n"), encoding="utf-8")
+        self.assertEqual(["components/ipc/README.md"], self.swept())
+
+    def test_an_imported_vendor_readme_is_not_judged(self) -> None:
+        # `components/third_party/**` and the two net/at imports quote Espressif/AWS APIs by
+        # design. Judging them would report correct vendor documentation forever.
+        for vendor in ("third_party/flashdb", "net/at/AT-Command-V2",
+                       "net/at/FreeRTOS-Cellular-Interface"):
+            directory = self.root / "components" / vendor
+            directory.mkdir(parents=True)
+            (directory / "README.md").write_text(fenced("esp_at_send();\n"), encoding="utf-8")
+        ours = self.root / "components" / "net"
+        (ours / "README.md").write_text(fenced("xy_mqtt_init();\n"), encoding="utf-8")
+        self.assertEqual(["components/net/README.md"], self.swept())
+
+    def test_the_real_tree_sweeps_component_readmes(self) -> None:
+        # A footprint check on the checked-in tree: the sweep must actually reach component front
+        # doors, and must not reach vendor ones. A walk wired to nothing reports green forever.
+        walked = [p.relative_to(guard.ROOT).as_posix() for p in guard.documents()
+                  if p.relative_to(guard.ROOT).as_posix().startswith("components/")]
+        readmes = [p for p in walked if p.endswith("README.md")]
+        self.assertGreaterEqual(len(readmes), 20, walked)
+        self.assertEqual([], [p for p in walked if not p.endswith("README.md")], walked)
+        self.assertEqual([], [p for p in walked if "/third_party/" in p], walked)
+
+    # ---------------------------------------------------------------------------------------------
+    # A path in a sentence about the past is history, not a pointer - but only the verb makes it so.
+    # ---------------------------------------------------------------------------------------------
+
+    def test_a_line_recording_that_a_path_was_removed_is_history(self) -> None:
+        # The charger README says the old `components/charger/` component "已在 ... 移除". A reader
+        # is not being sent there; reporting it punishes an accurate record of the migration.
+        self.assertEqual([], self.judged_paths(
+            "旧 `components/charger/` compatibility component 已在迁移后移除。"))
+
+    def test_a_bare_mention_of_an_old_path_still_fails(self) -> None:
+        # The loophole that has to stay shut: calling a missing directory "legacy" is not a
+        # removal record, and a reader can still try to open what the sentence points at.
+        problems = self.judged_paths("旧 `components/charger/` 是上一代实现，细节见该目录。")
+        self.assertTrue(any("components/charger" in p and "does not exist" in p for p in problems),
+                        problems)
+
 
 
 if __name__ == "__main__":

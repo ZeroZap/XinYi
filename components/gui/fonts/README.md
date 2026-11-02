@@ -112,7 +112,7 @@ uint16_t cn_width = xy_font_chinese_16x16_measure("Hello中文");
 
 - `font_manifest.json` is the current software evidence boundary for bundled
   assets.
-- `tools/generate_bitmap_font.py` is the deterministic generator bootstrap:
+- `components/gui/fonts/tools/generate_bitmap_font.py` is the deterministic generator bootstrap:
   today it validates manifest schema/ranges/source-file presence, prints a
   stable summary, writes manifest-inventory headers, writes legacy-passthrough
   glyph preview `.h/.c` pairs, and compiles both temporary and checked-in

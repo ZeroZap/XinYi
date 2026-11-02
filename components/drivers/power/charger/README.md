@@ -104,18 +104,17 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
 
 ### 1. 初始化 BQ25620
 
+句柄就是平台外设本身，没有 `bind()`：板上是 CubeMX 生成的 `&hi2c1`（先用 `xy_hal_i2c_init()`
+配好时钟/寻址模式），Host 仿真传 `xy_hal_i2c_t` 实例的地址。配置写法见 `components/hal/README.md`。
+
 ```c
 #include "xy_bq25620.h"
-#include "xy_hal_i2c.h"
 
-/* I2C 句柄 (需要先初始化) */
-xy_hal_i2c_t i2c = xy_hal_i2c_bind("I2C1");
-
-/* BQ25620 设备 */
+/* BQ25620 设备实例 */
 xy_bq25620_t bq25620;
 
-/* 初始化 */
-int ret = xy_bq25620_init(&bq25620, i2c, BQ25620_I2C_ADDR);
+/* 初始化：第二个参数是 I2C 句柄（板上 &hi2c1） */
+int ret = xy_bq25620_init(&bq25620, &hi2c1, BQ25620_I2C_ADDR);
 if (ret != XY_DEVICE_OK) {
     /* 初始化失败 */
     return ret;

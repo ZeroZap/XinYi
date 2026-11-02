@@ -387,14 +387,14 @@ Adjust these values in `xy_broker.h`:
 ## Integration with XY Framework
 
 ```c
-// Integrate with xy_tick for timestamp
+// Integrate with xy_tick for timestamp (components/kernel/misc/xy_tick.h)
 uint32_t broker_get_timestamp(void) {
-    return xy_tick_get_ms();
+    return xy_tick_get();
 }
 
-// Integrate with xy_log
-#define BROKER_LOG_INFO(...)  xy_log_info("BROKER", __VA_ARGS__)
-#define BROKER_LOG_ERROR(...) xy_log_error("BROKER", __VA_ARGS__)
+// Integrate with xy_log: the canonical macros carry no tag argument
+#define BROKER_LOG_INFO(...)  xy_log_i(__VA_ARGS__)
+#define BROKER_LOG_ERROR(...) xy_log_e(__VA_ARGS__)
 ```
 
 ## Troubleshooting

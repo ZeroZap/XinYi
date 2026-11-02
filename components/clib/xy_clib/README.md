@@ -93,9 +93,9 @@ void io_example(void)
     // 带长度限制的格式化
     xy_snprintf(buffer, sizeof(buffer), "Limited: %.*s", 10, "Very long string");
     
-    // 自定义输出回调
+    // 自定义输出回调：装好字符出口之后，xy_printf() 就走这里
     xy_stdio_printf_init(my_uart_output);
-    xy_stdio_printf("Hello from custom output\n");
+    xy_printf("Hello from custom output\n");
 }
 ```
 
@@ -156,36 +156,43 @@ void ringbuffer_example(void)
 }
 ```
 
-### 6. 链表操作 (xy_list.h)
+### 6. 链表操作 (xy_common.h)
+
+链表只有一套 API：**头就是一个节点指针，初值 `NULL`**——没有 `xy_list_head` 结构体，也没有
+`init_head`/`container_of`。所有操作都是 `xy_common.h` 里的宏，头指针以**左值**形式直接传入
+（不是 `&head`）。
 
 ```c
-#include "xy_list.h"
+#include "xy_common.h"
+
+typedef struct {
+    xy_list_node node;   /* 必须放第一位：下面的遍历要把节点指针还原成整条记录 */
+    int value;
+} list_item_t;
 
 void list_example(void)
 {
-    // 定义链表节点
-    typedef struct {
-        int value;
-        xy_list_node node;
-    } list_item_t;
-    
-    // 初始化链表头
-    xy_list_head head;
-    xy_list_init_head(&head);
-    
-    // 添加节点
+    xy_list_node *head = NULL;   /* 头节点指针，初值必须是 NULL */
+    xy_list_node *tail = NULL;   /* 宏内部用的游标，调用者自备 */
+    xy_list_node *node = NULL;
+
     list_item_t *item = malloc(sizeof(list_item_t));
     item->value = 42;
-    xy_list_add_node_tail(&head, &item->node);
-    
-    // 遍历链表
-    xy_list_node *node;
-    xy_list_for_node_safe(&head, node) {
-        list_item_t *item = xy_container_of(node, list_item_t, node);
-        printf("Value: %d\n", item->value);
+
+    /* 尾插；头插是 xy_list_add_note(head, &item->node) */
+    xy_list_add_note_tail(head, &item->node, tail);
+
+    /* 安全遍历：第二个游标保存 next，允许在循环体内摘除当前节点 */
+    xy_list_for_node_safe(head, node, tail) {
+        list_item_t *entry = (list_item_t *)node;
+        printf("Value: %d\n", entry->value);
     }
 }
 ```
+
+> 宏名是 `xy_list_add_note_tail`/`xy_list_add_note`（历史上把 `node` 拼成了 `note`）。按直觉写
+> `add_node_tail` 会编译失败——这正是本段此前教错的原因。改名属公开 API 决策，本轮只把文档
+> 对齐到真实名字；全仓零调用者。
 
 ---
 
@@ -435,10 +442,10 @@ xy_strlcat(buffer, "_suffix", sizeof(buffer));
 ### 2. 错误处理
 
 ```c
-// 统一错误码处理
-xy_error_t ret = xy_some_function();
+// 统一错误码处理：clib 入口返回 int32_t/xy_error_t，负值即失败（XY_IS_ERROR）
+int32_t ret = xy_snprintf(buffer, sizeof(buffer), "%s", src);
 if (XY_FAILED(ret)) {
-    xy_log_e("Function failed: %d\n", ret);
+    xy_log_e("Function failed: %d\n", (int)ret);
     return ret;
 }
 ```

@@ -28,10 +28,20 @@ docs had been moved one level down (into `components/<x>/`) and nothing read the
 claims. A path is a claim.
 
 Scope is the documents that instruct: `docs/getting-started/`, the HAL API reference
-(`docs/hal/`), and the HAL component's own usage docs (`components/hal/`). Architecture notes,
-proposals and the planning documents legitimately describe APIs that are being designed - judging
-them would punish writing the plan down, which is the mistake this repository has already made once.
+(`docs/hal/`), the HAL component's own usage docs (`components/hal/`), and - since every newcomer
+lands on one - every `README.md` under `components/`. That last sweep is README-only on purpose:
+`*_PLAN.md`, migration notes and the imported vendor trees are records, and judging them as usage
+would punish writing the plan down, which is the mistake this repository has already made once.
 `docs/history` records what was true when it was recorded and is not rewritten.
+
+Measured on the first run of that sweep: **nine component READMEs taught 25 names, headers and
+paths that do not exist**. `clib/xy_clib` invented a whole list API (`xy_list_head`,
+`xy_list_init_head`, `xy_container_of`, `xy_list.h`) where the real one is a bare
+`xy_list_node *head` in `xy_common.h`; `ipc/xy_broker` called `xy_tick_get_ms()` and
+`xy_log_info("TAG", ...)`; `kernel` blinked with `xy_gpio_toggle()`; `dm/factory` and
+`dm/fee/fee_calculator` wrapped writes in `xy_enter_critical()`; `kernel/osal/baremetal` sent
+readers to `components/kernel/xy_tick.h` and `components/osal/baremetal/`. Each one was a
+copy-paste failure for the person the page exists for.
 
 The HAL scope was added because that is exactly where the fiction survived: `components/hal/README.md`
 opened with `xy_hal_gpio_bind("GPIOC.13")` / `xy_hal_uart_configure()` / an `xy_hal_gpio_t` handle and
@@ -49,7 +59,10 @@ says rather than by one regex over the whole document. A block may declare its o
 name the block defines itself is not reported. The path rule reads prose as well, because a table
 row names a location as firmly as a sentence does; a line that tells the reader to *create* the path
 (`创建` / `新建` / `create`) is an instruction, not a claim that it exists, and a placeholder
-(`<name>`, `...`) is not a path yet.
+(`<name>`, `...`) is not a path yet. A line that records a path was *removed* or *migrated*
+(`removed` / `删除` / `移除` / `migrated`) is history rather than a pointer - but the verb is what
+matters, not the age: "the legacy `components/charger/` framework" still fails, because a reader can
+still try to open it.
 
 Presence is not correctness: this says a symbol exists, not that the sample uses it properly. The
 two samples were also compiled - as written, against the real include roots, for both crypto
@@ -72,6 +85,18 @@ from source_scan import code_only, fenced_blocks, read_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 DOC_ROOTS = ("docs/getting-started", "docs/hal", "components/hal")
+#: Roots swept for `README.md` only. A component README is its front door - the page a newcomer
+#: copies from - so every one of them makes a compile claim. Restricting this sweep to README
+#: keeps design records (`*_PLAN.md`, migration notes, vendor articles) out of it; those are
+#: history and get their own slices rather than being judged as usage.
+README_ROOTS = ("components",)
+#: Imported vendor trees keep their own documentation. Their READMEs quote Espressif/AWS APIs by
+#: design, so judging them against this project's headers would report correct vendor docs forever.
+VENDOR_ROOTS = (
+    "components/third_party",
+    "components/net/at/AT-Command-V2",
+    "components/net/at/FreeRTOS-Cellular-Interface",
+)
 INDEX_ROOTS = ("components", "boards")
 #: Roots that supply *header names* a document may legitimately include. Vendor SDKs live here, so
 #: `#include "stm32l4xx_hal.h"` in a porting note is a real header and not a broken claim. Symbols
@@ -112,6 +137,11 @@ PATH_REFERENCE = re.compile(
     r"`((?:" + "|".join(PATH_ROOTS) + r")/[A-Za-z0-9_./-]+)`")
 #: A line that tells the reader to create the path is not a claim that it exists today.
 CREATION_WORDS = ("创建", "新建", "create", "Create", "your")
+#: A line that records where something *used to be* is history, not a pointer. Only removal and
+#: migration verbs count: a bare mention of an old directory ("the legacy `components/charger/`
+#: framework") still fails, because a reader can still try to open it.
+HISTORY_WORDS = ("removed", "Removed", "no longer", "deleted", "删除", "移除", "已迁移", "migrated",
+                 "renamed")
 #: ... and a placeholder is not a path yet.
 PLACEHOLDERS = ("...", "<", ">", "*")
 
@@ -126,7 +156,19 @@ def documents() -> list[Path]:
             if path.relative_to(ROOT).as_posix() in EXEMPT:
                 continue
             found.append(path)
-    return found
+    for root in README_ROOTS:
+        directory = ROOT / root
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.rglob("README.md")):
+            relative = path.relative_to(ROOT).as_posix()
+            if relative in EXEMPT:
+                continue
+            if any(relative == vendor or relative.startswith(vendor + "/")
+                   for vendor in VENDOR_ROOTS):
+                continue
+            found.append(path)
+    return sorted(set(found))
 
 
 def header_index(roots: tuple[str, ...] = INDEX_ROOTS,
@@ -174,6 +216,8 @@ def path_references(text: str) -> list[tuple[int, str]]:
     found: list[tuple[int, str]] = []
     for number, line in enumerate(text.splitlines(), start=1):
         if any(word in line for word in CREATION_WORDS):
+            continue
+        if any(word in line for word in HISTORY_WORDS):
             continue
         for match in PATH_REFERENCE.finditer(line):
             token = match.group(1).rstrip("/")
