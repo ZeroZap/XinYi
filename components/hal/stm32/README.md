@@ -17,15 +17,20 @@ components/hal/stm32/
 ├── stm32l4/                  # STM32L4 wrapper + stm32l4xx_hal_conf.h（Pandora 参考板）
 ├── stm32u5/                  # STM32U5 wrapper + stm32u5xx_hal_conf.h
 ├── stm32_hal.h               # 族宏 -> 厂商头的公共入口
-├── example_usage.c           # 板侧阅读样例（不被任何构建目标编译，见下）
-├── CMakeLists.txt            # 独立模板工程，未被根构建引用
-└── Makefile.template         # 独立模板，未被根构建引用
+└── example_usage.c           # 板侧阅读样例（由 xy_hal_stm32_example 目标编译）
 ```
 
-根构建**不使用**本目录的 `CMakeLists.txt` / `Makefile.template`：平台由根 CMake 的
-`HAL_PLATFORM` 选择，源文件由 `components/hal/CMakeLists.txt` 按平台 glob。两个模板文件是
-2025-10 的独立工程遗留物，里面的头文件清单仍写着 `../inc/xy_hal_pin.h`（该头已不存在），
-可以 configure、不能 build —— 它们既不是入口也不是证据。
+根构建是**唯一入口**：平台由根 CMake 的 `HAL_PLATFORM` 选择，源文件由自己的上一级
+`components/hal/CMakeLists.txt` 按平台 glob。这里曾经有两份 2025-10 的独立工程模板
+（`CMakeLists.txt` / `Makefile.template`），已删除——拿 `--trace-expand` 跑一次真实 configure
+就能看到根构建只会进入 `components/hal`，**从不进入 `components/hal/stm32`**；而那份模板
+自身也无法 build（它 glob 的是 `stm32f4/*.c` 却没有任何厂商头 include 路径，且头文件清单里
+还写着早已不存在的 `../inc/xy_hal_pin.h`）。
+
+`example_usage.c` 现在**每个 STM32 平台都会被编译**（`xy_hal_stm32_example` OBJECT 目标，
+见 `components/hal/CMakeLists.txt`）。在此之前它没有任何构建目标，于是自己悄悄漂到编不过：
+`UART_HandleTypeDef` 与 RTC API 都没有包含相应头文件。样例被判为「会跑的说法」而不是散文，
+这正是这条目标存在的理由。
 
 ---
 

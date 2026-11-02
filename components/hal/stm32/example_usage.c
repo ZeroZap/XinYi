@@ -1,17 +1,25 @@
 /**
  * @file example_usage.c
  * @brief Example usage of XY HAL with STM32
- * @version 1.0
+ * @version 1.1
  * @date 2025-10-26
  *
  * This file demonstrates how to use the XY HAL abstraction layer
- * in an STM32 project. Compile with -DSTM32_HAL_ENABLED and
- * the appropriate STM32 family macro (e.g., -DSTM32F4).
+ * in an STM32 project.
+ *
+ * It is compiled by the `xy_hal_stm32_example` object target that
+ * `components/hal/CMakeLists.txt` adds for every STM32 platform, so a call that stops
+ * matching the public declaration fails a real build instead of aging here. For the
+ * same reason it includes what it uses: `stm32_hal.h` pulls the vendor header for the
+ * selected family, and `xy_hal_rtc.h` is included explicitly because the `xy_hal.h`
+ * umbrella does not re-export the RTC/DMA/SYS headers.
  */
 
-#include "../inc/xy_hal.h"
 #include <stdio.h>
 #include <string.h>
+#include <xy_hal.h>
+#include <xy_hal_rtc.h>
+#include <stm32_hal.h>
 
 #ifdef STM32_HAL_ENABLED
 
@@ -49,6 +57,7 @@ void example_gpio_led(void)
  */
 void button_callback(void *arg)
 {
+    (void)arg;
     /* Called when button is pressed */
     xy_hal_gpio_toggle(GPIOA, 5); /* Toggle LED on button press */
 }
@@ -198,6 +207,8 @@ void example_pwm_motor(void)
  */
 void timer_callback(void *timer, xy_hal_timer_event_t event, void *arg)
 {
+    (void)timer;
+    (void)arg;
     if (event == XY_HAL_TIMER_EVENT_UPDATE) {
         /* Called every timer overflow */
         xy_hal_gpio_toggle(GPIOA, 5); /* Toggle LED at timer frequency */
@@ -266,6 +277,7 @@ void example_rtc(void)
 
     /* Get Unix timestamp */
     int64_t timestamp = xy_hal_rtc_get_timestamp(&hrtc);
+    (void)timestamp;
 }
 
 /**

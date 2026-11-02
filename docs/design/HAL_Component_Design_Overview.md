@@ -66,10 +66,8 @@ components/hal/
 │   ├── stm32l4/                  # STM32L4 系列（待实现）
 │   ├── stm32h7/                  # STM32H7 系列（待实现）
 │   ├── stm32_hal.h              # STM32 HAL 辅助头文件
-│   ├── CMakeLists.txt           # CMake 构建配置
-│   ├── Makefile.template        # Make 构建模板
 │   ├── README.md                # STM32 实现说明
-│   └── example_usage.c          # 使用示例
+│   └── example_usage.c          # 板侧样例（由 xy_hal_stm32_example 目标编译）
 │
 ├── ch32/                         # CH32 平台实现（待实现）
 │   └── ch32x03x/

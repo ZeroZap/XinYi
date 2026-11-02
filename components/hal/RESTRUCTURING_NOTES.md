@@ -254,8 +254,8 @@ file(GLOB HAL_SOURCES
 - ✅ `README.md` - 使用说明
 - ✅ `INTEGRATION_GUIDE.md` - 集成指南
 - ✅ `IMPLEMENTATION_SUMMARY.md` - 实现总结
-- ✅ `CMakeLists.txt` - CMake 配置
-- ✅ `Makefile.template` - Make 模板
+- ❌ `CMakeLists.txt` / `Makefile.template` - 已删除（2026-11-02）：根构建是唯一入口，
+  这两份 2025-10 的独立工程模板从未被 `add_subdirectory()` 进入，自身也无法 build
 
 ### 常见问题 / FAQ
 

@@ -483,7 +483,7 @@ if [ ! -f "components/clib/xy_clib/CMakeLists.txt" ]; then
     exit 1
 fi
 
-if [ ! -f "components/hal/stm32/CMakeLists.txt" ]; then
+if [ ! -f "components/hal/CMakeLists.txt" ]; then
     echo "❌ HAL CMakeLists.txt not found"
     exit 1
 fi
