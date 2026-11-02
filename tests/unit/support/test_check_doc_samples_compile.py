@@ -142,21 +142,24 @@ class DocSamplesCompileTest(unittest.TestCase):
     # number would land on whatever an earlier edit shifted it onto.
     # ---------------------------------------------------------------------------------------------
 
-    def judged_marked(self, body: str, markers: tuple[str, ...]) -> list[str]:
+    def judged_marked(self, body: str, markers: tuple[str, ...],
+                      fragments: tuple[str, ...] = ()) -> list[str]:
         doc = self.root / "SAMPLE.md"
         doc.write_text(body, encoding="utf-8")
         sample = guard.Sample(doc="SAMPLE.md", includes=HAL_INCLUDES, roots=HAL_ROOTS,
-                              markers=markers)
+                              markers=markers, fragments=fragments)
         return guard.findings(samples=(sample,), root=self.root, compiler=self.compiler)
 
     def test_a_selective_page_judges_its_sample_and_skips_the_patterns(self) -> None:
         # Same shape as the project overview: a template block that cannot compile at file scope,
-        # then the usage sample. With the selector set, only the sample is compiled.
+        # then the usage sample. With the selector set, only the sample is compiled - and the
+        # template is named as a fragment, because an unmatched block is a block nobody reads.
         page = (fenced("xy_hal_pin_config_t template_only;\n")
                 + fenced("/* ---- the sample ---- */\n"
                          + CORRECT
                          + "void use(void) { xy_hal_gpio_write(0, 1, 1); }\n"))
-        self.assertEqual([], self.judged_marked(page, ("---- the sample ----",)))
+        self.assertEqual([], self.judged_marked(page, ("---- the sample ----",),
+                                                fragments=("template_only",)))
 
     def test_a_selector_that_matches_nothing_is_reported(self) -> None:
         # The selector has to be able to fail, or a renamed marker would quietly compile nothing and
@@ -172,7 +175,11 @@ class DocSamplesCompileTest(unittest.TestCase):
         problems = self.judged_marked(page, ("---- one ----", "---- three ----"))
         self.assertTrue(any("---- three ----" in p and "no longer being compiled" in p
                             for p in problems), problems)
-        self.assertEqual(1, len(problems), problems)
+        # The block nobody now selects is a second finding, not a third one: it is read by nothing,
+        # which is exactly the state the stale marker would otherwise hide.
+        self.assertTrue(any("neither compiled nor declared a fragment" in p for p in problems),
+                        problems)
+        self.assertEqual(2, len(problems), problems)
 
     def test_the_selected_sample_is_still_judged(self) -> None:
         # ... and the selector must not turn into an exemption: a bad prototype in the selected block
@@ -181,8 +188,147 @@ class DocSamplesCompileTest(unittest.TestCase):
                 + fenced("/* ---- the sample ---- */\n"
                          "xy_hal_error_t xy_hal_gpio_init(xy_hal_gpio_port_t port, uint16_t pin,\n"
                          "                                const xy_hal_gpio_config_t *config);\n"))
-        problems = self.judged_marked(page, ("---- the sample ----",))
+        problems = self.judged_marked(page, ("---- the sample ----",),
+                                     fragments=("plain_fragment_at_file_scope;",))
         self.assertTrue(any("do not compile" in p for p in problems), problems)
+
+    # ---------------------------------------------------------------------------------------------
+    # A component page is a set of complete programs, and its non-samples have to be named.
+    # ---------------------------------------------------------------------------------------------
+
+    def judged_page(self, body: str, markers: tuple[str, ...] = (),
+                    fragments: tuple[str, ...] = (), per_block: bool = True,
+                    as_body: bool = False, application: bool = False) -> list[str]:
+        doc = self.root / "SAMPLE.md"
+        doc.write_text(body, encoding="utf-8")
+        sample = guard.Sample(doc="SAMPLE.md", includes=HAL_INCLUDES, roots=HAL_ROOTS,
+                              markers=markers, per_block=per_block, fragments=fragments,
+                              as_body=as_body, application=application)
+        return guard.findings(samples=(sample,), root=self.root, compiler=self.compiler)
+
+    def test_two_programs_on_one_page_need_per_block(self) -> None:
+        # `docs/components/osal/introduction.md` carries an initialisation program and a task
+        # program, each with its own `main()`. Merged into one unit the second `main()` is a
+        # duplicate definition - a defect of the fixture, not of the page - so the page declares
+        # `per_block` and each program is judged on its own.
+        page = fenced(CORRECT + "int main(void) { return 0; }\n") + \
+               fenced(CORRECT + "int main(void) { return 0; }\n")
+        self.assertEqual([], self.judged_page(page))
+        self.assertTrue(any("do not compile" in p for p in self.judged_page(page, per_block=False)),
+                        "the merged mode must still report the duplicate definition it cannot judge")
+
+    def test_per_block_names_the_block_that_fails(self) -> None:
+        good = fenced(CORRECT + "int main(void) { return 0; }\n")
+        bad = fenced("xy_hal_error_t xy_hal_gpio_init(xy_hal_gpio_port_t port, uint16_t pin,\n"
+                     "                                const xy_hal_gpio_config_t *config);\n"
+                     "int main(void) { return 0; }\n")
+        problems = self.judged_page(good + bad)
+        # The line is the page's own line, not the temporary unit's: the reader has to be able to
+        # open the document at the block that failed.
+        starts = [start for start, _ in guard.code_blocks(self.root / "SAMPLE.md")]
+        self.assertTrue(any(f"block at line {starts[1]}" in p for p in problems), problems)
+        self.assertFalse(any(f"block at line {starts[0]}" in p for p in problems), problems)
+
+    def test_a_block_no_selector_matches_is_reported_not_skipped(self) -> None:
+        # The quiet failure: a page grows a third sample, the selectors still match the first two,
+        # and the guard reports the page clean while the new block is read by nobody.
+        page = (fenced("/* ---- one ---- */\n" + CORRECT + "void one(void) {}\n")
+                + fenced("/* ---- two ---- */\n" + CORRECT + "void two(void) {}\n")
+                + fenced("/* ---- three ---- */\nxy_hal_pin_config_t unread;\n"))
+        problems = self.judged_page(page, markers=("---- one ----", "---- two ----"))
+        self.assertTrue(any("neither compiled nor declared a fragment" in p for p in problems),
+                        problems)
+
+    def test_a_declared_fragment_is_not_compiled(self) -> None:
+        # A `xy_xxx.h` template names types that exist only in the reader's own driver, and a
+        # configuration preamble redefines the header's macros. Both are patterns; naming them is
+        # what keeps them from being silently unread.
+        page = (fenced("/* ---- template ---- */\nxy_hal_pin_config_t template_name;\n")
+                + fenced("/* ---- sample ---- */\n" + CORRECT + "void use(void) {}\n"))
+        self.assertEqual([], self.judged_page(page, fragments=("---- template ----",)))
+
+    def test_a_fragment_marker_that_matches_nothing_is_reported(self) -> None:
+        page = (fenced("/* ---- template ---- */\nxy_hal_pin_config_t template_name;\n")
+                + fenced("/* ---- sample ---- */\n" + CORRECT + "void use(void) {}\n"))
+        problems = self.judged_page(page, fragments=("---- removed ----",))
+        self.assertTrue(any("names no block on the page" in p for p in problems), problems)
+
+    def test_one_block_cannot_be_both_a_sample_and_a_fragment(self) -> None:
+        # Two claims about one block is an ambiguity, not a precedence rule: whichever way it was
+        # resolved, one of the two statements would be false while the guard printed ok.
+        page = fenced("/* ---- sample ---- */\n" + CORRECT + "void use(void) {}\n")
+        problems = self.judged_page(page, markers=("---- sample ----",),
+                                    fragments=("---- sample ----",))
+        self.assertTrue(any("both compiled and declared a fragment" in p for p in problems),
+                        problems)
+
+    def test_a_block_that_is_statements_compiles_as_a_body(self) -> None:
+        # `xy_hal_gpio_toggle(port, pin);` at file scope is a syntax error about the statement, not
+        # about the call. `as_body` wraps the block, hoists its own `#include`, and keeps the page's
+        # line numbers by issuing `#line` after the wrapper.
+        page = fenced('// 用法\n#include "xy_hal_gpio.h"\n\nxy_hal_gpio_toggle(0, 5);\n')
+        self.assertEqual([], self.judged_page(page, as_body=True))
+        self.assertTrue(any("do not compile" in p for p in self.judged_page(page, as_body=False)),
+                        "at file scope the same block must still be reported")
+
+    def test_a_body_wrapper_keeps_the_page_s_line_number(self) -> None:
+        page = fenced('// 用法\n#include "xy_hal_gpio.h"\n\nxy_hal_gpio_pin_config_t bad;\n')
+        problems = self.judged_page(page, as_body=True)
+        # The declaration is the fourth line of the block, and the wrapper must not shift it: the
+        # diagnostic has to name the line the reader can open, not the line the guard generated.
+        lines = page.splitlines()
+        expected = next(number for number, line in enumerate(lines, 1) if "pin_config_t bad" in line)
+        self.assertTrue(any(f"SAMPLE.md:{expected}" in p for p in problems), problems)
+
+    # ---------------------------------------------------------------------------------------------
+    # An application page calls the reader's own code; the project's namespace is still a promise.
+    # ---------------------------------------------------------------------------------------------
+
+    def test_an_application_page_may_call_the_reader_s_own_function(self) -> None:
+        # `led_toggle()` is the reader's; a page teaching a task body cannot declare it for them.
+        page = fenced('void task(void *arg) {\n    (void)arg;\n    led_toggle();\n}\n')
+        self.assertEqual([], self.judged_page(page, application=True))
+        self.assertTrue(any("do not compile" in p for p in self.judged_page(page, application=False)),
+                        "without the tolerance the same block is an error")
+
+    def test_an_application_page_may_not_call_an_undeclared_project_function(self) -> None:
+        # The carve-out that keeps the tolerance honest: `xy_` is a call into this tree, so its name
+        # has to come from a header. Measured shape - `xy_hal_delay_ms()` compiled only as a warning
+        # until the page included `xy_hal_delay.h`.
+        page = fenced('void task(void *arg) {\n    (void)arg;\n    xy_delay_that_does_not_exist(10);\n}\n')
+        problems = self.judged_page(page, application=True)
+        self.assertTrue(any("teaches an API that does not exist" in p for p in problems), problems)
+        self.assertTrue(any("xy_delay_that_does_not_exist" in p for p in problems), problems)
+
+    # ---------------------------------------------------------------------------------------------
+    # The remainder: a page is judged, or deferred with a reason, or reported.
+    # ---------------------------------------------------------------------------------------------
+
+    def test_a_component_page_in_neither_list_is_reported(self) -> None:
+        page = self.root / "docs" / "components" / "unlisted" / "introduction.md"
+        page.parent.mkdir(parents=True)
+        page.write_text(fenced(CORRECT), encoding="utf-8")
+        problems = guard.unlisted_pages(self.root)
+        self.assertTrue(any("docs/components/unlisted/introduction.md" in p for p in problems),
+                        problems)
+
+    def test_a_deferral_without_a_reason_is_reported(self) -> None:
+        saved = guard.DEFERRED
+        try:
+            guard.DEFERRED = (("docs/components/addc/introduction.md", "  "),)
+            problems = guard.unlisted_pages(ROOT)
+        finally:
+            guard.DEFERRED = saved
+        self.assertTrue(any("deferred without a reason" in p for p in problems), problems)
+
+    def test_a_deferral_of_a_page_that_is_gone_is_reported(self) -> None:
+        saved = guard.DEFERRED
+        try:
+            guard.DEFERRED = (("docs/components/gone/introduction.md", "whatever"),)
+            problems = guard.unlisted_pages(ROOT)
+        finally:
+            guard.DEFERRED = saved
+        self.assertTrue(any("the file is gone" in p for p in problems), problems)
 
     # ---------------------------------------------------------------------------------------------
     # Footprint on the checked-in tree: the list must still name a page that exists, and the page
@@ -202,6 +348,25 @@ class DocSamplesCompileTest(unittest.TestCase):
         sample = [s for s in guard.SAMPLES if s.doc == "docs/design/XinYi_Project_Overview.md"][0]
         self.assertTrue(sample.markers, "the overview page must select its sample by content")
         self.assertEqual([], [root for root in sample.roots if not (ROOT / root).is_dir()])
+
+    def test_the_real_list_names_the_component_guides(self) -> None:
+        # The sixteen pages that carry programs, of which fourteen are judged here and two are the
+        # measured remainder. Both facts are asserted: a page silently leaving the list is the defect
+        # this guard exists to prevent, and a deferral without a reason is the same silence.
+        docs = [sample.doc for sample in guard.SAMPLES]
+        self.assertIn("docs/components/osal/introduction.md", docs)
+        self.assertIn("docs/components/hal/introduction.md", docs)
+        self.assertEqual([], [doc for doc in docs if not (ROOT / doc).is_file()])
+        judged = set(docs) | {doc for doc, _ in guard.DEFERRED}
+        self.assertEqual([], guard.unlisted_pages(ROOT))
+        self.assertTrue(judged, "the component guide list is empty")
+
+    def test_the_judged_component_pages_compile_every_block_they_claim(self) -> None:
+        # The count is the claim. Fourteen pages carry forty-eight compiled blocks; a page that loses
+        # its selector or its entry without the file changing would show up here as a shrinking total.
+        blocks = sum(len(guard.code_blocks(ROOT / sample.doc)) for sample in guard.SAMPLES
+                     if sample.doc.startswith("docs/components/"))
+        self.assertGreaterEqual(blocks, 45, blocks)
 
     def test_the_real_list_names_the_porting_guide_sample(self) -> None:
         # The page whose whole job is to be copied by whoever ports the next board. It was outside

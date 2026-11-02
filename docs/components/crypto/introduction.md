@@ -35,9 +35,7 @@ XinYi Crypto 是一个轻量级的 C 语言加密算法库，提供常用的加�
 
 ### 1. 包含头文件
 
-```c
-#include "xy_tiny_crypto.h"
-```
+所有接口由 `xy_tiny_crypto.h` 一处声明；下面的示例都已包含它。
 
 ### 2. AES 加密示例
 
@@ -78,6 +76,7 @@ int main(void) {
 ```c
 #include "xy_tiny_crypto.h"
 #include <stdio.h>
+#include <string.h>
 
 int main(void) {
     const char *data = "Hello, World!";
@@ -102,6 +101,7 @@ int main(void) {
 ```c
 #include "xy_tiny_crypto.h"
 #include <stdio.h>
+#include <string.h>
 
 int main(void) {
     const char *data = "Hello, Base64!";

@@ -28,6 +28,7 @@ XinYi CLib 提供字符串操作、数学工具、数据结构、滤波算法等
 // 中值滤波
 xy_median_filter_t filter;
 uint16_t buffer[5];
+uint16_t adc_value = 1234;                     // 由 ADC 采样得到
 xy_filter_median_init(&filter, buffer, 5);
 
 uint16_t value = xy_filter_median(&filter, adc_value);

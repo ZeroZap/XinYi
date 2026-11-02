@@ -62,15 +62,16 @@ void sim_select_file(void *uart) {
 
 int main(void) {
     mb_slave_t slave;
-    
-    mb_slave_init(&slave);
-    
+
+    // 从站地址 0x01，端口波特率 115200
+    mb_slave_init(&slave, 0x01, 115200);
+
     // 写保持寄存器
-    mb_slave_write_holding_register(&slave, 0, 100);
-    
+    mb_slave_set_holding_register(&slave, 0, 100);
+
     // 读保持寄存器
-    uint16_t value = mb_slave_read_holding_register(&slave, 0);
-    
+    uint16_t value = mb_slave_get_holding_register(&slave, 0);
+
     return 0;
 }
 ```

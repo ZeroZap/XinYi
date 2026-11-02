@@ -26,6 +26,21 @@ names the page and the page's own line rather than a temporary file. The compile
 `conflicting types` error, a type the headers do not define is an unknown type name, and a page that
 was fine yesterday stays fine without a build.
 
+The component pages are the second body of samples, and they are fifteen separate programs rather
+than a list of prototypes: `docs/components/osal/introduction.md` carries two `main()` functions,
+`docs/components/ipc/introduction.md` five functions that each open their own session, and a page
+whose blocks would have to share one translation unit cannot be judged at all - the second `main()`
+is a duplicate definition no matter how right the code is. So a page declared `per_block` compiles
+each of its blocks as its own translation unit, and only the merged mode concatenates.
+
+A page also carries blocks that are not samples: a `xy_xxx.h` template with placeholder names, a
+`#define` preamble for a configuration header, the body of a function whose locals are declared above
+the fence. Those are declared `fragments` by content marker rather than left unselected, because an
+unselected block is a block nobody reads - and the quiet version of that defect is a page that grows a
+new, never-compiled sample while the guard still reports clean. Every fenced block on a listed page
+must therefore be **either compiled or named as a fragment**; one that is neither is reported, and a
+fragment marker that stops matching a block is reported too.
+
 Boundaries, stated rather than hidden:
 
 - **Presence is not this guard's job.** A bare `int xy_nothing(void);` declares a function that
@@ -41,6 +56,7 @@ Boundaries, stated rather than hidden:
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -55,8 +71,10 @@ ROOT = Path(__file__).resolve().parents[3]
 CODE_LANGUAGES = ("c", "cpp", "c++")
 #: Warnings are errors: `-Wenum-int-mismatch` is what reports a documented `int` against a header's
 #: `xy_os_status_t`, and it is only a warning by default. A documentation defect that scrolls past in
-#: a warning list is not a gate.
-COMPILE_ARGS = ("-std=c99", "-Wall", "-Wextra", "-Werror", "-fsyntax-only")
+#: a warning list is not a gate. The one warning kept out of the gate is an unused local: a snippet
+#: that computes a value it does not print is not making a claim about a signature.
+COMPILE_ARGS = ("-std=c99", "-Wall", "-Wextra", "-Werror", "-Wno-error=unused-variable",
+                "-fsyntax-only")
 
 
 class Sample(NamedTuple):
@@ -75,6 +93,43 @@ class Sample(NamedTuple):
     #: the sample cannot silently move the selector onto the template, and a selector that stops
     #: matching anything is reported rather than skipped.
     markers: tuple[str, ...] = ()
+    #: Compile each selected block as its own translation unit instead of concatenating them. A
+    #: component introduction is a set of complete programs - several of them define `main()`, and
+    #: two `main()`s in one unit is a duplicate definition that says nothing about the page.
+    per_block: bool = False
+    #: Content markers for blocks on this page that are deliberately *not* compile claims: a file
+    #: template with placeholder names, a configuration-header preamble, a function body whose locals
+    #: live above the fence. Naming them is the point - a block that is neither compiled nor declared
+    #: here is reported, so a new sample cannot arrive unread.
+    fragments: tuple[str, ...] = ()
+    #: Wrap each selected block in a function body instead of pasting it at file scope. A guide that
+    #: shows one call - `xy_sort_bubble(values, 5);` - is a statement, and a statement at file scope
+    #: is a syntax error that says nothing about the call. Its `#include` lines are hoisted above the
+    #: wrapper so the block can still name its own header.
+    as_body: bool = False
+    #: The page teaches an *application*, so its blocks legitimately call functions the reader writes
+    #: (`led_toggle()`, `get_sensor_value()`). An implicit declaration is then a warning rather than an
+    #: error - except for a name in the project's own namespace: `xy_*` is a call into this tree, and a
+    #: header has to declare it. That carve-out is what keeps the tolerance from becoming a licence to
+    #: teach a XinYi API that does not exist.
+    application: bool = False
+
+
+#: Include roots every component guide may need: the project's own types and error codes, logging,
+#: the kernel's OSAL, and the HAL. A page that carries a complete program still needs the tree to
+#: resolve its `#include` lines, and pinning the shared roots here keeps the per-page additions to the
+#: directory that owns the header the page is about.
+SHARED_ROOTS = (
+    "components/clib/xy_clib/inc",
+    "components/clib/xy_clib",
+    "components/common/inc",
+    "components/kernel/misc/inc",
+    "components/kernel/osal/inc",
+    "components/kernel/osal",
+    "components/hal/inc",
+    "components/device/inc",
+    "components/trace/xy_log/inc",
+)
 
 
 SAMPLES: tuple[Sample, ...] = (
@@ -117,6 +172,7 @@ SAMPLES: tuple[Sample, ...] = (
         includes=("xy_hal_uart.h",),
         roots=("components/hal/inc",),
         markers=("xy_hal_uart_send(uart",),
+        fragments=('xy_log_d("调试消息', "@file module_name.c"),
     ),
     # The porting guide told a reader porting a new platform to write
     # `xy_hal_gpio_init(void *port, uint16_t pin, ...)` where the header declares
@@ -135,7 +191,152 @@ SAMPLES: tuple[Sample, ...] = (
             "components/kernel/misc/inc",
         ),
         markers=("xy_hal_gpio_init_stm32(", "xy_hal_uart_send(uart,"),
+        fragments=("stm32f4xx_hal.h",),
     ),
+    # -----------------------------------------------------------------------------------------
+    # The component guides. Fifteen pages that each carry complete programs - the pages a reader
+    # opens when they are about to write the first call for a component - and until now not one of
+    # their fifty-odd blocks had ever been compiled. They need `per_block` because a page teaches two
+    # or three programs in sequence and each of them defines `main()`.
+    # -----------------------------------------------------------------------------------------
+    # Two usage fragments rather than programs: a filter is initialised, a buffer is sorted. Wrapped
+    # as function bodies, so the calls are checked against their headers instead of being skipped.
+    Sample(
+        doc="docs/components/clib/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS,
+        per_block=True,
+        as_body=True,
+    ),
+    # Three programs (AES, MD5, Base64) and four fragment sketches: a configuration preamble, an HMAC
+    # call without the buffer setup it needs, a CRC over a buffer the reader has not opened yet, and an
+    # incremental hash whose chunks are the reader's. The fragments are declared, not ignored.
+    Sample(
+        doc="docs/components/crypto/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS + ("components/crypto/inc",),
+        markers=("int main(void)",),
+        fragments=("// xy_crypto_config.h", "xy_hmac_sha256(", "xy_crc32(file_data",
+                   "xy_sha256_ctx_t ctx;"),
+        per_block=True,
+    ),
+    # The device page walks from the framework to two real drivers. Its last three blocks are one
+    # example in three pieces - a `xy_my_device_t` typedef, then two functions that take it - and they
+    # only compile together, which is what a fragment declaration says.
+    Sample(
+        doc="docs/components/device/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS + ("components/drivers/storage/eeprom/24xx",
+                              "components/drivers/display/oled/ssd1306"),
+        markers=("void i2c_device_example(", "void eeprom_example(", "void oled_example("),
+        fragments=("} xy_my_device_t;", "int xy_my_device_init(", "int xy_my_device_read("),
+        per_block=True,
+    ),
+    Sample(
+        doc="docs/components/dm/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS + ("components/dm", "components/dm/inc", "components/dm/xy_tlv"),
+        per_block=True,
+    ),
+    # The first block is a complete program; the next two are configuration structs, which compile as
+    # definitions at file scope with the page's header included; the last is a copy of the public
+    # struct, which would collide with the header's own typedef.
+    Sample(
+        doc="docs/components/fota/introduction.md",
+        includes=("xy_fota.h",),
+        roots=SHARED_ROOTS + ("components/fota/inc",),
+        fragments=("xy_fota_mode_t mode;",),
+        per_block=True,
+    ),
+    Sample(
+        doc="docs/components/gui/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS + ("components/gui", "components/gui/inc"),
+        per_block=True,
+        application=True,
+    ),
+    # The HAL page's first and last blocks are a configuration-header preamble and a two-line
+    # placeholder; the three between them are programs that were written against the vendor's instance
+    # handles (`GPIOA`, `UART1`, `I2C1`), which is exactly the coupling the HAL exists to remove.
+    Sample(
+        doc="docs/components/hal/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS,
+        fragments=("// xy_hal_cfg.h", "XY_HAL_PLATFORM <your_platform>"),
+        per_block=True,
+    ),
+    Sample(
+        doc="docs/components/ipc/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS + ("components/ipc/inc", "components/ipc/pipe",
+                              "components/ipc/xy_broker", "components/ipc/observer"),
+        per_block=True,
+    ),
+    Sample(
+        doc="docs/components/net/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS + ("components/net/inc", "components/net/xy_iso7816",
+                              "components/net/modbus"),
+        per_block=True,
+    ),
+    # Two programs and a configuration preamble. Both programs create a thread, and the first one's
+    # `NULL` argument is the page's own claim that `xy_os.h` gives a reader `NULL`.
+    Sample(
+        doc="docs/components/osal/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS,
+        fragments=("// xy_os_cfg.h",),
+        per_block=True,
+        application=True,
+    ),
+    Sample(
+        doc="docs/components/pid/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS + ("components/pid/inc",),
+        per_block=True,
+        application=True,
+    ),
+    Sample(
+        doc="docs/components/sensor/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS + ("components/sensor/inc", "components/sensor"),
+        per_block=True,
+    ),
+    Sample(
+        doc="docs/components/trace/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS,
+        per_block=True,
+    ),
+    # The driver template is entirely pattern: every block is a file the reader is about to create,
+    # naming a driver that does not exist yet (`xy_xxx.h`) and Unity's header. Nothing here can
+    # compile, and all five blocks say so - which still routes them through `classify()`, so a sixth
+    # block added to the page cannot arrive unread.
+    Sample(
+        doc="docs/components/device/DRIVER_TEMPLATE.md",
+        includes=(),
+        roots=SHARED_ROOTS,
+        fragments=("xy_xxx.h", "xy_xxx.c", "xy_spi_xxx.h", "xy_gpio_xxx.h", "test_xxx.c"),
+    ),
+)
+
+
+#: Pages that carry C blocks, are not judged yet, and say why. This is not an exemption list - it is
+#: the measured remainder. Each entry names a page whose examples teach an API this tree does not
+#: have, which is a rewrite rather than an include line, and each is printed on every run so the debt
+#: stays visible instead of becoming a silence. A page under `docs/components` that is in neither this
+#: tuple nor `SAMPLES` is reported by `unlisted_pages()`, so a new guide cannot arrive unwatched.
+DEFERRED: tuple[tuple[str, str], ...] = (
+    ("docs/components/addc/introduction.md",
+     "teaches `xy_adc_t`, `xy_adc_init()`, `xy_adc_config_channel()`, `xy_adc_sample()` and a "
+     "`xy_dac_*` family that no header declares; the real entry points are `xy_adc_dev_init()`, "
+     "`xy_adc_dev_config_channels()` and `xy_adc_dev_read()`, and there is no DAC device yet - the two "
+     "programs need rewriting against the device model"),
+    ("docs/components/pm/introduction.md",
+     "its fuel-gauge example teaches `xy_fuel_gauge_config_t` and `xy_fuel_gauge_update()`, which do "
+     "not exist - the real contract is a driver-owned `xy_fuel_gauge_t` registered with "
+     "`xy_fuel_gauge_device_register()` and read through `fetch()`/`get_soc()` - so the page needs a "
+     "driver-model rewrite; its charger example also prints `state.soc_percent` without `<stdio.h>`"),
 )
 
 
@@ -150,20 +351,45 @@ def code_blocks(path: Path) -> list[tuple[int, str]]:
     return blocks
 
 
-def translation_unit(doc: str, blocks: list[tuple[int, str]], includes: tuple[str, ...]) -> str:
-    """One compilation unit: the page's subject headers, then each block at its own line number."""
+def translation_unit(doc: str, blocks: list[tuple[int, str]], includes: tuple[str, ...],
+                     as_body: bool = False) -> str:
+    """One compilation unit: the page's subject headers, then each block at its own line number.
+
+    ``as_body`` wraps a block whose content is statements rather than declarations: the block's own
+    ``#include`` lines are hoisted to the top, a function header is emitted, and only then does a
+    ``#line`` directive hand the page's line numbers back - so a diagnostic still points at the
+    document even though one line of wrapper now sits in front of the block.
+    """
     lines = [f'#include "{name}"' for name in includes]
-    for start, body in blocks:
+    hoisted: list[str] = []
+    for index, (start, body) in enumerate(blocks):
+        if as_body:
+            kept = []
+            for line in body.splitlines():
+                if line.lstrip().startswith("#include"):
+                    # Hoisted, and blanked in place: deleting the line would shift every diagnostic
+                    # below it by one and the report would name a page line that is not the defect.
+                    hoisted.append(line)
+                    kept.append("")
+                else:
+                    kept.append(line)
+            body = "\n".join(kept)
+            lines.append(f"void xy_doc_sample_{index}(void) {{")
         # A diagnostic then reads `docs/api/API_REFERENCE.md:30:16: error: ...` - the page and the
         # page's line, which is the only location a reader can act on.
         lines.append(f'#line {start} "{doc}"')
         lines.append(body.rstrip())
-    return "\n".join(lines) + "\n"
+        if as_body:
+            lines.append("}")
+    return "\n".join(hoisted + lines) + "\n"
 
 
-def run_compiler(unit: str, roots: tuple[str, ...], compiler: str, root: Path) -> tuple[int, str]:
+def run_compiler(unit: str, roots: tuple[str, ...], compiler: str, root: Path,
+                 application: bool = False) -> tuple[int, str]:
     """(exit code, diagnostics) for one unit, read from stdin so no temporary file is written."""
     command = [compiler, *COMPILE_ARGS]
+    if application:
+        command.append("-Wno-error=implicit-function-declaration")
     command += [f"-I{(root / name).as_posix()}" for name in roots]
     command += ["-x", "c", "-"]
     try:
@@ -173,12 +399,89 @@ def run_compiler(unit: str, roots: tuple[str, ...], compiler: str, root: Path) -
     return finished.returncode, (finished.stdout + finished.stderr).strip()
 
 
+#: An implicitly declared function in the project's own namespace. `application` lets a page call the
+#: reader's helpers, and this is the line that keeps the tolerance honest: `xy_*` is a call into this
+#: tree, so a header has to declare it or the reader is being taught an API that does not exist.
+#: Both quote styles are accepted - gcc quotes identifiers with U+2018/U+2019 under a UTF-8 locale.
+IMPLICIT_PROJECT_CALL = re.compile(r"implicit declaration of function [‘'](xy_[A-Za-z0-9_]+)[’']")
+
+
+def classify(sample: Sample, blocks: list[tuple[int, str]]) -> tuple[
+        list[tuple[int, str]], list[str]]:
+    """(blocks to compile, problems) for one page's fenced blocks.
+
+    Every block is placed in exactly one class, which is what makes the page's coverage countable: a
+    block is compiled, or it is named by a `fragments` marker as something other than a compile
+    claim, or it is reported. The middle class exists because the alternative - quietly ignoring the
+    blocks a selector does not match - is how a page keeps reporting clean while its newest sample is
+    read by nobody.
+    """
+    problems: list[str] = []
+    selected: list[tuple[int, str]] = []
+    for start, body in blocks:
+        # A `markers` entry is a claim that this block *is* a sample. Its presence makes the
+        # ambiguity below reportable; without markers the page is judged whole, and a fragment
+        # declaration is the only thing that can remove a block from that set.
+        claimed = bool(sample.markers) and any(mark in body for mark in sample.markers)
+        chosen = claimed or not sample.markers
+        fragment = any(mark in body for mark in sample.fragments)
+        if claimed and fragment:
+            problems.append(
+                f"{sample.doc}:{start}: this block is both compiled and declared a fragment "
+                f"({', '.join(repr(m) for m in sample.fragments if m in body)}) - the page is "
+                f"telling the guard two things about one block")
+            continue
+        if fragment:
+            continue
+        if not chosen:
+            problems.append(
+                f"{sample.doc}:{start}: this C block is neither compiled nor declared a fragment - "
+                f"no selector matches it, so nothing reads it; widen the selectors or name its "
+                f"placeholder in `fragments`")
+            continue
+        selected.append((start, body))
+    stale = [mark for mark in sample.fragments if not any(mark in body for _, body in blocks)]
+    if stale:
+        problems.append(
+            f"{sample.doc}: {', '.join(repr(mark) for mark in stale)} names no block on the page - "
+            f"the declared fragment is gone, so the classification has drifted from the document")
+    return selected, problems
+
+
+def unlisted_pages(root: Path | None = None) -> list[str]:
+    """Component guides that carry C blocks and are in neither `SAMPLES` nor `DEFERRED`.
+
+    The coverage of this guard is a list, and a list's failure mode is silence: a new page appears,
+    nobody adds it, and every run still says ok. Measured the day the component guides were listed,
+    sixteen pages carried fifty-three C blocks. This is what makes that count checkable instead of
+    remembered.
+    """
+    tree = ROOT if root is None else root
+    judged = {sample.doc for sample in SAMPLES} | {doc for doc, _ in DEFERRED}
+    problems: list[str] = []
+    for page in sorted((tree / "docs" / "components").rglob("*.md")):
+        relative = page.relative_to(tree).as_posix()
+        if relative in judged:
+            continue
+        blocks = code_blocks(page)
+        if blocks:
+            problems.append(
+                f"{relative}: carries {len(blocks)} fenced C blocks and is in neither `SAMPLES` nor "
+                f"`DEFERRED` - a page nobody listed is a page nobody compiles")
+    for doc, reason in DEFERRED:
+        if not (tree / doc).is_file():
+            problems.append(f"{doc}: deferred here, but the file is gone - the list has drifted")
+        if not reason.strip():
+            problems.append(f"{doc}: deferred without a reason - an unexplained omission is a silence")
+    return problems
+
+
 def findings(samples: tuple[Sample, ...] | None = None, root: Path | None = None,
              compiler: str = "cc") -> list[str]:
     """Every document's blocks must compile against the headers that document is about."""
     tree = ROOT if root is None else root
     judged = SAMPLES if samples is None else samples
-    problems: list[str] = []
+    problems: list[str] = [] if samples is not None else unlisted_pages(tree)
     inspected = 0
     for sample in judged:
         path = tree / sample.doc
@@ -188,18 +491,24 @@ def findings(samples: tuple[Sample, ...] | None = None, root: Path | None = None
                 f"is gone - the list has drifted from the tree")
             continue
         blocks = code_blocks(path)
-        selected = [block for block in blocks
-                    if not sample.markers or any(mark in block[1] for mark in sample.markers)]
         if not blocks:
             problems.append(
                 f"{sample.doc}: no fenced C block was found - the extractor is broken, and a page "
                 f"with no blocks compiles exactly as cleanly as a correct one")
             continue
-        if not selected:
+        selected, class_problems = classify(sample, blocks)
+        problems.extend(class_problems)
+        if not selected and not sample.fragments:
             problems.append(
                 f"{sample.doc}: none of its {len(blocks)} C blocks contains "
-                f"{', '.join(repr(mark) for mark in sample.markers)} - the selector no longer points "
-                f"at the sample, and compiling nothing reads the same as passing")
+                f"{', '.join(repr(mark) for mark in sample.markers)} and none is declared a "
+                f"fragment - the selector no longer points at the sample, and compiling nothing "
+                f"reads the same as passing")
+            continue
+        if not selected:
+            # A page that is entirely pattern - the driver template, whose every block names a file
+            # the reader is about to create - still passes through `classify()`, so a new block on it
+            # is reported as unclassified rather than silently unread.
             continue
         # A page with more than one sample needs one marker per sample, and with an OR selector a
         # single stale marker silently shrinks the compiled set instead of failing. Measured on
@@ -213,13 +522,26 @@ def findings(samples: tuple[Sample, ...] | None = None, root: Path | None = None
                 f"{len(blocks)} C blocks - that sample is no longer being compiled, and a silently "
                 f"smaller set reports the same result as a clean one")
         inspected += len(selected)
-        status, output = run_compiler(translation_unit(sample.doc, selected, sample.includes),
-                                      sample.roots, compiler, tree)
-        if status != 0:
-            problems.append(
-                f"{sample.doc}: its {len(selected)} C blocks do not compile against the headers it "
-                f"documents - a signature the header contradicts is a call the reader cannot write:\n"
-                f"{output}")
+        for unit_blocks in ([[one] for one in selected] if sample.per_block else [selected]):
+            where = (f"its block at line {unit_blocks[0][0]}" if sample.per_block
+                     else f"its {len(unit_blocks)} C blocks")
+            status, output = run_compiler(translation_unit(sample.doc, unit_blocks,
+                                                           sample.includes, sample.as_body),
+                                          sample.roots, compiler, tree, sample.application)
+            if status != 0:
+                problems.append(
+                    f"{sample.doc}: {where} do not compile against the headers it documents - a "
+                    f"signature the header contradicts is a call the reader cannot write:\n{output}")
+                continue
+            # A green exit code is not yet a claim about the project's own API: `application` lets a
+            # missing declaration slide by as a warning, so project-namespace calls are read back out
+            # of the warnings.
+            undeclared = sorted(set(IMPLICIT_PROJECT_CALL.findall(output)))
+            if undeclared:
+                problems.append(
+                    f"{sample.doc}: {where} calls {', '.join(undeclared)} without a declaration - no "
+                    f"header in this tree provides the name, so the page teaches an API that does "
+                    f"not exist")
     if inspected == 0:
         problems.append(
             "no fenced C block was compiled - the walk is broken, and a walk that inspects nothing "
@@ -240,9 +562,19 @@ def main(argv: list[str] | None = None) -> int:
         for problem in problems:
             print(problem)
         return 1
-    blocks = sum(len(code_blocks(ROOT / sample.doc)) for sample in SAMPLES)
+    blocks = 0
+    fragments = 0
+    for sample in SAMPLES:
+        page = ROOT / sample.doc
+        if not page.is_file():
+            continue
+        selected, _ = classify(sample, code_blocks(page))
+        blocks += len(selected)
+        fragments += len(sample.fragments)
     print(f"doc_samples_compile ok ({len(SAMPLES)} documents, {blocks} C blocks compiled with "
-          f"`{compiler}` against {sum(len(s.roots) for s in SAMPLES)} include roots)")
+          f"`{compiler}` against {sum(len(s.roots) for s in SAMPLES)} include roots; "
+          f"{fragments} blocks declared as patterns rather than samples; "
+          f"{len(DEFERRED)} component pages deferred, each with its reason)")
     return 0
 
 

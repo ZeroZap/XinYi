@@ -70,6 +70,7 @@ int main(void) {
 
 ```c
 #include "xy_os.h"
+#include <stddef.h>
 
 static xy_os_thread_id_t led_thread;
 static uint8_t led_stack[512];
@@ -262,6 +263,7 @@ void app_main(void) {
 
 ```c
 #include "xy_os.h"
+#include <stddef.h>
 
 static xy_os_semaphore_id_t sem;
 

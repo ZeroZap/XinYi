@@ -24,6 +24,9 @@ XinYi Trace 组件提供统一的日志系统（xy_log）和命令处理（xy_cm
 #include "xy_log.h"
 
 int main(void) {
+    int value = 42;
+    const char *str = "串口已就绪";
+
     xy_log_init();
 
     xy_log_str("Direct message\n");

@@ -60,6 +60,17 @@
   self-test went 41 → 53 cases: the eleven new ones cover a prose claim, a parameter sketch, a bare
   target name, an absence sentence, a table row whose 说明 says 删除任务, a placeholder, a weak seam,
   a stale strong definition, the footprint of the new root, and a `main()` red/green pair.
+  The component-guide slice added no CTest entry either (still 422) and widened
+  `doc_samples_compile` from three documents and nineteen blocks to seventeen documents and
+  forty-eight blocks: `Sample` gained `per_block` (a guide teaches several complete programs, each
+  with its own `main()`), `fragments` (blocks that are templates, configuration preambles or half of
+  a two-block example, declared by content so an unlisted block is reported instead of silently
+  unread), `as_body` (a statement fragment wrapped in a function, with its `#include` hoisted and
+  blanked in place so diagnostics keep the page's line numbers) and `application` (the page may call
+  the reader's own functions, but an implicitly declared `xy_*` call is read back out of the compiler
+  warnings and reported). Two component pages remain deferred with their reasons printed on every
+  run, and `unlisted_pages()` reports a C-bearing component guide that is in neither list. The
+  self-test went 18 → 33 cases.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which

@@ -60,6 +60,8 @@ int main(void) {
 int main(void) {
     xy_tlv_iterator_t iter;
     xy_tlv_t tlv;
+    uint8_t buffer[256];          // 收到的报文
+    uint16_t buffer_len = 0;      // 实际长度，由接收路径填写
     
     // 初始化迭代器
     xy_tlv_iterator_init(&iter, buffer, buffer_len);

@@ -40,21 +40,24 @@ XinYi Device 组件提供标准化的设备驱动框架，基于 HAL 层封装�
 ```c
 #include "xy_device.h"
 
-int main(void) {
+// i2c 是板级层给的外设句柄（STM32 上是 `I2C_HandleTypeDef *`），
+// 设备层只认这个句柄，不认厂商的 `I2C1`
+void i2c_device_example(void *i2c)
+{
     xy_i2c_device_t i2c_dev;
-    
-    // 初始化 I2C 设备
-    xy_i2c_device_init(&i2c_dev, I2C1, 0x50, 1000);
-    
+
+    // 初始化 I2C 设备：地址 0x50，超时 1000 ms
+    if (xy_i2c_device_init(&i2c_dev, i2c, 0x50, 1000) != XY_OK) {
+        return;
+    }
+
     // 写入数据
     uint8_t data[] = {0x01, 0x02, 0x03};
-    xy_i2c_device_write(&i2c_dev, data, sizeof(data));
-    
+    (void)xy_i2c_device_write(&i2c_dev, data, sizeof(data));
+
     // 读取数据
     uint8_t rx[3];
-    xy_i2c_device_read(&i2c_dev, rx, sizeof(rx));
-    
-    return 0;
+    (void)xy_i2c_device_read(&i2c_dev, rx, sizeof(rx));
 }
 ```
 
@@ -63,21 +66,22 @@ int main(void) {
 ```c
 #include "xy_eeprom_24xx.h"
 
-int main(void) {
+void eeprom_example(void *i2c)
+{
     xy_eeprom_24xx_t eeprom;
-    
+
     // 初始化 EEPROM (24C256, 32KB)
-    xy_eeprom_24xx_init(&eeprom, I2C1, 0x50, 64, 32768);
-    
+    if (xy_eeprom_24xx_init(&eeprom, i2c, 0x50, 64, 32768) != 0) {
+        return;
+    }
+
     // 写入数据
-    uint8_t tx[] = "Hello, EEPROM!";
-    xy_eeprom_24xx_write(&eeprom, 0, tx, sizeof(tx));
-    
+    const char tx[] = "Hello, EEPROM!";
+    (void)xy_eeprom_24xx_write(&eeprom, 0, (const uint8_t *)tx, sizeof(tx));
+
     // 读取数据
     uint8_t rx[32];
-    xy_eeprom_24xx_read(&eeprom, 0, rx, sizeof(rx));
-    
-    return 0;
+    (void)xy_eeprom_24xx_read(&eeprom, 0, rx, sizeof(rx));
 }
 ```
 
@@ -86,22 +90,23 @@ int main(void) {
 ```c
 #include "xy_oled_ssd1306.h"
 
-int main(void) {
+void oled_example(void *i2c)
+{
     xy_oled_ssd1306_t oled;
-    
+
     // 初始化 OLED (128x64)
-    xy_oled_ssd1306_init(&oled, I2C1, 128, 64);
-    
+    if (xy_oled_ssd1306_init(&oled, i2c, 128, 64) != 0) {
+        return;
+    }
+
     // 清屏
     xy_oled_ssd1306_clear(&oled);
-    
+
     // 绘制字符串
     xy_oled_ssd1306_draw_string(&oled, 0, 0, "Hello!", true);
-    
+
     // 刷新屏幕
     xy_oled_ssd1306_refresh(&oled);
-    
-    return 0;
 }
 ```
 
