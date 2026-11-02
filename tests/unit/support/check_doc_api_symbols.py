@@ -27,10 +27,19 @@ order" links and three of the four example rows pointed at paths that do not exi
 docs had been moved one level down (into `components/<x>/`) and nothing read the document as a set of
 claims. A path is a claim.
 
-Scope is `docs/getting-started/`, the documents that instruct. Architecture notes, proposals and
-the API reference legitimately describe APIs that are being designed - judging them would punish
-writing the plan down, which is the mistake this repository has already made once. `docs/history`
-records what was true when it was recorded and is not rewritten.
+Scope is the documents that instruct: `docs/getting-started/`, the HAL API reference
+(`docs/hal/`), and the HAL component's own usage docs (`components/hal/`). Architecture notes,
+proposals and the planning documents legitimately describe APIs that are being designed - judging
+them would punish writing the plan down, which is the mistake this repository has already made once.
+`docs/history` records what was true when it was recorded and is not rewritten.
+
+The HAL scope was added because that is exactly where the fiction survived: `components/hal/README.md`
+opened with `xy_hal_gpio_bind("GPIOC.13")` / `xy_hal_uart_configure()` / an `xy_hal_gpio_t` handle and
+"102 unified APIs", and `docs/hal/HAL_UNIFIED_API.md` repeated it with a "✅ 完成" header - while the
+real interface takes a *platform handle* and every entry is `xy_hal_<peripheral>_<verb>(handle, ...)`.
+A user-facing component README is a usage claim in the same sense a quick start is; a design note is
+not, and the seven pre-2.0 HAL notes in that directory are listed in `EXEMPT` with that reason rather
+than silently forgiven.
 
 Boundaries, stated rather than hidden: only fenced ```c / ```cpp blocks are judged (prose and
 shell blocks are not API claims - a shell block's `make <target>` is a different rule), and the
@@ -62,14 +71,35 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from source_scan import code_only, fenced_blocks, read_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
-DOC_ROOTS = ("docs/getting-started",)
+DOC_ROOTS = ("docs/getting-started", "docs/hal", "components/hal")
 INDEX_ROOTS = ("components", "boards")
+#: Roots that supply *header names* a document may legitimately include. Vendor SDKs live here, so
+#: `#include "stm32l4xx_hal.h"` in a porting note is a real header and not a broken claim. Symbols
+#: are still judged against INDEX_ROOTS only - a vendor header cannot vouch for an `xy_*` name.
+HEADER_ROOTS = ("components", "boards", "MCU", "third_party")
 #: Fenced-block languages that make a compile claim. A `bash` block is judged by a different rule
 #: (its `make <target>` names a target, not a symbol).
 CODE_LANGUAGES = ("c", "cpp", "c++")
-#: Documents exempted from the sweep, each with the reason. Empty on purpose: the scope is
-#: already the narrow set of documents that instruct.
-EXEMPT: dict[str, str] = {}
+#: Documents exempted from the sweep, each with the reason. The seven pre-2.0 HAL notes describe the
+#: `*_dev.h` / `xy_hal_pin_*` generation that never landed; they are design and migration records,
+#: not usage, and rewriting or retiring them is its own slice rather than something to forgive here.
+EXEMPT: dict[str, str] = {
+    "components/hal/ERROR_CODES.md":
+        "2025-10 error-code reference from the pre-2.0 HAL; the enum itself lives in "
+        "xy_hal_error.h and the numbers agree, but the file is a migration record",
+    "components/hal/HAL_UNIFIED_API_SPEC.md":
+        "the specification for the *_dev.h generation that was never implemented",
+    "components/hal/INTEGRATION_GUIDE.md":
+        "integration guide for the same never-implemented xy_hal_pin_* generation",
+    "components/hal/RESTRUCTURING_NOTES.md":
+        "v1.0 -> v2.0 restructuring notes; describes the old layout on purpose",
+    "components/hal/RETURN_TYPE_UPDATE.md":
+        "2025-10 return-type standardisation record",
+    "components/hal/VALIDATION_STRATEGY.md":
+        "2026-03 validation plan written against the never-implemented *_dev.h API",
+    "components/hal/hal_status.md":
+        "placeholder status stub with no example code",
+}
 
 TOKEN = re.compile(r"\bxy_[A-Za-z0-9_]+\b")
 INCLUDE = re.compile(r'^\s*#\s*include\s+"([^"]+)"')
@@ -99,8 +129,14 @@ def documents() -> list[Path]:
     return found
 
 
-def header_index(roots: tuple[str, ...] = INDEX_ROOTS) -> tuple[set[str], set[str]]:
-    """(every identifier a header declares or uses, every header basename)."""
+def header_index(roots: tuple[str, ...] = INDEX_ROOTS,
+                 header_roots: tuple[str, ...] = HEADER_ROOTS) -> tuple[set[str], set[str]]:
+    """(every identifier a header under ``roots`` declares or uses, every header basename).
+
+    The two sets deliberately have different reach: a symbol must be declared by project code, while
+    a *header name* the document includes may live in a vendor SDK under ``MCU/`` or ``third_party/``.
+    Reading vendor headers for symbols would let an unrelated SDK name vouch for an ``xy_*`` token.
+    """
     symbols: set[str] = set()
     names: set[str] = set()
     for root in roots:
@@ -108,8 +144,13 @@ def header_index(roots: tuple[str, ...] = INDEX_ROOTS) -> tuple[set[str], set[st
         if not directory.is_dir():
             continue
         for path in directory.rglob("*.h"):
-            names.add(path.name)
             symbols.update(TOKEN.findall(read_code(path)))
+    for root in header_roots:
+        directory = ROOT / root
+        if not directory.is_dir():
+            continue
+        for path in directory.rglob("*.h"):
+            names.add(path.name)
     return symbols, names
 
 

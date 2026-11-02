@@ -2045,6 +2045,25 @@ target_include_directories(test_hal_pc PRIVATE
     ${HAL}/PC
 )
 
+# --- The HAL quick start the HAL documentation teaches, compiled and run ---
+# `components/hal/README.md` and `docs/hal/HAL_UNIFIED_API.md` show this file's code. Keeping the
+# sample inside the suite means a documented HAL call that stops existing fails a test instead of
+# ageing in a markdown block; `-Werror=implicit-function-declaration` makes a renamed entry point a
+# build failure rather than a C89 implicit declaration.
+xy_add_unit_test(test_hal_quickstart hal_quickstart
+    ${ROOT}/components/hal/examples/hal_quickstart.c
+    ${HAL}/PC/xy_hal_pc.c
+    ${HAL}/PC/xy_hal_gpio_pc.c
+    ${HAL}/PC/xy_hal_i2c_pc.c
+    ${HAL}/PC/xy_hal_spi_pc.c
+    ${HAL}/PC/xy_hal_uart_pc.c
+)
+target_include_directories(test_hal_quickstart PRIVATE
+    ${HAL}/inc
+    ${HAL}/PC
+)
+target_compile_options(test_hal_quickstart PRIVATE -Werror=implicit-function-declaration)
+
 # --- Test 23: PM lifecycle, charger, fuel gauge, and PC platform contracts ---
 xy_add_unit_test(test_pm pm_component UNITY
     ${UNIT_PM}/test_pm_core.c

@@ -167,6 +167,61 @@ class DocApiSymbolsTest(unittest.TestCase):
             guard.ROOT, guard.DOC_ROOTS = saved_root, saved_roots
         self.assertTrue(any("path walk is broken" in p for p in problems), problems)
 
+    # ---------------------------------------------------------------------------------------------
+    # The two rules that came with the HAL scope: vendor headers are real headers, and a design note
+    # that is skipped is skipped *visibly*.
+    # ---------------------------------------------------------------------------------------------
+
+    def test_a_vendor_sdk_header_is_a_real_header_but_vouches_for_no_symbol(self) -> None:
+        # A porting note legitimately includes `stm32l4xx_hal.h`; that header lives under MCU/, not
+        # under components/. Reading it for symbols as well would let any SDK name stand in for an
+        # `xy_*` declaration, which is exactly the direction that has to stay closed.
+        vendor = self.root / "MCU" / "ST" / "Vendor"
+        vendor.mkdir(parents=True)
+        (vendor / "stm32l4xx_hal.h").write_text("void HAL_Delay(unsigned ms);\n"
+                                                "void xy_vendor_only_symbol(void);\n",
+                                                encoding="utf-8")
+        project = self.root / "components" / "hal"
+        project.mkdir(parents=True)
+        (project / "xy_hal_hdr.h").write_text("void xy_hal_gpio_init(int p);\n", encoding="utf-8")
+
+        saved_root = guard.ROOT
+        guard.ROOT = self.root
+        try:
+            symbols, names = guard.header_index(roots=("components",),
+                                                header_roots=("components", "MCU"))
+        finally:
+            guard.ROOT = saved_root
+        self.assertIn("stm32l4xx_hal.h", names)
+        self.assertIn("xy_hal_gpio_init", symbols)
+        self.assertNotIn("xy_vendor_only_symbol", symbols)
+        # ... and the rule that follows from it: including the vendor header is not a finding.
+        path = self.root / "SAMPLE.md"
+        path.write_text(fenced('#include "stm32l4xx_hal.h"\n'), encoding="utf-8")
+        self.assertEqual([], guard.findings([path], symbols, names))
+
+    def test_an_exempt_document_is_skipped_by_the_walk(self) -> None:
+        # Scope grew to a directory that also holds pre-2.0 design notes. They are exempt with a
+        # recorded reason; the point of this case is that the walk honours the list rather than
+        # reporting them forever (or dropping the reason requirement silently).
+        hal_dir = self.root / "components" / "hal"
+        hal_dir.mkdir(parents=True)
+        (hal_dir / "OLD.md").write_text(fenced("xy_hal_pin_init();\n"), encoding="utf-8")
+        (hal_dir / "README.md").write_text(
+            fenced(WITNESS) + "\nThe sample lives in `components/hal/README.md`.\n",
+            encoding="utf-8")
+
+        saved = guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT
+        guard.ROOT, guard.DOC_ROOTS = self.root, ("components/hal",)
+        guard.EXEMPT = {"components/hal/OLD.md": "pre-2.0 design note"}
+        try:
+            found = [p.name for p in guard.documents()]
+            problems = guard.findings(symbols=SYMBOLS, names=NAMES)
+        finally:
+            guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT = saved
+        self.assertEqual(["README.md"], found)
+        self.assertEqual([], problems)
+
 
 
 if __name__ == "__main__":

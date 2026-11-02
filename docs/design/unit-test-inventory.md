@@ -13,8 +13,8 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 417 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 417`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 418 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 418`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -27,7 +27,10 @@
   which compiles `at_urc.c` — previously referenced by no build at all — and runs it against the
   `at_client.c` `at_readline()` implementation); the AT quick-start slice took 416 → 417
   (`net_at_quickstart`, which compiles and runs `components/net/examples/at_client_quickstart.c` —
-  the sample `components/net/README.md` teaches — against the real `at_client.c`).
+  the sample `components/net/README.md` teaches — against the real `at_client.c`); the HAL
+  documentation slice took 417 → 418 (`hal_quickstart`, which compiles and runs
+  `components/hal/examples/hal_quickstart.c` — the sample `components/hal/README.md` and
+  `docs/hal/HAL_UNIFIED_API.md` teach — against the real PC HAL backend).
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -65,6 +68,7 @@
 | `projects/Bank/ontroller-charger-test.c` | Imported project-local patch transcript, not an active CTest source | Leave out of unit conversion; treat as project-specific legacy material unless the Bank project is intentionally rehabilitated. |
 | `tools/tests/*.py` | Host-side Python tool tests (z-serial + HIL harnesses), run by `make test-tools` | Keep separate from the C Unity/CTest inventory; the C counts above stay authoritative for firmware code. |
 | `components/clib/xy_clib/xy_math_example.c` | Public-API sample, excluded from `libxy_xy_clib` by the `_example\.c$` glob filter | Compiled and run by CTest `clib_math_example`; self-checking `main` (73 checks) instead of `assert()`, because Release defines `NDEBUG`. |
+| `components/hal/examples/hal_quickstart.c` | Public-API sample outside `tests/unit`, like the net/sensor samples | Compiled and run by CTest `hal_quickstart` (37 checks) with `-Werror=implicit-function-declaration`; it is the code `components/hal/README.md` and `docs/hal/HAL_UNIFIED_API.md` show, so a documented HAL entry that disappears fails a test. |
 | `components/clib/xy_clib/examples/clib_example.c` | Public-API sample, same glob exclusion | Compiled and run twice: CTest `clib_example` (hardware-division path) and `clib_example_softdiv` (`-DXY_USE_SOFT_DIV=1`); the pair is what proves the two division paths agree. |
 
 ## Component Breakdown
