@@ -2711,6 +2711,13 @@ xy_add_unit_test(test_at_server at_server UNITY
 )
 target_include_directories(test_at_server PRIVATE ${TRACE}/xy_log/inc)
 
+# --- Test 32b: AT URC dispatcher (handler lifecycle, match modes, poll path) ---
+xy_add_unit_test(test_at_urc at_urc UNITY
+    ${UNIT_NET}/test_at_urc_core.c
+    ${NET}/at/atc/Modules/cellular/common/at_urc.c
+    ${NET}/at/atc/Modules/cellular/common/at_client.c # at_readline() for at_urc_poll()
+)
+
 # --- Test 33: FOTA lifecycle, CRC, download, and flash-op contracts ---
 xy_add_unit_test(test_fota_core fota_core UNITY
     ${UNIT_FOTA}/test_fota_core.c

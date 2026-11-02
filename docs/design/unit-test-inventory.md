@@ -4,15 +4,17 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 212 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
-  the sensor-sample slice added `test_sensor_demo_backend_stub.c`, and the
-  `components/sensor/example/` slice added `test_sensor_example_bus_stub.c`)
-- Unity-style files: 206 (measured `grep -l unity.h` over those files; both stubs are helpers, not runners)
+- Total C files under `tests/unit`: 213 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
+  the sensor-sample slice added `test_sensor_demo_backend_stub.c`, the
+  `components/sensor/example/` slice added `test_sensor_example_bus_stub.c`, and the AT URC slice
+  added `test_at_urc_core.c`)
+- Unity-style files: 207 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
+  not runners)
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 415 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 415`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 416 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 416`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -21,9 +23,9 @@
   (`sensor_device_example`, which compiles and runs `components/sensor/examples/sensor_demo.c`);
   the `components/sensor/example/` slice took 412 → 415 (`sensor_example_basic`,
   `sensor_example_advanced`, `sensor_example_multi`, each compiling and running one of
-  `basic.c` / `advanced.c` / `example_multi_sensors.c`).
-  Older numbers on this line were stale by roughly the number of CTests registered since they were
-  written, so treat the count as measured-not-maintained)
+  `basic.c` / `advanced.c` / `example_multi_sensors.c`); the AT URC slice took 415 → 416 (`at_urc`,
+  which compiles `at_urc.c` — previously referenced by no build at all — and runs it against the
+  `at_client.c` `at_readline()` implementation).
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -207,6 +209,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/mux/test_mux_uart.c` | `unity` | 13 |
 | `tests/unit/net/test_at_client_core.c` | `unity` | 23 |
 | `tests/unit/net/test_at_server_core.c` | `unity` | 10 |
+| `tests/unit/net/test_at_urc_core.c` | `unity` | 25 | AT URC dispatcher: device-slot lifecycle (cap `AT_MAX_DEVICES`, idempotent init, deinit), `dev->user_data` left to the caller, handler register/unregister/set_enable/clear with stable ids, prefix/suffix/contain/exact line semantics, first-match-wins, built-in `ATE`/`RDY` fallback that user handlers can override, stats, re-entrancy refusal, 255-byte line truncation, and `at_urc_poll()` through `at_readline()`. |
 | `tests/unit/net/test_can.c` | `unity` | 0 |
 | `tests/unit/net/test_can_public_header.c` | `unity` | 0 | CAN public include-root/self-contained API smoke |
 | `tests/unit/net/test_net_feature_gated_umbrella.c` | `unity` | 0 | Net umbrella exports CAN/LTE only under explicit feature opt-in macros. |
