@@ -308,6 +308,36 @@ SAMPLES: tuple[Sample, ...] = (
         roots=SHARED_ROOTS,
         per_block=True,
     ),
+    # -----------------------------------------------------------------------------------------
+    # The two pages that used to be `DEFERRED`, because their samples taught an API this tree
+    # never had: `xy_adc_t` / `xy_adc_init()` / a `xy_dac_*` family on one page, and
+    # `xy_fuel_gauge_config_t` / `xy_fuel_gauge_update()` on the other. Both were rewrites rather
+    # than include lines, and both are now judged.
+    #
+    # `addc` teaches `components/analog_devices/xy_adc.h` - the ADC/DAC bookkeeping and conversion
+    # helper - and the HAL beneath it. The root order is the point, not decoration: `xy_adc.h` exists
+    # twice in this tree, and the two copies share the include guard `XY_ADC_H`, so whichever root
+    # comes first is the header the page means. The `xy_adc` CMake target puts
+    # `components/analog_devices` ahead of `components/device/inc`; this sample has to reproduce that
+    # order or it judges the device-side header instead - which is exactly how the page spent a
+    # release being called "teaches an API no header declares" while its calls were right.
+    Sample(
+        doc="docs/components/addc/introduction.md",
+        includes=(),
+        roots=("components/analog_devices",) + SHARED_ROOTS,
+        per_block=True,
+    ),
+    # `pm` mixes three headers that do not include each other: the charger, the PM core, and the
+    # standalone fuel-gauge component. Its fuel-gauge sample is the driver model - register an
+    # instance, take it back by name, `init`, `fetch`, then read the cache - which is what the old
+    # `xy_fuel_gauge_update(3800, 500, 25)` sample was inventing.
+    Sample(
+        doc="docs/components/pm/introduction.md",
+        includes=(),
+        roots=SHARED_ROOTS + ("components/pm/charger", "components/fuel_gauge/inc",
+                              "components/fuel_gauge/drivers"),
+        per_block=True,
+    ),
     # The driver template is entirely pattern: every block is a file the reader is about to create,
     # naming a driver that does not exist yet (`xy_xxx.h`) and Unity's header. Nothing here can
     # compile, and all five blocks say so - which still routes them through `classify()`, so a sixth
@@ -326,18 +356,13 @@ SAMPLES: tuple[Sample, ...] = (
 #: have, which is a rewrite rather than an include line, and each is printed on every run so the debt
 #: stays visible instead of becoming a silence. A page under `docs/components` that is in neither this
 #: tuple nor `SAMPLES` is reported by `unlisted_pages()`, so a new guide cannot arrive unwatched.
-DEFERRED: tuple[tuple[str, str], ...] = (
-    ("docs/components/addc/introduction.md",
-     "teaches `xy_adc_t`, `xy_adc_init()`, `xy_adc_config_channel()`, `xy_adc_sample()` and a "
-     "`xy_dac_*` family that no header declares; the real entry points are `xy_adc_dev_init()`, "
-     "`xy_adc_dev_config_channels()` and `xy_adc_dev_read()`, and there is no DAC device yet - the two "
-     "programs need rewriting against the device model"),
-    ("docs/components/pm/introduction.md",
-     "its fuel-gauge example teaches `xy_fuel_gauge_config_t` and `xy_fuel_gauge_update()`, which do "
-     "not exist - the real contract is a driver-owned `xy_fuel_gauge_t` registered with "
-     "`xy_fuel_gauge_device_register()` and read through `fetch()`/`get_soc()` - so the page needs a "
-     "driver-model rewrite; its charger example also prints `state.soc_percent` without `<stdio.h>`"),
-)
+#:
+#: Empty on purpose, and not by deleting the mechanism: `addc` and `pm` were the last two, and both
+#: are now in `SAMPLES`. The rules stay - a page that cannot be fixed with an include line has to be
+#: deferred *with a reason that prints on every run*, and the self-tests drive those rules against
+#: throwaway pages, so an empty tuple is a measured zero rather than a rule that quietly stopped
+#: being exercised. Adding a page here is a claim that its samples are wrong and the tree is right.
+DEFERRED: tuple[tuple[str, str], ...] = ()
 
 
 def code_blocks(path: Path) -> list[tuple[int, str]]:

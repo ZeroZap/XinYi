@@ -13,8 +13,8 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 422 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 422`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 424 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 424`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -70,7 +70,13 @@
   the reader's own functions, but an implicitly declared `xy_*` call is read back out of the compiler
   warnings and reported). Two component pages remain deferred with their reasons printed on every
   run, and `unlisted_pages()` reports a C-bearing component guide that is in neither list. The
-  self-test went 18 → 33 cases.
+  self-test went 18 → 33 cases. The ADDC/PM page slice took 422 → 424 (`hal_adc_dac_surface`, which
+  measures how much of `xy_hal_adc.h` (40 declarations) and `xy_hal_dac.h` (14) each backend
+  actually defines — 28/12/40 for ADC on stm32f4/stm32u5/wch, 14/14/14 for DAC — and pins every
+  (backend, function) gap with a reason so both a regression and a stale pin are reported, plus
+  `hal_adc_dac_surface_unit`, its 11-case self-test); the same slice moved the last two deferred
+  component pages into `SAMPLES` (17 → 19 documents, 48 → 52 blocks, `DEFERRED` now empty with the
+  rules kept), so every C-bearing page under `docs/components` is compiled.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which

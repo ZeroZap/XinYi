@@ -130,6 +130,13 @@ add_test(NAME hal_stub_returns
 add_test(NAME hal_stub_returns_unit
     COMMAND python3 ${UNIT_HAL}/test_hal_stub_returns.py)
 
+# The ADDC guide quotes a per-backend coverage table; this is the number behind it.
+add_test(NAME hal_adc_dac_surface
+    COMMAND python3 ${UNIT_HAL}/check_hal_adc_dac_surface.py)
+
+add_test(NAME hal_adc_dac_surface_unit
+    COMMAND python3 ${UNIT_HAL}/test_hal_adc_dac_surface.py)
+
 add_test(NAME hal_spi_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_spi_contract.py)
 
