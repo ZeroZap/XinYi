@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """The ADC header declares forty functions; the three backends implement 40, 28 and 12 of them.
 
-`components/hal/inc/xy_hal_adc.h` is one contract for four platforms, and the platforms do not
+`components/hal/inc/xy_hal_adc.h` is one contract for five platforms, and the platforms do not
 implement the same subset. Measured on real archives with `nm -g --defined-only .../libxy_hal.a`:
 
-    ADC   stm32f4 28/40   stm32u5 12/40   wch 40/40   stm32l4 0 (branch builds no ADC)   pc 0
-    DAC   stm32f4 14/14   stm32u5 14/14   wch 14/14
+    ADC   stm32f4 28/40   stm32u5 12/40   wch 40/40   stm32l4 0 (branch builds no ADC)   pc 40/40
+    DAC   stm32f4 14/14   stm32u5 14/14   wch 14/14   pc 14/14
 
 That is not a build configuration anyone intended; it is the residue of a header written once and
 three ports written at different times. It mattered the day a documentation page taught
 `xy_hal_adc_value_to_mv()` - implemented on F4 and CH32V307, absent on U5 - because a call that
 links on one platform and not on the next is exactly what a header is supposed to prevent.
+
+The PC backend is included because it is the one column that can be exercised on a host: it carries
+the whole surface as a simulation, so the two families have a place where every entry is at least
+callable and observable. That says nothing about the parts - a simulation of a conversion is not a
+conversion - which is why the per-backend gaps below are still the measurement that matters.
 
 So the five-way difference is measured here rather than remembered: declarations are read from the
 header, definitions from each backend's sources, and the difference per (backend, module) must equal
@@ -48,6 +53,7 @@ BACKENDS: dict[str, tuple[str, ...]] = {
     "stm32f4": ("components/hal/stm32/stm32f4", "components/hal/stm32/src"),
     "stm32u5": ("components/hal/stm32/stm32u5",),
     "wch": ("components/hal/wch/ch32x/src",),
+    "pc": ("components/hal/PC",),
 }
 
 #: Control keywords a column-0 line can begin with. A definition's return type is never one of them,
@@ -101,10 +107,25 @@ PINNED_MISSING: dict[tuple[str, str], tuple[frozenset[str], str]] = {
     ("wch", "adc"): (frozenset(), "the CH32V307 ADC wrapper implements the whole 40-function header, "
                                  "which is why it is the only backend a full-surface sample can run on"),
     ("wch", "dac"): (frozenset(), "the CH32V307 DAC wrapper implements the whole 14-function header"),
+    ("pc", "adc"): (
+        frozenset(),
+        "the host simulation implements all 40 entries, which is what makes an ADC consumer "
+        "linkable and observable without a board - a conversion is modelled from an injected "
+        "voltage, so this column says nothing about any part",
+    ),
+    ("pc", "dac"): (
+        frozenset(),
+        "the host simulation implements all 14 entries; the output value, the waveform advance and "
+        "the events are observable through the public API",
+    ),
 }
 
 DECLARATION = re.compile(r"\b(xy_hal_(?:adc|dac)_[a-z0-9_]*)\s*\(")
 DEFINITION = re.compile(r"^[A-Za-z][\w \t\*]*?\b(xy_hal_(?:adc|dac)_[a-z0-9_]*)\s*\(", re.M)
+#: The PC backend's own injection helpers (`xy_hal_adc_pc_set_input`, and the older
+#: `xy_hal_adc_init_pc`) share the family prefix but are not public entries - they are declared in
+#: `xy_hal_pc.h`, not in the module header. Counting them made the PC column read 47 of 40.
+INTERNAL_HELPER = re.compile(r"_pc(?:_|$)")
 
 
 def defined_functions(root: Path, directories: tuple[str, ...], module: str) -> set[str]:
@@ -117,6 +138,8 @@ def defined_functions(root: Path, directories: tuple[str, ...], module: str) -> 
                 prefix = source[source.rfind("\n", 0, match.start(1)) + 1:match.start(1)]
                 first = prefix.strip().split(" ")[0].strip("*") if prefix.strip() else ""
                 if first in NOT_A_TYPE:
+                    continue
+                if INTERNAL_HELPER.search(match.group(1)):
                     continue
                 if match.group(1).startswith(f"xy_hal_{module}_"):
                     names.add(match.group(1))

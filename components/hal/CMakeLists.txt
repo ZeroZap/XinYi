@@ -12,6 +12,16 @@ if(HAL_PLATFORM STREQUAL "PC")
         PC/xy_hal_rtc_pc.c
         PC/xy_hal_spi_pc.c
         PC/xy_hal_uart_pc.c
+        # ADC and DAC are simulated too, so a host consumer of either family links against the same
+        # `xy_hal` target the MCU builds produce instead of only against the unit-test fixture.
+        PC/xy_hal_adc_pc.c
+        PC/xy_hal_dac_pc.c
+        # The same rule caught two older omissions: the DMA and timer backends were compiled by the
+        # standalone `xy_hal_pc` library and by the unit fixture but never by this target, so a host
+        # application that called xy_hal_timer_init() or xy_hal_dma_init() did not link while the
+        # host suite was green.
+        PC/xy_hal_dma_pc.c
+        PC/xy_hal_timer_pc.c
     )
     set(HAL_DEFINES
         HAL_PLATFORM_PC

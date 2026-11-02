@@ -16,6 +16,8 @@ extern "C" {
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "xy_hal_error.h"
+
 /**
  * @brief PC 仿真 GPIO 端口结构
  */
@@ -92,6 +94,23 @@ int xy_hal_spi_transfer_pc(uint8_t instance, const uint8_t *tx, uint8_t *rx, uin
 
 int xy_hal_adc_init_pc(uint8_t instance, uint8_t resolution, float vref);
 int xy_hal_adc_read_pc(uint8_t instance, uint8_t channel, uint32_t *value);
+
+/* Hooks for the 2.0 ADC backend (xy_hal_adc_pc.c). A host has no pin to drive, so the input a
+ * channel converts from is set here and read back through the public API: the conversion, the full
+ * scale, the window watchdog and the internal-sensor sources are all exercises of the public
+ * contract, not of these hooks. */
+
+xy_hal_error_t xy_hal_adc_pc_set_input(void *adc, uint8_t channel, uint32_t millivolts);
+xy_hal_error_t xy_hal_adc_pc_set_vref(void *adc, uint32_t millivolts);
+void xy_hal_adc_pc_set_temperature(int32_t centidegrees);
+void xy_hal_adc_pc_set_vrefint(uint32_t millivolts);
+void xy_hal_adc_pc_set_vbat(uint32_t millivolts);
+
+/* ==================== DAC Simulation ==================== */
+
+/* The 2.0 DAC backend (xy_hal_dac_pc.c) needs no injection: what it models - the latched output
+ * value, the waveform advance on a software trigger, and the events - is all observable through the
+ * public API. */
 
 /* ==================== Delay Simulation ==================== */
 
