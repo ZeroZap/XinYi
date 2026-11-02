@@ -1,7 +1,11 @@
 # XinYi API 参考文档
 
 **生成时间**: 2026-03-01  
-**版本**: 2.0
+**版本**: 2.1
+
+> 本页是索引，不是全量清单：只列每个组件最主要的入口，完整接口以 `components/<组件>/inc/` 下的头文件为准。
+>
+> 页内每个 C 代码块都由 CTest `doc_samples_compile` 对着它所描述的标头真实编译（`-fsyntax-only -Wall -Wextra -Werror`）。原型与标头不一致会直接失败，所以这里的返回类型、参数个数与参数类型与代码一致；**语义**（行为、所有权、错误码）仍由各组件文档负责，编译器判不了。
 
 ---
 
@@ -25,7 +29,7 @@
 #### xy_os_kernel_init
 
 ```c
-int xy_os_kernel_init(void);
+xy_os_status_t xy_os_kernel_init(void);
 ```
 
 初始化 OS 内核。
@@ -39,37 +43,31 @@ int xy_os_kernel_init(void);
 #### xy_os_kernel_start
 
 ```c
-int xy_os_kernel_start(void);
+xy_os_status_t xy_os_kernel_start(void);
 ```
 
 启动 OS 内核调度器。
 
 ---
 
-#### xy_os_thread_create
+#### xy_os_thread_new
 
 ```c
-int xy_os_thread_create(
-    xy_os_thread_t *thread,
-    const char *name,
+xy_os_thread_id_t xy_os_thread_new(
     xy_os_thread_func_t func,
-    void *arg,
-    uint8_t priority,
-    uint8_t *stack,
-    uint32_t stack_size
+    void *argument,
+    const xy_os_thread_attr_t *attr
 );
 ```
 
-创建线程/任务。
+创建线程/任务，返回线程 ID，失败返回 `NULL`。`attr` 传 `NULL` 表示使用默认属性；名称、优先级、栈内存都在 `xy_os_thread_attr_t` 里。
+
+**没有** `xy_os_thread_create()`，也没有 `xy_os_thread_t`：线程句柄类型是 `xy_os_thread_id_t`，创建入口是 `xy_os_thread_new()`。把名称、优先级、栈内存逐个当参数传的写法是旧草案，标头里从来没有过。
 
 **参数**:
-- `thread`: 线程句柄
-- `name`: 线程名称
-- `func`: 线程函数
-- `arg`: 线程参数
-- `priority`: 优先级
-- `stack`: 栈内存
-- `stack_size`: 栈大小
+- `func`: 线程函数（`void (*)(void *)`）
+- `argument`: 传给线程函数的参数
+- `attr`: 线程属性（`NULL` = 默认）
 
 ---
 
@@ -81,13 +79,13 @@ int xy_os_thread_create(
 
 ```c
 xy_hal_error_t xy_hal_gpio_init(
-    void *port,
-    uint16_t pin,
+    xy_hal_gpio_port_t port,
+    uint8_t pin,
     const xy_hal_gpio_config_t *config
 );
 ```
 
-初始化 GPIO 引脚。
+初始化 GPIO 引脚。`pin` 是 `uint8_t`（0–15）；`xy_hal_gpio_port_t` 在嵌入式平台是不透明指针，在 PC 仿真层同样按端口句柄传递。
 
 ---
 
@@ -95,27 +93,27 @@ xy_hal_error_t xy_hal_gpio_init(
 
 ### SHT30
 
-#### xy_sht30_init
+#### xy_sht30_init_addr / xy_sht30_init
 
 ```c
-int xy_sht30_init(xy_sht30_t *dev, void *i2c_handle, uint8_t addr);
+int xy_sht30_init_addr(xy_sht30_t *sht, void *i2c_handle, uint16_t i2c_addr);
 ```
 
-初始化 SHT30 传感器。
+初始化 SHT30 传感器并指定 I2C 地址。`xy_sht30_init(sht, i2c_handle)` 是 `xy_sht30.h` 里的 `static inline` 包装，固定用默认地址 `0x44`；**不存在**接受地址参数的 `xy_sht30_init()`，要换地址就得调 `_addr` 版本。
 
 ---
 
 #### xy_sht30_read
 
 ```c
-int xy_sht30_read(xy_sht30_t *dev);
+int xy_sht30_read(xy_sht30_t *sht);
 ```
 
 读取温湿度数据。
 
 **输出**:
-- `dev->temperature`: 温度 (0.01°C)
-- `dev->humidity`: 湿度 (0.01%RH)
+- `sht->temperature`: 温度 (0.01°C)
+- `sht->humidity`: 湿度 (0.01%RH)
 
 ---
 

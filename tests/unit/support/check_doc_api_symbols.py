@@ -28,11 +28,20 @@ docs had been moved one level down (into `components/<x>/`) and nothing read the
 claims. A path is a claim.
 
 Scope is the documents that instruct: `docs/getting-started/`, the HAL API reference
-(`docs/hal/`), the HAL component's own usage docs (`components/hal/`), and - since every newcomer
-lands on one - every `README.md` under `components/`. That last sweep is README-only on purpose:
+(`docs/hal/`), the curated API index (`docs/api/`), the HAL component's own usage docs
+(`components/hal/`), and - since every newcomer lands on one - every `README.md` under
+`components/`. That last sweep is README-only on purpose:
 `*_PLAN.md`, migration notes and the imported vendor trees are records, and judging them as usage
 would punish writing the plan down, which is the mistake this repository has already made once.
 `docs/history` records what was true when it was recorded and is not rewritten.
+
+`docs/api` was added after its page was measured: `API_REFERENCE.md` taught `xy_os_thread_create()`
+and `xy_os_thread_t`, neither of which any header declares - the thread entry is `xy_os_thread_new()`
+and the handle is `xy_os_thread_id_t`. Names are this guard's half of the claim;
+`check_doc_samples_compile.py` compiles the same page's blocks against the real headers, because a
+*signature* that disagrees with its header (`uint16_t pin` where the header takes `uint8_t`, an
+`xy_sht30_init()` with three parameters where the function has two) is invisible to a symbol index
+and obvious to a compiler.
 
 Measured on the first run of that sweep: **nine component READMEs taught 25 names, headers and
 paths that do not exist**. `clib/xy_clib` invented a whole list API (`xy_list_head`,
@@ -91,7 +100,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from source_scan import code_only, fenced_blocks, read_code  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
-DOC_ROOTS = ("docs/getting-started", "docs/hal", "components/hal")
+#: Directories judged as usage. `docs/api` is the curated API index - the page a reader opens to
+#: learn a signature, which makes it the most literal example of the thing this guard exists for.
+DOC_ROOTS = ("docs/getting-started", "docs/hal", "docs/api", "components/hal")
 #: Roots swept for `README.md` only. A component README is its front door - the page a newcomer
 #: copies from - so every one of them makes a compile claim. Restricting this sweep to README
 #: keeps design records (`*_PLAN.md`, migration notes, vendor articles) out of it; those are

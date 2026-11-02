@@ -2224,6 +2224,14 @@ add_test(NAME doc_api_symbols
 add_test(NAME doc_api_symbols_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_check_doc_api_symbols.py)
 
+# The other half of the same claim: `doc_api_symbols` judges names, this compiles signatures. A page
+# can pass the symbol index and still teach a `xy_sht30_init()` with three parameters.
+add_test(NAME doc_samples_compile
+    COMMAND python3 ${UNIT_SUPPORT}/check_doc_samples_compile.py --cc ${CMAKE_C_COMPILER})
+
+add_test(NAME doc_samples_compile_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_doc_samples_compile.py)
+
 add_test(NAME include_guard_collisions
     COMMAND python3 ${UNIT_SUPPORT}/check_include_guard_collisions.py)
 

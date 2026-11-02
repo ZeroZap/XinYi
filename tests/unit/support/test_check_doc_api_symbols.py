@@ -273,6 +273,13 @@ class DocApiSymbolsTest(unittest.TestCase):
         self.assertEqual([], [p for p in walked if not p.endswith("README.md")], walked)
         self.assertEqual([], [p for p in walked if "/third_party/" in p], walked)
 
+    def test_the_real_tree_sweeps_the_curated_api_index(self) -> None:
+        # The API index taught `xy_os_thread_create()` and `xy_os_thread_t` while this walk reported
+        # `ok` about the directories next door. A footprint case is what keeps the scope from being
+        # narrowed back to silence: if `docs/api` leaves DOC_ROOTS, this goes red.
+        walked = [p.relative_to(guard.ROOT).as_posix() for p in guard.documents()]
+        self.assertIn("docs/api/API_REFERENCE.md", walked, walked)
+
     # ---------------------------------------------------------------------------------------------
     # A path in a sentence about the past is history, not a pointer - but only the verb makes it so.
     # ---------------------------------------------------------------------------------------------

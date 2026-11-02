@@ -13,8 +13,8 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 418 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 418`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 420 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 420`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -30,10 +30,13 @@
   the sample `components/net/README.md` teaches — against the real `at_client.c`); the HAL
   documentation slice took 417 → 418 (`hal_quickstart`, which compiles and runs
   `components/hal/examples/hal_quickstart.c` — the sample `components/hal/README.md` and
-  `docs/hal/HAL_UNIFIED_API.md` teach — against the real PC HAL backend).
+  `docs/hal/HAL_UNIFIED_API.md` teach — against the real PC HAL backend); the API-reference slice
+  took 418 → 420 (`doc_samples_compile`, which compiles `docs/api/API_REFERENCE.md`'s 13 fenced C
+  blocks against the headers the page documents, and `doc_samples_compile_unit`, its 12-case
+  self-test).
 - Unwired source `.c` files under `tests/unit`: 0
-- Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
-  is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
+- Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
+  include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
   fixes the semantics of `boards/pandora_stm32l475/validate_runtime_timeline.py`: host-arrival
   timestamps are turned into per-cycle wall time, the largest marker-to-marker gaps, and the excess
   wall time inside windows whose only firmware work is a known `xy_os_delay()`, and proves the
