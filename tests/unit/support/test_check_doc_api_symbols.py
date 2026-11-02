@@ -292,5 +292,65 @@ class DocApiSymbolsTest(unittest.TestCase):
 
 
 
+    # ---------------------------------------------------------------------------------------------
+    # Skipping a document is the one move that can make this walk lie. An exemption carries two
+    # obligations: the page must tell the reader it is a record, and the entry must name a file.
+    # ---------------------------------------------------------------------------------------------
+
+    def exempted(self, body: str, relative: str = "components/hal/OLD.md") -> list[str]:
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body, encoding="utf-8")
+        return guard.exemption_findings(root=self.root,
+                                         exempt={relative: "pre-2.0 design note"})
+
+    def test_an_exempt_document_that_does_not_announce_itself_is_reported(self) -> None:
+        # Measured before this rule: all seven opened with their original claim - one with
+        # "**状态**: ✅ 完成" - so the only pages in the sweep that still teach `xy_hal_pin_init()`
+        # were also the only pages with no warning on them.
+        problems = self.exempted(fenced("xy_hal_pin_init();\n"))
+        self.assertTrue(any("does not open with" in p and "OLD.md" in p for p in problems), problems)
+
+    def test_the_banner_makes_the_exemption_visible_and_the_list_clean(self) -> None:
+        problems = self.exempted(guard.EXEMPT_BANNER + "\n\n" + fenced("xy_hal_pin_init();\n"))
+        self.assertEqual([], problems)
+
+    def test_a_banner_below_the_reading_window_does_not_count(self) -> None:
+        # A footnote satisfies a substring search and informs nobody: the reader has already taken
+        # in the old API before being told it never existed.
+        body = ("# Old\n\n"
+                + "\n".join(f"line {n}" for n in range(guard.EXEMPT_BANNER_WINDOW + 5))
+                + "\n\n" + guard.EXEMPT_BANNER + "\n")
+        problems = self.exempted(body)
+        self.assertTrue(any("does not open with" in p for p in problems), problems)
+
+    def test_an_exemption_for_a_file_that_is_gone_is_reported(self) -> None:
+        problems = guard.exemption_findings(root=self.root,
+                                            exempt={"components/hal/GONE.md": "deleted doc"})
+        self.assertTrue(any("GONE.md" in p and "not a file in this tree" in p for p in problems),
+                        problems)
+
+    def test_judge_carries_the_exemption_rule_not_just_the_document_rules(self) -> None:
+        # The wiring case: a rule `main()` never calls is decoration. `judge()` is what `main()`
+        # reports, so driving it here is what puts the exemption list inside the gate.
+        doc = self.root / "components" / "hal" / "OLD.md"
+        doc.parent.mkdir(parents=True)
+        doc.write_text(fenced("xy_hal_pin_init();\n"), encoding="utf-8")
+        saved = guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT
+        guard.ROOT, guard.DOC_ROOTS = self.root, ("components/hal",)
+        guard.EXEMPT = {"components/hal/OLD.md": "pre-2.0 design note"}
+        try:
+            problems = guard.judge(SYMBOLS, NAMES)
+        finally:
+            guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT = saved
+        self.assertTrue(any("does not open with" in p for p in problems), problems)
+
+    def test_the_real_exemption_list_is_announced_by_the_real_documents(self) -> None:
+        # Footprint on the checked-in tree: an eighth record exempted without a banner, or one of
+        # the seven deleted and left on the list, goes red here.
+        self.assertGreaterEqual(len(guard.EXEMPT), 7)
+        self.assertEqual([], guard.exemption_findings())
+
+
 if __name__ == "__main__":
     unittest.main()

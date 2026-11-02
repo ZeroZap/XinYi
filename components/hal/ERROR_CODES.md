@@ -1,8 +1,12 @@
 # XY HAL Error Codes Reference
 
+> **已废弃 / Deprecated** —— 这份文档写的是 2.0 之前 `bsp/xy_hal` 那一代布局（该目录已不存在）。错误码本身仍然
+> 有效，枚举就在 [`xy_hal_error.h`](inc/xy_hal_error.h)，但本文的路径、措辞与示例不再维护。真实接口在
+> [`components/hal/inc/`](inc/)，使用说明见 [`components/hal/README.md`](README.md)。
+
 ## Overview
 
-All XY HAL functions now return standardized error codes defined in [`xy_hal.h`](file://e:\github_download\_ZeroZap\XinYi\bsp\xy_hal\inc\xy_hal.h). This provides consistent error handling across all platforms and peripherals.
+All XY HAL functions now return standardized error codes defined in [`xy_hal_error.h`](inc/xy_hal_error.h). This provides consistent error handling across all platforms and peripherals.
 
 ## Error Code Enumeration
 

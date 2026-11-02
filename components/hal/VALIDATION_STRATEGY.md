@@ -1,5 +1,9 @@
 # XinYi HAL 验证策略
 
+> **已废弃 / Deprecated** —— 2026-03 针对 `*_dev.h` 那一代 API 写的验证计划，其中"真实硬件 ✅"一栏没有记录任何
+> 证据。当前证据以 [`docs/validation/component-evidence-matrix.md`](../../docs/validation/component-evidence-matrix.md)
+> 为准，真实接口见 [`components/hal/inc/`](inc/)。
+
 **最后更新**: 2026-03-17
 
 ---

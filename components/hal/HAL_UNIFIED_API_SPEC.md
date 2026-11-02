@@ -1,5 +1,9 @@
 # XinYi HAL 统一 API 规范
 
+> **已废弃 / Deprecated** —— 本文描述的是 `*_dev.h` 那一代 API，它**从未实现**；文中"✅ 完成"只对当时的
+> 计划成立。真实接口在 [`components/hal/inc/`](inc/)，使用说明见
+> [`components/hal/README.md`](README.md)。样例不可编译。
+
 **版本**: 2.1  
 **日期**: 2026-03-18  
 **状态**: ✅ 完成

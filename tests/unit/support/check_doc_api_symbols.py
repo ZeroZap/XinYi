@@ -51,6 +51,13 @@ A user-facing component README is a usage claim in the same sense a quick start 
 not, and the seven pre-2.0 HAL notes in that directory are listed in `EXEMPT` with that reason rather
 than silently forgiven.
 
+Skipping a document is the one move that can make this guard lie, so the list is judged too
+(`exemption_findings()`): an exempt page must open with the deprecation banner, because it is a page
+someone still opens and the only page in the sweep still teaching `xy_hal_pin_init()`. Before that
+rule, all seven opened with their original claim - "**状态**: ✅ 完成", "## 快速开始", "All XY HAL
+functions now return..." - and a reader had no way to tell a live guide from a 2025-10 record. An
+entry that names a file which no longer exists is reported for the same reason.
+
 Boundaries, stated rather than hidden: only fenced ```c / ```cpp blocks are judged (prose and
 shell blocks are not API claims - a shell block's `make <target>` is a different rule), and the
 fences are read by the shared `source_scan.fenced_blocks()` so a `~~~` block, a nested
@@ -108,6 +115,20 @@ CODE_LANGUAGES = ("c", "cpp", "c++")
 #: Documents exempted from the sweep, each with the reason. The seven pre-2.0 HAL notes describe the
 #: `*_dev.h` / `xy_hal_pin_*` generation that never landed; they are design and migration records,
 #: not usage, and rewriting or retiring them is its own slice rather than something to forgive here.
+#:
+#: An exemption is not a pardon, so it carries two obligations - see `exemption_findings()`:
+#:
+#:   1. the document must announce itself. A skipped page is still a page someone opens, and it is
+#:      the one page in the sweep that still teaches `xy_hal_pin_init()`. If the file does not open
+#:      with the deprecation banner, the exemption is a silent lie: the guard passes, the reader is
+#:      misled, and nothing anywhere says so. Measured before this rule existed: all seven opened
+#:      with their old claim ("**状态**: ✅ 完成", "## 快速开始") and no warning at all.
+#:   2. the entry must name a file that exists. An exemption for a deleted path is dead weight that
+#:      hides the fact that the list is no longer describing this tree.
+EXEMPT_BANNER = "**已废弃 / Deprecated**"
+#: How far down the document the banner may sit. The point is that it is read *before* the content
+#: it disclaims - a footnote at the bottom would satisfy a substring search and inform no one.
+EXEMPT_BANNER_WINDOW = 15
 EXEMPT: dict[str, str] = {
     "components/hal/ERROR_CODES.md":
         "2025-10 error-code reference from the pre-2.0 HAL; the enum itself lives in "
@@ -169,6 +190,34 @@ def documents() -> list[Path]:
                 continue
             found.append(path)
     return sorted(set(found))
+
+
+def exemption_findings(root: Path | None = None,
+                       exempt: dict[str, str] | None = None) -> list[str]:
+    """Problems with the exemption list itself: each entry must exist and must announce itself.
+
+    Called from `main()` rather than `findings()` on purpose. `findings()` judges *documents*; this
+    judges the *list of documents not judged*, which is the one place the sweep can go quietly
+    wrong. Injected `root`/`exempt` so the self-test can drive both reds without touching the tree.
+    """
+    tree = ROOT if root is None else root
+    entries = EXEMPT if exempt is None else exempt
+    problems: list[str] = []
+    for relative in sorted(entries):
+        path = tree / relative
+        if not path.is_file():
+            problems.append(
+                f"EXEMPT names `{relative}`, which is not a file in this tree - an exemption for a "
+                f"path nobody can open describes a list that has drifted from the repository")
+            continue
+        head = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        window = "\n".join(head[:EXEMPT_BANNER_WINDOW])
+        if EXEMPT_BANNER not in window:
+            problems.append(
+                f"`{relative}` is exempt from this sweep but does not open with "
+                f"`{EXEMPT_BANNER}` - it is skipped here and still teaches its old API to whoever "
+                f"opens it, so the exemption informs no one. Add the banner or remove the entry")
+    return problems
 
 
 def header_index(roots: tuple[str, ...] = INDEX_ROOTS,
@@ -287,15 +336,31 @@ def findings(paths: list[Path] | None = None,
     return problems
 
 
+def judge(symbols: set[str] | None = None,
+          names: set[str] | None = None) -> list[str]:
+    """Every rule this guard enforces, over the real tree.
+
+    One entry point so the self-test can drive the whole judgement (including the exemption list)
+    with `ROOT`/`DOC_ROOTS`/`EXEMPT` substituted, instead of proving each rule separately and hoping
+    `main()` happens to call them all. `main()` hands in an index it built once, so the success line
+    can report what was measured without walking the headers twice.
+    """
+    if symbols is None or names is None:
+        walked_symbols, walked_names = header_index()
+        symbols = walked_symbols if symbols is None else symbols
+        names = walked_names if names is None else names
+    return findings(symbols=symbols, names=names) + exemption_findings()
+
+
 def main() -> int:
     symbols, names = header_index()
-    problems = findings(symbols=symbols, names=names)
+    problems = judge(symbols, names)
     if problems:
         for problem in problems:
             print(problem)
         return 1
-    print(f"doc_api_symbols ok ({len(documents())} documents, {len(symbols)} declared identifiers, "
-          f"{len(names)} headers)")
+    print(f"doc_api_symbols ok ({len(documents())} documents, {len(EXEMPT)} exempt and announced, "
+          f"{len(symbols)} declared identifiers, {len(names)} headers)")
     return 0
 
 

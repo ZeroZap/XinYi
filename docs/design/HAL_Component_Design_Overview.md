@@ -78,14 +78,14 @@ components/hal/
 │   ├── win32/                    # Windows 仿真
 │   └── linux/                    # Linux 仿真
 │
-├── README.md                     # 主文档
-├── IMPLEMENTATION_SUMMARY.md     # 实现总结
-├── INTEGRATION_GUIDE.md          # 集成指南
-├── RESTRUCTURING_NOTES.md        # 重构说明
-├── RETURN_TYPE_UPDATE.md         # 返回类型更新
-├── ERROR_CODES.md                # 错误码参考
-├── ERROR_CODES_CHANGELOG.md      # 错误码变更日志
-└── hal_status.md                 # 支持状态
+├── README.md                     # 主文档（唯一当前使用说明）
+├── hal_status.md                 # 平台支持状态占位表（已废弃）
+├── HAL_UNIFIED_API_SPEC.md       # *_dev.h 规范（已废弃，API 从未实现）
+├── INTEGRATION_GUIDE.md          # 集成指南（已废弃）
+├── RESTRUCTURING_NOTES.md        # v1.0 → v2.0 重构说明（已废弃）
+├── RETURN_TYPE_UPDATE.md         # 返回类型更新记录（已废弃）
+├── ERROR_CODES.md                # 错误码参考（已废弃：路径过时，枚举仍有效）
+└── VALIDATION_STRATEGY.md        # 2026-03 验证计划（已废弃）
 ```
 
 ### 2.2 接口设计特点
@@ -344,14 +344,24 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE STM32_HAL_ENABLED)
 
 ### 8.1 现有文档
 
-- **README.md**: 主文档，概述和使用说明
-- **IMPLEMENTATION_SUMMARY.md**: 实现总结
-- **INTEGRATION_GUIDE.md**: 集成指南
-- **RESTRUCTURING_NOTES.md**: 重构说明
-- **RETURN_TYPE_UPDATE.md**: 返回类型更新
-- **ERROR_CODES.md**: 错误码参考
-- **ERROR_CODES_CHANGELOG.md**: 错误码变更日志
-- **hal_status.md**: 支持状态
+面向使用者的只有两份，其余都是 2.0 之前的历史记录：
+
+- **README.md**: 主文档，概述和使用说明（**唯一**的当前使用说明）
+- **hal_status.md**: 平台支持状态占位表（未维护，见下方记录列表）
+
+2.0 之前的历史记录（都已在文件开头标注 `已废弃 / Deprecated`，描述的是从未落地的
+`xy_hal_pin_*` / `*_dev.h` 一代 API，示例不可编译）：
+
+- **INTEGRATION_GUIDE.md**: 集成指南（旧）
+- **RESTRUCTURING_NOTES.md**: v1.0 → v2.0 重构说明
+- **RETURN_TYPE_UPDATE.md**: 返回类型统一记录
+- **ERROR_CODES.md**: 错误码参考（枚举本身仍有效，路径已过时）
+- **HAL_UNIFIED_API_SPEC.md**: `*_dev.h` 规范（未实现）
+- **VALIDATION_STRATEGY.md**: 2026-03 验证计划（无硬件证据）
+
+这份清单以前还列了 `IMPLEMENTATION_SUMMARY.md` 与 `ERROR_CODES_CHANGELOG.md`：前者在
+`components/hal/` 下从未存在，后者实际在 `docs/history/ERROR_CODES_CHANGELOG.md`。当前证据以
+`docs/validation/component-evidence-matrix.md` 为准。
 
 ### 8.2 文档维护原则
 
