@@ -46,6 +46,12 @@ HAL **不用字符串绑定外设**。每个入口的第一个参数就是平台
 SPI 13、SYS 89，其余为 ADC/PWM/CAN/RTC/DMA/I2S/EXTI/FLASH/RNG/TIMER/WDG 等）。**声明不等于实现**：
 哪个平台真的实现了哪个入口，由后端源码与证据矩阵说话，不由头文件说话。
 
+**怎么 include**：`xy_hal.h` 是伞头，导出 `components/hal/inc/` 下全部 **22 支**头文件（19 支外设族 +
+`xy_hal_error.h`、`xy_hal_delay.h`、`xy_hal_time.h` 这三支基础头），所以只写
+`#include "xy_hal.h"` 就能拿到整族。反向也成立：每支外设头自己 include `xy_hal.h` 取公共返回类型，
+单独 include 一支同样合法。两个方向都由 CTest `hal_umbrella_coverage` 钉住——新增一支外设头却忘了
+导出，或者伞头写了一个不存在的文件名，测试会直接点名。
+
 四个总线最常用的入口：
 
 ```c
@@ -201,11 +207,12 @@ Host 侧 HAL 相关 CTest（`make test-unit` 的一部分）：
 
 | CTest | 覆盖内容 |
 |-------|----------|
-| `hal_pc` | PC 后端的 GPIO/UART/I2C/SPI/SYS/RTC/DMA/Timer/IRQ 契约 |
+| `hal_pc` | PC 后端的 GPIO/UART/I2C/SPI/SYS/RTC/DMA/Timer/IRQ/ADC/DAC 契约 |
 | `hal_quickstart` | 本文与 `docs/hal/HAL_UNIFIED_API.md` 教的样例，37 条断言 |
 | `hal_pc_coverage` / `hal_pc_coverage_unit` | PC 后端入口覆盖清单 + 检查器自测 |
 | `hal_platform_build_contract` | 平台分支必须定义 `STM32_HAL_ENABLED`（否则 wrapper 编成空对象） |
 | `hal_dma_contract` / `hal_timer_irq_contract` / `hal_stub_returns` | DMA、Timer IRQ、stub 返回值契约（各带 `_unit` 自测） |
+| `hal_adc_dac_surface` / `hal_umbrella_coverage` | 每支后端定义了哪些 ADC/DAC 入口；`xy_hal.h` 是否导出全部 22 支头文件（各带 `_unit` 自测） |
 
 只用 Host 跑一条：
 

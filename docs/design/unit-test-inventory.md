@@ -13,8 +13,8 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 424 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 424`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 427 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 427`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -76,7 +76,13 @@
   (backend, function) gap with a reason so both a regression and a stale pin are reported, plus
   `hal_adc_dac_surface_unit`, its 11-case self-test); the same slice moved the last two deferred
   component pages into `SAMPLES` (17 → 19 documents, 48 → 52 blocks, `DEFERRED` now empty with the
-  rules kept), so every C-bearing page under `docs/components` is compiled.
+  rules kept), so every C-bearing page under `docs/components` is compiled. The HAL umbrella slice
+  took 424 → 427: `hal_umbrella_coverage` (pins that `xy_hal.h` exports all 22 headers of
+  `components/hal/inc`, with an empty-but-kept exemption table so an omission has to carry a reason)
+  and `hal_umbrella_coverage_unit` (13 cases), plus `hal_header_self_containment`, which compiles
+  each header alone with `-Wall -Wextra -Werror` — the completed umbrella immediately exposed five
+  headers (`adc`, `can`, `dac`, `i2s`, `sys`) using `size_t` with no `<stddef.h>`, which took
+  seventeen headers down in the first build.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which

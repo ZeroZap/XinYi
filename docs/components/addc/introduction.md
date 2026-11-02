@@ -33,7 +33,7 @@
 | STM32U5 | 12 | 14 |
 | STM32L4（Pandora 参考板） | **0 —— 该分支不构建 ADC 后端** | 14（复用 F4 包装） |
 | CH32V307（WCH） | 40 | 14 |
-| PC（Host 仿真） | 0 | 0 |
+| PC（Host 仿真） | 40 | 14 |
 
 两条推论：
 
@@ -41,10 +41,11 @@
   ADC->CCR 与采样时间契约是 F4 专有的），排除了却还没有 L4 替代实现；这个取舍记录在
   `check_hal_platform_build_contract.py` 的 `EXPECTED_L4_F4_EXCLUDED` 里。该板的电平读取只能走
   外接 ADC 模块（如 ADS1115/MCP3008，走 I2C/SPI 而不是片上 ADC）。
-- **40 个 ADC 函数在三支后端里没有交集**：三支都实现的只有 9 个（`init` / `deinit` /
-  `config_channels` / `start` / `stop` / `read` / `read_nb` / `read_dma` / `register_callback`）。
-  `xy_hal_adc_value_to_mv()` 在 U5 上不存在，`set_sampling_time()` 只有 CH32V307 有。**换平台前先查
-  自己那一支实现了什么**，不要以头文件为准。
+- **40 个 ADC 函数在四支后端里没有交集**：F4 / U5 / CH32V307 三支都实现的只有 9 个（`init` /
+  `deinit` / `config_channels` / `start` / `stop` / `read` / `read_nb` / `read_dma` /
+  `register_callback`），PC 仿真实现了全部 40 个，但那只是契约可调用，不代表任何一颗芯片的采样。
+  `xy_hal_adc_value_to_mv()` 在 U5 上不存在，`set_sampling_time()` 只有 CH32V307 和 PC 有。**换平台前
+  先查自己那一支实现了什么**，不要以头文件为准。
 
 ---
 
@@ -173,8 +174,8 @@ static void dac_half_scale(void *dac)
 
 ### HAL（`xy_hal_adc.h` / `xy_hal_dac.h`）
 
-DAC 的 14 个函数在 F4/U5/CH32V307 三支后端里全部有实现（L4 复用 F4 包装，PC 没有后端）；
-ADC 的覆盖见上面的矩阵。`xy_hal_dac.h` **不在** `xy_hal.h` 伞头里，用 DAC 要自己 include。
+DAC 的 14 个函数在 F4/U5/CH32V307/PC 四支后端里全部有实现（L4 复用 F4 包装）；
+ADC 的覆盖见上面的矩阵。这两支头文件都由 `xy_hal.h` 伞头导出，`#include "xy_hal.h"` 就能拿到整族。
 
 ---
 
@@ -183,12 +184,14 @@ ADC 的覆盖见上面的矩阵。`xy_hal_dac.h` **不在** `xy_hal.h` 伞头里
 | CTest | 覆盖 |
 |-------|------|
 | `analog_devices` | 辅助库 ADC/DAC 台账与换算，加 MCP3008/HX711 的 SPI/时序契约（Host） |
-| `hal_adc_dac_surface` | 上表那五个数字：每支后端定义了哪些 ADC/DAC 函数，逐项与钉住的集合比对 |
+| `hal_adc_dac_surface` | 上表每一格：每支后端定义了哪些 ADC/DAC 函数，逐项与钉住的集合比对 |
+| `hal_pc` | PC 仿真后端本身的契约（满量程/连续转换/校准/看门狗/DAC 对齐与波形），不是任何一颗芯片的精度 |
+| `hal_umbrella_coverage` | `xy_hal_adc.h`、`xy_hal_dac.h` 是否真的被 `xy_hal.h` 伞头导出 |
 | `doc_samples_compile` | 本页三个代码块的签名：参数个数、类型、结构体字段名 |
 
 > 本页此前写的「24 用例 / `ctest -R test_addc`」指向一个从来不存在的目标。真实覆盖是上表这几条：
-> 辅助库有 Host 测试，而**片上 ADC/DAC 没有任何 Host 后端**（`components/hal/PC/` 里没有 adc/dac），
-> 所以 HAL 那两段只能在目标平台上跑。
+> 辅助库与 PC 仿真后端都有 Host 测试；但 PC 的「转换」是由注入电压算出来的，**不代表任何芯片的
+> 采样精度、时序、噪声或量程**，所以片上 ADC/DAC 的结论仍然只能来自目标平台的实测。
 
 ---
 

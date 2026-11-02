@@ -137,6 +137,20 @@ add_test(NAME hal_adc_dac_surface
 add_test(NAME hal_adc_dac_surface_unit
     COMMAND python3 ${UNIT_HAL}/test_hal_adc_dac_surface.py)
 
+# `xy_hal.h` is the HAL's front door; this pins that it actually exports every peripheral header.
+add_test(NAME hal_umbrella_coverage
+    COMMAND python3 ${UNIT_HAL}/check_hal_umbrella_coverage.py)
+
+add_test(NAME hal_umbrella_coverage_unit
+    COMMAND python3 ${UNIT_HAL}/test_hal_umbrella_coverage.py)
+
+# Each HAL header has to compile alone; the umbrella hid a missing `<stddef.h>` for as long as nothing
+# compiled `xy_hal_dac.h` on its own.
+add_test(NAME hal_header_self_containment
+    COMMAND python3 ${UNIT_HAL}/check_hal_header_self_containment.py --cc ${CMAKE_C_COMPILER}
+    WORKING_DIRECTORY ${ROOT}
+)
+
 add_test(NAME hal_spi_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_spi_contract.py)
 
