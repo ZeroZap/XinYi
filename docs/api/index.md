@@ -23,8 +23,8 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_os_kernel_init()` | 初始化内核 | `xy_os.h` |
 | `xy_os_kernel_start()` | 启动内核 | `xy_os.h` |
 | `xy_os_delay()` | 延时 | `xy_os.h` |
-| `xy_os_thread_create()` | 创建任务 | `xy_os.h` |
-| `xy_os_timer_sw_create()` | 创建定时器 | `xy_os_timer_sw.h` |
+| `xy_os_thread_new()` | 创建任务（`xy_os_thread_attr_t` 描述名称/优先级/栈） | `xy_os.h` |
+| `xy_os_timer_new()` | 创建定时器（`xy_os_timer_id_t` 句柄） | `xy_os.h` |
 
 [组件文档与证据边界](../components/osal/introduction.md)
 
@@ -80,7 +80,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | `xy_tlv_encode_uint8()` | TLV 编码 | `xy_tlv.h` |
 | `xy_tlv_decode_uint8()` | TLV 解码 | `xy_tlv.h` |
 | `xy_tlv_iterator_init()` | 迭代器初始化 | `xy_tlv.h` |
-| `xy_tlv_find_by_type()` | 按类型查找 | `xy_tlv.h` |
+| `xy_tlv_find()` | 按类型查找 | `xy_tlv.h` |
 
 [组件文档与证据边界](../components/dm/introduction.md)
 
@@ -91,7 +91,7 @@ XinYi 嵌入式框架的 API 文档索引。
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
 | `xy_iso7816_init()` | 初始化 ISO7816 | `xy_iso7816.h` |
-| `xy_iso7816_apdu_send()` | 发送 APDU | `xy_iso7816.h` |
+| `xy_iso7816_transceive()` | 发送 APDU 并取回响应 | `xy_iso7816.h` |
 | `mb_slave_init()` | 初始化 Modbus | `mb_slave.h` |
 | `mb_slave_process()` | 处理 Modbus | `mb_slave.h` |
 
@@ -103,9 +103,11 @@ XinYi 嵌入式框架的 API 文档索引。
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `xy_sensor_init()` | 初始化传感器 | `sensor_core.h` |
-| `xy_sensor_read()` | 读取传感器 | `sensor_core.h` |
-| `xy_sensor_calibrate()` | 校准传感器 | `sensor_calibration.h` |
+| `xy_sensor_init()` | 初始化传感器 | `xy_sensor.h` |
+| `xy_sensor_sample_fetch()` | 采集一次数据（通道或 `XY_SENSOR_CHAN_ALL`） | `xy_sensor.h` |
+| `xy_sensor_channel_get()` | 读取通道值（`xy_sensor_value_t`） | `xy_sensor.h` |
+
+校准、滤波、FIFO 与中断等扩展契约仍在 legacy `sensor_*()` 家族（`sensor_core.h`，例如 `sensor_calibrate()`），`xy_sensor.h` 是面向应用的统一门面。
 
 [组件文档与证据边界](../components/sensor/introduction.md)
 

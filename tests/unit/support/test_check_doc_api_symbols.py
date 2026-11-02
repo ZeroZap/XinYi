@@ -18,6 +18,8 @@ then not what is being measured, and it is measured on its own below.
 
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
 import tempfile
 import unittest
@@ -31,6 +33,10 @@ import check_doc_api_symbols as guard  # noqa: E402
 #: "guessed at" without pinning the test to a header that may be renamed.
 SYMBOLS = {"xy_hal_gpio_init", "xy_hal_gpio_write", "xy_hal_gpio_config_t"}
 NAMES = {"xy_hal_gpio.h"}
+#: Names the repository provides without a header. Injected empty by default so a case is never
+#: satisfied by whatever this tree happens to implement today; the cases that are *about* the
+#: provided index hand in their own set.
+PROVIDED: set[str] = set()
 
 #: A document that is unambiguously clean, used to keep the global walk non-empty.
 WITNESS = '#include "xy_hal_gpio.h"\nxy_hal_gpio_init(0);\n'
@@ -55,7 +61,7 @@ class DocApiSymbolsTest(unittest.TestCase):
         path = self.root / "SAMPLE.md"
         path.write_text(fenced(text, language), encoding="utf-8")
         paths.append(path)
-        return guard.findings(paths, SYMBOLS, NAMES)
+        return guard.findings(paths, SYMBOLS, NAMES, PROVIDED)
 
     def test_a_sample_that_only_uses_declared_names_passes(self) -> None:
         self.assertEqual([], self.judged(
@@ -147,12 +153,17 @@ class DocApiSymbolsTest(unittest.TestCase):
         # would report every build command as an undeclared symbol.
         self.assertEqual([], self.judged("xy_not_a_symbol anywhere here", language="bash"))
 
-    def test_prose_outside_a_fence_is_not_judged(self) -> None:
+    def test_prose_a_fence_does_not_hide_a_second_copy_of_the_claim(self) -> None:
+        # Prose is read for calls, and a claim inside a fence must be judged once, not twice: the
+        # block rule already reports it, and a prose rule that re-read the block would double every
+        # fenced defect in the report.
         prose = self.root / "PROSE.md"
-        prose.write_text("# Doc\n\nCall `xy_totally_made_up()` to begin.\n", encoding="utf-8")
+        prose.write_text("# Doc\n\n```c\nxy_totally_made_up();\n```\n", encoding="utf-8")
         companion = self.root / "WITNESS.md"
         companion.write_text(fenced(WITNESS), encoding="utf-8")
-        self.assertEqual([], guard.findings([prose, companion], SYMBOLS, NAMES))
+        problems = guard.findings([prose, companion], SYMBOLS, NAMES, PROVIDED)
+        self.assertEqual(1, len(problems), problems)
+        self.assertIn("calls xy_totally_made_up", problems[0])
 
     def test_a_document_opening_and_closing_unbalanced_is_still_walked(self) -> None:
         # An unclosed fence must not swallow the rest of the document silently.
@@ -183,7 +194,7 @@ class DocApiSymbolsTest(unittest.TestCase):
     def judged_paths(self, text: str) -> list[str]:
         path = self.root / "LOCATIONS.md"
         path.write_text("# Doc\n\n" + text + "\n" + fenced(WITNESS), encoding="utf-8")
-        return guard.findings([path], SYMBOLS, NAMES, root=self.root)
+        return guard.findings([path], SYMBOLS, NAMES, PROVIDED, root=self.root)
 
     def test_a_path_a_reader_can_follow_passes(self) -> None:
         (self.root / "examples" / "demo").mkdir(parents=True)
@@ -457,6 +468,149 @@ class DocApiSymbolsTest(unittest.TestCase):
         # the seven deleted and left on the list, goes red here.
         self.assertGreaterEqual(len(guard.EXEMPT), 7)
         self.assertEqual([], guard.exemption_findings())
+
+    # ---------------------------------------------------------------------------------------------
+    # A table row is a call. The API index and every component introduction page state their
+    # functions in prose, and that half of the tree was judged by nothing: the symbol rule only read
+    # fenced blocks, so `| `xy_sensor_read()` | 读取传感器 |` was a claim no guard could see.
+    # ---------------------------------------------------------------------------------------------
+
+    def judged_prose(self, text: str, provided: set[str] | None = None) -> list[str]:
+        path = self.root / "TABLE.md"
+        path.write_text("# Doc\n\n" + text + "\n" + fenced(WITNESS), encoding="utf-8")
+        return guard.findings([path], SYMBOLS, NAMES, PROVIDED if provided is None else provided)
+
+    def test_a_prose_call_no_header_declares_is_reported(self) -> None:
+        # The measured defect: `docs/api/index.md` and the OSAL page taught `xy_os_thread_create()`,
+        # `xy_sensor_read()` and seven more names that no header has ever declared.
+        problems = self.judged_prose("| `xy_sensor_read()` | 读取传感器 | `sensor_core.h` |")
+        self.assertEqual(1, len(problems), problems)
+        self.assertIn("tells readers to call xy_sensor_read()", problems[0])
+
+    def test_a_prose_call_with_a_parameter_sketch_is_the_same_claim(self) -> None:
+        # `xy_os_delay(ms)` in a table cell names a function as firmly as the empty-paren form; the
+        # sketch is the argument list, not a different kind of statement.
+        problems = self.judged_prose("| `xy_os_tick_set(tick)` | 设置 Tick | - |")
+        self.assertEqual(1, len(problems), problems)
+        self.assertIn("xy_os_tick_set", problems[0])
+
+    def test_a_bare_backticked_target_is_not_a_call(self) -> None:
+        # Every component README has to say which library it builds: `xy_trace`, `xy_dm`, `xy_pipe`
+        # are CMake targets. Only the call form is judged.
+        self.assertEqual([], self.judged_prose(
+            "根构建产出 `xy_trace` 静态库，`xy_dm` 与 `xy_pipe` 由 root 自动发现。"))
+
+    def test_a_prose_call_on_a_line_that_asserts_absence_is_not_a_claim(self) -> None:
+        # `API_REFERENCE.md` says the repository **没有** `xy_os_thread_create()`. That sentence
+        # exists to stop a reader calling it; reporting it would make the correction unwritable.
+        self.assertEqual([], self.judged_prose("**没有** `xy_os_thread_create()`，入口是 `xy_hal_gpio_init()`。"))
+        # ... and the loophole stays shut: the same name on a plain row is still a finding.
+        problems = self.judged_prose("| `xy_os_thread_create()` | 创建任务 |")
+        self.assertTrue(any("xy_os_thread_create" in p for p in problems), problems)
+
+    def test_a_table_row_describing_a_deletion_is_still_judged(self) -> None:
+        # The trap this rule had to be pulled out of: the 说明 column writes `创建任务` / `删除任务`,
+        # and reusing the path rule's removal verbs as an exemption excused the three rows that were
+        # wrong. What is being judged is the name in the first column, not the verb in the second.
+        problems = self.judged_prose("| `xy_os_thread_delete()` | 删除任务 | `XY_OS_OK` 成功 |")
+        self.assertEqual(1, len(problems), problems)
+        self.assertIn("xy_os_thread_delete", problems[0])
+
+    def test_a_name_the_repository_provides_outside_a_header_passes(self) -> None:
+        # `xy_log_char()` is the trace component's weak seam and `xy_add_unit_test()` a CMake
+        # function; neither has a header, and documenting both is the point of the index.
+        self.assertEqual([], self.judged_prose(
+            "`xy_log_char()` 是输出 seam；新 target 用 `xy_add_unit_test()` 登记。",
+            provided={"xy_log_char", "xy_add_unit_test"}))
+
+    def test_a_strong_definition_outside_a_header_does_not_vouch_for_the_name(self) -> None:
+        # The rtx5 backend still implements the pre-2.0 `xy_os_thread_create()` while every selected
+        # backend implements `xy_os_thread_new()`. A stale `.c` is not a declaration: only a weak
+        # definition is a seam the tree declares on purpose.
+        source = self.root / "components" / "osal" / "backend" / "rtx5"
+        source.mkdir(parents=True)
+        (source / "xy_os_rtx5.c").write_text(
+            "xy_os_thread_t xy_os_thread_create(const char *name, void *func)\n{\n    return 0;\n}\n",
+            encoding="utf-8")
+        saved = guard.ROOT
+        guard.ROOT = self.root
+        try:
+            provided = guard.provided_symbols()
+        finally:
+            guard.ROOT = saved
+        self.assertEqual(set(), provided)
+        problems = self.judged_prose("| `xy_os_thread_create()` | 创建任务 |", provided=provided)
+        self.assertTrue(any("xy_os_thread_create" in p for p in problems), problems)
+
+    def test_a_weak_definition_is_read_as_a_provided_name(self) -> None:
+        # Same tree, one word different: `XY_LOG_WEAK` on the signature, and the name is a seam.
+        source = self.root / "components" / "trace"
+        source.mkdir(parents=True)
+        (source / "xy_log.c").write_text(
+            "#define XY_LOG_WEAK __attribute__((weak))\n"
+            "XY_LOG_WEAK void xy_log_char(char ch)\n{\n    (void)ch;\n}\n",
+            encoding="utf-8")
+        saved = guard.ROOT
+        guard.ROOT = self.root
+        try:
+            provided = guard.provided_symbols()
+        finally:
+            guard.ROOT = saved
+        self.assertIn("xy_log_char", provided)
+        self.assertEqual([], self.judged_prose("`xy_log_char()` 是 seam。", provided=provided))
+
+    def test_a_placeholder_name_in_prose_is_not_a_name_yet(self) -> None:
+        # The driver template writes `xy_xxx_t`, the device page `xy_my_device_t`, for the type the
+        # reader will write. Same category as the `<name>` path.
+        self.assertEqual([], self.judged_prose("自己定义 `xy_my_device_t()`，模板里是 `xy_xxx_init()`。"))
+
+    def test_a_placeholder_name_in_a_block_is_a_template_not_a_claim(self) -> None:
+        # `docs/components/device/DRIVER_TEMPLATE.md` is seventeen blocks of `xy_xxx_t` / `xy_xxx_init`
+        # / `#include "xy_xxx.h"`, and its whole purpose is to name the file and type the reader will
+        # write. Reporting those would make the template impossible to keep.
+        self.assertEqual([], self.judged(
+            '#include "xy_xxx.h"\n'
+            "xy_xxx_t dev;\n"
+            "xy_xxx_init(&dev);\n"))
+        # ... and the exemption is the token's own stem, not the block: a real name written beside the
+        # placeholders is still judged.
+        problems = self.judged('#include "xy_xxx.h"\nxy_xxx_t dev;\nxy_led_on(&dev);\n')
+        self.assertEqual(1, len(problems), problems)
+        self.assertIn("xy_led_on", problems[0])
+
+    def test_the_real_tree_sweeps_the_component_introduction_pages(self) -> None:
+        # Footprint on the checked-in tree: every API table in `docs/api/index.md` ends by sending
+        # the reader to `docs/components/<x>/introduction.md`, so those pages are the usage claim the
+        # index defers to. If the root leaves DOC_ROOTS this goes red.
+        walked = [p.relative_to(guard.ROOT).as_posix() for p in guard.documents()]
+        self.assertIn("docs/components/osal/introduction.md", walked, walked)
+        self.assertIn("docs/components/sensor/introduction.md", walked, walked)
+
+    def test_main_reports_a_prose_claim_on_a_synthetic_tree(self) -> None:
+        # The wiring case, and the lesson the previous slice learned the hard way: a rule `main()`
+        # does not call never fails, and a self-test that only drives `findings()` cannot tell.
+        (self.root / "docs" / "api").mkdir(parents=True)
+        header = self.root / "components" / "hal"
+        header.mkdir(parents=True)
+        (header / "xy_hal_gpio.h").write_text("void xy_hal_gpio_init(int p);\n", encoding="utf-8")
+        page = self.root / "docs" / "api" / "index.md"
+        page.write_text("# API\n\n| `xy_made_up_call()` | 说明 |\n\n见 `docs/api/index.md`。\n\n"
+                        + fenced(WITNESS), encoding="utf-8")
+        saved = guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT
+        guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT = self.root, ("docs/api",), {}
+        try:
+            captured = io.StringIO()
+            with contextlib.redirect_stdout(captured):
+                red = guard.main()
+            page.write_text("# API\n\n| `xy_hal_gpio_init()` | 说明 |\n\n见 `docs/api/index.md`。\n\n"
+                            + fenced(WITNESS), encoding="utf-8")
+            with contextlib.redirect_stdout(io.StringIO()):
+                green = guard.main()
+        finally:
+            guard.ROOT, guard.DOC_ROOTS, guard.EXEMPT = saved
+        self.assertEqual(1, red)
+        self.assertIn("xy_made_up_call", captured.getvalue())
+        self.assertEqual(0, green)
 
 
 if __name__ == "__main__":

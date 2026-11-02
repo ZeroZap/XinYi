@@ -636,7 +636,9 @@ All code **MUST** follow:
 
 1. **[docs/rules/code_style.md](docs/rules/code_style.md)** - Detailed C coding conventions
 2. **[docs/rules/RULEBOOK.md](docs/rules/RULEBOOK.md)** - Development rules and guidelines
-3. **[.clang-format](.clang-format)** - Automated code formatting
+3. **`.clang-format`** (repository root) - Automated code formatting. Not linked on purpose:
+   `.gitattributes` marks the file `export-ignore`, so the release archive (`git archive`) does not
+   carry it and a link to it is a dead end for anyone working from a release tarball.
 
 ### Quick Reference
 

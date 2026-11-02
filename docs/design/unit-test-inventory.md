@@ -52,6 +52,14 @@
   while the page sits one level down, and `docs/mkdocs.yml` offered 39 of 58 navigation entries for
   pages that do not exist. The sweep covers 85 documents and 231 relative links; `docs/history`,
   `docs/plans`, dated `docs/design` records and imported vendor READMEs are skipped with reasons.
+  The prose-claim slice added no CTest entry (still 422) and widened `doc_api_symbols` instead:
+  `docs/components`' seventeen introduction pages are now swept (66 → 83 documents) because every
+  API table in `docs/api/index.md` ends by pointing the reader at one, and the symbol rule no longer
+  only reads fenced blocks - a backticked `xy_*()` call in prose is judged too, against headers plus
+  the names this tree implements weakly or defines as CMake functions (`provided_symbols()`). The
+  self-test went 41 → 53 cases: the eleven new ones cover a prose claim, a parameter sketch, a bare
+  target name, an absence sentence, a table row whose 说明 says 删除任务, a placeholder, a weak seam,
+  a stale strong definition, the footprint of the new root, and a `main()` red/green pair.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which

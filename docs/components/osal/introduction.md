@@ -71,35 +71,36 @@ int main(void) {
 ```c
 #include "xy_os.h"
 
-static xy_os_thread_t led_thread;
+static xy_os_thread_id_t led_thread;
 static uint8_t led_stack[512];
 
-static void led_task(void *arg) {
-    (void)arg;
-    
+static void led_task(void *argument) {
+    (void)argument;
+
     while (1) {
         // 切换 LED
         led_toggle();
-        
-        // 延时 1 秒
+
+        // 延时 1 秒（ticks）
         xy_os_delay(1000);
     }
 }
 
 int main(void) {
+    xy_os_thread_attr_t attr = {0};
+
     xy_os_kernel_init();
-    
-    // 创建任务
-    xy_os_thread_create(
-        &led_thread,
-        "LED",
-        led_task,
-        NULL,
-        5,              // 优先级
-        led_stack,
-        sizeof(led_stack)
-    );
-    
+
+    // 创建任务：名称、优先级、栈都由属性结构描述
+    attr.name = "LED";
+    attr.priority = XY_OS_PRIORITY_NORMAL;
+    attr.stack_mem = led_stack;
+    attr.stack_size = sizeof(led_stack);
+    led_thread = xy_os_thread_new(led_task, NULL, &attr);
+    if (led_thread == NULL) {
+        return -1;
+    }
+
     xy_os_kernel_start();
     return 0;
 }
@@ -122,28 +123,41 @@ int main(void) {
 
 | 函数 | 说明 | 返回值 |
 |------|------|--------|
-| `xy_os_thread_create()` | 创建任务 | `XY_OS_OK` 成功 |
-| `xy_os_thread_delete()` | 删除任务 | `XY_OS_OK` 成功 |
+| `xy_os_thread_new()` | 创建任务（`xy_os_thread_attr_t`） | 任务句柄，失败为 `NULL` |
+| `xy_os_thread_get_id()` | 当前任务句柄 | 任务句柄 |
+| `xy_os_thread_get_state()` | 任务状态 | `xy_os_thread_state_t` |
 | `xy_os_thread_suspend()` | 挂起任务 | `XY_OS_OK` 成功 |
 | `xy_os_thread_resume()` | 恢复任务 | `XY_OS_OK` 成功 |
+| `xy_os_thread_yield()` | 让出 CPU | `XY_OS_OK` 成功 |
+| `xy_os_thread_join()` | 等待任务退出 | `XY_OS_OK` 成功 |
+| `xy_os_thread_detach()` | 分离任务（不 join） | `XY_OS_OK` 成功 |
 
 ### 延时和 Tick
 
 | 函数 | 说明 | 返回值 |
 |------|------|--------|
-| `xy_os_delay(ms)` | 延时（毫秒） | - |
-| `xy_os_delay_until(tick)` | 延时到指定 Tick | - |
+| `xy_os_delay(ticks)` | 延时指定 tick 数 | `XY_OS_OK` 成功 |
+| `xy_os_delay_until(tick)` | 延时到指定 Tick | `XY_OS_OK` 成功 |
 | `xy_os_tick_get()` | 获取当前 Tick | Tick 值 |
-| `xy_os_tick_set(tick)` | 设置 Tick | - |
+| `xy_os_tick_freq()` | 获取 Tick 频率 | Hz |
 
 ### 软件定时器
 
 | 函数 | 说明 | 返回值 |
 |------|------|--------|
-| `xy_os_timer_sw_create()` | 创建定时器 | 定时器句柄 |
-| `xy_os_timer_sw_start()` | 启动定时器 | `XY_OS_OK` 成功 |
-| `xy_os_timer_sw_stop()` | 停止定时器 | `XY_OS_OK` 成功 |
-| `xy_os_timer_sw_delete()` | 删除定时器 | `XY_OS_OK` 成功 |
+| `xy_os_timer_new()` | 创建定时器（`XY_OS_TIMER_ONCE` / `XY_OS_TIMER_PERIODIC`） | 定时器句柄，失败为 `NULL` |
+| `xy_os_timer_start()` | 启动/重启定时器 | `XY_OS_OK` 成功 |
+| `xy_os_timer_stop()` | 停止定时器 | `XY_OS_OK` 成功 |
+| `xy_os_timer_delete()` | 删除定时器 | `XY_OS_OK` 成功 |
+
+### 信号量
+
+| 函数 | 说明 | 返回值 |
+|------|------|--------|
+| `xy_os_semaphore_new()` | 创建信号量（最大计数 + 初始计数） | 句柄，失败为 `NULL` |
+| `xy_os_semaphore_acquire()` | 取一个令牌（`XY_OS_WAIT_FOREVER` 阻塞） | `XY_OS_OK` 成功 |
+| `xy_os_semaphore_release()` | 释放一个令牌 | `XY_OS_OK` 成功 |
+| `xy_os_semaphore_release_from_isr()` | 中断内释放令牌 | `XY_OS_OK` 成功 |
 
 ---
 
@@ -199,27 +213,20 @@ static void periodic_task(void *arg) {
     xy_log_i("Periodic task started\n");
     
     while (1) {
-        xy_log_i("Tick: %lu\n", xy_os_tick_get());
+        xy_log_i("Tick: %u\n", (unsigned)xy_os_tick_get());
         xy_os_delay(1000);  // 1 秒周期
     }
 }
 
 void app_main(void) {
+    xy_os_thread_attr_t attr = {0};
+
     xy_os_kernel_init();
-    
-    xy_os_thread_t thread;
-    static uint8_t stack[512];
-    
-    xy_os_thread_create(
-        &thread,
-        "Periodic",
-        periodic_task,
-        NULL,
-        5,
-        stack,
-        sizeof(stack)
-    );
-    
+
+    attr.name = "Periodic";
+    attr.priority = XY_OS_PRIORITY_NORMAL;
+    xy_os_thread_new(periodic_task, NULL, &attr);
+
     xy_os_kernel_start();
 }
 ```
@@ -230,27 +237,23 @@ void app_main(void) {
 #include "xy_os.h"
 #include "xy_log.h"
 
-static void timer_callback(void *arg) {
-    (void)arg;
+static void timer_callback(void *argument) {
+    (void)argument;
     xy_log_i("Timer expired!\n");
 }
 
 void app_main(void) {
+    xy_os_timer_id_t timer;
+
     xy_os_kernel_init();
-    
-    // 创建定时器
-    xy_os_timer_sw_t timer;
-    timer = xy_os_timer_sw_create(
-        "MyTimer",
-        timer_callback,
-        NULL,
-        1000,   // 1 秒周期
-        XY_OS_TIMER_PERIODIC
-    );
-    
-    // 启动定时器
-    xy_os_timer_sw_start(timer);
-    
+
+    // 创建定时器，再按 tick 启动（1000 ticks 周期）
+    timer = xy_os_timer_new(timer_callback, XY_OS_TIMER_PERIODIC, NULL, NULL);
+    if (timer == NULL) {
+        return;
+    }
+    xy_os_timer_start(timer, 1000);
+
     xy_os_kernel_start();
 }
 ```
@@ -260,47 +263,50 @@ void app_main(void) {
 ```c
 #include "xy_os.h"
 
-static xy_os_sem_t sem;
+static xy_os_semaphore_id_t sem;
 
-static void producer_task(void *arg) {
-    (void)arg;
-    
+static void producer_task(void *argument) {
+    (void)argument;
+
     while (1) {
         // 生产数据
         produce_data();
-        
-        // 发送信号量
-        xy_os_sem_post(&sem);
-        
+
+        // 释放一个令牌
+        xy_os_semaphore_release(sem);
+
         xy_os_delay(100);
     }
 }
 
-static void consumer_task(void *arg) {
-    (void)arg;
-    
+static void consumer_task(void *argument) {
+    (void)argument;
+
     while (1) {
-        // 等待信号量
-        xy_os_sem_wait(&sem, XY_OS_WAIT_FOREVER);
-        
+        // 等待令牌（永不到期）
+        xy_os_semaphore_acquire(sem, XY_OS_WAIT_FOREVER);
+
         // 消费数据
         consume_data();
     }
 }
 
 void app_main(void) {
+    xy_os_thread_attr_t prod_attr = {0}, cons_attr = {0};
+
     xy_os_kernel_init();
-    
-    // 创建信号量
-    xy_os_sem_create(&sem, 0);
-    
-    // 创建任务
-    xy_os_thread_t prod_thread, cons_thread;
-    static uint8_t prod_stack[512], cons_stack[512];
-    
-    xy_os_thread_create(&prod_thread, "Producer", producer_task, NULL, 5, prod_stack, sizeof(prod_stack));
-    xy_os_thread_create(&cons_thread, "Consumer", consumer_task, NULL, 5, cons_stack, sizeof(cons_stack));
-    
+
+    // 创建信号量：最大计数 1，初始 0
+    sem = xy_os_semaphore_new(1, 0, NULL);
+
+    prod_attr.name = "Producer";
+    prod_attr.priority = XY_OS_PRIORITY_NORMAL;
+    cons_attr.name = "Consumer";
+    cons_attr.priority = XY_OS_PRIORITY_NORMAL;
+
+    xy_os_thread_new(producer_task, NULL, &prod_attr);
+    xy_os_thread_new(consumer_task, NULL, &cons_attr);
+
     xy_os_kernel_start();
 }
 ```

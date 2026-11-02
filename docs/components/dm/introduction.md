@@ -44,9 +44,9 @@ int main(void) {
     xy_tlv_buffer_init(&tlv_buf, buffer, sizeof(buffer));
     
     // 编码数据
-    xy_tlv_buffer_append_uint8(&tlv_buf, 0x0001, 42);
-    xy_tlv_buffer_append_uint16(&tlv_buf, 0x0002, 1000);
-    xy_tlv_buffer_append_string(&tlv_buf, 0x0101, "Hello");
+    xy_tlv_encode_uint8(&tlv_buf, 0x0001, 42);
+    xy_tlv_encode_uint16(&tlv_buf, 0x0002, 1000);
+    xy_tlv_encode_string(&tlv_buf, 0x0101, "Hello");
     
     return 0;
 }
@@ -113,7 +113,8 @@ int main(void) {
 
 | 函数 | 说明 |
 |------|------|
-| `xy_tlv_find_by_type()` | 按类型查找 |
+| `xy_tlv_find()` | 按类型查找 |
+| `xy_tlv_find_all()` | 按类型查找所有匹配项 |
 
 ---
 

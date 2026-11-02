@@ -140,10 +140,10 @@ int main(void) {
 | 函数 | 说明 |
 |------|------|
 | `xy_hal_gpio_init()` | 初始化 GPIO |
-| `xy_hal_gpio_set()` | 设置高电平 |
-| `xy_hal_gpio_clear()` | 设置低电平 |
-| `xy_hal_gpio_toggle()` | 切换电平 |
+| `xy_hal_gpio_write()` | 写电平（高/低） |
+| `xy_hal_gpio_toggle()` | 翻转电平 |
 | `xy_hal_gpio_read()` | 读取电平 |
+| `xy_hal_gpio_write_batch()` | 同端口批量写 |
 
 ### UART
 
@@ -151,16 +151,17 @@ int main(void) {
 |------|------|
 | `xy_hal_uart_init()` | 初始化 UART |
 | `xy_hal_uart_send()` | 发送数据 |
-| `xy_hal_uart_receive()` | 接收数据 |
-| `xy_hal_uart_dma_send()` | DMA 发送 |
+| `xy_hal_uart_recv()` | 接收数据 |
+| `xy_hal_uart_send_dma()` | DMA 发送 |
+| `xy_hal_uart_recv_dma()` | DMA 接收 |
 
 ### SPI
 
 | 函数 | 说明 |
 |------|------|
 | `xy_hal_spi_init()` | 初始化 SPI |
-| `xy_hal_spi_transfer()` | 数据传输 |
-| `xy_hal_spi_send()` | 发送数据 |
+| `xy_hal_spi_transmit_receive()` | 全双工传输 |
+| `xy_hal_spi_transmit()` | 发送数据 |
 | `xy_hal_spi_receive()` | 接收数据 |
 
 ### I2C
@@ -168,10 +169,10 @@ int main(void) {
 | 函数 | 说明 |
 |------|------|
 | `xy_hal_i2c_init()` | 初始化 I2C |
-| `xy_hal_i2c_write()` | 写入数据 |
-| `xy_hal_i2c_read()` | 读取数据 |
-| `xy_hal_i2c_mem_write()` | 内存写入 |
-| `xy_hal_i2c_mem_read()` | 内存读取 |
+| `xy_hal_i2c_master_transmit()` | 主发送 |
+| `xy_hal_i2c_master_receive()` | 主接收 |
+| `xy_hal_i2c_mem_write()` | 寄存器写 |
+| `xy_hal_i2c_mem_read()` | 寄存器读 |
 
 ---
 

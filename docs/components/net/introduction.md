@@ -33,17 +33,16 @@ XinYi 网络协议（NET）组件提供 MQTT、Modbus、AT 命令、ISO7816 等�
 ```c
 #include "xy_iso7816.h"
 
-int main(void) {
-    xy_iso7816_handle_t handle;
-    xy_iso7816_config_t config = {
-        .uart = UART1,
-        .timeout = 1000,
-    };
-    
-    xy_iso7816_init(&handle, &config);
-    
-    // 发送 APDU 命令
-    xy_iso7816_apdu_cmd_t cmd;
+static xy_iso7816_handle_t handle;
+
+void sim_select_file(void *uart) {
+    xy_iso7816_apdu_cmd_t cmd = {0};
+    xy_iso7816_apdu_resp_t resp;
+
+    // uart 是平台 UART 句柄，由 HAL 层提供
+    xy_iso7816_init(&handle, uart);
+
+    // 发送 APDU 命令（SELECT 文件）
     cmd.cla = 0x00;
     cmd.ins = 0xA4;
     cmd.p1 = 0x00;
@@ -51,11 +50,8 @@ int main(void) {
     cmd.lc = 2;
     cmd.data[0] = 0x3F;
     cmd.data[1] = 0x00;
-    
-    xy_iso7816_apdu_resp_t resp;
-    xy_iso7816_apdu_send(&handle, &cmd, &resp);
-    
-    return 0;
+
+    xy_iso7816_transceive(&handle, &cmd, &resp);
 }
 ```
 
@@ -88,7 +84,7 @@ int main(void) {
 | 函数 | 说明 |
 |------|------|
 | `xy_iso7816_init()` | 初始化 |
-| `xy_iso7816_apdu_send()` | 发送 APDU |
+| `xy_iso7816_transceive()` | 发送 APDU 并取回响应 |
 | `xy_iso7816_select_file()` | 选择文件 |
 | `xy_iso7816_read_binary()` | 读二进制 |
 

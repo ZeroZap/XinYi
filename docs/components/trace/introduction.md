@@ -25,16 +25,19 @@ XinYi Trace 组件提供统一的日志系统（xy_log）和命令处理（xy_cm
 
 int main(void) {
     xy_log_init();
-    
-    xy_log_v("Verbose message\n");
+
+    xy_log_str("Direct message\n");
     xy_log_d("Debug message: %d\n", value);
     xy_log_i("Info message: %s\n", str);
     xy_log_w("Warning message\n");
     xy_log_e("Error message\n");
-    
+
     return 0;
 }
 ```
+
+`xy_log_init()` 之后用 `xy_log_set_dynamic_level()` 打开运行时阈值；四个等级宏
+`xy_log_e()` / `xy_log_w()` / `xy_log_i()` / `xy_log_d()` 由 `XY_LOG_LEVEL` 在编译期裁剪。
 
 ---
 
@@ -44,7 +47,6 @@ int main(void) {
 
 | 宏 | 说明 |
 |------|------|
-| `xy_log_v()` | VERBOSE 级别 |
 | `xy_log_d()` | DEBUG 级别 |
 | `xy_log_i()` | INFO 级别 |
 | `xy_log_w()` | WARN 级别 |

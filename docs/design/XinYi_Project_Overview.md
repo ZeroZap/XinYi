@@ -464,7 +464,8 @@ xy_log_e("错误：操作失败\n");
 
 1. **[xy_code_style.md](../rules/code_style.md)** - 详细的 C 编码约定
 2. **[RULEBOOK.md](../rules/RULEBOOK.md)** - 开发规则和指南
-3. **[.clang-format](../../.clang-format)** - 自动化代码格式化
+3. **`.clang-format`**（仓库根目录）- 自动化代码格式化。刻意不做成链接：`.gitattributes` 把该文件标记为
+   `export-ignore`，release archive（`git archive`）不含它，链接对拿 tarball 的读者是死路。
 
 ### 快速参考
 

@@ -31,21 +31,25 @@ XinYi 传感器框架提供统一的传感器接口，支持多种传感器类�
 ## 🚀 快速开始
 
 ```c
-#include "sensor_core.h"
+#include "xy_sensor.h"
+#include "xy_log.h"
 
-int main(void) {
-    sensor_device_t sensor;
-    
+void read_temperature(void) {
+    xy_sensor_device_t *dev = xy_sensor_device_get("sht30");
+    xy_sensor_value_t value;
+
+    if (dev == NULL) {
+        return;
+    }
+
     // 初始化传感器
-    xy_sensor_init(&sensor, SENSOR_TYPE_TEMPERATURE);
-    
-    // 读取数据
-    sensor_data_t data;
-    xy_sensor_read(&sensor, &data);
-    
-    printf("Temperature: %.2f°C\n", data.value.val_float);
-    
-    return 0;
+    xy_sensor_init(dev);
+
+    // 采集并读取温度通道；定点值 = val1 + val2 / 1000000
+    if (xy_sensor_sample_fetch(dev, XY_SENSOR_CHAN_AMBIENT_TEMP) == XY_SENSOR_OK &&
+        xy_sensor_channel_get(dev, XY_SENSOR_CHAN_AMBIENT_TEMP, &value) == XY_SENSOR_OK) {
+        xy_log_i("Temperature: %ld.%06ld C\n", (long)value.val1, (long)value.val2);
+    }
 }
 ```
 
@@ -56,9 +60,11 @@ int main(void) {
 | 函数 | 说明 |
 |------|------|
 | `xy_sensor_init()` | 初始化传感器 |
-| `xy_sensor_read()` | 读取传感器数据 |
-| `xy_sensor_calibrate()` | 校准传感器 |
-| `xy_sensor_set_odr()` | 设置输出数据率 |
+| `xy_sensor_sample_fetch()` | 采集一次数据（通道或 `XY_SENSOR_CHAN_ALL`） |
+| `xy_sensor_channel_get()` | 读取通道值（`xy_sensor_value_t` 定点数） |
+| `xy_sensor_attr_set()` | 设置通道采样属性（ODR、量程等） |
+
+校准、滤波、FIFO 与中断等扩展契约在 legacy `sensor_*()` 家族（`sensor_core.h`，例如 `sensor_calibrate()`、`sensor_fifo_read()`）；`xy_sensor.h` 是面向应用的统一门面，驱动通过 `xy_sensor_device.h` 的 ops 注册。
 
 ---
 

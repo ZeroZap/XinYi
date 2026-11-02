@@ -115,9 +115,9 @@ int main(void) {
 |------|------|
 | `xy_device_manager_init()` | 初始化设备管理器 |
 | `xy_device_manager_register()` | 注册设备 |
-| `xy_device_manager_unregister()` | 注销设备 |
-| `xy_device_manager_find()` | 查找设备 |
-| `xy_device_manager_foreach()` | 遍历设备 |
+| `xy_device_manager_find_by_group()` | 按分组查找设备 |
+| `xy_device_manager_enumerate_group()` | 枚举分组内设备名 |
+| `xy_device_manager_get_group_count()` | 分组内设备数量 |
 
 ### I2C 设备
 
