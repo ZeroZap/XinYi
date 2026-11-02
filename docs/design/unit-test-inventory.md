@@ -38,7 +38,14 @@
   decisions by filename (48 → 61 documents), with six new self-test cases (31 → 37), and
   `doc_samples_compile` gained a content-anchored block selector so the project overview's corrected
   `xy_hal_uart_*` sample is compiled instead of the module preamble and new-file template beside it
-  (1 → 2 documents, 12 → 16 blocks, self-test 12 → 16).
+  (1 → 2 documents, 12 → 16 blocks, self-test 12 → 16). The hardware-guide slice added no CTest
+  entry either, and again widened both guards: `doc_api_symbols` now sweeps `docs/hardware`'s five
+  pages (61 → 66 documents) and reads a `❌ 错误` block as a counter-example rather than a claim, so
+  the porting guide's "do not add a platform suffix" paragraph stops being reported as the defect it
+  documents (self-test 37 → 41); `doc_samples_compile` now requires **every** marker to still select
+  a block (an OR selector with one stale marker silently compiled a smaller set) and compiles
+  `docs/hardware/porting.md`'s naming contract and functional demo (2 → 3 documents, 16 → 19 blocks,
+  self-test 16 → 18).
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which

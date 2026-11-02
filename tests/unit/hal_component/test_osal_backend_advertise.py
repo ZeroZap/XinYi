@@ -308,6 +308,20 @@ class PlatformCommandTests(unittest.TestCase):
         self.assertTrue(docs)
         self.assertEqual(guard.platform_command_findings(docs), [])
 
+    def test_a_placeholder_value_is_not_a_platform_claim(self):
+        # `docs/hardware/porting.md` quotes the root CMakeLists's own usage message, which says
+        # `-DHAL_PLATFORM=<value>`. That is the shape of the variable, not a value the build refuses;
+        # reporting it would push an author into deleting the accurate quote.
+        docs = {"docs/hardware/x.md": "```cmake\ncmake .. -DHAL_PLATFORM=<value>\n```\n"}
+        self.assertEqual(guard.platform_command_findings(docs), [])
+
+    def test_an_unexpanded_cmake_variable_is_not_a_platform_claim(self):
+        # A CMake `message()` expansion - `Unknown HAL_PLATFORM='${HAL_PLATFORM}'` - is the same
+        # class: the value is whatever the author configured, not a literal the page asserts.
+        docs = {"docs/hardware/x.md":
+                "```cmake\nmessage(FATAL_ERROR \"Unknown HAL_PLATFORM='${HAL_PLATFORM}'\")\n```\n"}
+        self.assertEqual(guard.platform_command_findings(docs), [])
+
 
 class MakeTargetTests(unittest.TestCase):
     """A fenced `make <target>` must name a target the root Makefile defines."""

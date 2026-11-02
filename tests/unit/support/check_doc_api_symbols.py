@@ -29,11 +29,32 @@ claims. A path is a claim.
 
 Scope is the documents that instruct: `docs/getting-started/`, the HAL API reference
 (`docs/hal/`), the curated API index (`docs/api/`), the HAL component's own usage docs
-(`components/hal/`), the current design set (`docs/design/`), and - since every newcomer lands on
+(`components/hal/`), the current design set (`docs/design/`), the hardware porting and board
+guides (`docs/hardware/`), and - since every newcomer lands on
 one - every `README.md` under `components/`. That last sweep is README-only on purpose:
 `*_PLAN.md`, migration notes and the imported vendor trees are records, and judging them as usage
 would punish writing the plan down, which is the mistake this repository has already made once.
 `docs/history` records what was true when it was recorded and is not rewritten.
+
+`docs/hardware` was added after its pages were measured: five files, one finding, and that finding
+was a **counter-example**. `porting.md` prints `// ❌ 错误 - 不要添加平台后缀` above
+`xy_hal_gpio_init_stm32()`, which is the paragraph's entire point - the function must not carry a
+platform suffix. Reported as an undeclared symbol it is the guard demanding that a document stop
+teaching the one thing it exists to teach. So a negative marker opens a region inside the block and
+a positive marker closes it (`counter_example_lines()`): `❌ 错误` ... `✅ 正确` reads as one
+counter-example followed by one claim, in the order the reader sees them. Only the marked lines are
+excused - the rest of the block, and every other block in the document, is still judged.
+
+The page's real defects were found by the *other* guard. What the reader was told to copy was a
+`xy_hal_gpio_init(void *port, uint16_t pin, ...)` that the header declares as
+`(xy_hal_gpio_port_t, uint8_t, ...)`, a `xy_hal_pin.c` that no longer exists, an `xy_hal_cfg.h`
+that never existed, a `UART1` handle where the HAL takes a `UART_HandleTypeDef *`, and a
+`if(PLATFORM STREQUAL "stm32")` dispatch where this tree selects `HAL_PLATFORM`. Names and paths are
+this file's half; `check_doc_samples_compile.py` compiles the same page against the real headers.
+
+`docs/reference` was measured and deliberately left out: its two files are TAOCP study notes whose
+twenty C blocks are textbook algorithms, not claims about this API. Sweeping them would be a
+category error of the same kind as reading a naming pattern as a call.
 
 `docs/design` is the awkward directory and is judged the same way a README sweep is: only the pages
 that describe the tree *now*. Thirty-two of its forty-five pages carry a date in the filename
@@ -129,7 +150,8 @@ ROOT = Path(__file__).resolve().parents[3]
 #: learn a signature, which makes it the most literal example of the thing this guard exists for.
 #: `docs/design` is here because it is where the current design lives; its dated pages are records
 #: and `record_document()` skips them (see the module docstring).
-DOC_ROOTS = ("docs/getting-started", "docs/hal", "docs/api", "docs/design", "components/hal")
+DOC_ROOTS = ("docs/getting-started", "docs/hal", "docs/api", "docs/design", "docs/hardware",
+             "components/hal")
 #: A date in the filename is a record's own banner: `xinyi-ipc-event-group-proposal-2026-08-08.md`
 #: states what was decided on 2026-08-08. Rewriting its paths would replace the record with a
 #: quieter document, and the same reasoning that keeps `docs/history` out of this sweep applies.
@@ -203,6 +225,15 @@ OWN_FILE = re.compile(r"[@\\]file\s+([A-Za-z0-9_]+)\.[ch]\b")
 #: A token that runs into `<` is a naming pattern, exactly as `PLACEHOLDERS` treats a path:
 #: `xy_hal_<peripheral>_<operation>()` says how names are shaped, not that `xy_hal_` is a function.
 PATTERN_MARKERS = ("<", ">")
+#: A block may show what *not* to write. `docs/hardware/porting.md` prints
+#: `// ❌ 错误 - 不要添加平台后缀` above `xy_hal_gpio_init_stm32()`, and that is the whole point of
+#: the paragraph: the name must not carry a platform suffix. Reported as an undeclared symbol it is
+#: the guard telling a document to stop teaching the one thing it exists to teach - the same
+#: category error as reading `<name>` as a path. A negative marker opens a region inside the block
+#: and a positive marker closes it, so `❌ 错误` ... `✅ 正确` reads as one counter-example followed
+#: by one claim, in the order the reader meets them.
+NEGATIVE_MARKERS = ("❌", "错误", "不要", "wrong", "Wrong", "incorrect", "Incorrect")
+POSITIVE_MARKERS = ("✅", "正确", "right", "Right", "correct", "Correct")
 
 #: Top-level directories a document may point a reader at. Restricting the prefix to these keeps
 #: the rule off prose that merely contains a slash.
@@ -326,6 +357,26 @@ def code_blocks(text: str) -> list[tuple[int, list[str]]]:
     return blocks
 
 
+def counter_example_lines(lines: list[str]) -> set[int]:
+    """Indices of the block lines a negative marker has put out of scope.
+
+    Line-scoped on purpose. A block that opens with `// ❌ 错误` and never closes the region marks
+    everything after it; one that closes with `// ✅ 正确` goes back to being a claim. Excusing the
+    whole block instead would let a document hide a genuine defect above the counter-example, and
+    excusing the whole document would let it hide one in the next block.
+    """
+    wrong = False
+    marked: set[int] = set()
+    for index, line in enumerate(lines):
+        if any(marker in line for marker in POSITIVE_MARKERS):
+            wrong = False
+        elif any(marker in line for marker in NEGATIVE_MARKERS):
+            wrong = True
+        if wrong:
+            marked.add(index)
+    return marked
+
+
 def path_references(text: str) -> list[tuple[int, str]]:
     """(line number, path) for every repository path this document points a reader at.
 
@@ -384,8 +435,12 @@ def findings(paths: list[Path] | None = None,
             # A sample's own comments are prose: a block that writes down "the old spelling was
             # xy_hal_pin_write()" is explaining, not calling. Same rule as read_code() for headers.
             code = code_only("\n".join(lines)).splitlines()
+            wrong = counter_example_lines(lines)
             for offset, line in enumerate(code):
                 where = f"{relative}:{start + offset}"
+                if offset in wrong:
+                    # A counter-example is the document saying this name must *not* be written.
+                    continue
                 include = INCLUDE.match(line)
                 if include:
                     header = Path(include.group(1)).name

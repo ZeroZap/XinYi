@@ -118,6 +118,24 @@ SAMPLES: tuple[Sample, ...] = (
         roots=("components/hal/inc",),
         markers=("xy_hal_uart_send(uart",),
     ),
+    # The porting guide told a reader porting a new platform to write
+    # `xy_hal_gpio_init(void *port, uint16_t pin, ...)` where the header declares
+    # `(xy_hal_gpio_port_t, uint8_t, ...)`, and to open the board with `UART1` where the HAL takes a
+    # `UART_HandleTypeDef *`. Both were copy-paste defects in the one page whose whole job is to be
+    # copied. Its third C block is an implementation excerpt that needs the vendor SDK
+    # (`stm32f4xx_hal.h`, `GPIO_InitTypeDef`), so the two selectors below name the sample blocks -
+    # the naming contract and the functional demo - and a selector that stops matching is reported.
+    Sample(
+        doc="docs/hardware/porting.md",
+        includes=("xy_hal_gpio.h", "xy_hal_uart.h"),
+        roots=(
+            "components/hal/inc",
+            "components/clib/xy_clib/inc",
+            "components/clib/xy_clib",
+            "components/kernel/misc/inc",
+        ),
+        markers=("xy_hal_gpio_init_stm32(", "xy_hal_uart_send(uart,"),
+    ),
 )
 
 
@@ -183,6 +201,17 @@ def findings(samples: tuple[Sample, ...] | None = None, root: Path | None = None
                 f"{', '.join(repr(mark) for mark in sample.markers)} - the selector no longer points "
                 f"at the sample, and compiling nothing reads the same as passing")
             continue
+        # A page with more than one sample needs one marker per sample, and with an OR selector a
+        # single stale marker silently shrinks the compiled set instead of failing. Measured on
+        # `porting.md`: two markers select the naming contract and the functional demo, and losing
+        # either one leaves the other compiling - so each marker is required to still select a block.
+        stale = [mark for mark in sample.markers
+                 if not any(mark in body for _, body in blocks)]
+        if stale:
+            problems.append(
+                f"{sample.doc}: {', '.join(repr(mark) for mark in stale)} appears in none of its "
+                f"{len(blocks)} C blocks - that sample is no longer being compiled, and a silently "
+                f"smaller set reports the same result as a clean one")
         inspected += len(selected)
         status, output = run_compiler(translation_unit(sample.doc, selected, sample.includes),
                                       sample.roots, compiler, tree)

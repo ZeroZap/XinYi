@@ -99,6 +99,37 @@ class DocApiSymbolsTest(unittest.TestCase):
         # which is the same category error the path rule already answers with `PLACEHOLDERS`.
         self.assertEqual([], self.judged("xy_hal_<peripheral>_<operation>()\n"))
 
+    def test_a_counter_example_is_not_a_claim(self) -> None:
+        # `docs/hardware/porting.md` prints `// ❌ 错误 - 不要添加平台后缀` above
+        # `xy_hal_gpio_init_stm32()`. That sentence exists to say the name must not be written; the
+        # finding against it was this guard telling a document to stop teaching.
+        self.assertEqual([], self.judged(
+            "// ❌ 错误 - 不要添加平台后缀\n"
+            "xy_hal_gpio_init_stm32(0);\n"))
+
+    def test_a_positive_marker_ends_the_counter_example(self) -> None:
+        # The region is line-scoped, not block-scoped: `❌ 错误` ... `✅ 正确` is one counter-example
+        # followed by one claim, and excusing the whole block would let the claim hide behind it.
+        problems = self.judged(
+            "// ❌ 错误\n"
+            "xy_made_up_one();\n"
+            "// ✅ 正确\n"
+            "xy_made_up_two();\n")
+        self.assertEqual(1, len(problems), problems)
+        self.assertIn("xy_made_up_two", problems[0])
+
+    def test_a_counter_example_does_not_excuse_the_next_block(self) -> None:
+        # Nor is it document-scoped: a page that shows one wrong spelling still has to be right
+        # everywhere it is not showing what wrong looks like.
+        path = self.root / "SAMPLE.md"
+        path.write_text("# Doc\n\n```c\n// ❌ 错误\nxy_made_up_one();\n```\n\n"
+                        "```c\nxy_made_up_two();\n```\n", encoding="utf-8")
+        companion = self.root / "WITNESS.md"
+        companion.write_text(fenced(WITNESS), encoding="utf-8")
+        problems = guard.findings([path, companion], SYMBOLS, NAMES)
+        self.assertEqual(1, len(problems), problems)
+        self.assertIn("xy_made_up_two", problems[0])
+
     def test_a_template_block_may_include_the_header_it_tells_you_to_create(self) -> None:
         # The file-structure template writes `@file module_name.c` and then includes the header that
         # file will have. Matching stems mean the include is a placeholder for the reader's module.
@@ -306,6 +337,14 @@ class DocApiSymbolsTest(unittest.TestCase):
         # narrowed back to silence: if `docs/api` leaves DOC_ROOTS, this goes red.
         walked = [p.relative_to(guard.ROOT).as_posix() for p in guard.documents()]
         self.assertIn("docs/api/API_REFERENCE.md", walked, walked)
+
+    def test_the_real_tree_sweeps_the_hardware_guides(self) -> None:
+        # Footprint on the checked-in tree: the porting guide is the page a person porting a board
+        # actually opens, and it was reachable by neither guard until `docs/hardware` joined the
+        # sweep. If the root leaves DOC_ROOTS this goes red.
+        walked = [p.relative_to(guard.ROOT).as_posix() for p in guard.documents()]
+        self.assertIn("docs/hardware/porting.md", walked, walked)
+        self.assertIn("docs/hardware/index.md", walked, walked)
 
     def test_a_dated_design_record_is_skipped_and_an_undated_page_is_judged(self) -> None:
         # `docs/design` holds both answers to "what does the tree look like": the proposal that

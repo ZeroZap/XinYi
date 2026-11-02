@@ -270,6 +270,12 @@ COMMAND = re.compile(r"^(?:\$\s*)?(?:make|cmake)\b")
 # part of the match because its `D` would otherwise read as a word character in the lookbehind.
 PLATFORM_ASSIGN = re.compile(r"(?<![A-Za-z0-9_])(?P<dash>-D)?(?P<hal>HAL_)?PLATFORM\s*=\s*"
                              r"(?P<value>[^\s)'\";]*)")
+#: A value that has not been filled in is a pattern, not a claim. The root CMakeLists's own usage
+#: message says `-DHAL_PLATFORM=<value>`, and a page that quotes it - or shows a CMake
+#: `message(... "${HAL_PLATFORM}" ...)` expansion - is telling the reader the shape of the variable.
+#: Reporting those sends a document author into deleting the accurate quote; the same reasoning keeps
+#: `<name>` out of the documentation path rule next door.
+PLACEHOLDER_VALUE = re.compile(r"^(?:<|\$|$)")
 
 
 def platform_command_findings(docs: dict[str, str]) -> list[str]:
@@ -294,6 +300,8 @@ def platform_command_findings(docs: dict[str, str]) -> list[str]:
                                 f"{where}: a fenced command passes PLATFORM={value}, but this build "
                                 f"reads HAL_PLATFORM - the assignment is dropped and the default "
                                 f"platform is built instead")
+                        continue
+                    if PLACEHOLDER_VALUE.match(value):
                         continue
                     if value not in PLATFORM_VALUES:
                         problems.append(

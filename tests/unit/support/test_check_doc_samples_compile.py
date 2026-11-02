@@ -164,6 +164,16 @@ class DocSamplesCompileTest(unittest.TestCase):
         problems = self.judged_marked(fenced(CORRECT), ("a marker that is not in the page",))
         self.assertTrue(any("the selector no longer points" in p for p in problems), problems)
 
+    def test_one_stale_marker_of_several_is_reported(self) -> None:
+        # The OR selector's quiet failure: two markers, one renamed, and the surviving one keeps the
+        # page compiling half its samples. Measured on `porting.md`, whose naming contract and
+        # functional demo are selected separately - dropping either must not read as a pass.
+        page = fenced("/* ---- one ---- */\n" + CORRECT) + fenced("/* ---- two ---- */\nint two;\n")
+        problems = self.judged_marked(page, ("---- one ----", "---- three ----"))
+        self.assertTrue(any("---- three ----" in p and "no longer being compiled" in p
+                            for p in problems), problems)
+        self.assertEqual(1, len(problems), problems)
+
     def test_the_selected_sample_is_still_judged(self) -> None:
         # ... and the selector must not turn into an exemption: a bad prototype in the selected block
         # is still a finding.
@@ -191,6 +201,16 @@ class DocSamplesCompileTest(unittest.TestCase):
         self.assertIn("docs/design/XinYi_Project_Overview.md", docs)
         sample = [s for s in guard.SAMPLES if s.doc == "docs/design/XinYi_Project_Overview.md"][0]
         self.assertTrue(sample.markers, "the overview page must select its sample by content")
+        self.assertEqual([], [root for root in sample.roots if not (ROOT / root).is_dir()])
+
+    def test_the_real_list_names_the_porting_guide_sample(self) -> None:
+        # The page whose whole job is to be copied by whoever ports the next board. It was outside
+        # both guards' reach; the naming contract and the functional demo are now compiled, and each
+        # of the two markers has to keep selecting a block (`findings()` reports a stale one).
+        docs = [sample.doc for sample in guard.SAMPLES]
+        self.assertIn("docs/hardware/porting.md", docs)
+        sample = [s for s in guard.SAMPLES if s.doc == "docs/hardware/porting.md"][0]
+        self.assertEqual(2, len(sample.markers), sample.markers)
         self.assertEqual([], [root for root in sample.roots if not (ROOT / root).is_dir()])
 
 
