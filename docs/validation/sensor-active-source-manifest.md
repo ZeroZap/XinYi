@@ -29,7 +29,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 38 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 39 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 37 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 38 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 6 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 47 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 

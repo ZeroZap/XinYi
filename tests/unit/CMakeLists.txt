@@ -1350,16 +1350,6 @@ target_include_directories(test_ina229_device PRIVATE
 )
 
 
-xy_add_unit_test(test_angle_encoders sensor_angle_encoders UNITY
-    ${UNIT_SENSOR}/test_angle_encoders.c
-    ${SENSOR}/sensors/sensor_as5600.c
-    ${SENSOR}/sensors/sensor_as5048.c
-)
-target_include_directories(test_angle_encoders BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
 xy_add_unit_test(test_as5048b_device sensor_as5048b_device UNITY
     ${UNIT_SENSOR}/test_as5048b_device.c
     ${DRV}/sensor/angle/as5048b/xy_as5048b.c

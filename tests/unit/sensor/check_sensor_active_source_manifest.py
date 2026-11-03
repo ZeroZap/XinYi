@@ -130,7 +130,7 @@ def main() -> int:
     prototype_names = {path.stem.removeprefix("xy_sensor_") for path in prototype}
     top_level_names = {path.stem.removeprefix("sensor_") for path in top_level_owners}
 
-    require(len(legacy) == 39, f"expected 39 legacy active sources, found {len(legacy)}", errors)
+    require(len(legacy) == 37, f"expected 37 legacy active sources, found {len(legacy)}", errors)
     require([path.name for path in top_level_owners] == ["sensor_adt7420.c"],
             "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
     require(len(experimental) == 5,
@@ -141,7 +141,7 @@ def main() -> int:
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
     require(canonical_names & legacy_names ==
             {"sht30", "mpu6050", "bmp280", "bh1750", "aht20", "aht10", "ap3216c",
-             "icm20608", "qma6100p", "as5600", "max44009", "vcnl4040", "qmc5883l", "ak09918", "ist8310", "bma400", "kx023", "adxl362", "lsm6dso", "lsm6dsl", "lsm6dsr", "lsm9ds1", "lis2dh12", "apds9960", "ccs811", "vl53l0x", "lis2dw12"},
+             "icm20608", "qma6100p", "max44009", "vcnl4040", "qmc5883l", "ak09918", "ist8310", "bma400", "kx023", "adxl362", "lsm6dso", "lsm6dsl", "lsm6dsr", "lsm9ds1", "lis2dh12", "apds9960", "ccs811", "vl53l0x", "lis2dw12"},
             "canonical/legacy overlap must contain only approved compatibility wrappers", errors)
     require(not (canonical_names & experimental_names),
             "canonical Device owners must not reappear in experimental src/xy_*", errors)
@@ -310,7 +310,7 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("sensor_active_source_manifest_ok legacy_active=39 legacy_subdir=38 "
+    print("sensor_active_source_manifest_ok legacy_active=37 legacy_subdir=36 "
           "legacy_top_level=1 experimental_test_only=5 device_active=51 "
           "approved_wrappers=26 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
