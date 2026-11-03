@@ -29,9 +29,9 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 23 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 24 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 17 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 18 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 5 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 58 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 60 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
 2026-09-27 追加 Host contract：legacy `sensor_device_t` compatibility wrapper 公开 guarded range setter，只有 canonical Device owner 寄存器写成功后才原子更新 `range_min/range_max`，并复用 owner 的 range-aware mg scaling；非法编码或 transport failure 保持 wrapper metadata 与 owner cache。该补充不升级动态响应、精度、校准、恢复或 endurance 证据。
 
@@ -299,10 +299,14 @@ protocol implementation owner.
 AHT10 public read and deinit paths also require a live nested `i2c_handle`; successful teardown
 clears the handle so stale transport state cannot authorize bus access. It uses the Device I2C helper for the fixed `0x38` address, stages
 both temperature and humidity before committing output/cache, preserves state on trigger/read/busy
-failures, and requires both outer and nested lifecycle state. Root-linked `sensor_aht10.c` remains a
-compatibility-only humidity wrapper and delegates all transport, conversion and lifecycle work to
-the canonical owner. Existing Pandora AHT10 B1 evidence remains bounded to the previously observed
-board path; this migration adds no new accuracy, timing, NACK-recovery or long-run claim.
+failures, and requires both outer and nested lifecycle state. The legacy `sensor_aht10.c`
+compatibility-only humidity wrapper is retired: it delegated init/read/deinit to the canonical owner,
+mapped the owner errors onto the legacy `sensor_err_t` codes, and preserved the percent-humidity
+conversion; those contracts are asserted by the canonical owner's focused Device test
+(`test_aht10_device.c`: calibration/measurement commands, staged humidity/temperature publication,
+busy/transport failure output preservation, and failed re-init atomicity). Existing Pandora AHT10 B1
+evidence remains bounded to the previously observed board path; this migration adds no new accuracy,
+timing, NACK-recovery or long-run claim.
 
 ### AP3216C migration status
 
@@ -436,6 +440,11 @@ incomplete helper transport; lost transport fails closed without bus access or s
 successful teardown clears the nested handle. Optical response, distance calibration and hardware
 endurance remain `hardware-pending`.
 
+The legacy `sensor_vcnl4040.c` duplicate is retired. It was an independent implementation of the same
+protocol over `hal_i2c_mem_read/write`: it duplicated the little-endian `0x08/0x09` proximity decode
+and the NULL/private/bus fail-closed guards that the canonical owner's focused Device test
+(`test_vcnl4040_device.c`) already asserts. Nothing the canonical owner expresses was lost.
+
 ### QMC5883L migration status
 
 The legacy QMC5883L API is now backed by the canonical Device owner at
@@ -535,6 +544,13 @@ that independently validate both nested I2C lifecycles, and preserves output/cac
 failure. Invalid IMU or magnetometer transport fails closed without bus access or lifecycle mutation;
 successful teardown clears both handles. Motion and magnetic accuracy,
 timing, interrupt behavior and hardware endurance remain `hardware-pending`.
+
+The legacy `sensor_lsm9ds1.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` that split the same chip into three `sensor_device_t` factories
+(accel/gyro/mag) with the IMU WHO_AM_I `0x68`/mag `0x3D` identity checks, the reset and
+CTRL3_C/CTRL1_XL/CTRL2_G/CTRL_REG1_M configuration writes, and per-axis little-endian decoding that
+the canonical owner's focused Device test (`test_lsm9ds1_device.c`) already asserts on the single
+merged `xy_lsm9ds1_t` owner. Nothing the canonical owner expresses was lost.
 
 ### LIS2DH12 migration status
 
@@ -654,11 +670,12 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 34 canonical names have exactly eleven approved legacy filename overlaps:
-`mpu6050`, `bmp280`, `aht20`, `aht10`, `ap3216c`, `icm20608`, `as5600`, `max44009`, `vcnl4040`, `qmc5883l`, and `ak09918`. Each overlap is a compatibility wrapper
-documented above, not an implementation owner. The other twenty-one canonical owners (`ads1115`, `aht30`,
-`bme680`, `hmc5883l`, `l3g4200d`, `sc7a22`, `sht40`, `ina219`, `bmp390`, `hdc1080`, `tsl2561`, `ina226`, `mlx90614`, `vl53l1x`, `lps22hb`, `sgp40`, `ltc2945`, `bmi088`, `bmi270`, `bno055`, and `as5048b`) have no legacy-root counterpart. No canonical name overlaps
-the 6 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
+The current 58 canonical names have exactly seventeen approved legacy filename overlaps:
+`mpu6050`, `bmp280`, `aht20`, `ap3216c`, `icm20608`, `max44009`, `qmc5883l`, `ak09918`, `ist8310`,
+`bma400`, `kx023`, `adxl362`, `lsm6dso`, `lsm6dsl`, `lsm6dsr`, `lis2dh12`, and `lis2dw12`. Each
+overlap is a compatibility wrapper documented above, not an implementation owner. The other
+forty-one canonical owners have no legacy-root counterpart. No canonical name overlaps
+the 5 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was
 removed. It has now been promoted to the canonical Device root as documented above; the stale

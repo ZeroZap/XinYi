@@ -60,3 +60,7 @@ endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/lis2dw12)
     add_subdirectory(lis2dw12)
 endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/sc7a20)
+    add_subdirectory(sc7a20)
+endif()

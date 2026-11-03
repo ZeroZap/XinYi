@@ -10,3 +10,7 @@ endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/ist8310)
     add_subdirectory(ist8310)
 endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cmm905)
+    add_subdirectory(cmm905)
+endif()

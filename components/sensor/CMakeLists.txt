@@ -29,9 +29,9 @@ set(SENSOR_SOURCES
 
 # Add driver sources from sensors/ directory
 file(GLOB SENSOR_DRIVERS "${CMAKE_CURRENT_LIST_DIR}/sensors/sensor_*.c")
-# The canonical Device-model drivers these compatibility paths use (SHT30,
-# ADS1115, MPU6050, BMP280, BH1750, AHT20, AHT10, AP3216C, ICM20608, QMA6100P)
-# are owned by components/drivers and compiled by `xy_sensor_drivers_core`.
+# The canonical Device-model drivers these compatibility paths use (MPU6050,
+# BMP280, AHT20, AP3216C, ICM20608) are owned by components/drivers and compiled
+# by `xy_sensor_drivers_core`.
 # They are linked below, not compiled here: a second copy would put the same
 # globals in two archives, and archive order - not the build - would decide
 # which implementation runs.
@@ -42,16 +42,11 @@ target_include_directories(sensor_component PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc
 target_include_directories(sensor_component PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 target_include_directories(sensor_component PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/../device/inc
-    ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/sht30
-    ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/adc/ads1115
     ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/motion/mpu6050
     ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/pressure/bmp280
-    ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/light/bh1750
     ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/aht20
-    ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/aht10
     ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/light/ap3216c
     ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/motion/icm20608
-    ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/motion/qma6100p
     ${CMAKE_CURRENT_LIST_DIR}/../hal/inc
     ${CMAKE_CURRENT_LIST_DIR}/../kernel/osal
     ${CMAKE_CURRENT_LIST_DIR}/../trace/xy_log/inc

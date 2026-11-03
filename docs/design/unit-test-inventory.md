@@ -346,12 +346,10 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_vl53l1x.c` | `unity` | 0 |
 | `tests/unit/sensor/test_bno055.c` | `unity` | 0 |
 | `tests/unit/sensor/test_dmp.c` | `unity` | 0 |
-| `tests/unit/sensor/test_lsm9ds1.c` | `unity` | 0 |
 | `tests/unit/sensor/test_lsm9ds1_device.c` | `unity` | 0 | LSM9DS1 Device-model fixed-address dual-I2C lifecycle, identity, staged 9-axis sample and failure-preservation contracts |
-| `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_vcnl4040_device.c` | `unity` | 0 | VCNL4040 Device-model fixed-address, nested lifecycle, little-endian sample and failure-preservation contracts |
 
-| `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 + AK09918 + CMM905 legacy magnetic I2C contracts |
+| `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 + AK09918 legacy magnetic I2C contracts |
 | `tests/unit/sensor/test_ak09918_device.c` | `unity` | 0 | AK09918 canonical Device identity, reset/config, sample, failure-preservation and lifecycle contracts |
 
 | `tests/unit/sensor/test_as5600_device.c` | `unity` | 0 | AS5600 canonical Device lifecycle, angle decoding, transport guards and failed re-init atomicity |
@@ -362,14 +360,12 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_mq3_device.c` | `unity` | 0 | MQ-3 canonical Device: raw ADC read, guards, failure atomicity |
 | `tests/unit/sensor/test_mq7_device.c` | `unity` | 0 | MQ-7 canonical Device: raw ADC read, guards, failure atomicity |
 | `tests/unit/sensor/test_apds9960_device.c` | `unity` | 0 | APDS9960 canonical Device identity (`0xAB`/`0x9C`), enable/disable profile, RGB decode, gesture-FIFO level/payload ordering and failure-preservation contracts |
-| `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_ap3216c_sensor.c` | `unity` | 0 | AP3216C light/proximity/IR init/read/failure guard contracts |
 | `tests/unit/sensor/test_vl53l0x_device.c` | `unity` | 0 | VL53L0X canonical Device identity/read/lifecycle/failure contracts |
 | `tests/unit/sensor/test_acs712_device.c` | `unity` | 0 | ACS712 canonical Device: ADC read to signed current (30A/3.3V datasheet conversion), guards, failure atomicity |
 | `tests/unit/sensor/test_fsr_device.c` | `unity` | 0 | FSR canonical Device: raw ADC read, guards, failure atomicity |
 | `tests/unit/sensor/test_mg811_device.c` | `unity` | 0 | MG811 canonical Device: raw ADC read, guards, failure atomicity |
 
-| `tests/unit/sensor/test_env_i2c_sensors.c` | `unity` | 0 | AHT10 legacy env I2C init/read/failure contracts |
 | `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy `sensor_bmp280.c` pressure/temperature calibration/read/failure contracts |
 | `tests/unit/sensor/test_icm20608_sensor.c` | `unity` | 0 | ICM20608 legacy IMU I2C/SPI identity/init/read/failure contracts |
 | `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS legacy parser GGA/RMC/GSV/checksum/registry contracts; `gps_parse_nmea`/`gps_parse_byte` come from `sensor_gps.h` (they used to be re-declared locally, which is what a header omitting its own driver's API forces), and only the deliberately unpublished legacy `gps_sensor_read()` bridge is still hand-declared. Also pins that `gps_sleep(NULL)`/`gps_wakeup(NULL)` are rejected instead of dereferencing. |
@@ -377,7 +373,9 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_sensor_demo_backend_stub.c` | `plain/helper` | 0 | SPI/UART/GPIO/mem-I2C/registry stubs for the `sensor_device_example` target. `components/sensor/examples/sensor_demo.c` supplies the three HAL entry points it asserts on; this file stubs the rest of `xy_device_bus_helpers.c`'s backend so the sample does not have to carry harness code. Returns `NOT_SUPPORTED`, so a driver that switched to one of these paths fails instead of passing against a rubber stamp. |
 | `tests/unit/sensor/test_sensor_example_bus_stub.c` | `plain/helper` | 0 | Backend for the three `sensor_example_*` targets, which build and run `components/sensor/example/{basic,advanced,example_multi_sensors}.c`. Answers `xy_i2c_device_init/read_reg/write_reg/read/write`, `xy_hal_delay_ms`, `xy_hal_sys_get_tick_count` and `xy_os_tick_get/delay`; models one chip (MPU6050 WHO_AM_I + one accel burst at 16384 LSB/g) so `sensor_example_basic` can assert the exact decoded mg triple. The tick only advances on delay calls, so a stuck sample loop is visible instead of masquerading as a zero clock. |
 | `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12 legacy low-power accel init/read/config failure contracts |
-| `tests/unit/sensor/test_st_silan_accel_sensors.c` | `unity` | 0 | LIS2DH12/LIS2DW12/SC7A20/Silan SC7A20 accel init/read/config failure contracts |
+| `tests/unit/sensor/test_st_silan_accel_sensors.c` | `unity` | 0 | LIS2DH12/LIS2DW12 legacy accel init/read/config failure contracts |
+| `tests/unit/sensor/test_cmm905_device.c` | `unity` | 0 | CMM905 canonical Device: identity/init/read (6 single-byte registers)/deinit, raw readings, failure preservation and fail-closed contracts |
+| `tests/unit/sensor/test_sc7a20_device.c` | `unity` | 0 | SC7A20 canonical Device: identity/WHO_AM_I, 12-bit left-aligned decode, mg conversion with range scaling, range/ODR configuration, failure preservation and fail-closed contracts |
 | `tests/unit/sensor/test_lsm6_imu_sensors.c` | `unity` | 0 | LSM6DSL/LSM6DSO/LSM6DSR legacy IMU I2C/SPI config/read/failure contracts |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
 | `tests/unit/sensor/test_i2c2_sensor_devices.c` | `unity` | 0 | AHT30/L3G4200D/BME680/SC7A22H Device initialization and sample contracts |

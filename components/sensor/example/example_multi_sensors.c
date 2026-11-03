@@ -1,6 +1,5 @@
 #include "sensor_core.h"
 #include "sensor_mpu6050.h"
-#include "sensor_sc7a20.h"
 #include "sensor_aht20.h"
 #include "sensor_bmp280.h"
 #include "sensor_ap3216c.h"

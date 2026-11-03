@@ -1464,15 +1464,6 @@ target_include_directories(test_aht20_legacy_sensor BEFORE PRIVATE
 )
 
 
-xy_add_unit_test(test_proximity_sensors sensor_proximity_sensors UNITY
-    ${UNIT_SENSOR}/test_proximity_sensors.c
-    ${SENSOR}/sensors/sensor_vcnl4040.c
-)
-target_include_directories(test_proximity_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
 xy_add_unit_test(test_vcnl4040_device sensor_vcnl4040_device UNITY
     ${UNIT_SENSOR}/test_vcnl4040_device.c
     ${DRV}/sensor/proximity/vcnl4040/xy_vcnl4040.c
@@ -1506,17 +1497,6 @@ xy_add_unit_test(test_ap3216c_device sensor_ap3216c_device UNITY
 )
 target_include_directories(test_ap3216c_device BEFORE PRIVATE
     ${DRV}/sensor/light/ap3216c
-)
-
-xy_add_unit_test(test_env_i2c_sensors sensor_env_i2c_sensors UNITY
-    ${UNIT_SENSOR}/test_env_i2c_sensors.c
-    ${SENSOR}/sensors/sensor_aht10.c
-    ${DRV}/sensor/temperature/aht10/xy_aht10.c
-)
-target_include_directories(test_env_i2c_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/temperature/aht10
 )
 
 xy_add_unit_test(test_bmp280_sensor sensor_bmp280 UNITY
@@ -1557,8 +1537,6 @@ xy_add_unit_test(test_st_silan_accel_sensors sensor_st_silan_accel_sensors UNITY
     ${UNIT_SENSOR}/test_st_silan_accel_sensors.c
     ${SENSOR}/sensors/sensor_lis2dh12.c
     ${SENSOR}/sensors/sensor_lis2dw12.c
-    ${SENSOR}/sensors/sensor_sc7a20.c
-    ${SENSOR}/sensors/sensor_silan_sc7a20.c
 )
 target_include_directories(test_st_silan_accel_sensors BEFORE PRIVATE
     ${SENSOR}
@@ -1576,15 +1554,6 @@ target_include_directories(test_lsm6_imu_sensors BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
-
-xy_add_unit_test(test_lsm9ds1 sensor_lsm9ds1 UNITY
-    ${UNIT_SENSOR}/test_lsm9ds1.c
-    ${SENSOR}/sensors/sensor_lsm9ds1.c
-)
-target_include_directories(test_lsm9ds1 BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
 
 xy_add_unit_test(test_gps sensor_gps UNITY
     ${UNIT_SENSOR}/test_gps.c
@@ -1783,7 +1752,6 @@ xy_add_unit_test(test_magnetic_i2c_sensors sensor_magnetic_i2c_sensors UNITY
     ${SENSOR}/sensors/sensor_qmc5883l.c
     ${SENSOR}/sensors/sensor_ist8310.c
     ${SENSOR}/sensors/sensor_ak09918.c
-    ${SENSOR}/sensors/sensor_cmm905.c
 )
 target_include_directories(test_magnetic_i2c_sensors BEFORE PRIVATE
     ${SENSOR}
@@ -1796,6 +1764,22 @@ xy_add_unit_test(test_qmc5883l_device sensor_qmc5883l_device UNITY
 )
 target_include_directories(test_qmc5883l_device BEFORE PRIVATE
     ${DRV}/sensor/magnetic/qmc5883l
+)
+
+xy_add_unit_test(test_cmm905_device sensor_cmm905_device UNITY
+    ${UNIT_SENSOR}/test_cmm905_device.c
+    ${DRV}/sensor/magnetic/cmm905/xy_cmm905.c
+)
+target_include_directories(test_cmm905_device BEFORE PRIVATE
+    ${DRV}/sensor/magnetic/cmm905
+)
+
+xy_add_unit_test(test_sc7a20_device sensor_sc7a20_device UNITY
+    ${UNIT_SENSOR}/test_sc7a20_device.c
+    ${DRV}/sensor/motion/sc7a20/xy_sc7a20.c
+)
+target_include_directories(test_sc7a20_device BEFORE PRIVATE
+    ${DRV}/sensor/motion/sc7a20
 )
 
 xy_add_unit_test(test_ist8310_device sensor_ist8310_device UNITY
