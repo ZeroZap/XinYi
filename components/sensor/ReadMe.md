@@ -43,25 +43,22 @@
 
 3. 基础使用
 #include "sensor_core.h"
-#include "sensor_mpu6050.h"
+#include "sensor_adt7420.h"
 
 int main(void)
 {
     /* 创建传感器 */
-    sensor_device_t *accel = mpu6050_create_accel("accel0", i2c_bus);
+    sensor_device_t *temp = adt7420_create("temp0", i2c_bus);
 
     /* 注册并初始化 */
-    sensor_register(accel);
-    sensor_init(accel);
+    sensor_register(temp);
+    sensor_init(temp);
 
     /* 读取数据 */
     sensor_data_t data;
-    sensor_read(accel, &data);
+    sensor_read(temp, &data);
 
-    printf("Accel: X=%d, Y=%d, Z=%d mg\n",
-           data.value.val_3axis.x,
-           data.value.val_3axis.y,
-           data.value.val_3axis.z);
+    printf("Temp: %d centi-C\n", data.value.val_int32);
 
     return 0;
 }
@@ -95,7 +92,7 @@ sensor_framework/
 ├── sensor_fusion.c         # 传感器融合
 ├── sensor_self_test.c      # 自测试
 ├── sensor_mem_pool.c       # 静态内存池
-├── sensors/                # 各传感器驱动（sensor_mpu6050.c 等）
+├── sensors/                # 各传感器驱动（sensor_icm20608.c 等）
 └── ReadMe.md               # 本文档
 
 内存占用

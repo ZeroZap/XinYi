@@ -14,8 +14,8 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 426 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 426`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 421 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 421`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -116,6 +116,12 @@
   `sensor_vl53l0x_sensor`): the two legacy duplicate owners were retired because their canonical
   Device owners (`xy_ccs811.c` / `xy_vl53l0x.c`) already carry the HW_ID/MODEL_ID identity read,
   start/measure write, settle delay, data-ready gate and result decode in their focused Device tests.
+  The sensor-migration Slice B batches 3–5, the GPS migration, and the Slice C analog-driver ports
+  are folded into the re-measured total above (426 → 421, net −5): each legacy delegating-shell or
+  duplicate-owner CTest target was retired because its canonical Device-owner focused test already
+  carries the full protocol contract. Batch 5 removed `sensor_mpu6050_legacy` and
+  `sensor_aht20_legacy` (the two MPU6050/AHT20 `sensor_device_t` compatibility wrappers, whose
+  identity/config/decode/output-preservation contracts live in `test_mpu6050.c` / `test_aht20.c`).
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which

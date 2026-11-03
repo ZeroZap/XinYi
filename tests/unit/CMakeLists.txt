@@ -1440,30 +1440,6 @@ target_include_directories(test_max44009_device BEFORE PRIVATE
     ${DRV}/sensor/light/max44009
 )
 
-xy_add_unit_test(test_mpu6050_legacy_sensor sensor_mpu6050_legacy UNITY
-    ${UNIT_SENSOR}/test_mpu6050_legacy_sensor.c
-    ${SENSOR}/sensors/sensor_mpu6050.c
-    ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
-)
-target_include_directories(test_mpu6050_legacy_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/motion/mpu6050
-)
-
-xy_add_unit_test(test_aht20_legacy_sensor sensor_aht20_legacy UNITY
-    ${UNIT_SENSOR}/test_aht20_legacy_sensor.c
-    ${SENSOR}/sensors/sensor_aht20.c
-    ${DRV}/sensor/temperature/aht20/xy_aht20.c
-)
-target_include_directories(test_aht20_legacy_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/temperature/aht20
-    ${DEVICE}/inc
-)
-
-
 xy_add_unit_test(test_vcnl4040_device sensor_vcnl4040_device UNITY
     ${UNIT_SENSOR}/test_vcnl4040_device.c
     ${DRV}/sensor/proximity/vcnl4040/xy_vcnl4040.c

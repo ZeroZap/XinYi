@@ -29,7 +29,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 14 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 15 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 13 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 13 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 5 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 61 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
@@ -248,18 +248,18 @@ claim is added.
 
 ### MPU6050 migration status
 
-The Device-model source is the single canonical implementation and is explicitly linked into the
-root `sensor_component`. Root-linked `sensor_mpu6050.c` is now a compatibility-only
-`sensor_device_t` wrapper: its accel/gyro factories preserve legacy metadata and units while
-init/read/deinit delegate to the typed Device owner with explicit error mapping and output
-preservation. The Device owner absorbs the richer range, calibration, converted-output and I/O
-failure contracts from the former test-local implementation while preserving the existing
-default-address initializer for Device consumers. The duplicate
-`components/sensor/src/xy_mpu6050.c` implementation/header and the unreferenced
-`components/sensor/drivers/motion/xy_sensor_mpu6050.c` fourth lifecycle have been removed. Focused
-wrapper and Device tests plus root builds prove one implementation owner with one compatibility
-boundary. This is Host/compile ownership evidence only; IMU accuracy, calibration quality, timing
-and board recovery remain pending.
+The Device-model source under `components/drivers/sensor/motion/mpu6050` is the single
+implementation owner. The legacy `sensor_mpu6050.c` compatibility-only `sensor_device_t` wrapper
+is retired: its accel/gyro factories delegated init/read/deinit to the typed Device owner and
+preserved legacy metadata, units, error mapping, and caller output at the wrapper boundary, while
+the canonical owner's focused Device test (`test_mpu6050.c`) already asserts the full protocol
+contract — WHO_AM_I `0x68` identity, the PWR_MGMT_1/SMPLRT_DIV/CONFIG/ACCEL_CONFIG/GYRO_CONFIG
+init writes, raw accel/gyro to g conversion, failure output preservation, NULL guards, and
+range/deinit write-failure state preservation. The duplicate `components/sensor/src/xy_mpu6050.c`
+implementation/header and the unreferenced `components/sensor/drivers/motion/xy_sensor_mpu6050.c`
+fourth lifecycle were removed earlier. Focused Device tests plus root builds prove one
+implementation owner. This is Host/compile ownership evidence only; IMU accuracy, calibration
+quality, timing and board recovery remain pending.
 
 ### BMP280 migration status
 
@@ -284,12 +284,14 @@ timing, recovery and board status remain pending.
 ### AHT20 migration status
 
 The former experimental typed implementation is now the canonical Device-model owner under
-`components/drivers/sensor/temperature/aht20`. The root-linked `sensor_aht20.c` temperature and
-humidity factories are compatibility-only wrappers: lifecycle and sampling delegate to the typed
+`components/drivers/sensor/temperature/aht20`. The legacy root-linked `sensor_aht20.c`
+temperature and humidity factories are retired: lifecycle and sampling delegated to the typed
 owner while preserving legacy metadata, units, error mapping, and caller output on failure. The
-experimental source/header pair was moved rather than copied, and both focused targets now compile
-the canonical source. Host/source ownership only; no AHT20 board, accuracy, timing, or recovery
-status is upgraded.
+experimental source/header pair was moved rather than copied, and the canonical owner's focused
+Device test (`test_aht20.c`: init/trigger commands, `0x80000` → 5000 centi-%RH / 5000 centi-C
+and `0x40000` → 2500 centi-%RH conversions, busy-timeout behavior, and failure output
+preservation) already asserts the full protocol contract. Host/source ownership only; no AHT20
+board, accuracy, timing, or recovery status is upgraded.
 
 All AHT20 public bus operations now require the outer lifecycle plus nested `base.initialized` and
 `i2c_handle`; successful deinit clears the nested handle, so stale transport state fails closed.
@@ -680,11 +682,11 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 60 canonical names have exactly fifteen approved legacy filename overlaps:
-`mpu6050`, `aht20`, `icm20608`, `max44009`, `qmc5883l`, `ak09918`, `ist8310`,
+The current 61 canonical names have exactly thirteen approved legacy filename overlaps:
+`icm20608`, `max44009`, `qmc5883l`, `ak09918`, `ist8310`,
 `bma400`, `kx023`, `adxl362`, `lsm6dso`, `lsm6dsl`, `lsm6dsr`, `lis2dh12`, and `lis2dw12`. Each
 overlap is a compatibility wrapper documented above, not an implementation owner. The other
-forty-five canonical owners have no legacy-root counterpart. No canonical name overlaps
+forty-eight canonical owners have no legacy-root counterpart. No canonical name overlaps
 the 5 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was

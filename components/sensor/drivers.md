@@ -68,7 +68,7 @@
 
 | 型号 | 类型 | 接口 | 特性 | 文件 |
 |------|------|------|------|------|
-| MPU6050 | 6轴IMU | I2C | FIFO, 中断 | sensor_mpu6050.c |
+| MPU6050 | 6轴IMU | I2C | FIFO, 中断 | drivers/sensor/motion/mpu6050/xy_mpu6050.c |
 | SC7A20 | 3轴加速度计 | I2C | 低功耗 | sensor_sc7a20.c |
 | ICM20608 | 6轴IMU | I2C/SPI | FIFO, 高精度 | sensor_icm20608.c |
 | BMG160 | 陀螺仪 | I2C/SPI | 16位 | - |
@@ -85,7 +85,7 @@
 
 | 型号 | 类型 | 接口 | 精度 | 文件 |
 |------|------|------|------|------|
-| AHT20 | 温湿度 | I2C | ±0.3°C/±2%RH | sensor_aht20.c |
+| AHT20 | 温湿度 | I2C | ±0.3°C/±2%RH | drivers/sensor/temperature/aht20/xy_aht20.c |
 | ADT7420 | 高精度温度 | I2C | ±0.25°C | sensor_adt7420.c |
 | SHT3X | 温湿度 | I2C | ±0.2°C/±2%RH | - |
 | BME280 | 温湿压 | I2C/SPI | ±1°C/±3%RH | sensor_bme280.c |
