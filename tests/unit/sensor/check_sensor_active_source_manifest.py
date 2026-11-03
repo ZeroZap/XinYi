@@ -18,6 +18,8 @@ DRIVERS_CMAKE = ROOT / "components" / "drivers" / "CMakeLists.txt"
 UNIT_CMAKE = ROOT / "tests" / "unit" / "CMakeLists.txt"
 STALE_TOP_LEVEL_APDS9960_SOURCE = ROOT / "components" / "sensor" / "sensor_apds9960.c"
 STALE_TOP_LEVEL_APDS9960_HEADER = ROOT / "components" / "sensor" / "sensor_apds9960.h"
+STALE_ADT7420_SOURCE = ROOT / "components" / "sensor" / "sensor_adt7420.c"
+STALE_ADT7420_HEADER = ROOT / "components" / "sensor" / "sensor_adt7420.h"
 STALE_BMP280 = ROOT / "components" / "sensor" / "drivers" / "pressure" / "xy_sensor_bmp280.c"
 STALE_BH1750 = ROOT / "components" / "sensor" / "drivers" / "light" / "xy_sensor_bh1750.c"
 STALE_MPU6050 = ROOT / "components" / "sensor" / "drivers" / "motion" / "xy_sensor_mpu6050.c"
@@ -153,11 +155,12 @@ def main() -> int:
     top_level_names = {path.stem.removeprefix("sensor_") for path in top_level_owners}
 
     require(len(legacy) == 0, f"expected 0 legacy active sources, found {len(legacy)}", errors)
-    require([path.name for path in top_level_owners] == ["sensor_adt7420.c"],
-            "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
+    require([path.name for path in top_level_owners] == [],
+            "top-level Sensor implementation inventory must be empty (adt7420 migrated "
+            "to the canonical Device owner)", errors)
     require(len(experimental) == 5,
             f"expected 5 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 61, f"expected 61 Device-model sources, found {len(device)}", errors)
+    require(len(device) == 62, f"expected 62 Device-model sources, found {len(device)}", errors)
     false_owners = false_owner_candidates(legacy)
     require(not false_owners,
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
@@ -191,6 +194,7 @@ def main() -> int:
         "INA219",
         "BMP390",
         "AHT10",
+        "ADT7420",
         "AP3216C",
         "ICM20608",
         "QMA6100P",
@@ -359,6 +363,9 @@ def main() -> int:
     require(not STALE_TOP_LEVEL_APDS9960_SOURCE.exists() and
             not STALE_TOP_LEVEL_APDS9960_HEADER.exists(),
             "retired duplicate top-level APDS9960 owner must not reappear", errors)
+    require(not STALE_ADT7420_SOURCE.exists() and not STALE_ADT7420_HEADER.exists(),
+            "retired top-level ADT7420 owner must not reappear (canonical Device owner is "
+            "components/drivers/sensor/temperature/adt7420)", errors)
     require("components/drivers/sensor/pressure/bmp280" in smart_hygrometer_cmake,
             "smart_hygrometer must include the canonical BMP280 owner", errors)
     require("components/drivers/sensor/pressure/bmp280/xy_bmp280.c" in smart_hygrometer_cmake,
@@ -375,7 +382,7 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=0 legacy_subdir=0 "
-          "legacy_top_level=1 experimental_test_only=5 device_active=61 "
+          "legacy_top_level=0 experimental_test_only=5 device_active=62 "
           "approved_wrappers=0 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0

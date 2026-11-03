@@ -86,7 +86,7 @@
 | 型号 | 类型 | 接口 | 精度 | 文件 |
 |------|------|------|------|------|
 | AHT20 | 温湿度 | I2C | ±0.3°C/±2%RH | drivers/sensor/temperature/aht20/xy_aht20.c |
-| ADT7420 | 高精度温度 | I2C | ±0.25°C | sensor_adt7420.c |
+| ADT7420 | 高精度温度 | I2C | ±0.25°C | drivers/sensor/temperature/adt7420/xy_adt7420.c |
 | SHT3X | 温湿度 | I2C | ±0.2°C/±2%RH | - |
 | BME280 | 温湿压 | I2C/SPI | ±1°C/±3%RH | sensor_bme280.c |
 | TMP108 | 温度 | I2C | ±0.5°C | - |

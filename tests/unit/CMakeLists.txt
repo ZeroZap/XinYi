@@ -1651,6 +1651,14 @@ target_include_directories(test_ak09918_device BEFORE PRIVATE
     ${DRV}/sensor/magnetic/ak09918
 )
 
+xy_add_unit_test(test_adt7420_device sensor_adt7420_device UNITY
+    ${UNIT_SENSOR}/test_adt7420_device.c
+    ${DRV}/sensor/temperature/adt7420/xy_adt7420.c
+)
+target_include_directories(test_adt7420_device BEFORE PRIVATE
+    ${DRV}/sensor/temperature/adt7420
+)
+
 xy_add_unit_test(test_adc_power_monitors sensor_adc_power_monitors UNITY
     ${UNIT_SENSOR}/test_adc_power_monitors.c
     ${DRV}/sensor/adc/ltc2945/xy_ltc2945.c

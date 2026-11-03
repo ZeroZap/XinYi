@@ -24,7 +24,6 @@ set(SENSOR_SOURCES
     sensor_self_test.c
     sensor_threshold.c
     sensor_mem_pool.c
-    sensor_adt7420.c
 )
 
 # Add driver sources from sensors/ directory. Every legacy compatibility owner

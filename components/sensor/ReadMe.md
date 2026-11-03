@@ -43,22 +43,22 @@
 
 3. 基础使用
 #include "sensor_core.h"
-#include "sensor_adt7420.h"
+#include "xy_adt7420.h"   /* canonical Device driver */
 
 int main(void)
 {
     /* 创建传感器 */
-    sensor_device_t *temp = adt7420_create("temp0", i2c_bus);
+    xy_adt7420_t temp;
+    xy_adt7420_data_t data;
 
-    /* 注册并初始化 */
-    sensor_register(temp);
-    sensor_init(temp);
+    if (xy_adt7420_init(&temp, i2c_handle, XY_ADT7420_ADDR_DEFAULT) != XY_DEVICE_OK) {
+        return -1;
+    }
+    if (xy_adt7420_read(&temp, &data) != XY_DEVICE_OK) {
+        return -1;
+    }
 
-    /* 读取数据 */
-    sensor_data_t data;
-    sensor_read(temp, &data);
-
-    printf("Temp: %d centi-C\n", data.value.val_int32);
+    printf("Temp: %d centi-C\n", data.temperature_centi_c);
 
     return 0;
 }

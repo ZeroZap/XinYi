@@ -10,11 +10,10 @@
 
 ## Policy
 
-- `legacy-active-root`: the `components/sensor/sensors/sensor_*.c` glob plus the explicitly
-  inventoried top-level `sensor_adt7420.c` are the remaining `sensor_component` compatibility
-  source set. New chips must not be added to this lifecycle; every former `sensors/` compatibility
-  owner has now been migrated to the Device model, leaving only the top-level `sensor_adt7420.c`
-  as the last legacy owner.
+- `legacy-active-root`: the `components/sensor/sensors/sensor_*.c` glob is now empty and the
+  explicitly inventoried top-level owners have all been retired; no `sensor_component`
+  compatibility driver source remains. New chips must not be added to this lifecycle; every
+  former `sensors/` and top-level compatibility owner has now been migrated to the Device model.
 - `experimental-test-only`: `components/sensor/src/xy_*.c` is compiled directly by focused
   Host tests where wired, but is not linked into the root `sensor_component`. **Host 测试不等于根产品链接**.
 - `device-active-root`: `components/drivers/sensor/**/xy_*.c` is collected by the root
@@ -29,9 +28,9 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 0 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 1 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 0 `sensors/sensor_*.c` files and lists 0 top-level owners | 0 | retired; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 5 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 61 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 62 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
 2026-09-27 追加 Host contract：legacy `sensor_device_t` compatibility wrapper 公开 guarded range setter，只有 canonical Device owner 寄存器写成功后才原子更新 `range_min/range_max`，并复用 owner 的 range-aware mg scaling；非法编码或 transport failure 保持 wrapper metadata 与 owner cache。该补充不升级动态响应、精度、校准、恢复或 endurance 证据。
 
@@ -52,6 +51,7 @@ The Device-model root set is currently exactly:
 - INA219: `components/drivers/sensor/adc/ina219/xy_ina219.c`
 - BMP390: `components/drivers/sensor/pressure/bmp390/xy_bmp390.c`
 - AHT10: `components/drivers/sensor/temperature/aht10/xy_aht10.c`
+- ADT7420: `components/drivers/sensor/temperature/adt7420/xy_adt7420.c`
 - AP3216C: `components/drivers/sensor/light/ap3216c/xy_ap3216c.c`
 - ICM20608: `components/drivers/sensor/motion/icm20608/xy_icm20608.c`
 - QMA6100P: `components/drivers/sensor/motion/qma6100p/xy_qma6100p.c`
@@ -161,6 +161,20 @@ handle state, including initialization before outer lifecycle publication. Inval
 closed without bus access or state mutation, and successful teardown clears the nested handle. This
 ownership and lifecycle correction does not establish optical calibration, gesture classification,
 timing, recovery, or hardware evidence.
+
+### ADT7420 migration status
+
+The last top-level legacy owner `components/sensor/sensor_adt7420.c` is retired. It was the only
+remaining `sensor_device_t` factory with no canonical Device-model counterpart: `init` read the
+ID register without validating its value and wrote the 16-bit-resolution config byte, while `read`
+decoded the two-byte MSB/LSB word as `raw / 128` centi-C. The canonical owner is now
+`components/drivers/sensor/temperature/adt7420`: it verifies the `0xCB` manufacturer ID at the
+documented 7-bit addresses `0x48`-`0x4B` (default `0x48`), configures 16-bit resolution, and stages
+the same `raw * 100 / 128` centi-C conversion behind the nested I2C lifecycle. The focused Device
+test `test_adt7420_device.c` asserts identity/reset-config init, default and alternate addresses,
+identity-mismatch and transport/config failure propagation, atomic read/cache publication, and
+failed re-init owner preservation. Temperature accuracy, timing and hardware recovery remain
+`hardware-pending`.
 
 ### Pandora I2C2 hardware status
 
@@ -759,12 +773,12 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 61 canonical names have no approved legacy filename overlap: the ten former overlaps
+The current 62 canonical names have no approved legacy filename overlap: the eleven former overlaps
 (`icm20608`, `max44009`, `bma400`, `kx023`, `adxl362`, `lsm6dso`, `lsm6dsl`, `lsm6dsr`, `lis2dh12`,
-and `lis2dw12`) were each either a compatibility wrapper documented above or an independent duplicate
-implementation, and all ten have now been retired in favor of their canonical Device owners. The
-remaining sixty-one canonical owners have no legacy-root counterpart. No canonical name overlaps
-the 5 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
+`lis2dw12`, and `adt7420`) were each either a compatibility wrapper documented above or an independent
+duplicate implementation, and all eleven have now been retired in favor of their canonical Device
+owners. The remaining sixty-two canonical owners have no legacy-root counterpart. No canonical name
+overlaps the 5 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was
 removed. It has now been promoted to the canonical Device root as documented above; the stale

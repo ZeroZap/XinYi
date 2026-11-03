@@ -15,8 +15,8 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 416 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 416`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 417 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 417`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -134,6 +134,11 @@
   the canonical `test_max44009_device.c` / `test_adxl362_device.c` / `test_bma400_device.c` /
   `test_kx023_device.c` / `test_lis2dh12_device.c` / `test_lis2dw12_device.c` /
   `test_lsm6dsl_device.c` / `test_lsm6dso_device.c` / `test_lsm6dsr_device.c`.
+  The sensor-migration ADT7420 slice took 416 → 417 (`sensor_adt7420_device`): the last top-level
+  legacy owner `sensor_adt7420.c` (a `sensor_device_t` factory with no canonical counterpart) was
+  migrated to the canonical Device owner `xy_adt7420.c`, whose focused test asserts `0xCB` identity
+  read, default/alternate addresses, 16-bit-resolution config, `raw*100/128` centi-C decode, and
+  output/cache preservation on failure.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
