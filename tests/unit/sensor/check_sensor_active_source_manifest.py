@@ -44,6 +44,8 @@ STALE_DMP6100_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_dmp6
 STALE_CMS_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_cms.c"
 STALE_HS_ADS1100_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_hs_ads1100.c"
 STALE_QMA6100_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_qma6100.c"
+STALE_QMA6100P_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_qma6100p.c"
+STALE_APDS9960_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_apds9960.c"
 STALE_BMP390_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_bmp390.c"
 STALE_INA219_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_ina219.c"
 STALE_GD30DF_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_gd30df.c"
@@ -130,7 +132,7 @@ def main() -> int:
     prototype_names = {path.stem.removeprefix("xy_sensor_") for path in prototype}
     top_level_names = {path.stem.removeprefix("sensor_") for path in top_level_owners}
 
-    require(len(legacy) == 33, f"expected 33 legacy active sources, found {len(legacy)}", errors)
+    require(len(legacy) == 31, f"expected 31 legacy active sources, found {len(legacy)}", errors)
     require([path.name for path in top_level_owners] == ["sensor_adt7420.c"],
             "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
     require(len(experimental) == 5,
@@ -141,7 +143,7 @@ def main() -> int:
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
     require(canonical_names & legacy_names ==
             {"mpu6050", "bmp280", "aht20", "aht10", "ap3216c",
-             "icm20608", "qma6100p", "max44009", "vcnl4040", "qmc5883l", "ak09918", "ist8310", "bma400", "kx023", "adxl362", "lsm6dso", "lsm6dsl", "lsm6dsr", "lsm9ds1", "lis2dh12", "apds9960", "lis2dw12"},
+             "icm20608", "max44009", "vcnl4040", "qmc5883l", "ak09918", "ist8310", "bma400", "kx023", "adxl362", "lsm6dso", "lsm6dsl", "lsm6dsr", "lsm9ds1", "lis2dh12", "lis2dw12"},
             "canonical/legacy overlap must contain only approved compatibility wrappers", errors)
     require(not (canonical_names & experimental_names),
             "canonical Device owners must not reappear in experimental src/xy_*", errors)
@@ -272,6 +274,10 @@ def main() -> int:
             "retired template-clone CMS/HS-ADS1100 lifecycles must not reappear", errors)
     require(not STALE_QMA6100_LEGACY.exists(),
             "retired invalid sensor_qma6100 lifecycle must not reappear", errors)
+    require(not STALE_QMA6100P_LEGACY.exists(),
+            "retired sensor_qma6100p wrapper must not reappear", errors)
+    require(not STALE_APDS9960_LEGACY.exists(),
+            "retired sensor_apds9960 duplicate lifecycle must not reappear", errors)
     require(not STALE_BMP390_LEGACY.exists(),
             "retired uncompensated sensor_bmp390 lifecycle must not reappear", errors)
     require(not STALE_INA219_LEGACY.exists(),
@@ -310,9 +316,9 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("sensor_active_source_manifest_ok legacy_active=33 legacy_subdir=32 "
+    print("sensor_active_source_manifest_ok legacy_active=31 legacy_subdir=30 "
           "legacy_top_level=1 experimental_test_only=5 device_active=51 "
-          "approved_wrappers=22 overlap_duplicates=0 false_owners=0 "
+          "approved_wrappers=20 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0
 

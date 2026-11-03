@@ -358,7 +358,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_as5048b_device.c` | `unity` | 0 | AS5048B canonical Device lifecycle, angle decoding, transport guards and failed re-init atomicity |
 | `tests/unit/sensor/test_light_uv_sensors.c` | `unity` | 0 | MAX44009/GUVA-S12SD legacy light/UV read/failure/boundary contracts |
 | `tests/unit/sensor/test_mq_gas_sensors.c` | `unity` | 0 | MQ3/MQ7/MQ135 ADC gas conversion and guard contracts |
-| `tests/unit/sensor/test_apds9960_sensor.c` | `unity` | 0 | APDS9960 RGB init/read/failure guard contracts |
+| `tests/unit/sensor/test_apds9960_device.c` | `unity` | 0 | APDS9960 canonical Device identity (`0xAB`/`0x9C`), enable/disable profile, RGB decode, gesture-FIFO level/payload ordering and failure-preservation contracts |
 | `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_ap3216c_sensor.c` | `unity` | 0 | AP3216C light/proximity/IR init/read/failure guard contracts |
 | `tests/unit/sensor/test_vl53l0x_device.c` | `unity` | 0 | VL53L0X canonical Device identity/read/lifecycle/failure contracts |

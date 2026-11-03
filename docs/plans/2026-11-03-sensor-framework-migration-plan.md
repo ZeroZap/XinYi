@@ -47,6 +47,7 @@
 - **Slice B（进行中）**：删其余 26 个重复，分批（按 test 覆盖逐一核对）。
   - 批 1（2026-11-03）：删 `sht30`、`bh1750` 两个重复（canonical `xy_sht30.c` / `xy_bh1750.c` 的 focused Device 测试已覆盖 reset/measure 命令、CRC8、双地址、raw→lux 换算、输出保持与生命周期委托；旧 wrapper 仅是 `sensor_device_t` 兼容壳）。剩余 24 个。
   - 批 2（2026-11-03）：删 `ccs811`、`vl53l0x` 两个重复（canonical `xy_ccs811.c` / `xy_vl53l0x.c` 的 focused Device 测试已覆盖 HW_ID/MODEL_ID 身份读、APP_START/SYSRANGE_START 启动写、100/50 ms settle、STATUS data-ready 门、ALG_RESULT/RANGE_STATUS 解码与输出保持；旧 wrapper 是独立重复实现，非委托壳，但协议逐条等价）。剩余 22 个。
+  - 批 3（2026-11-03）：删 `qma6100p`、`apds9960` 两个重复（`sensor_qma6100p.c` 是纯委托壳，`sensor_apds9960.c` 是 `hal_i2c_mem_read/write` 上的独立重复实现）。删除前先把**只存在于旧测试**的契约补进 canonical focused 测试：`test_qma6100p.c` 补非法地址拒绝、嵌套 transport 丢失后全部公开操作零总线拒绝且 owner 保留、active-low 中断 profile 双 data-ready 引脚映射；`test_apds9960_device.c` 补两个合法 ID、未知 ID 拒绝且不写 enable、enable/disable 寄存器档位、四通道 RGB 解码、gesture FIFO 先读 level 再读 payload、超 32 上限拒绝、level 读失败传播、NULL 参数零总线拒绝。两次变异证明断言真能红（FIFO 上限 32→128、QMA 地址校验移除），按 sha256 字节还原。剩余 20 个。
 - **Slice C**：搬 7 个模拟量独有驱动（acs712 起，建立"模拟量驱动"canonical 模板）。
 - **Slice D**：搬 gps（UART/NMEA）、sc7a20（加速度）、cmm905。
 - **Slice E**：删旧框架层，收尾 `check_legacy_sensor_includes` 与碰撞 pin 全清。

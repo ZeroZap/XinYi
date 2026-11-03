@@ -29,9 +29,9 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 33 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 34 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 6 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 47 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 31 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 32 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 5 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 51 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
 2026-09-27 追加 Host contract：legacy `sensor_device_t` compatibility wrapper 公开 guarded range setter，只有 canonical Device owner 寄存器写成功后才原子更新 `range_min/range_max`，并复用 owner 的 range-aware mg scaling；非法编码或 transport failure 保持 wrapper metadata 与 owner cache。该补充不升级动态响应、精度、校准、恢复或 endurance 证据。
 
@@ -546,12 +546,42 @@ accuracy, low-power behavior, timing and hardware endurance remain `hardware-pen
 
 ### APDS9960 migration status
 
-The legacy APDS9960 API is now backed by the canonical Device owner at
+The legacy APDS9960 API is backed by the canonical Device owner at
 `components/drivers/sensor/proximity/apds9960`. The owner verifies the documented ID values
 `0xAB`/`0x9C` at 7-bit address `0x39`, enables the requested sensor functions, stages RGBC and
 proximity samples, and bounds gesture FIFO reads to the documented 32-entry limit behind the nested
 I2C lifecycle. Optical response, gesture classification, timing and hardware endurance remain
 `hardware-pending`.
+
+The legacy `sensor_apds9960.c` duplicate is retired. It was an independent implementation of the
+same protocol over `hal_i2c_mem_read/write`, not a delegation shell: it duplicated the ID check
+(`0xAB`/`0x9C`), the `0x4F` PON/AEN/PEN/GEN enable write, the `0x00` disable write on teardown, the
+8-byte CDATAL RGB decode, the single-byte PDATA proximity read, and the GSTATUS/GFLVL/GFIFO
+gesture-FIFO sequence including the 32-entry bound. Every one of those contracts is now asserted by
+the canonical owner's focused Device test (`test_apds9960_device.c`): both accepted ID values,
+unknown-ID rejection with no enable write, the enable/disable register profile, all four RGB
+channels, gesture FIFO level-then-payload ordering, the above-bound level rejection, the FIFO-level
+read-failure propagation, and NULL-argument rejection without bus traffic. The legacy
+`apds9960_gesture_t` direction enum and its `last_gesture` placeholder were a simplified
+always-`NONE` stand-in for real gesture classification, so nothing the canonical owner expresses was
+lost by retiring them.
+
+### QMA6100P migration status
+
+The legacy QMA6100P API is backed by the canonical Device owner at
+`components/drivers/sensor/motion/qma6100p`. The owner verifies CHIP_ID `0x90` at 7-bit addresses
+`0x12`/`0x13`, applies the documented 2G/100 Hz range and bandwidth profile, converts the signed
+14-bit sample into mg, stages the interrupt map, and requires a live nested I2C transport for every
+public operation. Acceleration accuracy, range calibration, timing and hardware endurance remain
+`hardware-pending`.
+
+The legacy `sensor_qma6100p.c` wrapper is retired. It only delegated `init`/`deinit`/`read`/`enable`
+to the canonical owner and mapped the owner errors onto the legacy `sensor_err_t` codes; the
+name registry and the `sensor_data_t` conversion belong to the legacy framework being retired, not
+to the protocol. The wrapper-specific contracts it asserted are now covered by the canonical
+owner's focused Device test (`test_qma6100p.c`): rejection of an unsupported address, rejection of
+every public operation when the nested transport is lost with no bus traffic and the live owner
+preserved, and the active-low interrupt profile mapping both data-ready pins.
 
 ### CCS811 migration status
 

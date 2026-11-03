@@ -106,7 +106,7 @@
 | 型号 | 类型 | 接口 | 特性 | 文件 |
 |------|------|------|------|------|
 | AP3216C | ALS+PS+IR | I2C | 三合一 | sensor_ap3216c.c |
-| APDS9960 | RGB+Gesture | I2C | 手势识别 | sensor_apds9960.c |
+| APDS9960 | RGB+Gesture | I2C | 手势识别 | drivers/sensor/proximity/apds9960/xy_apds9960.c |
 | VCNL4040 | ALS+PS | I2C | 高灵敏度 | - |
 | ISL29035 | ALS | I2C | 低功耗 | - |
 | VEML6031 | ALS | I2C | 高精度 | - |
