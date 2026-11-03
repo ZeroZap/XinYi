@@ -500,6 +500,7 @@ include_directories(
     ${NET}/src                      # xy_mqtt_client.h
     ${NET}/at/atc/Modules/cellular/common # at_client.h
     ${NET}/at/ats                  # xy_ats.h
+    ${NET}/at                      # at_common.h (client/server shared vocabulary)
     ${NET}/xy_iso7816               # xy_iso7816.h
     ${NET}/smbus                    # xy_smbus.h / xy_pmbus.h
     ${CRYPTO}/xy_crc                # xy_crc.h
