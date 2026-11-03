@@ -29,7 +29,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 37 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 38 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 35 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 36 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 6 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 47 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
@@ -205,21 +205,15 @@ rather than merely add a new copy.
 
 ### SHT30 migration status
 
-The Device-model source is the single canonical implementation. The root-linked
-`sensor_sht30.c` is now a compatibility-only legacy lifecycle wrapper: it delegates init/read and
-CRC/error/output-preservation behavior to `components/drivers/sensor/temperature/sht30/xy_sht30.c`,
-and `sensor_component` explicitly links that owner. The canonical driver accepts both documented
-addresses through `xy_sht30_init_addr()`, while the existing two-argument initializer remains the
-0x44 compatibility API. The duplicate test-local `components/sensor/src/xy_sht30.c` implementation,
-header, and CTest were removed; tracked examples select the Device owner. Focused wrapper, Device,
-and integration tests plus the root `sensor_component` build prove one implementation owner with
-one compatibility boundary. No hardware status is upgraded.
-
-The unreferenced `components/sensor/drivers/temperature/xy_sensor_sht30.c` prototype has also been
-removed and is covered by the manifest guard, preventing a fourth SHT30 lifecycle from returning.
-The canonical owner requires both nested `base.initialized` and `i2c_handle` for deinit/read;
-successful deinit clears the complete device state. Existing temperature/humidity accuracy and
-long-run evidence remains bounded.
+The Device-model source under `components/drivers/sensor/temperature/sht30/xy_sht30.c` is the
+single implementation owner. The compatibility-only legacy `sensor_sht30.c` wrapper is retired:
+it delegated init/read and CRC/error/output-preservation behavior to the canonical owner, whose
+focused Device and integration tests already carry the full protocol contract (reset/measure
+commands, CRC8, dual address, output preservation). The canonical driver accepts both documented
+addresses through `xy_sht30_init_addr()`; the two-argument initializer remains the 0x44
+compatibility API. The unreferenced
+`components/sensor/drivers/temperature/xy_sensor_sht30.c` prototype was removed earlier and remains
+guarded by the manifest check. No hardware status is upgraded.
 
 ### ADS1115 migration status
 
@@ -244,16 +238,13 @@ caller/cache state. This adds no acceleration accuracy, power, timing, recovery,
 ### BH1750 migration status
 
 The Device-model source under `components/drivers/sensor/light/bh1750` is now the single active
-implementation owner. Root-linked `sensor_bh1750.c` is a compatibility-only `sensor_device_t`
-wrapper that delegates init/read/deinit to the typed Device owner and preserves the legacy lux
-conversion at the wrapper boundary. The unreferenced prototype
-`components/sensor/drivers/light/xy_sensor_bh1750.c` was removed, preventing a fourth BH1750
-protocol owner. All public operations now require both nested `base.initialized` and `i2c_handle`;
-a stale lifecycle bit cannot authorize bus access. Internal transport helpers independently enforce
-the same nested contract during initialization and measurement, initialization rejects invalid 7-bit
-addresses or incomplete helper state, and successful teardown clears the nested handle. Focused
-wrapper and Device tests plus root builds prove source/lifecycle ownership only; existing Pandora B1
-remains bounded and no B2 recovery claim is added.
+implementation owner. The compatibility-only legacy `sensor_bh1750.c` wrapper is retired: it
+delegated init/read/deinit to the typed Device owner and preserved the legacy lux conversion at
+the wrapper boundary, while the canonical owner's focused test carries the full protocol contract
+(power-on/reset/one-shot commands, delays, raw-to-lux conversion, output preservation). The
+unreferenced prototype `components/sensor/drivers/light/xy_sensor_bh1750.c` was removed earlier,
+preventing a fourth BH1750 protocol owner. Existing Pandora B1 remains bounded and no B2 recovery
+claim is added.
 
 ### MPU6050 migration status
 
@@ -617,8 +608,8 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 34 canonical names have exactly thirteen approved legacy filename overlaps:
-`sht30`, `mpu6050`, `bmp280`, `bh1750`, `aht20`, `aht10`, `ap3216c`, `icm20608`, `as5600`, `max44009`, `vcnl4040`, `qmc5883l`, and `ak09918`. Each overlap is a compatibility wrapper
+The current 34 canonical names have exactly eleven approved legacy filename overlaps:
+`mpu6050`, `bmp280`, `aht20`, `aht10`, `ap3216c`, `icm20608`, `as5600`, `max44009`, `vcnl4040`, `qmc5883l`, and `ak09918`. Each overlap is a compatibility wrapper
 documented above, not an implementation owner. The other twenty-one canonical owners (`ads1115`, `aht30`,
 `bme680`, `hmc5883l`, `l3g4200d`, `sc7a22`, `sht40`, `ina219`, `bmp390`, `hdc1080`, `tsl2561`, `ina226`, `mlx90614`, `vl53l1x`, `lps22hb`, `sgp40`, `ltc2945`, `bmi088`, `bmi270`, `bno055`, and `as5048b`) have no legacy-root counterpart. No canonical name overlaps
 the 6 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.

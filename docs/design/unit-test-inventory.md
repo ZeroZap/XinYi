@@ -4,18 +4,18 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 215 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
+- Total C files under `tests/unit`: 214 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
   the sensor-sample slice added `test_sensor_demo_backend_stub.c`, the
   `components/sensor/example/` slice added `test_sensor_example_bus_stub.c`, the AT URC slice
   added `test_at_urc_core.c`, the Modbus-Full slave slice added `test_modbus_full_slave.c`, and
   the Modbus-Full master slice added `test_modbus_full_master.c`)
-- Unity-style files: 209 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
+- Unity-style files: 208 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
   not runners)
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 431 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 431`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 428 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 428`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -107,6 +107,11 @@
   building the umbrella with `-DNANO_MB_USE_TINY=0` and linking `mb_full.c`, then driving the compat
   API (`nano_mb_slave_init`/`poll`, master read-holding/write-reg/write-multi-regs/read-coils) and
   asserting CRC/error-string parity with the Tiny branch through a true master↔slave loopback.
+  The sensor-migration Slice B batch took 431 → 428 (removed `sensor_sht30_legacy` and
+  `sensor_bh1750_legacy`; the re-measured total also folds in Slice A's earlier `test_angle_encoders`
+  removal, which had not been reflected in these counts): the two legacy compatibility wrappers were
+  retired because their canonical Device owners (`xy_sht30.c` / `xy_bh1750.c`) already carry the
+  full protocol contract in their focused tests.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -169,7 +174,7 @@
 | `net` | 17 | 17 | 0 | 0 | 0 | 5 |
 | `pid` | 3 | 2 | 0 | 0 | 1 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
-| `sensor` | 49 | 49 | 0 | 0 | 0 | 49 |
+| `sensor` | 47 | 47 | 0 | 0 | 0 | 47 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `support` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -323,8 +328,6 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_sht40.c` | `unity` | 0 |
 | `tests/unit/sensor/test_oled_ssd1306.c` | `unity` | 0 |
 | `tests/unit/sensor/test_bh1750.c` | `unity` | 0 |
-| `tests/unit/sensor/test_bh1750_legacy_sensor.c` | `unity` | 0 | BH1750 legacy light sensor init/read/failure contracts |
-| `tests/unit/sensor/test_sht30_legacy_sensor.c` | `unity` | 0 | SHT30 legacy compatibility wrapper delegates to canonical Device owner; dual-address/error/output-preservation contracts |
 | `tests/unit/sensor/test_hdc1080.c` | `unity` | 0 |
 | `tests/unit/sensor/test_tsl2561.c` | `unity` | 0 |
 | `tests/unit/sensor/test_sgp40.c` | `unity` | 0 |

@@ -1385,17 +1385,6 @@ target_include_directories(test_max44009_device BEFORE PRIVATE
     ${DRV}/sensor/light/max44009
 )
 
-xy_add_unit_test(test_bh1750_legacy_sensor sensor_bh1750_legacy UNITY
-    ${UNIT_SENSOR}/test_bh1750_legacy_sensor.c
-    ${SENSOR}/sensors/sensor_bh1750.c
-    ${DRV}/sensor/light/bh1750/xy_bh1750.c
-)
-target_include_directories(test_bh1750_legacy_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/light/bh1750
-)
-
 xy_add_unit_test(test_mpu6050_legacy_sensor sensor_mpu6050_legacy UNITY
     ${UNIT_SENSOR}/test_mpu6050_legacy_sensor.c
     ${SENSOR}/sensors/sensor_mpu6050.c
@@ -1417,17 +1406,6 @@ target_include_directories(test_aht20_legacy_sensor BEFORE PRIVATE
     ${SENSOR}/sensors
     ${DRV}/sensor/temperature/aht20
     ${DEVICE}/inc
-)
-
-xy_add_unit_test(test_sht30_legacy_sensor sensor_sht30_legacy UNITY
-    ${UNIT_SENSOR}/test_sht30_legacy_sensor.c
-    ${SENSOR}/sensors/sensor_sht30.c
-    ${DRV}/sensor/temperature/sht30/xy_sht30.c
-)
-target_include_directories(test_sht30_legacy_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/temperature/sht30
 )
 
 xy_add_unit_test(test_mq_gas_sensors sensor_mq_gas_sensors UNITY
