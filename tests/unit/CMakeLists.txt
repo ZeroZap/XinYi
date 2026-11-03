@@ -1362,14 +1362,14 @@ target_link_libraries(test_lps22hb PRIVATE m)
 
 xy_add_unit_test(test_power_monitors sensor_power_monitors UNITY
     ${UNIT_SENSOR}/test_power_monitors.c
-    ${SENSOR}/src/xy_max17043.c
+    ${DRV}/power/max17043/xy_max17043.c
     ${DRV}/sensor/adc/ina226/xy_ina226.c
     ${DRV}/sensor/adc/ina219/xy_ina219.c
 )
 target_include_directories(test_power_monitors PRIVATE
     ${DRV}/sensor/adc/ina226
     ${DRV}/sensor/adc/ina219
-    ${SENSOR}/inc
+    ${DRV}/power/max17043
     ${HAL}/inc
     ${KERNEL}/osal
 )
@@ -1669,7 +1669,7 @@ target_include_directories(test_adc_power_monitors BEFORE PRIVATE
     ${DRV}/sensor/adc/ltc2945
     ${DRV}/sensor/adc/ads1115
     ${DRV}/sensor/adc/ina219
-    ${SENSOR}/inc
+    ${DRV}/power/max17043
     ${HAL}/inc
     ${KERNEL}/osal
 )
@@ -1687,10 +1687,10 @@ target_include_directories(test_bmp390_device BEFORE PRIVATE
 
 xy_add_unit_test(test_coulomb sensor_coulomb UNITY
     ${UNIT_SENSOR}/test_coulomb.c
-    ${SENSOR}/src/xy_coulomb.c
+    ${DRV}/power/coulomb/xy_coulomb.c
 )
 target_include_directories(test_coulomb BEFORE PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/power/coulomb
     ${HAL}/inc
     ${KERNEL}/osal
 )
@@ -1792,10 +1792,11 @@ target_link_libraries(test_bno055 PRIVATE m)
 
 xy_add_unit_test(test_dmp sensor_dmp UNITY
     ${UNIT_SENSOR}/test_dmp.c
-    ${SENSOR}/src/xy_dmp.c
+    ${DRV}/sensor/motion/dmp/xy_dmp.c
 )
 target_include_directories(test_dmp BEFORE PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/sensor/motion/dmp
+    ${DRV}/sensor/motion/mpu6050
     ${HAL}/inc
     ${KERNEL}/osal/inc
 )

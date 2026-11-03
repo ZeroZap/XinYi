@@ -64,3 +64,7 @@ endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/sc7a20)
     add_subdirectory(sc7a20)
 endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/dmp)
+    add_subdirectory(dmp)
+endif()
