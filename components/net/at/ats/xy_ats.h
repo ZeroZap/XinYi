@@ -69,64 +69,11 @@ extern "C" {
 #define AT_VERSION_MINOR 0
 #define AT_VERSION_PATCH 0
 
-/* ==================== Response End Markers ==================== */
-
-/**
- * @brief OK response string
- */
-#ifndef AT_RESP_OK_STR
-#define AT_RESP_OK_STR "OK"
-#endif
-
-/**
- * @brief ERROR response string
- */
-#ifndef AT_RESP_ERROR_STR
-#define AT_RESP_ERROR_STR "ERROR"
-#endif
-
-/**
- * @brief Line ending for commands
- */
-#ifndef AT_CMD_LINE_END
-#define AT_CMD_LINE_END "\r\n"
-#endif
-
-/**
- * @brief Command prefix
- */
-#ifndef AT_CMD_PREFIX
-#define AT_CMD_PREFIX "AT"
-#endif
-
-
-typedef enum {
-    at_state_init,
-    at_state_idle,
-    at_state_sending,
-    at_state_receiving,
-    at_state_error,
-    at_state_data_mode,
-} at_state_t;
-
-struct at_dev_attr {
-    uint16_t recv_size;
-    uint16_t send_size;
-    void *user_data;
-};
-typedef struct at_dev_attr *at_dev_attr_t;
-
-struct at_dev_ops {
-    /** read from device ring buffer. */
-    int (*read)(void *buffer, int len);
-    /** write to device */
-    int (*write)(const void *buffer, int len);
-    /** cmd: power on, power off, enter sleep. */
-    int (*control)(int cmd, void *args);
-    /** dev ops attr */
-    at_dev_attr_t attr;
-};
-typedef struct at_dev_ops *at_dev_ops_t;
+/* The vocabulary this side shares with the AT client: response strings, the line ending, the command
+ * prefix, and the transport description. Defined once, in at_common.h, because the client needs the
+ * same words and two identical copies of a definition are not a redundancy but a second thing to keep
+ * in step. */
+#include "at_common.h"
 
 /**
  * @brief AT command result

@@ -2789,6 +2789,19 @@ xy_add_unit_test(test_at_server at_server UNITY
 )
 target_include_directories(test_at_server PRIVATE ${TRACE}/xy_log/inc)
 
+# --- Test 32a: the client and the server speak one vocabulary ---
+# Includes both headers in one translation unit on purpose: that is the case that used to define
+# struct at_dev_ops twice. Only the headers are needed - the assertions are about the types.
+xy_add_unit_test(test_at_common at_common UNITY
+    ${UNIT_NET}/test_at_common_contract.c
+)
+target_include_directories(test_at_common PRIVATE
+    ${NET}/at
+    ${NET}/at/atc/core
+    ${NET}/at/ats
+    ${TRACE}/xy_log/inc
+)
+
 # --- Test 32b: AT URC dispatcher (handler lifecycle, match modes, poll path) ---
 xy_add_unit_test(test_at_urc at_urc UNITY
     ${UNIT_NET}/test_at_urc_core.c

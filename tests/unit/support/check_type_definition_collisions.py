@@ -55,6 +55,10 @@ VENDORED: dict[str, str] = {
         "vendored curve25519 implementation, ships the STM32F0 peripheral headers it was built against",
     "components/net/at/AT-Command-V2":
         "vendored AT command samples, ships both CMSIS and the STM32F4 standard-peripheral driver",
+    "components/net/at/ats/ats-simcom":
+        "SIMCOM A76XX AT command reference: the vendor's own header defines the command-mode enum, and "
+        "its sources are not built (the net CMakeLists lists them commented out) - a vendor header "
+        "against ours is a name clash, not two of our own definitions",
 }
 
 #: Names with more than one definition that this repository has not resolved. The reason is the point:
@@ -131,13 +135,6 @@ PINS: dict[str, str] = {
         "different set starting at bank_chrg_state_reseting",
     "bank_chrg_stop_reason_t":
         "same pair as bank_chrg_state_t",
-    # -- an AT stack vendor header against the general one -----------------------------------------
-    "at_cmd_mode_t":
-        "components/net/at/ats/xy_ats.h against components/net/at/ats/ats-simcom/inc/at.h - the "
-        "simcom header and the general AT header each define the command mode enum",
-    "at_state_t":
-        "components/net/at/atc/core/xy_atc.h against components/net/at/ats/xy_ats.h - identical "
-        "today, and nothing keeps two copies identical",
 }
 
 #: Where a type definition can begin. The body is read by brace matching rather than by a pattern,

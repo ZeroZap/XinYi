@@ -44,6 +44,9 @@ VENDORED: dict[str, str] = {
     "components/net/at/AT-Command-V2": "vendored AT command samples",
     "components/net/at/rtthread-at": "RT-Thread's AT framework, vendored",
     "components/net/at/FreeRTOS-Cellular-Interface": "AWS cellular interface, vendored",
+    "components/net/at/ats/ats-simcom":
+        "SIMCOM A76XX AT command reference; its sources are not built (the net CMakeLists lists them "
+        "commented out) and its headers are the vendor's own",
     "components/kernel/osal/portable": "FreeRTOS Kernel V10.4.6 port layer, vendored from Amazon",
 }
 
@@ -55,12 +58,6 @@ PINS: dict[str, str] = {
         "components/device/inc/xy_device.h is canonical (a Device base plus a sensor api pointer); "
         "components/sensor/inc/xy_sensor_device.h is the un-migrated old framework and holds the "
         "fields itself - both are reachable and neither can be included in one translation unit",
-    "struct at_dev_attr":
-        "components/net/at/atc/core/xy_atc.h and components/net/at/ats/xy_ats.h - this project builds "
-        "two AT frameworks of its own and both name this tag; resolving it is the AT ownership "
-        "decision, not a rename",
-    "struct at_dev_ops":
-        "same pair as struct at_dev_attr",
 }
 
 #: Build output, vendored code and host tests. `tests/` is skipped: a fake vendor header is meant to
