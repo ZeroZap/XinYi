@@ -767,6 +767,20 @@ xy_add_unit_test(test_nano_modbus nano_modbus_compat UNITY
     ${NET}/modbus_tiny/mb_tiny.c
 )
 
+# --- Test 12a: nano_modbus compatibility API over mb_full (NANO_MB_USE_TINY=0) ---
+# The unified API has two backends. Only the Tiny one had a host guard, so the
+# Full branch of the umbrella header could rot (it once used a type before it
+# was defined) without any target noticing. This target builds the same public
+# umbrella with NANO_MB_USE_TINY=0 and links mb_full.c.
+xy_add_unit_test(test_nano_modbus_full nano_modbus_full_compat UNITY
+    ${UNIT_NET}/test_nano_modbus_full.c
+    ${NET}/modbus_full/mb_full.c
+)
+target_compile_definitions(test_nano_modbus_full PRIVATE NANO_MB_USE_TINY=0)
+target_include_directories(test_nano_modbus_full PRIVATE
+    ${NET}/modbus_full
+)
+
 # --- Test 12b: legacy Modbus RTU slave host guard ---
 xy_add_unit_test(test_modbus_legacy modbus_legacy UNITY
     ${UNIT_NET}/test_modbus_legacy.c

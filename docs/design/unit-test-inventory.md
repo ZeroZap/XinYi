@@ -14,8 +14,8 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 428 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 428`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 431 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 431`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -99,7 +99,14 @@
   with the RTU layout; RTU responses were never CRC-checked; `read_device_id` both sent a malformed
   3-byte request — missing the read-code byte the slave requires — and copied the trailing CRC into
   the caller's buffer). The four write functions also received into `rsp[8]`, which a 12-byte TCP
-  write response would overflow.
+  write response would overflow. The AT-vocabulary slice took 429 → 430 (`at_common_contract`), one
+  contract file for the vocabulary the AT client and AT server now share. The nano_modbus Full-branch
+  slice took 430 → 431 (`nano_modbus_full_compat`, 7 cases): the unified umbrella's
+  `NANO_MB_USE_TINY=0` branch had never compiled — `mb_slave_config_t` was used before it was
+  defined and `MB_FUNC_READ_COILS` was redefined as itself — so the Full branch is guarded by
+  building the umbrella with `-DNANO_MB_USE_TINY=0` and linking `mb_full.c`, then driving the compat
+  API (`nano_mb_slave_init`/`poll`, master read-holding/write-reg/write-multi-regs/read-coils) and
+  asserting CRC/error-string parity with the Tiny branch through a true master↔slave loopback.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -300,6 +307,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/net/test_modbus_full_master.c` | `unity` | 0 | Modbus-Full 主站 RTU/TCP 环路（以同 TU 的从站为对端）：主站 transport 回调捕获其发出的帧、喂给 `mb_full_slave_handle*()`、回传从站响应。钉住读保持/输入寄存器、写寄存器、0x17 先写后读、0x2E 设备标识（对象值回读且无 CRC 泄漏）、RTU 请求 CRC、RTU 响应 CRC 校验（故障注入）、MBAP 请求逐字节大端与事务 ID 递增、TCP 异常归一化为 `MB_FULL_ERROR`、初始化/NULL 守卫。 |
 | `tests/unit/net/test_mqtt_client_core.c` | `unity` | 4 | MQTT client CONNECT, publish/subscribe/unsubscribe callbacks, SUBACK failure, and keep-alive transport failure contracts |
 | `tests/unit/net/test_nano_modbus.c` | `unity` | 0 |
+| `tests/unit/net/test_nano_modbus_full.c` | `unity` | 0 | nano_modbus unified-umbrella `NANO_MB_USE_TINY=0` (Full) branch host guard: builds the same public umbrella with `-DNANO_MB_USE_TINY=0` and links `mb_full.c`, then drives the compat API through a master↔slave loopback (read-holding, write-reg, write-multi-regs, read-coils) and asserts CRC/error-string parity with the Tiny branch. |
 | `tests/unit/net/test_net_core.c` | `unity` | 0 |
 | `tests/unit/net/test_net_smbus_pmbus.c` | `unity` | 34 |
 | `tests/unit/pid/test_pid_auto.c` | `unity` | 12 |

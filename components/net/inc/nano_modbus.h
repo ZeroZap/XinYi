@@ -1,12 +1,12 @@
 /**
  * @file nano_modbus.h
  * @brief Nano Modbus - Unified API (Tiny + Full)
- * 
+ *
  * This is a compatibility layer. For new projects, use:
  *   - mb_tiny.h  : For resource-constrained devices (RTU only)
  *   - mb_full.h  : For full-featured Modbus (RTU + TCP + ASCII)
- * 
- * @version 2.0.0
+ *
+ * @version 2.1.0
  * @date 2026-03-31
  */
 
@@ -16,6 +16,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <stdint.h>
 
 /* ==================== 配置开关 ==================== */
 
@@ -27,57 +29,12 @@ extern "C" {
 #define NANO_MB_USE_TINY 1
 #endif
 
-/* ==================== 统一 API ==================== */
+/* ==================== 从站配置 (兼容旧 API) ==================== */
 
-#if NANO_MB_USE_TINY
-
-/* 使用 Tiny 版本 */
-#include "../modbus_tiny/mb_tiny.h"
-
-#else
-
-/* 使用 Full 版本 */
-#include "../modbus_full/mb_full.h"
-
-/* 兼容类型别名 */
-typedef mb_full_slave_t  mb_slave_t;
-typedef mb_full_master_t mb_master_t;
-typedef mb_full_send_cb_t mb_send_cb_t;
-typedef mb_full_recv_cb_t mb_recv_cb_t;
-typedef mb_mode_t mb_mode_t;
-
-/* 兼容宏 */
-#define NANO_MB_OK MB_FULL_OK
-#define NANO_MB_ERROR MB_FULL_ERROR
-#define NANO_MB_INVALID_PARAM MB_FULL_INVALID_PARAM
-#define NANO_MB_TIMEOUT MB_FULL_TIMEOUT
-#define NANO_MB_CRC_ERROR MB_FULL_CRC_ERROR
-
-#define MB_FUNC_READ_COILS MB_FUNC_READ_COILS
-#define MB_FUNC_READ_HOLDING MB_FUNC_READ_HOLDING_REGISTERS
-#define MB_FUNC_WRITE_SINGLE_REG MB_FUNC_WRITE_SINGLE_REGISTER
-#define MB_FUNC_WRITE_MULTIPLE_REGS MB_FUNC_WRITE_MULTIPLE_REGISTERS
-
-#define nano_mb_crc16 mb_full_crc16
-#define nano_mb_error_string mb_full_error_string
-
-/* 兼容函数 */
-static inline int nano_mb_slave_init(mb_slave_t *slave, void *config)
-{
-    return mb_full_slave_init(slave, ((mb_slave_config_t*)config)->slave_id, MB_MODE_RTU);
-}
-
-static inline int nano_mb_master_init(mb_master_t *master)
-{
-    return mb_full_master_init(master, MB_MODE_RTU);
-}
-
-#endif
-
-/* ==================== 兼容层 ==================== */
-
-/**
- * @brief 从站配置 (兼容旧 API)
+/*
+ * 定义在两个分支之前：Tiny 与 Full 的 nano_mb_slave_init() 都要读它。
+ * 旧版把这份定义放在 #if NANO_MB_USE_TINY / #else 之后，导致 Full 分支在
+ * 定义之前就使用它而编不过。
  */
 typedef struct {
     uint8_t slave_id;
@@ -91,13 +48,18 @@ typedef struct {
     uint16_t input_count;
 } mb_slave_config_t;
 
-/* ==================== 兼容 API ==================== */
+/* ==================== 统一 API ==================== */
 
 #if NANO_MB_USE_TINY
+
+/* 使用 Tiny 版本 */
+#include "../modbus_tiny/mb_tiny.h"
 
 /* 兼容类型别名 */
 typedef mb_tiny_slave_t  mb_slave_t;
 typedef mb_tiny_master_t mb_master_t;
+typedef mb_tiny_send_cb_t mb_send_cb_t;
+typedef mb_tiny_recv_cb_t mb_recv_cb_t;
 
 /* 兼容宏 */
 #define NANO_MB_OK MB_TINY_OK
@@ -151,7 +113,7 @@ static inline int nano_mb_slave_poll(mb_slave_t *slave, const uint8_t *data, uin
 }
 
 static inline int nano_mb_master_read_holding(mb_master_t *master, uint8_t slave_id,
-                                               uint16_t addr, uint16_t count, 
+                                               uint16_t addr, uint16_t count,
                                                uint16_t *data, uint32_t timeout)
 {
     (void)timeout;
@@ -166,7 +128,7 @@ static inline int nano_mb_master_write_reg(mb_master_t *master, uint8_t slave_id
 }
 
 static inline int nano_mb_master_write_multi_regs(mb_master_t *master, uint8_t slave_id,
-                                                   uint16_t addr, uint16_t count, 
+                                                   uint16_t addr, uint16_t count,
                                                    const uint16_t *data, uint32_t timeout)
 {
     (void)timeout;
@@ -174,11 +136,102 @@ static inline int nano_mb_master_write_multi_regs(mb_master_t *master, uint8_t s
 }
 
 static inline int nano_mb_master_read_coils(mb_master_t *master, uint8_t slave_id,
-                                             uint16_t addr, uint16_t count, 
+                                             uint16_t addr, uint16_t count,
                                              uint8_t *data, uint32_t timeout)
 {
     (void)timeout;
     return mb_tiny_master_read_coils(master, slave_id, addr, count, data);
+}
+
+#else
+
+/* 使用 Full 版本 */
+#include "../modbus_full/mb_full.h"
+
+/* 兼容类型别名 */
+typedef mb_full_slave_t  mb_slave_t;
+typedef mb_full_master_t mb_master_t;
+typedef mb_full_send_cb_t mb_send_cb_t;
+typedef mb_full_recv_cb_t mb_recv_cb_t;
+
+/* 兼容宏 */
+#define NANO_MB_OK MB_FULL_OK
+#define NANO_MB_ERROR MB_FULL_ERROR
+#define NANO_MB_INVALID_PARAM MB_FULL_INVALID_PARAM
+#define NANO_MB_TIMEOUT MB_FULL_TIMEOUT
+#define NANO_MB_CRC_ERROR MB_FULL_CRC_ERROR
+
+/*
+ * mb_full.h 的功能码命名与统一 API 不同（带 _REGISTERS/_REGISTER 后缀）。
+ * 把统一命名映射到 mb_full 的名字。MB_FUNC_READ_COILS 两个头同名同值
+ * (0x01)，无需再映射。
+ */
+#define MB_FUNC_READ_HOLDING MB_FUNC_READ_HOLDING_REGISTERS
+#define MB_FUNC_WRITE_SINGLE_REG MB_FUNC_WRITE_SINGLE_REGISTER
+#define MB_FUNC_WRITE_MULTIPLE_REGS MB_FUNC_WRITE_MULTIPLE_REGISTERS
+
+#define nano_mb_crc16 mb_full_crc16
+#define nano_mb_error_string mb_full_error_string
+
+/* 兼容函数 - 将旧 API 映射到 Full API（RTU 模式） */
+static inline int nano_mb_slave_init(mb_slave_t *slave, const mb_slave_config_t *config)
+{
+    return mb_full_slave_init(slave, config ? config->slave_id : 1, MB_MODE_RTU);
+}
+
+static inline int nano_mb_slave_deinit(mb_slave_t *slave)
+{
+    if (!slave) return MB_FULL_INVALID_PARAM;
+    slave->initialized = false;
+    return MB_FULL_OK;
+}
+
+static inline int nano_mb_master_init(mb_master_t *master)
+{
+    return mb_full_master_init(master, MB_MODE_RTU);
+}
+
+static inline int nano_mb_master_deinit(mb_master_t *master)
+{
+    if (!master) return MB_FULL_INVALID_PARAM;
+    master->initialized = false;
+    return MB_FULL_OK;
+}
+
+static inline int nano_mb_slave_poll(mb_slave_t *slave, const uint8_t *data, uint16_t len)
+{
+    return mb_full_slave_handle(slave, data, len);
+}
+
+static inline int nano_mb_master_read_holding(mb_master_t *master, uint8_t slave_id,
+                                               uint16_t addr, uint16_t count,
+                                               uint16_t *data, uint32_t timeout)
+{
+    (void)timeout;
+    return mb_full_master_read_holding(master, slave_id, addr, count, data);
+}
+
+static inline int nano_mb_master_write_reg(mb_master_t *master, uint8_t slave_id,
+                                            uint16_t addr, uint16_t value, uint32_t timeout)
+{
+    (void)timeout;
+    return mb_full_master_write_register(master, slave_id, addr, value);
+}
+
+static inline int nano_mb_master_write_multi_regs(mb_master_t *master, uint8_t slave_id,
+                                                   uint16_t addr, uint16_t count,
+                                                   const uint16_t *data, uint32_t timeout)
+{
+    (void)timeout;
+    return mb_full_master_write_registers(master, slave_id, addr, count, data);
+}
+
+static inline int nano_mb_master_read_coils(mb_master_t *master, uint8_t slave_id,
+                                             uint16_t addr, uint16_t count,
+                                             uint8_t *data, uint32_t timeout)
+{
+    (void)timeout;
+    return mb_full_master_read_coils(master, slave_id, addr, count, data);
 }
 
 #endif /* NANO_MB_USE_TINY */
