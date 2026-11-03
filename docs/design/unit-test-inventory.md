@@ -362,7 +362,9 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_ap3216c_sensor.c` | `unity` | 0 | AP3216C light/proximity/IR init/read/failure guard contracts |
 | `tests/unit/sensor/test_vl53l0x_device.c` | `unity` | 0 | VL53L0X canonical Device identity/read/lifecycle/failure contracts |
-| `tests/unit/sensor/test_analog_misc_sensors.c` | `unity` | 0 | ACS712/FSR/MG811 legacy ADC analog conversion and guard contracts |
+| `tests/unit/sensor/test_acs712_device.c` | `unity` | 0 | ACS712 canonical Device: ADC read to signed current (30A/3.3V datasheet conversion), guards, failure atomicity |
+| `tests/unit/sensor/test_fsr_device.c` | `unity` | 0 | FSR canonical Device: raw ADC read, guards, failure atomicity |
+| `tests/unit/sensor/test_mg811_device.c` | `unity` | 0 | MG811 canonical Device: raw ADC read, guards, failure atomicity |
 
 | `tests/unit/sensor/test_env_i2c_sensors.c` | `unity` | 0 | AHT10 legacy env I2C init/read/failure contracts |
 | `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy `sensor_bmp280.c` pressure/temperature calibration/read/failure contracts |

@@ -650,6 +650,30 @@ target_include_directories(test_ads1115 PRIVATE
     ${DRV}/sensor/adc/ads1115
 )
 
+xy_add_unit_test(test_acs712_device sensor_acs712_device UNITY
+    ${UNIT_SENSOR}/test_acs712_device.c
+    ${DRV}/sensor/adc/acs712/xy_acs712.c
+)
+target_include_directories(test_acs712_device PRIVATE
+    ${DRV}/sensor/adc/acs712
+)
+
+xy_add_unit_test(test_fsr_device sensor_fsr_device UNITY
+    ${UNIT_SENSOR}/test_fsr_device.c
+    ${DRV}/sensor/adc/fsr/xy_fsr.c
+)
+target_include_directories(test_fsr_device PRIVATE
+    ${DRV}/sensor/adc/fsr
+)
+
+xy_add_unit_test(test_mg811_device sensor_mg811_device UNITY
+    ${UNIT_SENSOR}/test_mg811_device.c
+    ${DRV}/sensor/adc/mg811/xy_mg811.c
+)
+target_include_directories(test_mg811_device PRIVATE
+    ${DRV}/sensor/adc/mg811
+)
+
 # --- Test 4: SPI device helper + mixed-bus registry ---
 xy_add_unit_test(test_spi_device spi_device UNITY
     ${UNIT_DEVICE}/test_spi_device.c
@@ -1462,17 +1486,6 @@ xy_add_unit_test(test_ap3216c_device sensor_ap3216c_device UNITY
 )
 target_include_directories(test_ap3216c_device BEFORE PRIVATE
     ${DRV}/sensor/light/ap3216c
-)
-
-xy_add_unit_test(test_analog_misc_sensors sensor_analog_misc_sensors UNITY
-    ${UNIT_SENSOR}/test_analog_misc_sensors.c
-    ${SENSOR}/sensors/sensor_acs712.c
-    ${SENSOR}/sensors/sensor_fsr.c
-    ${SENSOR}/sensors/sensor_mg811.c
-)
-target_include_directories(test_analog_misc_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
 )
 
 xy_add_unit_test(test_env_i2c_sensors sensor_env_i2c_sensors UNITY
