@@ -121,7 +121,7 @@ int xy_hx711_tare(xy_hx711_t *hx)
     
     hx->offset = sum / 32;
     
-    xy_log_i("HX711 tared (offset=%ld)\n", hx->offset);
+    xy_log_i("HX711 tared (offset=%ld)\n", (long)hx->offset);
     return 0;
 }
 

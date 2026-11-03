@@ -26,7 +26,10 @@ void SysTick_Handler(void)
     xy_hal_sys_tick_irq_handler();
 }
 
-static void fail(void)
+/* The attribute is not decoration: every firmware-error path and every reported reset kind
+ * ends in fail(), and without `noreturn` the compiler sees those cases falling into the next
+ * one (-Wimplicit-fallthrough) even though the code can never reach it. */
+static void __attribute__((noreturn)) fail(void)
 {
     __disable_irq();
     for (;;) {

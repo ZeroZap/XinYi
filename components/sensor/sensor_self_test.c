@@ -50,7 +50,7 @@ sensor_err_t sensor_self_test(sensor_device_t *sensor,
             result->passed     = false;
             result->error_code = 2;
             snprintf(result->message, sizeof(result->message),
-                     "Data out of range: %d mg", magnitude);
+                     "Data out of range: %d mg", (int)magnitude);
             sensor->status = SENSOR_STATUS_READY;
             SENSOR_LOG("Self test failed: data out of range");
             return SENSOR_ERROR;
@@ -77,7 +77,7 @@ sensor_err_t sensor_self_test(sensor_device_t *sensor,
         result->passed     = false;
         result->error_code = 3;
         snprintf(result->message, sizeof(result->message),
-                 "High noise level: %d", noise);
+                 "High noise level: %d", (int)noise);
         sensor->status = SENSOR_STATUS_READY;
         SENSOR_LOG("Self test failed: high noise");
         return SENSOR_ERROR;

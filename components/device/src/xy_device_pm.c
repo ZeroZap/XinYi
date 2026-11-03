@@ -61,14 +61,19 @@ static uint32_t pm_get_tick_ms(void)
     return xy_device_get_tick();
 }
 
+/* Every enumerator is non-negative, so both enums have an unsigned underlying type and
+ * `state >= ACTIVE` compared unsigned-always-true (-Wtype-limits). Comparing through int
+ * keeps the exact same accept/reject result for every input, including out-of-range ones. */
 static bool pm_state_is_valid(xy_device_pm_state_t state)
 {
-    return state >= XY_DEVICE_PM_STATE_ACTIVE && state <= XY_DEVICE_PM_STATE_OFF;
+    int value = (int)state;
+    return value >= (int)XY_DEVICE_PM_STATE_ACTIVE && value <= (int)XY_DEVICE_PM_STATE_OFF;
 }
 
 static bool pm_policy_is_valid(xy_device_pm_policy_t policy)
 {
-    return policy >= XY_DEVICE_PM_POLICY_ALWAYS_ON && policy <= XY_DEVICE_PM_POLICY_MANUAL;
+    int value = (int)policy;
+    return value >= (int)XY_DEVICE_PM_POLICY_ALWAYS_ON && value <= (int)XY_DEVICE_PM_POLICY_MANUAL;
 }
 
 /* ==================== Public Implementation ==================== */

@@ -4,6 +4,14 @@
 
 extern void xy_log_char(char ch);
 
+/* `xy_stdio.h` resolves to one of two headers sharing the `XY_STDIO_H` guard: the clib stdio
+ * (which declares this entry point) or the 20-line wrapper in this component's include dir
+ * (which does not). The collision is pinned in
+ * `tests/unit/support/check_include_guard_collisions.py`, and whichever copy wins has to let
+ * `xy_log_init()` call the clib implementation - so the declaration is repeated here. Where
+ * the clib copy wins both declarations are visible and the compiler rejects any drift. */
+extern void xy_stdio_printf_init(void (*print_char)(char *str));
+
 #ifndef XY_LOG_WEAK
 #if defined(__GNUC__)
 #define XY_LOG_WEAK __attribute__((weak))
