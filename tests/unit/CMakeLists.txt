@@ -674,6 +674,38 @@ target_include_directories(test_mg811_device PRIVATE
     ${DRV}/sensor/adc/mg811
 )
 
+xy_add_unit_test(test_guvas12sd_device sensor_guvas12sd_device UNITY
+    ${UNIT_SENSOR}/test_guvas12sd_device.c
+    ${DRV}/sensor/adc/guvas12sd/xy_guvas12sd.c
+)
+target_include_directories(test_guvas12sd_device PRIVATE
+    ${DRV}/sensor/adc/guvas12sd
+)
+
+xy_add_unit_test(test_mq135_device sensor_mq135_device UNITY
+    ${UNIT_SENSOR}/test_mq135_device.c
+    ${DRV}/sensor/adc/mq135/xy_mq135.c
+)
+target_include_directories(test_mq135_device PRIVATE
+    ${DRV}/sensor/adc/mq135
+)
+
+xy_add_unit_test(test_mq3_device sensor_mq3_device UNITY
+    ${UNIT_SENSOR}/test_mq3_device.c
+    ${DRV}/sensor/adc/mq3/xy_mq3.c
+)
+target_include_directories(test_mq3_device PRIVATE
+    ${DRV}/sensor/adc/mq3
+)
+
+xy_add_unit_test(test_mq7_device sensor_mq7_device UNITY
+    ${UNIT_SENSOR}/test_mq7_device.c
+    ${DRV}/sensor/adc/mq7/xy_mq7.c
+)
+target_include_directories(test_mq7_device PRIVATE
+    ${DRV}/sensor/adc/mq7
+)
+
 # --- Test 4: SPI device helper + mixed-bus registry ---
 xy_add_unit_test(test_spi_device spi_device UNITY
     ${UNIT_DEVICE}/test_spi_device.c
@@ -1393,7 +1425,6 @@ target_include_directories(test_as5600_device BEFORE PRIVATE
 xy_add_unit_test(test_light_uv_sensors sensor_light_uv_sensors UNITY
     ${UNIT_SENSOR}/test_light_uv_sensors.c
     ${SENSOR}/sensors/sensor_max44009.c
-    ${SENSOR}/sensors/sensor_guvas12sd.c
 )
 target_include_directories(test_light_uv_sensors BEFORE PRIVATE
     ${SENSOR}
@@ -1430,17 +1461,6 @@ target_include_directories(test_aht20_legacy_sensor BEFORE PRIVATE
     ${SENSOR}/sensors
     ${DRV}/sensor/temperature/aht20
     ${DEVICE}/inc
-)
-
-xy_add_unit_test(test_mq_gas_sensors sensor_mq_gas_sensors UNITY
-    ${UNIT_SENSOR}/test_mq_gas_sensors.c
-    ${SENSOR}/sensors/sensor_mq3.c
-    ${SENSOR}/sensors/sensor_mq7.c
-    ${SENSOR}/sensors/sensor_mq135.c
-)
-target_include_directories(test_mq_gas_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
 )
 
 

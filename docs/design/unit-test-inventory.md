@@ -356,8 +356,11 @@ guard API drift in those examples/skeletons.
 
 | `tests/unit/sensor/test_as5600_device.c` | `unity` | 0 | AS5600 canonical Device lifecycle, angle decoding, transport guards and failed re-init atomicity |
 | `tests/unit/sensor/test_as5048b_device.c` | `unity` | 0 | AS5048B canonical Device lifecycle, angle decoding, transport guards and failed re-init atomicity |
-| `tests/unit/sensor/test_light_uv_sensors.c` | `unity` | 0 | MAX44009/GUVA-S12SD legacy light/UV read/failure/boundary contracts |
-| `tests/unit/sensor/test_mq_gas_sensors.c` | `unity` | 0 | MQ3/MQ7/MQ135 ADC gas conversion and guard contracts |
+| `tests/unit/sensor/test_light_uv_sensors.c` | `unity` | 0 | MAX44009 legacy light read/failure/boundary contracts |
+| `tests/unit/sensor/test_guvas12sd_device.c` | `unity` | 0 | GUVA-S12SD canonical Device: raw ADC read, guards, failure atomicity |
+| `tests/unit/sensor/test_mq135_device.c` | `unity` | 0 | MQ-135 canonical Device: raw ADC read, guards, failure atomicity |
+| `tests/unit/sensor/test_mq3_device.c` | `unity` | 0 | MQ-3 canonical Device: raw ADC read, guards, failure atomicity |
+| `tests/unit/sensor/test_mq7_device.c` | `unity` | 0 | MQ-7 canonical Device: raw ADC read, guards, failure atomicity |
 | `tests/unit/sensor/test_apds9960_device.c` | `unity` | 0 | APDS9960 canonical Device identity (`0xAB`/`0x9C`), enable/disable profile, RGB decode, gesture-FIFO level/payload ordering and failure-preservation contracts |
 | `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_ap3216c_sensor.c` | `unity` | 0 | AP3216C light/proximity/IR init/read/failure guard contracts |

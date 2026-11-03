@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "sensor_guvas12sd.h"
 #include "sensor_max44009.h"
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
@@ -20,9 +19,6 @@ typedef struct {
 static i2c_read_call_t g_i2c_reads[8];
 static unsigned int g_i2c_read_count;
 static unsigned int g_i2c_write_count;
-static uint16_t g_adc_value;
-static uint8_t g_adc_pin;
-static unsigned int g_adc_read_count;
 static uint32_t g_tick;
 
 uint32_t get_tick_ms(void)
@@ -56,21 +52,12 @@ int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint1
     return SENSOR_EOK;
 }
 
-uint16_t hal_adc_read(uint8_t pin)
-{
-    g_adc_pin = pin;
-    g_adc_read_count++;
-    return g_adc_value;
-}
 
 void setUp(void)
 {
     memset(g_i2c_reads, 0, sizeof(g_i2c_reads));
     g_i2c_read_count = 0;
     g_i2c_write_count = 0;
-    g_adc_value = 0;
-    g_adc_pin = 0;
-    g_adc_read_count = 0;
     g_tick = 24680U;
 }
 
@@ -250,103 +237,6 @@ static void test_max44009_public_guards_reject_invalid_context(void)
     destroy_sensor(sensor);
 }
 
-static void test_guvas12sd_create_and_read_converts_adc_to_uv_index(void)
-{
-    sensor_data_t data = {0};
-    sensor_device_t *sensor = guvas12sd_create("uv-main", 7U);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_EQUAL_STRING("uv-main", sensor->info.name);
-    TEST_ASSERT_EQUAL_STRING("国产", sensor->info.vendor);
-    TEST_ASSERT_EQUAL_STRING("GUVA-S12SD", sensor->info.model);
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_UV_INDEX, sensor->info.type);
-    TEST_ASSERT_EQUAL_INT(SENSOR_STATUS_IDLE, sensor->status);
-    TEST_ASSERT_NULL(sensor->bus);
-    TEST_ASSERT_NOT_NULL(sensor->ops);
-    TEST_ASSERT_NOT_NULL(sensor->ops->init);
-    TEST_ASSERT_NOT_NULL(sensor->ops->read);
-    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
-    TEST_ASSERT_EQUAL_UINT8(7U, ((guvas12sd_priv_t *)sensor->priv_data)->adc_pin);
-
-    g_adc_value = 123U;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
-
-    TEST_ASSERT_EQUAL_UINT(1U, g_adc_read_count);
-    TEST_ASSERT_EQUAL_UINT8(7U, g_adc_pin);
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_UV_INDEX, data.type);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 12.3f, data.value.val_float);
-    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
-    destroy_sensor(sensor);
-}
-
-static void test_guvas12sd_adc_boundaries_are_linear_uv_index(void)
-{
-    sensor_data_t data = {0};
-    sensor_device_t *sensor = guvas12sd_create("uv-bounds", 2U);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    g_adc_value = 0U;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_UINT8(2U, g_adc_pin);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, data.value.val_float);
-
-    g_adc_read_count = 0U;
-    g_adc_pin = 0xFFU;
-    g_adc_value = 4095U;
-    g_tick = 54321U;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_UINT(1U, g_adc_read_count);
-    TEST_ASSERT_EQUAL_UINT8(2U, g_adc_pin);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 409.5f, data.value.val_float);
-    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
-
-    destroy_sensor(sensor);
-}
-
-static void test_guvas12sd_guards_reject_null_inputs_without_adc_side_effects(void)
-{
-    sensor_data_t data;
-    sensor_device_t *sensor = guvas12sd_create("uv-guards", 5U);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    memset(&data, 0xA5, sizeof(data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
-    TEST_ASSERT_EQUAL_UINT(0U, g_adc_read_count);
-    TEST_ASSERT_EQUAL_UINT8(0xA5U, data.type);
-    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, data.timestamp);
-
-    destroy_sensor(sensor);
-}
-
-static void test_guvas12sd_missing_private_data_is_rejected_without_adc_side_effects(void)
-{
-    sensor_data_t data;
-    sensor_device_t *sensor = guvas12sd_create("uv-no-priv", 6U);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    memset(&data, 0x5A, sizeof(data));
-    SENSOR_FREE(sensor->priv_data);
-    sensor->priv_data = NULL;
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_UINT(0U, g_adc_read_count);
-    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.type);
-    TEST_ASSERT_EQUAL_UINT32(0x5A5A5A5AU, data.timestamp);
-
-    destroy_sensor(sensor);
-}
-
-static void test_guvas12sd_factory_rejects_null_name(void)
-{
-    TEST_ASSERT_NULL(guvas12sd_create(NULL, 1U));
-}
-
 static void test_long_names_are_truncated_with_terminator(void)
 {
     int fake_bus;
@@ -355,17 +245,12 @@ static void test_long_names_are_truncated_with_terminator(void)
     long_name[sizeof(long_name) - 1U] = '\0';
 
     sensor_device_t *light = max44009_create(long_name, &fake_bus);
-    sensor_device_t *uv = guvas12sd_create(long_name, 3U);
 
     TEST_ASSERT_NOT_NULL(light);
-    TEST_ASSERT_NOT_NULL(uv);
     TEST_ASSERT_EQUAL_UINT8('\0', light->info.name[SENSOR_NAME_MAX_LEN - 1U]);
-    TEST_ASSERT_EQUAL_UINT8('\0', uv->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(light->info.name));
-    TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(uv->info.name));
 
     destroy_sensor(light);
-    destroy_sensor(uv);
 }
 
 int main(void)
@@ -379,11 +264,7 @@ int main(void)
     RUN_TEST(test_max44009_second_transport_timeout_is_preserved);
     RUN_TEST(test_max44009_public_guards_reject_invalid_context);
     RUN_TEST(test_max44009_factory_rejects_null_bus);
-    RUN_TEST(test_guvas12sd_create_and_read_converts_adc_to_uv_index);
-    RUN_TEST(test_guvas12sd_adc_boundaries_are_linear_uv_index);
-    RUN_TEST(test_guvas12sd_guards_reject_null_inputs_without_adc_side_effects);
-    RUN_TEST(test_guvas12sd_missing_private_data_is_rejected_without_adc_side_effects);
-    RUN_TEST(test_guvas12sd_factory_rejects_null_name);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     return UNITY_END();
 }
+
