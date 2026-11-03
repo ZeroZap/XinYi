@@ -11,8 +11,7 @@
 #ifndef __XY_GPS_H__
 #define __XY_GPS_H__
 
-#include "sensor_type.h"
-#include "sensor_core.h"
+#include "xy_device_error.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -44,6 +43,13 @@ typedef enum {
     GPS_MODE_DGPS            = 3,    ///< 差分定位
     GPS_MODE_RTK             = 4,   ///< RTK 定位
 } gps_mode_t;
+
+/* ==================== 设备状态 ==================== */
+typedef enum {
+    GPS_STATUS_IDLE          = 0,    ///< 未注册 / 待机
+    GPS_STATUS_READY         = 1,    ///< 已注册 / 就绪
+    GPS_STATUS_ERROR         = 2,    ///< 错误
+} gps_status_t;
 
 /* ==================== NMEA 语句类型 ==================== */
 typedef enum {
@@ -109,8 +115,8 @@ typedef struct {
 
 /* ==================== GPS 设备扩展 ==================== */
 typedef struct gps_device {
-    /* 基础 sensor_device */
-    sensor_device_t base;
+    char name[GPS_NAME_MAX_LEN];
+    gps_status_t status;
 
     /* GPS 特定配置 */
     gps_config_t config;
@@ -139,64 +145,6 @@ typedef struct gps_device {
     uint32_t last_valid_time;
 } gps_device_t;
 
-/* ==================== GPS 操作接口 ==================== */
-typedef struct gps_ops {
-    /* 基础操作 (必须实现) */
-    sensor_err_t (*init)(gps_device_t *dev);
-    sensor_err_t (*deinit)(gps_device_t *dev);
-
-    /* NMEA 数据输入 (必须实现) */
-    sensor_err_t (*parse_nmea)(gps_device_t *dev, const char *nmea_str, uint16_t len);
-    sensor_err_t (*parse_byte)(gps_device_t *dev, uint8_t byte);
-
-    /* 数据读取 */
-    sensor_err_t (*read)(gps_device_t *dev, gps_data_t *data);
-
-    /* 配置控制 */
-    sensor_err_t (*config)(gps_device_t *dev, const gps_config_t *config);
-    sensor_err_t (*get_config)(gps_device_t *dev, gps_config_t *config);
-
-    /* 功耗管理 */
-    sensor_err_t (*sleep)(gps_device_t *dev);
-    sensor_err_t (*wakeup)(gps_device_t *dev);
-    sensor_err_t (*hot_start)(gps_device_t *dev);
-    sensor_err_t (*warm_start)(gps_device_t *dev);
-    sensor_err_t (*cold_start)(gps_device_t *dev);
-
-    /* 定位查询 */
-    sensor_err_t (*get_position)(gps_device_t *dev, double *lat, double *lon, float *alt);
-    sensor_err_t (*get_speed_course)(gps_device_t *dev, float *speed, float *course);
-    sensor_err_t (*get_time)(gps_device_t *dev, uint32_t *timestamp);
-    sensor_err_t (*get_satellites)(gps_device_t *dev, uint8_t *count,
-                                   uint8_t *satellites_used, uint8_t *satellites_visible);
-    sensor_err_t (*get_dop)(gps_device_t *dev, float *hdop, float *pdop, float *vdop);
-
-    /* 控制命令 */
-    sensor_err_t (*send_command)(gps_device_t *dev, const char *cmd, uint16_t len);
-    sensor_err_t (*set_baudrate)(gps_device_t *dev, uint32_t baudrate);
-    sensor_err_t (*set_update_rate)(gps_device_t *dev, uint32_t rate_hz);
-    sensor_err_t (*set_nmea_output)(gps_device_t *dev, gps_nmea_type_t types);
-
-    /* 状态查询 */
-    bool (*is_fixed)(gps_device_t *dev);
-    uint32_t (*get_uptime)(gps_device_t *dev);
-} gps_ops_t;
-
-/* ==================== GPS 设备注册宏 ==================== */
-#define GPS_DEVICE_INIT(_name, _ops, _bus, _priv) \
-    {                                              \
-        .base.ops          = (const sensor_ops_t *)_ops,  \
-        .base.bus          = _bus,                 \
-        .base.priv_data    = _priv,                \
-        .base.info.name    = _name,                \
-        .base.info.type    = SENSOR_TYPE_GPS,      \
-        .base.info.unit    = SENSOR_UNIT_DEGREE_PER_SECOND, \
-        .config.baudrate   = 9600,                 \
-        .config.update_rate = 1,                   \
-        .config.nmea_output = GPS_NMEA_GGA | GPS_NMEA_RMC | GPS_NMEA_GSV, \
-        .config.checksum_check = true,             \
-    }
-
 /* ==================== 标准 NMEA 解析宏 ==================== */
 #define GPS_NMEA_HEAD(_str, _talker, _type) \
     ((_str)[0] == '$' && \
@@ -214,7 +162,6 @@ typedef struct gps_ops {
     })
 
 /* ==================== GPS 类型定义简化 ==================== */
-/* 在 sensor_type.h 中已定义 SENSOR_TYPE_GPS = 0x22 */
 
 /* ==================== 状态标志位 ==================== */
 #define GPS_FLAG_FIXED         (1 << 0)   ///< 已定位
@@ -304,14 +251,14 @@ static inline bool gps_position_valid(double lat, double lon)
  * @param   dev: GPS 设备指针
  * @return  传感器错误码
  */
-sensor_err_t gps_register(gps_device_t *dev);
+xy_error_t gps_register(gps_device_t *dev);
 
 /**
  * @brief   注销 GPS 设备
  * @param   dev: GPS 设备指针
  * @return  传感器错误码
  */
-sensor_err_t gps_unregister(gps_device_t *dev);
+xy_error_t gps_unregister(gps_device_t *dev);
 
 /**
  * @brief   查找 GPS 设备
@@ -333,22 +280,22 @@ uint8_t gps_get_count(void);
  * @param   dev:       GPS 设备指针
  * @param   nmea_str:  以 '\0' 结尾的语句（是否带 CRLF 均可）
  * @param   len:       语句长度（不含结尾 '\0'）
- * @return  SENSOR_EOK=已解析；SENSOR_ERROR=校验和拒绝；SENSOR_EINVAL=参数无效
+ * @return  XY_DEVICE_OK=已解析；XY_DEVICE_ERROR=校验和拒绝；XY_DEVICE_INVALID_PARAM=参数无效
  * @note    `dev->config.checksum_check` 为 true 时，校验和不符的语句被拒绝并
  *          计入 `dev->parse_errors`，缓存数据保持不变。无法识别的语句类型
- *          返回 SENSOR_EOK 且不修改缓存。
+ *          返回 XY_DEVICE_OK 且不修改缓存。
  */
-sensor_err_t gps_parse_nmea(gps_device_t *dev, const char *nmea_str, uint16_t len);
+xy_error_t gps_parse_nmea(gps_device_t *dev, const char *nmea_str, uint16_t len);
 
 /**
  * @brief   逐字节送入 NMEA 数据流（用于 UART 中断/轮询）
  * @param   dev:  GPS 设备指针
  * @param   byte: 收到的字节
- * @return  SENSOR_EOK / SENSOR_EINVAL
+ * @return  XY_DEVICE_OK / XY_DEVICE_INVALID_PARAM
  * @note    以 '$' 复位帧缓冲，以 '\n' 结束一帧并解析；每收满一帧
  *          `dev->frame_count` 加一。
  */
-sensor_err_t gps_parse_byte(gps_device_t *dev, uint8_t byte);
+xy_error_t gps_parse_byte(gps_device_t *dev, uint8_t byte);
 
 /* ==================== 数据读取 ==================== */
 
@@ -356,9 +303,9 @@ sensor_err_t gps_parse_byte(gps_device_t *dev, uint8_t byte);
  * @brief   拷贝缓存的定位数据
  * @param   dev:  GPS 设备指针
  * @param   data: 输出缓冲（失败时不修改）
- * @return  SENSOR_EOK / SENSOR_EINVAL
+ * @return  XY_DEVICE_OK / XY_DEVICE_INVALID_PARAM
  */
-sensor_err_t gps_read_data(gps_device_t *dev, gps_data_t *data);
+xy_error_t gps_read_data(gps_device_t *dev, gps_data_t *data);
 
 /**
  * @brief   是否已定位
@@ -374,18 +321,18 @@ bool gps_is_fixed(gps_device_t *dev);
 /**
  * @brief   读取位置
  * @param   lat/lon/alt: 输出指针（任一可为 NULL 表示不关心）
- * @return  SENSOR_EOK / SENSOR_ERROR=尚未定位 / SENSOR_EINVAL
+ * @return  XY_DEVICE_OK / XY_DEVICE_ERROR=尚未定位 / XY_DEVICE_INVALID_PARAM
  */
-sensor_err_t gps_get_position(gps_device_t *dev, double *lat, double *lon, float *alt);
+xy_error_t gps_get_position(gps_device_t *dev, double *lat, double *lon, float *alt);
 
 /**
  * @brief   读取时间戳
  * @param   timestamp: 输出 Unix 时间戳（秒）
- * @return  SENSOR_EOK / SENSOR_EINVAL
+ * @return  XY_DEVICE_OK / XY_DEVICE_INVALID_PARAM
  * @note    当前实现按每月 30 天、每年 365 天近似换算，跨月/跨年的绝对误差
  *          未消除；用于同一会话内的时间先后判断是安全的，不可用作日历真值。
  */
-sensor_err_t gps_get_time(gps_device_t *dev, uint32_t *timestamp);
+xy_error_t gps_get_time(gps_device_t *dev, uint32_t *timestamp);
 
 /**
  * @brief   读取卫星数量
@@ -393,19 +340,19 @@ sensor_err_t gps_get_time(gps_device_t *dev, uint32_t *timestamp);
  * @param   satellites_used:   参与定位的卫星数（GGA）
  * @param   satellites_visible: 同 count
  */
-sensor_err_t gps_get_satellites(gps_device_t *dev, uint8_t *count,
+xy_error_t gps_get_satellites(gps_device_t *dev, uint8_t *count,
                                 uint8_t *satellites_used, uint8_t *satellites_visible);
 
 /**
  * @brief   读取精度因子
  * @param   hdop/pdop/vdop: 输出指针（任一可为 NULL）
  */
-sensor_err_t gps_get_dop(gps_device_t *dev, float *hdop, float *pdop, float *vdop);
+xy_error_t gps_get_dop(gps_device_t *dev, float *hdop, float *pdop, float *vdop);
 
 /**
  * @brief   距最近一次数据更新的毫秒数
  * @return  当前实现返回 **OS tick**（`xy_os_tick_get()`）；`dev` 为 NULL 时为 0
- * @note    实现是 `sensor_get_tick() - dev->last_update_time`，而 `last_update_time`
+ * @note    实现是 `xy_hal_sys_get_tick_count() - dev->last_update_time`，而 `last_update_time`
  *          目前**没有任何写入方**，减法项恒为 0，所以现在等价于"上电至今的毫秒数"。
  *          要让它变成"数据老化"，必须先有地方写 `last_update_time`——那会改变本
  *          函数的语义，属修改公开契约，需先决定。CTest `sensor_gps_example` 把当前
@@ -416,35 +363,35 @@ uint32_t gps_get_uptime(gps_device_t *dev);
 /* ==================== 控制与功耗 ==================== */
 
 /**
- * @brief   进入待机（仅提交 `base.status = SENSOR_STATUS_IDLE`）
- * @return  SENSOR_EOK / SENSOR_EINVAL
+ * @brief   进入待机（仅提交 `status = GPS_STATUS_IDLE`）
+ * @return  XY_DEVICE_OK / XY_DEVICE_INVALID_PARAM
  * @note    模块侧命令尚未实现（依赖具体 UART 驱动）。
  */
-sensor_err_t gps_sleep(gps_device_t *dev);
+xy_error_t gps_sleep(gps_device_t *dev);
 
 /**
- * @brief   唤醒（仅提交 `base.status = SENSOR_STATUS_READY`）
- * @return  SENSOR_EOK / SENSOR_EINVAL
+ * @brief   唤醒（仅提交 `status = GPS_STATUS_READY`）
+ * @return  XY_DEVICE_OK / XY_DEVICE_INVALID_PARAM
  */
-sensor_err_t gps_wakeup(gps_device_t *dev);
+xy_error_t gps_wakeup(gps_device_t *dev);
 
 /**
  * @brief   向模块发送命令
- * @note    占位实现：当前不做任何 I/O 也不需要 dev，永远返回 SENSOR_EOK。
+ * @note    占位实现：当前不做任何 I/O 也不需要 dev，永远返回 XY_DEVICE_OK。
  */
-sensor_err_t gps_send_command(gps_device_t *dev, const char *cmd, uint16_t len);
+xy_error_t gps_send_command(gps_device_t *dev, const char *cmd, uint16_t len);
 
 /**
  * @brief   设置波特率（只更新 `dev->config.baudrate`，不产生总线流量）
  */
-sensor_err_t gps_set_baudrate(gps_device_t *dev, uint32_t baudrate);
+xy_error_t gps_set_baudrate(gps_device_t *dev, uint32_t baudrate);
 
 /**
  * @brief   设置更新率
  * @param   rate_hz: 1..10
- * @return  SENSOR_EOK / SENSOR_EINVAL（0 或 >10 被拒绝，配置保持不变）
+ * @return  XY_DEVICE_OK / XY_DEVICE_INVALID_PARAM（0 或 >10 被拒绝，配置保持不变）
  */
-sensor_err_t gps_set_update_rate(gps_device_t *dev, uint32_t rate_hz);
+xy_error_t gps_set_update_rate(gps_device_t *dev, uint32_t rate_hz);
 
 /* ==================== 示例: 注册并使用 GPS 设备 ==================== */
 /*
@@ -453,8 +400,7 @@ sensor_err_t gps_set_update_rate(gps_device_t *dev, uint32_t rate_hz);
  *
  * gps_device_t my_gps;
  * memset(&my_gps, 0, sizeof(my_gps));
- * strncpy(my_gps.base.info.name, "GPS_AT6558", SENSOR_NAME_MAX_LEN - 1U);
- * my_gps.base.info.type = SENSOR_TYPE_GPS;
+ * strncpy(my_gps.name, "GPS_AT6558", GPS_NAME_MAX_LEN - 1U);
  * my_gps.config.baudrate = 9600U;
  * my_gps.config.checksum_check = true;
  *
@@ -465,12 +411,12 @@ sensor_err_t gps_set_update_rate(gps_device_t *dev, uint32_t rate_hz);
  *
  * // 读取数据:
  * gps_data_t data;
- * if (gps_read_data(&my_gps, &data) == SENSOR_EOK && data.data_valid) {
+ * if (gps_read_data(&my_gps, &data) == XY_DEVICE_OK && data.data_valid) {
  *     printf("Lat: %.6f, Lon: %.6f, Alt: %.1f\n",
  *            data.latitude, data.longitude, data.altitude);
  * }
  *
- * // 注意: `base.info.name` 是定长数组，不能用 `dev->base.info.name = "..."` 赋值。
+ * // 注意: `name` 是定长数组，不能用 `dev->name = "..."` 赋值。
  */
 
 #endif /* __XY_GPS_H__ */

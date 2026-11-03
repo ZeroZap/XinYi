@@ -6,7 +6,7 @@
 
 - Total C files under `tests/unit`: 212 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
   the sensor-sample slice added `test_sensor_demo_backend_stub.c`, the
-  `components/sensor/example/` slice added `test_sensor_example_bus_stub.c`, the AT URC slice
+  legacy `sensor_example_*` slice added `test_sensor_example_bus_stub.c`, the AT URC slice
   added `test_at_urc_core.c`, the Modbus-Full slave slice added `test_modbus_full_slave.c`, and
   the Modbus-Full master slice added `test_modbus_full_master.c`)
 - Unity-style files: 206 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
@@ -22,7 +22,7 @@
   + `_unit`); the Device-dependency slice took 409 → 411 (`device_bus_dependency` +
   `device_bus_dependency_unit`); the sensor-sample slice took 411 → 412
   (`sensor_device_example`, which compiles and runs `components/sensor/examples/sensor_demo.c`);
-  the `components/sensor/example/` slice took 412 → 415 (`sensor_example_basic`,
+  the legacy `sensor_example_*` slice took 412 → 415 (`sensor_example_basic`,
   `sensor_example_advanced`, `sensor_example_multi`, each compiling and running one of
   `basic.c` / `advanced.c` / `example_multi_sensors.c`); the AT URC slice took 415 → 416 (`at_urc`,
   which compiles `at_urc.c` — previously referenced by no build at all — and runs it against the
@@ -360,18 +360,15 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_mq3_device.c` | `unity` | 0 | MQ-3 canonical Device: raw ADC read, guards, failure atomicity |
 | `tests/unit/sensor/test_mq7_device.c` | `unity` | 0 | MQ-7 canonical Device: raw ADC read, guards, failure atomicity |
 | `tests/unit/sensor/test_apds9960_device.c` | `unity` | 0 | APDS9960 canonical Device identity (`0xAB`/`0x9C`), enable/disable profile, RGB decode, gesture-FIFO level/payload ordering and failure-preservation contracts |
-| `tests/unit/sensor/test_ap3216c_sensor.c` | `unity` | 0 | AP3216C light/proximity/IR init/read/failure guard contracts |
 | `tests/unit/sensor/test_vl53l0x_device.c` | `unity` | 0 | VL53L0X canonical Device identity/read/lifecycle/failure contracts |
 | `tests/unit/sensor/test_acs712_device.c` | `unity` | 0 | ACS712 canonical Device: ADC read to signed current (30A/3.3V datasheet conversion), guards, failure atomicity |
 | `tests/unit/sensor/test_fsr_device.c` | `unity` | 0 | FSR canonical Device: raw ADC read, guards, failure atomicity |
 | `tests/unit/sensor/test_mg811_device.c` | `unity` | 0 | MG811 canonical Device: raw ADC read, guards, failure atomicity |
 
-| `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy `sensor_bmp280.c` pressure/temperature calibration/read/failure contracts |
 | `tests/unit/sensor/test_icm20608_sensor.c` | `unity` | 0 | ICM20608 legacy IMU I2C/SPI identity/init/read/failure contracts |
-| `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS legacy parser GGA/RMC/GSV/checksum/registry contracts; `gps_parse_nmea`/`gps_parse_byte` come from `sensor_gps.h` (they used to be re-declared locally, which is what a header omitting its own driver's API forces), and only the deliberately unpublished legacy `gps_sensor_read()` bridge is still hand-declared. Also pins that `gps_sleep(NULL)`/`gps_wakeup(NULL)` are rejected instead of dereferencing. |
-| `tests/unit/sensor/test_gps_example_tick_stub.c` | `plain/helper` | 0 | Frozen `xy_os_tick_get()` for the `sensor_gps_example` target; not a standalone CTest source. |
+| `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS NMEA parser GGA/RMC/GSV/checksum/registry contracts; `gps_parse_nmea`/`gps_parse_byte` come from `xy_gps.h`. Also pins that `gps_sleep(NULL)`/`gps_wakeup(NULL)` are rejected instead of dereferencing. |
+| `tests/unit/sensor/test_gps_example_tick_stub.c` | `plain/helper` | 0 | Frozen `xy_hal_sys_get_tick_count()` for the `sensor_gps_example` target; not a standalone CTest source. |
 | `tests/unit/sensor/test_sensor_demo_backend_stub.c` | `plain/helper` | 0 | SPI/UART/GPIO/mem-I2C/registry stubs for the `sensor_device_example` target. `components/sensor/examples/sensor_demo.c` supplies the three HAL entry points it asserts on; this file stubs the rest of `xy_device_bus_helpers.c`'s backend so the sample does not have to carry harness code. Returns `NOT_SUPPORTED`, so a driver that switched to one of these paths fails instead of passing against a rubber stamp. |
-| `tests/unit/sensor/test_sensor_example_bus_stub.c` | `plain/helper` | 0 | Backend for the three `sensor_example_*` targets, which build and run `components/sensor/example/{basic,advanced,example_multi_sensors}.c`. Answers `xy_i2c_device_init/read_reg/write_reg/read/write`, `xy_hal_delay_ms`, `xy_hal_sys_get_tick_count` and `xy_os_tick_get/delay`; models one chip (MPU6050 WHO_AM_I + one accel burst at 16384 LSB/g) so `sensor_example_basic` can assert the exact decoded mg triple. The tick only advances on delay calls, so a stuck sample loop is visible instead of masquerading as a zero clock. |
 | `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12 legacy low-power accel init/read/config failure contracts |
 | `tests/unit/sensor/test_st_silan_accel_sensors.c` | `unity` | 0 | LIS2DH12/LIS2DW12 legacy accel init/read/config failure contracts |
 | `tests/unit/sensor/test_cmm905_device.c` | `unity` | 0 | CMM905 canonical Device: identity/init/read (6 single-byte registers)/deinit, raw readings, failure preservation and fail-closed contracts |

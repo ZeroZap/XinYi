@@ -29,9 +29,9 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 17 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 18 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 14 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 15 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 5 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 60 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 61 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
 2026-09-27 追加 Host contract：legacy `sensor_device_t` compatibility wrapper 公开 guarded range setter，只有 canonical Device owner 寄存器写成功后才原子更新 `range_min/range_max`，并复用 owner 的 range-aware mg scaling；非法编码或 transport failure 保持 wrapper metadata 与 owner cache。该补充不升级动态响应、精度、校准、恢复或 endurance 证据。
 
@@ -265,14 +265,20 @@ and board recovery remain pending.
 
 The Device-model source is now the single active implementation owner and carries the
 Bosch integer compensation, both documented I2C addresses, init/deinit I/O propagation, cached
-output preservation, and status-returning getter contracts. The root-linked `sensor_bmp280.c` is a
-compatibility-only pressure/temperature wrapper that delegates lifecycle and sampling to this
-owner. The unreferenced fourth-lifecycle prototype
+output preservation, and status-returning getter contracts. The legacy root-linked
+`sensor_bmp280.c` compatibility-only pressure/temperature wrapper is retired: it delegated
+lifecycle and sampling to this owner and preserved legacy metadata/units/error mapping at the
+wrapper boundary, while the canonical owner's focused Device test (`test_bmp280_device.c`:
+both-address init + calibration parse, per-transaction I/O-failure propagation, Bosch compensated
+sample, cached-output preservation, re-init/deinit atomicity, and missing-transport rejection
+without bus I/O) already asserts the full protocol contract. The unreferenced fourth-lifecycle
+prototype
 `components/sensor/drivers/pressure/xy_sensor_bmp280.c` has been retired, and the tracked smart
 hygrometer example now compiles the canonical owner through its explicit-address API instead of a
 missing experimental source. The ownership policy guard prevents both stale paths from returning.
 Public read/getter/deinit paths now require a live nested I2C handle, and successful deinit clears
-that handle so stale lifecycle state cannot authorize access. Focused Device, legacy and heterogeneous registry tests prove Host/source ownership only; accuracy,
+that handle so stale lifecycle state cannot authorize access. Focused Device and heterogeneous
+registry tests prove Host/source ownership only; accuracy,
 timing, recovery and board status remain pending.
 
 ### AHT20 migration status
@@ -311,8 +317,12 @@ timing, NACK-recovery or long-run claim.
 ### AP3216C migration status
 
 The Device-model source under `components/drivers/sensor/light/ap3216c` now owns reset/mode
-configuration and ALS, proximity and IR register decoding. Root-linked `sensor_ap3216c.c` remains
-only as a compatibility wrapper for the legacy factories and contains no direct I2C protocol.
+configuration and ALS, proximity and IR register decoding. The legacy root-linked
+`sensor_ap3216c.c` compatibility wrapper is retired: it delegated the legacy light/proximity/IR
+factories to this owner and contained no direct I2C protocol, while the canonical owner's focused
+Device test (`test_ap3216c_device.c`: atomic init/deinit, complete-transport requirement with
+re-init owner preservation, per-channel decode and cache commit, failure output/cache preservation
+with stopped I/O, and outer+nested lifecycle rejection) already asserts the full contract.
 The owner also requires both nested `base.initialized` and `i2c_handle` before any public operation;
 stale lifecycle state cannot authorize bus access. Existing Pandora AP3216C B1 evidence remains
 bounded; this migration adds no accuracy, threshold, NACK-recovery or long-run claim.
@@ -670,11 +680,11 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 58 canonical names have exactly seventeen approved legacy filename overlaps:
-`mpu6050`, `bmp280`, `aht20`, `ap3216c`, `icm20608`, `max44009`, `qmc5883l`, `ak09918`, `ist8310`,
+The current 60 canonical names have exactly fifteen approved legacy filename overlaps:
+`mpu6050`, `aht20`, `icm20608`, `max44009`, `qmc5883l`, `ak09918`, `ist8310`,
 `bma400`, `kx023`, `adxl362`, `lsm6dso`, `lsm6dsl`, `lsm6dsr`, `lis2dh12`, and `lis2dw12`. Each
 overlap is a compatibility wrapper documented above, not an implementation owner. The other
-forty-one canonical owners have no legacy-root counterpart. No canonical name overlaps
+forty-five canonical owners have no legacy-root counterpart. No canonical name overlaps
 the 5 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was

@@ -7,9 +7,10 @@
  * NMEA 协议解析驱动，适用于 AT6558、LC86L、UBLOX 等 GPS 模块
  */
 
-#include "sensor_gps.h"
-#include "sensor_core.h"
+#include "xy_gps.h"
+#include "xy_hal_sys.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
@@ -48,7 +49,7 @@ static bool gps_validate_checksum(const char *nmea_str)
 /**
  * @brief   解析 NMEA GGA 语句 (定位数据)
  */
-static sensor_err_t gps_parse_gga(gps_device_t *dev, const char *gga_str)
+static xy_error_t gps_parse_gga(gps_device_t *dev, const char *gga_str)
 {
     char fields[GPSgga_MAX_FIELDS][32];
     int field_count = 0;
@@ -62,7 +63,7 @@ static sensor_err_t gps_parse_gga(gps_device_t *dev, const char *gga_str)
     }
 
     if (field_count < 11) {
-        return SENSOR_ERROR;
+        return XY_DEVICE_ERROR;
     }
 
     /* 时间 (UTC) */
@@ -115,16 +116,16 @@ static sensor_err_t gps_parse_gga(gps_device_t *dev, const char *gga_str)
     if (dev->data.data_valid) {
         dev->data.status_flags |= GPS_FLAG_FIXED;
         dev->last_valid_data = dev->data;
-        dev->last_valid_time = sensor_get_tick();
+        dev->last_valid_time = xy_hal_sys_get_tick_count();
     }
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
 /**
  * @brief   解析 NMEA RMC 语句 (推荐最小定位)
  */
-static sensor_err_t gps_parse_rmc(gps_device_t *dev, const char *rmc_str)
+static xy_error_t gps_parse_rmc(gps_device_t *dev, const char *rmc_str)
 {
     char fields[12][32];
     int field_count = 0;
@@ -138,7 +139,7 @@ static sensor_err_t gps_parse_rmc(gps_device_t *dev, const char *rmc_str)
     }
 
     if (field_count < 10) {
-        return SENSOR_ERROR;
+        return XY_DEVICE_ERROR;
     }
 
     /* 时间 */
@@ -187,13 +188,13 @@ static sensor_err_t gps_parse_rmc(gps_device_t *dev, const char *rmc_str)
         dev->data.year = 2000 + (fields[9][4] - '0') * 10 + (fields[9][5] - '0');
     }
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
 /**
  * @brief   解析 NMEA VTG 语句 (地面速度)
  */
-static sensor_err_t gps_parse_vtg(gps_device_t *dev, const char *vtg_str)
+static xy_error_t gps_parse_vtg(gps_device_t *dev, const char *vtg_str)
 {
     char fields[10][32];
     int field_count = 0;
@@ -207,7 +208,7 @@ static sensor_err_t gps_parse_vtg(gps_device_t *dev, const char *vtg_str)
     }
 
     if (field_count < 9) {
-        return SENSOR_ERROR;
+        return XY_DEVICE_ERROR;
     }
 
     /* 航向角 */
@@ -221,13 +222,13 @@ static sensor_err_t gps_parse_vtg(gps_device_t *dev, const char *vtg_str)
         dev->data.speed = speed_kmh / 3.6f;  // 转换为 m/s
     }
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
 /**
  * @brief   解析 NMEA GSV 语句 (可见卫星)
  */
-static sensor_err_t gps_parse_gsv(gps_device_t *dev, const char *gsv_str)
+static xy_error_t gps_parse_gsv(gps_device_t *dev, const char *gsv_str)
 {
     char fields[24][32];
     int field_count = 0;
@@ -241,7 +242,7 @@ static sensor_err_t gps_parse_gsv(gps_device_t *dev, const char *gsv_str)
     }
 
     if (field_count < 8) {
-        return SENSOR_ERROR;
+        return XY_DEVICE_ERROR;
     }
 
     /* 可见卫星总数 */
@@ -264,18 +265,18 @@ static sensor_err_t gps_parse_gsv(gps_device_t *dev, const char *gsv_str)
         field_offset += 4;
     }
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
 /**
  * @brief   解析单个 NMEA 语句
  */
-sensor_err_t gps_parse_nmea(gps_device_t *dev, const char *nmea_str, uint16_t len)
+xy_error_t gps_parse_nmea(gps_device_t *dev, const char *nmea_str, uint16_t len)
 {
     char sentence[GPS_NMEA_BUF_SIZE];
 
     if (dev == NULL || nmea_str == NULL || len == 0) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     /* 各语句解析器用 strtok() 切分字段，而 strtok() 会**写回**它切分的缓冲区。
@@ -283,7 +284,7 @@ sensor_err_t gps_parse_nmea(gps_device_t *dev, const char *nmea_str, uint16_t le
      * 字面量（最自然的用法）时那是一次只读页写入，实测直接 SIGSEGV。这里解析
      * 一份有界本地副本；放不下的语句明确拒绝而不是截断，因为截断会改变字段布局。 */
     if (len >= GPS_NMEA_BUF_SIZE) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
     memcpy(sentence, nmea_str, len);
     sentence[len] = '\0';
@@ -291,7 +292,7 @@ sensor_err_t gps_parse_nmea(gps_device_t *dev, const char *nmea_str, uint16_t le
     /* 校验和检查 (可选) */
     if (dev->config.checksum_check && !gps_validate_checksum(sentence)) {
         dev->parse_errors++;
-        return SENSOR_ERROR;
+        return XY_DEVICE_ERROR;
     }
 
     /* 识别 NMEA 语句类型 */
@@ -305,16 +306,16 @@ sensor_err_t gps_parse_nmea(gps_device_t *dev, const char *nmea_str, uint16_t le
         return gps_parse_gsv(dev, sentence);
     }
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
 /**
  * @brief   按字节解析 NMEA 数据
  */
-sensor_err_t gps_parse_byte(gps_device_t *dev, uint8_t byte)
+xy_error_t gps_parse_byte(gps_device_t *dev, uint8_t byte)
 {
     if (dev == NULL) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     /* 寻找句子开始 */
@@ -339,18 +340,18 @@ sensor_err_t gps_parse_byte(gps_device_t *dev, uint8_t byte)
         dev->nmea_buf_idx = 0;
     }
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
 /* ==================== GPS 读取 ==================== */
-sensor_err_t gps_read_data(gps_device_t *dev, gps_data_t *data)
+xy_error_t gps_read_data(gps_device_t *dev, gps_data_t *data)
 {
     if (dev == NULL || data == NULL) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     *data = dev->data;
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
 /* ==================== GPS 工具函数 ==================== */
@@ -387,33 +388,33 @@ float gps_bearing(double lat1, double lon1, double lat2, double lon2)
 }
 
 /* ==================== GPS 设备注册 ==================== */
-sensor_err_t gps_register(gps_device_t *dev)
+xy_error_t gps_register(gps_device_t *dev)
 {
     if (dev == NULL) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     if (g_gps_count >= GPS_SATELLITE_MAX) {
-        return SENSOR_ENOMEM;
+        return XY_DEVICE_NO_MEM;
     }
 
     /* 检查重名 */
     for (int i = 0; i < g_gps_count; i++) {
-        if (strcmp(g_gps_devices[i]->base.info.name, dev->base.info.name) == 0) {
-            return SENSOR_EINVAL;
+        if (strcmp(g_gps_devices[i]->name, dev->name) == 0) {
+            return XY_DEVICE_INVALID_PARAM;
         }
     }
 
     g_gps_devices[g_gps_count++] = dev;
-    dev->base.status = SENSOR_STATUS_READY;
+    dev->status = GPS_STATUS_READY;
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
-sensor_err_t gps_unregister(gps_device_t *dev)
+xy_error_t gps_unregister(gps_device_t *dev)
 {
     if (dev == NULL) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     for (int i = 0; i < g_gps_count; i++) {
@@ -423,12 +424,12 @@ sensor_err_t gps_unregister(gps_device_t *dev)
                 g_gps_devices[j] = g_gps_devices[j + 1];
             }
             g_gps_count--;
-            dev->base.status = SENSOR_STATUS_IDLE;
-            return SENSOR_EOK;
+            dev->status = GPS_STATUS_IDLE;
+            return XY_DEVICE_OK;
         }
     }
 
-    return SENSOR_ENODEV;
+    return XY_DEVICE_NOT_FOUND;
 }
 
 gps_device_t *gps_find(const char *name)
@@ -438,7 +439,7 @@ gps_device_t *gps_find(const char *name)
     }
 
     for (int i = 0; i < g_gps_count; i++) {
-        if (strcmp(g_gps_devices[i]->base.info.name, name) == 0) {
+        if (strcmp(g_gps_devices[i]->name, name) == 0) {
             return g_gps_devices[i];
         }
     }
@@ -452,27 +453,27 @@ uint8_t gps_get_count(void)
 }
 
 /* ==================== GPS 功耗管理 ==================== */
-sensor_err_t gps_sleep(gps_device_t *dev)
+xy_error_t gps_sleep(gps_device_t *dev)
 {
     if (dev == NULL) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     /* 发送待机命令到 GPS 模块 */
     /* 具体实现依赖硬件 */
-    dev->base.status = SENSOR_STATUS_IDLE;
-    return SENSOR_EOK;
+    dev->status = GPS_STATUS_IDLE;
+    return XY_DEVICE_OK;
 }
 
-sensor_err_t gps_wakeup(gps_device_t *dev)
+xy_error_t gps_wakeup(gps_device_t *dev)
 {
     if (dev == NULL) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     /* 唤醒 GPS 模块 */
-    dev->base.status = SENSOR_STATUS_READY;
-    return SENSOR_EOK;
+    dev->status = GPS_STATUS_READY;
+    return XY_DEVICE_OK;
 }
 
 /* ==================== 查询函数 ==================== */
@@ -484,13 +485,13 @@ bool gps_is_fixed(gps_device_t *dev)
     return (dev->data.data_valid && dev->data.quality > GPS_QUALITY_INVALID);
 }
 
-sensor_err_t gps_get_position(gps_device_t *dev, double *lat, double *lon, float *alt)
+xy_error_t gps_get_position(gps_device_t *dev, double *lat, double *lon, float *alt)
 {
     if (dev == NULL) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
     if (!gps_is_fixed(dev)) {
-        return SENSOR_ERROR;
+        return XY_DEVICE_ERROR;
     }
 
     /* 与 gps_get_satellites()/gps_get_dop() 同一约定：不关心的输出可以传 NULL。*/
@@ -498,13 +499,13 @@ sensor_err_t gps_get_position(gps_device_t *dev, double *lat, double *lon, float
     if (lon) *lon = dev->data.longitude;
     if (alt) *alt = dev->data.altitude;
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
-sensor_err_t gps_get_time(gps_device_t *dev, uint32_t *timestamp)
+xy_error_t gps_get_time(gps_device_t *dev, uint32_t *timestamp)
 {
     if (dev == NULL || timestamp == NULL) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     /* 构建 Unix 时间戳 (简化版) */
@@ -521,50 +522,50 @@ sensor_err_t gps_get_time(gps_device_t *dev, uint32_t *timestamp)
     *timestamp = days * 86400UL + dev->data.hour * 3600UL +
                 dev->data.minute * 60UL + dev->data.second;
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
-sensor_err_t gps_get_satellites(gps_device_t *dev, uint8_t *count,
+xy_error_t gps_get_satellites(gps_device_t *dev, uint8_t *count,
                                 uint8_t *satellites_used, uint8_t *satellites_visible)
 {
     if (dev == NULL) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     if (count) *count = dev->satellite_count;
     if (satellites_used) *satellites_used = dev->data.satellites_used;
     if (satellites_visible) *satellites_visible = dev->satellite_count;
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
-sensor_err_t gps_get_dop(gps_device_t *dev, float *hdop, float *pdop, float *vdop)
+xy_error_t gps_get_dop(gps_device_t *dev, float *hdop, float *pdop, float *vdop)
 {
     if (dev == NULL) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     if (hdop) *hdop = dev->data.hdop;
     if (pdop) *pdop = dev->data.pdop;
     if (vdop) *vdop = dev->data.vdop;
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
 /* ==================== GPS 命令发送 ==================== */
-sensor_err_t gps_send_command(gps_device_t *dev, const char *cmd, uint16_t len)
+xy_error_t gps_send_command(gps_device_t *dev, const char *cmd, uint16_t len)
 {
     (void)dev;
     (void)cmd;
     (void)len;
     /* 实现依赖具体 UART 驱动 */
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
-sensor_err_t gps_set_baudrate(gps_device_t *dev, uint32_t baudrate)
+xy_error_t gps_set_baudrate(gps_device_t *dev, uint32_t baudrate)
 {
     if (dev == NULL) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     dev->config.baudrate = baudrate;
@@ -574,13 +575,13 @@ sensor_err_t gps_set_baudrate(gps_device_t *dev, uint32_t baudrate)
     snprintf(cmd, sizeof(cmd), "$PCFG,115200,8,N,1,0*...\r\n");
     /* 实际实现需要根据模块类型 */
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
-sensor_err_t gps_set_update_rate(gps_device_t *dev, uint32_t rate_hz)
+xy_error_t gps_set_update_rate(gps_device_t *dev, uint32_t rate_hz)
 {
     if (dev == NULL || rate_hz == 0 || rate_hz > 10) {
-        return SENSOR_EINVAL;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     dev->config.update_rate = rate_hz;
@@ -589,7 +590,7 @@ sensor_err_t gps_set_update_rate(gps_device_t *dev, uint32_t rate_hz)
     char cmd[32];
     snprintf(cmd, sizeof(cmd), "$PUBX,41,1,0007,0001,%u,0*..\r\n", (unsigned)rate_hz);
 
-    return SENSOR_EOK;
+    return XY_DEVICE_OK;
 }
 
 /* ==================== 获取运行时间 ==================== */
@@ -598,35 +599,5 @@ uint32_t gps_get_uptime(gps_device_t *dev)
     if (dev == NULL) {
         return 0;
     }
-    return sensor_get_tick() - dev->last_update_time;
-}
-
-/* ==================== 获取 sensor_device (兼容框架) ==================== */
-sensor_err_t gps_sensor_read(sensor_device_t *sensor, sensor_data_t *data)
-{
-    if (sensor == NULL || data == NULL) {
-        return SENSOR_EINVAL;
-    }
-
-    gps_device_t *gps = (gps_device_t *)sensor;
-    gps_data_t gps_data;
-
-    gps_read_data(gps, &gps_data);
-
-    data->type = SENSOR_TYPE_GPS;
-    data->unit = SENSOR_UNIT_DEGREE_PER_SECOND;
-    data->timestamp = sensor_get_tick();
-
-    if (gps_data.data_valid) {
-        /* 存储为 3 轴格式: lat, lon, alt */
-        data->value.val_3axis.x = (int32_t)(gps_data.latitude * 1e6);
-        data->value.val_3axis.y = (int32_t)(gps_data.longitude * 1e6);
-        data->value.val_3axis.z = (int32_t)(gps_data.altitude * 1000);
-    } else {
-        data->value.val_3axis.x = 0;
-        data->value.val_3axis.y = 0;
-        data->value.val_3axis.z = 0;
-    }
-
-    return SENSOR_EOK;
+    return xy_hal_sys_get_tick_count() - dev->last_update_time;
 }

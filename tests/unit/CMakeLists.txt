@@ -1480,34 +1480,12 @@ target_include_directories(test_vl53l0x_device BEFORE PRIVATE
     ${DRV}/sensor/distance/vl53l0x
 )
 
-xy_add_unit_test(test_ap3216c_sensor sensor_ap3216c_sensor UNITY
-    ${UNIT_SENSOR}/test_ap3216c_sensor.c
-    ${SENSOR}/sensors/sensor_ap3216c.c
-    ${DRV}/sensor/light/ap3216c/xy_ap3216c.c
-)
-target_include_directories(test_ap3216c_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/light/ap3216c
-)
-
 xy_add_unit_test(test_ap3216c_device sensor_ap3216c_device UNITY
     ${UNIT_SENSOR}/test_ap3216c_device.c
     ${DRV}/sensor/light/ap3216c/xy_ap3216c.c
 )
 target_include_directories(test_ap3216c_device BEFORE PRIVATE
     ${DRV}/sensor/light/ap3216c
-)
-
-xy_add_unit_test(test_bmp280_sensor sensor_bmp280 UNITY
-    ${UNIT_SENSOR}/test_bmp280_sensor.c
-    ${SENSOR}/sensors/sensor_bmp280.c
-    ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
-)
-target_include_directories(test_bmp280_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/pressure/bmp280
 )
 
 xy_add_unit_test(test_icm20608_sensor sensor_icm20608 UNITY
@@ -1557,11 +1535,10 @@ target_include_directories(test_lsm6_imu_sensors BEFORE PRIVATE
 
 xy_add_unit_test(test_gps sensor_gps UNITY
     ${UNIT_SENSOR}/test_gps.c
-    ${SENSOR}/sensors/sensor_gps.c
+    ${DRV}/sensor/position/gps/xy_gps.c
 )
 target_include_directories(test_gps BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
+    ${DRV}/sensor/position/gps
 )
 target_link_libraries(test_gps PRIVATE m)
 
@@ -1573,13 +1550,12 @@ target_link_libraries(test_gps PRIVATE m)
 # array). It is compiled and executed here, and implicit declarations are
 # errors, so the sample cannot keep teaching a surface that is not published.
 xy_add_unit_test(test_gps_example sensor_gps_example
-    ${SENSOR}/examples/gps_example.c
-    ${SENSOR}/sensors/sensor_gps.c
+    ${DRV}/sensor/position/gps/gps_example.c
+    ${DRV}/sensor/position/gps/xy_gps.c
     ${UNIT_SENSOR}/test_gps_example_tick_stub.c
 )
 target_include_directories(test_gps_example BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
+    ${DRV}/sensor/position/gps
     ${ROOT}/components/kernel/osal
     ${ROOT}/components/clib/xy_clib
 )
@@ -1613,140 +1589,11 @@ target_compile_options(test_sensor_device_example PRIVATE
     -Wall -Wextra -Werror=implicit-function-declaration
 )
 
-# --- The three `components/sensor/example/` samples as build-and-run guards ---
-# None of them was compiled by any target or makefile in the tree, and the makefile that lived
-# beside them could not have worked either: it named `sensor_core.c`, the seven drivers and
-# `example_basic.c`/`example_advanced.c` as if they sat in that directory (the sources are one and
-# two levels up, and the files are `basic.c`/`advanced.c`), and it declared the `examples:` target
-# twice so the multi-sensor demo was unreachable. Two of the three were also unlinkable - only
-# `basic.c` defined the HAL hooks `sensor_config.h` declares (`delay_ms`, `get_tick_ms`,
-# `hal_i2c_mem_read`, `hal_i2c_mem_write`) - and all three handed `NULL` to `*_create_*()`, which
-# rejects a NULL bus, so every sample died on its first call while `main` still returned 0.
-#
-# They now run against the real legacy core, the legacy wrapper and the canonical driver, with
-# `test_sensor_example_bus_stub.c` modelling the MPU6050 registers (WHO_AM_I + one accel burst at
-# 16384 LSB/g). `sensor_example_basic` therefore asserts the exact mg triple that burst decodes to;
-# changing a register or the scaling breaks the match instead of passing silently.
-xy_add_unit_test(test_sensor_example_basic sensor_example_basic
-    ${SENSOR}/example/basic.c
-    ${SENSOR}/sensor_core.c
-    ${SENSOR}/sensor_calibration.c
-    ${SENSOR}/sensor_filter.c
-    ${SENSOR}/sensor_threshold.c
-    ${SENSOR}/sensors/sensor_mpu6050.c
-    ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
-    ${UNIT_SENSOR}/test_sensor_example_bus_stub.c
-)
-target_include_directories(test_sensor_example_basic BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DEV}/inc
-    ${DRV}/sensor/motion/mpu6050
-    ${ROOT}/components/hal/inc
-    ${ROOT}/components/trace
-    ${ROOT}/components/trace/xy_log/inc
-    ${ROOT}/components/clib/xy_clib
-    ${ROOT}/components/kernel/osal
-)
-target_compile_options(test_sensor_example_basic PRIVATE
-    -Wall -Wextra -Werror=implicit-function-declaration
-)
-target_link_libraries(test_sensor_example_basic m)
-set_tests_properties(sensor_example_basic PROPERTIES
-    PASS_REGULAR_EXPRESSION "Accel: X=1000, Y=-1000, Z=500 mg")
-
-xy_add_unit_test(test_sensor_example_advanced sensor_example_advanced
-    ${SENSOR}/example/advanced.c
-    ${SENSOR}/sensor_core.c
-    ${SENSOR}/sensor_calibration.c
-    ${SENSOR}/sensor_filter.c
-    ${SENSOR}/sensor_threshold.c
-    ${SENSOR}/sensor_fifo.c
-    ${SENSOR}/sensor_interrupt.c
-    ${SENSOR}/sensor_fusion.c
-    ${SENSOR}/sensor_power.c
-    ${SENSOR}/sensor_self_test.c
-    ${SENSOR}/sensor_moton.c
-    ${SENSOR}/sensors/sensor_mpu6050.c
-    ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
-    ${UNIT_SENSOR}/test_sensor_example_bus_stub.c
-)
-target_include_directories(test_sensor_example_advanced BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DEV}/inc
-    ${DRV}/sensor/motion/mpu6050
-    ${ROOT}/components/hal/inc
-    ${ROOT}/components/trace
-    ${ROOT}/components/trace/xy_log/inc
-    ${ROOT}/components/clib/xy_clib
-    ${ROOT}/components/kernel/osal
-)
-target_compile_options(test_sensor_example_advanced PRIVATE
-    -Wall -Wextra -Werror=implicit-function-declaration
-    # This is the only target that compiles `sensor_fusion.c` with warnings enabled, and doing so
-    # is what exposed its `*(long *)&y` fast-inverse-sqrt: on a 64-bit host that reads 8 bytes out
-    # of a 4-byte float (ASan: stack-buffer-overflow) and breaks strict aliasing. Keeping these
-    # three as errors means the same defect cannot come back quietly through this path.
-    -Werror=array-bounds
-    -Werror=uninitialized
-    -Werror=strict-aliasing
-)
-target_link_libraries(test_sensor_example_advanced m)
-# The tour ends with this line only if it walked every enabled feature block; the self-test block
-# is expected to *report* a failure against the synthetic burst, which is the driver's own
-# judgement and stays visible in the output rather than being asserted away here.
-set_tests_properties(sensor_example_advanced PROPERTIES
-    PASS_REGULAR_EXPRESSION "All examples completed!")
-
-xy_add_unit_test(test_sensor_example_multi sensor_example_multi
-    ${SENSOR}/example/example_multi_sensors.c
-    ${SENSOR}/sensor_core.c
-    ${SENSOR}/sensor_calibration.c
-    ${SENSOR}/sensor_filter.c
-    ${SENSOR}/sensor_threshold.c
-    ${SENSOR}/sensor_fifo.c
-    ${SENSOR}/sensor_fusion.c
-    ${SENSOR}/sensors/sensor_mpu6050.c
-    ${SENSOR}/sensors/sensor_aht20.c
-    ${SENSOR}/sensors/sensor_bmp280.c
-    ${SENSOR}/sensors/sensor_ap3216c.c
-    ${SENSOR}/sensors/sensor_qmc5883l.c
-    ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
-    ${DRV}/sensor/temperature/aht20/xy_aht20.c
-    ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
-    ${DRV}/sensor/light/ap3216c/xy_ap3216c.c
-    ${DRV}/sensor/magnetic/qmc5883l/xy_qmc5883l.c
-    ${UNIT_SENSOR}/test_sensor_example_bus_stub.c
-)
-target_include_directories(test_sensor_example_multi BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DEV}/inc
-    ${DRV}/sensor/motion/mpu6050
-    ${DRV}/sensor/motion/icm20608
-    ${DRV}/sensor/motion/sc7a20
-    ${DRV}/sensor/temperature/aht20
-    ${DRV}/sensor/pressure/bmp280
-    ${DRV}/sensor/light/ap3216c
-    ${DRV}/sensor/magnetic/qmc5883l
-    ${ROOT}/components/hal/inc
-    ${ROOT}/components/trace
-    ${ROOT}/components/trace/xy_log/inc
-    ${ROOT}/components/clib/xy_clib
-    ${ROOT}/components/kernel/osal
-)
-target_compile_options(test_sensor_example_multi PRIVATE
-    -Wall -Wextra -Werror=implicit-function-declaration
-)
-target_link_libraries(test_sensor_example_multi m)
-# Seven of the eight handles register; BMP280 stays out because the stub publishes no pressure
-# chip ID, and the sample already prints that outcome honestly. The assertion is that the tour
-# reached its end with the framework intact, not that a fake chip answered.
-set_tests_properties(sensor_example_multi PROPERTIES
-    PASS_REGULAR_EXPRESSION "Demo completed!")
-
-
+# The three `components/sensor/example/` samples were retired with the legacy framework: they
+# demonstrated the `sensor_device_t` factories (`*_create_*()` / `sensor_register` / `sensor_init`)
+# that the canonical Device model replaces, and were the last non-test consumers of the legacy
+# `sensor_mpu6050`/`sensor_aht20`/`sensor_bmp280`/`sensor_ap3216c`/`sensor_qmc5883l` wrappers.
+# The canonical path is demonstrated by `sensor_device_example` (`components/sensor/examples/sensor_demo.c`).
 xy_add_unit_test(test_magnetic_i2c_sensors sensor_magnetic_i2c_sensors UNITY
     ${UNIT_SENSOR}/test_magnetic_i2c_sensors.c
     ${SENSOR}/sensors/sensor_qmc5883l.c

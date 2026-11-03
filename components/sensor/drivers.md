@@ -96,7 +96,7 @@
 
 | 型号 | 类型 | 接口 | 精度 | 文件 |
 |------|------|------|------|------|
-| BMP280 | 气压+温度 | I2C/SPI | ±1hPa | sensor_bmp280.c |
+| BMP280 | 气压+温度 | I2C/SPI | ±1hPa | drivers/sensor/pressure/bmp280/xy_bmp280.c |
 | BME280 | 气压+温湿 | I2C/SPI | ±1hPa | sensor_bme280.c |
 | LPS22HB | 气压 | I2C/SPI | ±0.025hPa | - |
 | MS5837 | 水压 | I2C | 高精度 | - |
@@ -105,7 +105,7 @@
 
 | 型号 | 类型 | 接口 | 特性 | 文件 |
 |------|------|------|------|------|
-| AP3216C | ALS+PS+IR | I2C | 三合一 | sensor_ap3216c.c |
+| AP3216C | ALS+PS+IR | I2C | 三合一 | drivers/sensor/light/ap3216c/xy_ap3216c.c |
 | APDS9960 | RGB+Gesture | I2C | 手势识别 | drivers/sensor/proximity/apds9960/xy_apds9960.c |
 | VCNL4040 | ALS+PS | I2C | 高灵敏度 | - |
 | ISL29035 | ALS | I2C | 低功耗 | - |
