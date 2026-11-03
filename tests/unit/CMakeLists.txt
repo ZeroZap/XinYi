@@ -104,45 +104,45 @@ add_test(NAME osal_backend_advertise
     COMMAND python3 ${UNIT_HAL}/check_osal_backend_advertise.py)
 
 add_test(NAME osal_backend_advertise_unit
-    COMMAND python3 ${UNIT_HAL}/test_osal_backend_advertise.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_osal_backend_advertise.py)
 
 add_test(NAME hal_pc_coverage
     COMMAND python3 ${UNIT_HAL}/check_hal_pc_coverage.py)
 
 add_test(NAME hal_pc_coverage_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_pc_coverage.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_pc_coverage.py)
 
 add_test(NAME hal_dma_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_dma_contract.py)
 
 add_test(NAME hal_dma_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_dma_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_dma_contract.py)
 
 add_test(NAME hal_timer_irq_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_timer_irq_contract.py)
 
 add_test(NAME hal_timer_irq_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_timer_irq_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_timer_irq_contract.py)
 
 add_test(NAME hal_stub_returns
     COMMAND python3 ${UNIT_HAL}/check_hal_stub_returns.py)
 
 add_test(NAME hal_stub_returns_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_stub_returns.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_stub_returns.py)
 
 # The ADDC guide quotes a per-backend coverage table; this is the number behind it.
 add_test(NAME hal_adc_dac_surface
     COMMAND python3 ${UNIT_HAL}/check_hal_adc_dac_surface.py)
 
 add_test(NAME hal_adc_dac_surface_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_adc_dac_surface.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_adc_dac_surface.py)
 
 # `xy_hal.h` is the HAL's front door; this pins that it actually exports every peripheral header.
 add_test(NAME hal_umbrella_coverage
     COMMAND python3 ${UNIT_HAL}/check_hal_umbrella_coverage.py)
 
 add_test(NAME hal_umbrella_coverage_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_umbrella_coverage.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_umbrella_coverage.py)
 
 # Each HAL header has to compile alone; the umbrella hid a missing `<stddef.h>` for as long as nothing
 # compiled `xy_hal_dac.h` on its own.
@@ -155,25 +155,25 @@ add_test(NAME hal_spi_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_spi_contract.py)
 
 add_test(NAME hal_spi_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_spi_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_spi_contract.py)
 
 add_test(NAME hal_rtc_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_rtc_contract.py)
 
 add_test(NAME hal_rtc_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_rtc_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_rtc_contract.py)
 
 add_test(NAME hal_i2c_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_i2c_contract.py)
 
 add_test(NAME hal_i2c_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_i2c_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_i2c_contract.py)
 
 add_test(NAME hal_uart_blocking_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_uart_blocking_contract.py)
 
 add_test(NAME hal_uart_blocking_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_uart_blocking_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_uart_blocking_contract.py)
 
 add_test(NAME pandora_board_guard_unit
     COMMAND python3 ${UNIT_HAL}/test_pandora_board_guard.py)
@@ -182,7 +182,7 @@ add_test(NAME board_irq_vectors
     COMMAND python3 ${UNIT_HAL}/check_board_irq_vectors.py)
 
 add_test(NAME board_irq_vectors_unit
-    COMMAND python3 ${UNIT_HAL}/test_board_irq_vectors.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_board_irq_vectors.py)
 
 add_test(NAME stm32f4_uart_wrapper_contract
     COMMAND python3 ${UNIT_HAL}/check_stm32f4_uart_wrapper_contract.py
@@ -2210,7 +2210,7 @@ add_test(NAME single_comment_stripper
     COMMAND python3 ${UNIT_SUPPORT}/check_single_comment_stripper.py)
 
 add_test(NAME single_comment_stripper_unit
-    COMMAND python3 ${UNIT_SUPPORT}/test_single_comment_stripper.py)
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_single_comment_stripper.py)
 
 add_test(NAME support_source_scan
     COMMAND python3 ${UNIT_SUPPORT}/test_source_scan.py)
@@ -2257,7 +2257,7 @@ add_test(NAME guards_read_code
     COMMAND python3 ${UNIT_SUPPORT}/check_guards_read_code.py)
 
 add_test(NAME guards_read_code_unit
-    COMMAND python3 ${UNIT_SUPPORT}/test_guards_read_code.py)
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_guards_read_code.py)
 
 add_test(NAME doc_api_symbols
     COMMAND python3 ${UNIT_SUPPORT}/check_doc_api_symbols.py)

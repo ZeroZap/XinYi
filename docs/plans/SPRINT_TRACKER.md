@@ -3483,3 +3483,20 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - **一跑就抓出 51 个真没自测的 checker**（hal_component 17、kernel 15、crypto 5、release/evidence 9、pm 2、sensor/net/display 3）。这 51 个 `check_*.py` 既没有 `test_check_<topic>` 也没有 `test_<topic>`，是 deepseek-flash 时代写守卫没配自测留下的欠账。逐个写自测是后续多个 slice 的活，本切片先用 `SELF_TEST_EXEMPT` 以逐条理由登记（表本身就是审计：漏一个就红、理由空就红、配上了自测则条目过期报红——与 `GUARD_EXEMPT`/`CI_EXEMPT` 同款口径）。
 - 自证：新规则的自测 6 例（无自测报红 / 两套命名各算配对 / 豁免有理由通过 / 豁免无理由报红 / 空走查报红），元守卫自测 **32 → 38**；变异验证：把 `_paired_self_test` 改成恒返回有自测 → 2 例失败被拦。
 - 边界：`_paired_self_test` 只认这两个候选名。如果哪个 checker 的自测起了第三个名字，会被误报为缺自测——这是规则的名字边界，和它要抓的"命名有两套"是同一性质的问题，先如实记录。
+
+### 2026-11-03 统一自测命名：两套约定收敛成一套
+
+- 上一轮发现仓库里 checker 的自测命名有两套：`tests/unit/support/` 用 `check_<topic>` ↔ `test_check_<topic>`，
+  `hal_component/` 等用 `check_<topic>` ↔ `test_<topic>`（不带 check_）。规则为兼容两者写成了两个分支。
+- 本切片统一到 **`test_check_<topic>`**（显式无歧义），迁移了 **14 个**仍用旧命名的自测：
+  `hal_component/` 12 个（board_irq_vectors、hal_adc_dac_surface、hal_dma_contract、hal_i2c_contract、
+  hal_pc_coverage、hal_rtc_contract、hal_spi_contract、hal_stub_returns、hal_timer_irq_contract、
+  hal_uart_blocking_contract、hal_umbrella_coverage、osal_backend_advertise）+ `support/` 2 个
+  （guards_read_code、single_comment_stripper）。
+- 改动的引用点：`tests/unit/CMakeLists.txt` 14 条 COMMAND；`check_guards_read_code.py` 的 EXEMPTIONS 一处
+  （`test_osal_backend_advertise.py`）。build/ 下的 `CTestTestfile.cmake` 是 cmake 生成的，不手改；
+  SPRINT_TRACKER 里的历史散文不改（改历史会让追溯失效）。
+- 规则收口：`_paired_self_test` 从"两套都认"简化为"只认 `test_check_<topic>`"，docstring 写明旧约定已迁移。
+  元守卫自测里"组件命名通过"的用例**反转为"组件命名现在被判红"**——统一之后旧拼写不再算自测。
+- 迁移后的自测抽验通过（`test_check_hal_i2c_contract` 26 例、`test_check_guards_read_code` 20 例）。
+- 这一刀只动命名，**没动那 51 个仍缺自测的 checker**——它们照旧在 `SELF_TEST_EXEMPT` 里排队。

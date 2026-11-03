@@ -331,17 +331,15 @@ def guard_registration_findings(root: Path = GUARDS, text: str | None = None,
 
 
 def _paired_self_test(path: Path) -> Path | None:
-    """The self-test beside a checker, under either naming this repository uses.
+    """The self-test beside a checker, under the single convention test_check_<topic>.py.
 
-    ``support/`` pairs ``check_<topic>.py`` with ``test_check_<topic>.py``; the component trees
-    (hal_component, kernel, ...) pair ``check_<topic>.py`` with ``test_<topic>.py``. Both are a
-    self-test for the checker, so both count.
+    The component trees used to pair check_<topic>.py with test_<topic>.py; those self-tests were
+    migrated to the support convention, so the pairing is now one rule rather than a decision per
+    directory.
     """
     topic = path.name[len("check_"):]
-    for candidate in (path.with_name("test_check_" + topic), path.with_name("test_" + topic)):
-        if candidate.exists():
-            return candidate
-    return None
+    candidate = path.with_name("test_check_" + topic)
+    return candidate if candidate.exists() else None
 
 
 def self_test_pairing_findings(root: Path = GUARDS, files: list[Path] | None = None,

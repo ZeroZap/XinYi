@@ -300,9 +300,12 @@ class SelfTestPairingTests(unittest.TestCase):
     def test_a_checker_with_a_test_check_self_test_passes(self):
         self.assertEqual([], self.run_pairing("check_x.py", ["test_check_x.py"]))
 
-    def test_a_checker_with_a_component_naming_self_test_passes(self):
-        # hal_component pairs check_<topic>.py with test_<topic>.py, without the check_ prefix.
-        self.assertEqual([], self.run_pairing("check_x.py", ["test_x.py"]))
+    def test_a_checker_with_a_legacy_component_naming_self_test_is_reported(self):
+        # After unifying on test_check_<topic>, the old component spelling test_<topic> no longer
+        # counts as a self-test - the pairing is one rule, not a decision per directory.
+        problems = self.run_pairing("check_x.py", ["test_x.py"])
+        self.assertEqual(1, len(problems))
+        self.assertIn("no self-test beside it", problems[0])
 
     def test_an_exemption_with_a_reason_passes(self):
         with tempfile.TemporaryDirectory() as tmp:
