@@ -1422,16 +1422,6 @@ target_include_directories(test_as5600_device BEFORE PRIVATE
     ${DRV}/sensor/angle/as5600
 )
 
-xy_add_unit_test(test_light_uv_sensors sensor_light_uv_sensors UNITY
-    ${UNIT_SENSOR}/test_light_uv_sensors.c
-    ${SENSOR}/sensors/sensor_max44009.c
-)
-target_include_directories(test_light_uv_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-target_link_libraries(test_light_uv_sensors PRIVATE m)
-
 xy_add_unit_test(test_max44009_device sensor_max44009_device UNITY
     ${UNIT_SENSOR}/test_max44009_device.c
     ${DRV}/sensor/light/max44009/xy_max44009.c
@@ -1474,40 +1464,6 @@ target_include_directories(test_icm20608_sensor BEFORE PRIVATE
     ${SENSOR}/sensors
     ${DRV}/sensor/motion/icm20608
 )
-
-xy_add_unit_test(test_low_power_accel_sensors sensor_low_power_accel_sensors UNITY
-    ${UNIT_SENSOR}/test_low_power_accel_sensors.c
-    ${SENSOR}/sensors/sensor_adxl362.c
-    ${SENSOR}/sensors/sensor_bma400.c
-    ${SENSOR}/sensors/sensor_lis2dw12.c
-    ${SENSOR}/sensors/sensor_kx023.c
-)
-target_include_directories(test_low_power_accel_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
-xy_add_unit_test(test_st_silan_accel_sensors sensor_st_silan_accel_sensors UNITY
-    ${UNIT_SENSOR}/test_st_silan_accel_sensors.c
-    ${SENSOR}/sensors/sensor_lis2dh12.c
-    ${SENSOR}/sensors/sensor_lis2dw12.c
-)
-target_include_directories(test_st_silan_accel_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
-xy_add_unit_test(test_lsm6_imu_sensors sensor_lsm6_imu_sensors UNITY
-    ${UNIT_SENSOR}/test_lsm6_imu_sensors.c
-    ${SENSOR}/sensors/sensor_lsm6dsl.c
-    ${SENSOR}/sensors/sensor_lsm6dso.c
-    ${SENSOR}/sensors/sensor_lsm6dsr.c
-)
-target_include_directories(test_lsm6_imu_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
 
 xy_add_unit_test(test_gps sensor_gps UNITY
     ${UNIT_SENSOR}/test_gps.c

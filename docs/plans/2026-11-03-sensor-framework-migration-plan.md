@@ -52,6 +52,7 @@
   - 批 4（2026-11-04）：删 `bmp280`、`ap3216c` 两个委托壳 + 退役 `components/sensor/example/` 三份 legacy 样张（与并发 GPS 迁移合并提交 `e4f78a6a`）。剩余 15 个。
   - 批 5（2026-11-04）：删 `mpu6050`、`aht20` 两个委托壳（canonical `test_mpu6050.c` / `test_aht20.c` 已覆盖 WHO_AM_I 身份读、PWR_MGMT_1 等配置写、raw→g / raw→centi 换算、失败输出保持、NULL 守卫与 deinit/range 写失败状态保持）。剩余 13 个，其中 `icm20608` 需先补 canonical 独立 focused 测试再退役。
   - 批 6（2026-11-04）：删 `qmc5883l`、`ist8310`、`ak09918` 三个磁力计重复（canonical `test_qmc5883l_device.c` / `test_ist8310_device.c` / `test_ak09918_device.c` 已覆盖 chip-ID/WHO_AM_I/WIA 身份读、复位/连续模式配置、DRDY 门控 little-endian XYZ 解码、失败保输出与 reinit/缺 handle 原子性；旧驱动是 `hal_i2c_mem_read/write` 上的独立重复实现，非委托壳，但协议逐条等价）。剩余 10 个。
+  - 批 7（2026-11-04）：删 `adxl362`、`bma400`、`kx023`、`lis2dh12`、`lis2dw12`、`lsm6dsl`、`lsm6dso`、`lsm6dsr`、`max44009` 九个重复（canonical `test_{adxl362,bma400,kx023,lis2dh12,lis2dw12,lsm6dsl,lsm6dso,lsm6dsr,max44009}_device.c` 已覆盖身份读/复位与 ODR/量程配置/XYZ 解码/失败保输出；adxl362 走 `hal_spi_transfer`，其余走 `hal_i2c_mem_read/write`，均为独立重复实现，非委托壳，协议逐条等价）。剩余 2 个：`icm20608`（canonical `xy_icm20608.c` 目前仅经 `test_icm20608_sensor` legacy 混合测试覆盖，需先补独立 focused 测试再退役）+ 顶层 `adt7420`。
 - **Slice C**：搬 7 个模拟量独有驱动（acs712 起，建立"模拟量驱动"canonical 模板）。
 - **Slice D**：搬 gps（UART/NMEA）、sc7a20（加速度）、cmm905。
 - **Slice E**：删旧框架层，收尾 `check_legacy_sensor_includes` 与碰撞 pin 全清。

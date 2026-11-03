@@ -50,6 +50,15 @@ STALE_AHT10_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_aht10.
 STALE_QMC5883L_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_qmc5883l.c"
 STALE_IST8310_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_ist8310.c"
 STALE_AK09918_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_ak09918.c"
+STALE_ADXL362_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_adxl362.c"
+STALE_BMA400_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_bma400.c"
+STALE_KX023_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_kx023.c"
+STALE_LIS2DH12_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lis2dh12.c"
+STALE_LIS2DW12_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lis2dw12.c"
+STALE_LSM6DSL_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lsm6dsl.c"
+STALE_LSM6DSO_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lsm6dso.c"
+STALE_LSM6DSR_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lsm6dsr.c"
+STALE_MAX44009_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_max44009.c"
 STALE_VCNL4040_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_vcnl4040.c"
 STALE_LSM9DS1_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lsm9ds1.c"
 STALE_BMP280_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_bmp280.c"
@@ -142,7 +151,7 @@ def main() -> int:
     prototype_names = {path.stem.removeprefix("xy_sensor_") for path in prototype}
     top_level_names = {path.stem.removeprefix("sensor_") for path in top_level_owners}
 
-    require(len(legacy) == 10, f"expected 10 legacy active sources, found {len(legacy)}", errors)
+    require(len(legacy) == 1, f"expected 1 legacy active source, found {len(legacy)}", errors)
     require([path.name for path in top_level_owners] == ["sensor_adt7420.c"],
             "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
     require(len(experimental) == 5,
@@ -152,8 +161,7 @@ def main() -> int:
     require(not false_owners,
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
     require(canonical_names & legacy_names ==
-            {"icm20608", "max44009", "bma400", "kx023", "adxl362",
-             "lsm6dso", "lsm6dsl", "lsm6dsr", "lis2dh12", "lis2dw12"},
+            {"icm20608"},
             "canonical/legacy overlap must contain only approved compatibility wrappers", errors)
     require(not (canonical_names & experimental_names),
             "canonical Device owners must not reappear in experimental src/xy_*", errors)
@@ -318,6 +326,24 @@ def main() -> int:
             "retired sensor_ist8310 duplicate must not reappear", errors)
     require(not STALE_AK09918_LEGACY.exists(),
             "retired sensor_ak09918 duplicate must not reappear", errors)
+    require(not STALE_ADXL362_LEGACY.exists(),
+            "retired sensor_adxl362 duplicate must not reappear", errors)
+    require(not STALE_BMA400_LEGACY.exists(),
+            "retired sensor_bma400 duplicate must not reappear", errors)
+    require(not STALE_KX023_LEGACY.exists(),
+            "retired sensor_kx023 duplicate must not reappear", errors)
+    require(not STALE_LIS2DH12_LEGACY.exists(),
+            "retired sensor_lis2dh12 duplicate must not reappear", errors)
+    require(not STALE_LIS2DW12_LEGACY.exists(),
+            "retired sensor_lis2dw12 duplicate must not reappear", errors)
+    require(not STALE_LSM6DSL_LEGACY.exists(),
+            "retired sensor_lsm6dsl duplicate must not reappear", errors)
+    require(not STALE_LSM6DSO_LEGACY.exists(),
+            "retired sensor_lsm6dso duplicate must not reappear", errors)
+    require(not STALE_LSM6DSR_LEGACY.exists(),
+            "retired sensor_lsm6dsr duplicate must not reappear", errors)
+    require(not STALE_MAX44009_LEGACY.exists(),
+            "retired sensor_max44009 duplicate must not reappear", errors)
     require(not STALE_SHT40_SOURCE.exists() and not STALE_SHT40_HEADER.exists(),
             "retired experimental SHT40 lifecycle must not reappear", errors)
     require(not STALE_MLX90614_SOURCE.exists() and not STALE_MLX90614_HEADER.exists(),
@@ -346,9 +372,9 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("sensor_active_source_manifest_ok legacy_active=10 legacy_subdir=10 "
+    print("sensor_active_source_manifest_ok legacy_active=1 legacy_subdir=1 "
           "legacy_top_level=1 experimental_test_only=5 device_active=61 "
-          "approved_wrappers=10 overlap_duplicates=0 false_owners=0 "
+          "approved_wrappers=1 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0
 

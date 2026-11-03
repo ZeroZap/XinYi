@@ -10,13 +10,13 @@
   added `test_at_urc_core.c`, the Modbus-Full slave slice added `test_modbus_full_slave.c`, and
   the Modbus-Full master slice added `test_modbus_full_master.c`; the sensor-migration Slice B
   batches retired one legacy test C file per retired driver, folded into the re-measured total)
-- Unity-style files: 203 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
+- Unity-style files: 199 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
   not runners)
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 420 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 420`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 416 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 416`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -127,6 +127,13 @@
   duplicate-owner CTest), taking 421 → 420; its identity/reset/config/DRDY-gated XYZ decode and
   failure-preservation contracts live in `test_qmc5883l_device.c` / `test_ist8310_device.c` /
   `test_ak09918_device.c`.
+  Batch 7 removed `sensor_light_uv_sensors`, `sensor_low_power_accel_sensors`,
+  `sensor_st_silan_accel_sensors` and `sensor_lsm6_imu_sensors` (the MAX44009; ADXL362/BMA400/
+  KX023/LIS2DW12; LIS2DH12/LIS2DW12; LSM6DSL/LSM6DSO/LSM6DSR legacy duplicate-owner CTests),
+  taking 420 → 416; each group's identity/config/XYZ-decode/failure-preservation contracts live in
+  the canonical `test_max44009_device.c` / `test_adxl362_device.c` / `test_bma400_device.c` /
+  `test_kx023_device.c` / `test_lis2dh12_device.c` / `test_lis2dw12_device.c` /
+  `test_lsm6dsl_device.c` / `test_lsm6dso_device.c` / `test_lsm6dsr_device.c`.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -364,7 +371,6 @@ guard API drift in those examples/skeletons.
 
 | `tests/unit/sensor/test_as5600_device.c` | `unity` | 0 | AS5600 canonical Device lifecycle, angle decoding, transport guards and failed re-init atomicity |
 | `tests/unit/sensor/test_as5048b_device.c` | `unity` | 0 | AS5048B canonical Device lifecycle, angle decoding, transport guards and failed re-init atomicity |
-| `tests/unit/sensor/test_light_uv_sensors.c` | `unity` | 0 | MAX44009 legacy light read/failure/boundary contracts |
 | `tests/unit/sensor/test_guvas12sd_device.c` | `unity` | 0 | GUVA-S12SD canonical Device: raw ADC read, guards, failure atomicity |
 | `tests/unit/sensor/test_mq135_device.c` | `unity` | 0 | MQ-135 canonical Device: raw ADC read, guards, failure atomicity |
 | `tests/unit/sensor/test_mq3_device.c` | `unity` | 0 | MQ-3 canonical Device: raw ADC read, guards, failure atomicity |
@@ -379,11 +385,8 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS NMEA parser GGA/RMC/GSV/checksum/registry contracts; `gps_parse_nmea`/`gps_parse_byte` come from `xy_gps.h`. Also pins that `gps_sleep(NULL)`/`gps_wakeup(NULL)` are rejected instead of dereferencing. |
 | `tests/unit/sensor/test_gps_example_tick_stub.c` | `plain/helper` | 0 | Frozen `xy_hal_sys_get_tick_count()` for the `sensor_gps_example` target; not a standalone CTest source. |
 | `tests/unit/sensor/test_sensor_demo_backend_stub.c` | `plain/helper` | 0 | SPI/UART/GPIO/mem-I2C/registry stubs for the `sensor_device_example` target. `components/sensor/examples/sensor_demo.c` supplies the three HAL entry points it asserts on; this file stubs the rest of `xy_device_bus_helpers.c`'s backend so the sample does not have to carry harness code. Returns `NOT_SUPPORTED`, so a driver that switched to one of these paths fails instead of passing against a rubber stamp. |
-| `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12 legacy low-power accel init/read/config failure contracts |
-| `tests/unit/sensor/test_st_silan_accel_sensors.c` | `unity` | 0 | LIS2DH12/LIS2DW12 legacy accel init/read/config failure contracts |
 | `tests/unit/sensor/test_cmm905_device.c` | `unity` | 0 | CMM905 canonical Device: identity/init/read (6 single-byte registers)/deinit, raw readings, failure preservation and fail-closed contracts |
 | `tests/unit/sensor/test_sc7a20_device.c` | `unity` | 0 | SC7A20 canonical Device: identity/WHO_AM_I, 12-bit left-aligned decode, mg conversion with range scaling, range/ODR configuration, failure preservation and fail-closed contracts |
-| `tests/unit/sensor/test_lsm6_imu_sensors.c` | `unity` | 0 | LSM6DSL/LSM6DSO/LSM6DSR legacy IMU I2C/SPI config/read/failure contracts |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
 | `tests/unit/sensor/test_i2c2_sensor_devices.c` | `unity` | 0 | AHT30/L3G4200D/BME680/SC7A22H Device initialization and sample contracts |
 | `tests/unit/sensor/test_sht30_integration.c` | `unity` | 11 |

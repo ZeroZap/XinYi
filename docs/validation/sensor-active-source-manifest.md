@@ -29,7 +29,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 10 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 10 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 1 `sensors/sensor_*.c` file (`sensor_icm20608.c`) and explicitly lists top-level `sensor_adt7420.c` | 1 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 5 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 61 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
@@ -138,6 +138,12 @@ the complete owner when Device-helper setup or any identity/config transaction f
 read/deinit operations require the outer lifecycle, nested lifecycle and live I2C handle; rejected
 or failed operations preserve caller/cache state, and successful teardown clears the transport.
 Acceleration accuracy, low-power current, timing and hardware endurance remain `hardware-pending`.
+
+The legacy `sensor_lis2dw12.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` (and `hal_spi_*` for the SPI path) that duplicated the WHO_AM_I `0x44`
+identity check, the soft-reset/address-increment/100 Hz low-power configuration, and the
+left-aligned 14-bit XYZ decode that the canonical owner's focused Device test
+(`test_lis2dw12_device.c`) already asserts. Nothing the canonical owner expresses was lost.
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -442,6 +448,11 @@ handle state. Missing transport fails closed before either half of the two-regis
 without changing caller output or cache; successful teardown clears the nested handle. Optical
 accuracy and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_max44009.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` that duplicated the `0x03`/`0x04` exponent-mantissa lux decode and the
+NULL/private/bus fail-closed guards that the canonical owner's focused Device test
+(`test_max44009_device.c`) already asserts. Nothing the canonical owner expresses was lost.
+
 ### VCNL4040 migration status
 
 The legacy VCNL4040 owner is now represented by `components/drivers/sensor/proximity/vcnl4040`.
@@ -515,6 +526,12 @@ closed without bus access or state mutation, and successful teardown clears the 
 Motion accuracy, power characterization,
 interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_bma400.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` that duplicated the CHIP_ID `0x90` identity check, the soft-reset and
+low-power/±2g/25 Hz configuration, and the little-endian XYZ decode that the canonical owner's
+focused Device test (`test_bma400_device.c`) already asserts. Nothing the canonical owner
+expresses was lost.
+
 ### KX023 migration status
 
 The legacy KX023 API is now backed by the canonical Device owner at
@@ -525,6 +542,12 @@ lifecycle and handle state. Invalid transport fails closed without bus access or
 successful teardown clears the nested handle. Motion accuracy, power, interrupt
 behavior and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_kx023.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` that duplicated the WHO_AM_I `0x15` identity check, the soft-reset and
+standby/12.5 Hz/low-power configuration, and the little-endian XYZ decode that the canonical
+owner's focused Device test (`test_kx023_device.c`) already asserts. Nothing the canonical owner
+expresses was lost.
+
 ### ADXL362 migration status
 
 The legacy ADXL362 API is now backed by the canonical Device owner at
@@ -532,6 +555,11 @@ The legacy ADXL362 API is now backed by the canonical Device owner at
 ID `0xAD`, configures 100 Hz/±2g measurement mode, decodes signed 12-bit XYZ data, and stages
 sample/timestamp publication behind nested SPI lifecycle checks. Motion accuracy, SPI timing,
 interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
+
+The legacy `sensor_adxl362.c` duplicate is retired. It was an independent implementation over
+`hal_spi_transfer` that duplicated the device-ID `0xAD` identity check, the 100 Hz/±2g measurement
+configuration, and the signed 12-bit XYZ decode that the canonical owner's focused Device test
+(`test_adxl362_device.c`) already asserts. Nothing the canonical owner expresses was lost.
 
 ### LSM6DSO migration status
 
@@ -542,6 +570,12 @@ gyroscope XYZ data through register helpers that independently validate the nest
 preserves output/cache on transport failure, and clears the nested handle after successful teardown.
 Invalid transport fails closed without bus access or lifecycle mutation. Motion accuracy, ODR timing,
 interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
+
+The legacy `sensor_lsm6dso.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` (and `hal_spi_*` for the SPI path) that duplicated the WHO_AM_I `0x6C`
+identity check, the reset/I3C-disable/104 Hz/±2g/±250 dps configuration, and the accelerometer and
+gyroscope XYZ decode that the canonical owner's focused Device test (`test_lsm6dso_device.c`)
+already asserts. Nothing the canonical owner expresses was lost.
 
 ### LSM6DSL migration status
 
@@ -554,6 +588,12 @@ Invalid transport fails closed without bus access or lifecycle mutation. Motion 
 interrupt/FIFO behavior and hardware endurance remain
 `hardware-pending`.
 
+The legacy `sensor_lsm6dsl.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` (and `hal_spi_*` for the SPI path) that duplicated the WHO_AM_I `0x6A`
+identity check, the reset/I3C-disable/104 Hz/±2g/±250 dps configuration, and the accelerometer and
+gyroscope XYZ decode that the canonical owner's focused Device test (`test_lsm6dsl_device.c`)
+already asserts. Nothing the canonical owner expresses was lost.
+
 ### LSM6DSR migration status
 
 The legacy LSM6DSR API is now backed by the canonical Device owner at
@@ -563,6 +603,12 @@ gyroscope XYZ data through register helpers that independently validate the nest
 preserves output/cache on transport failure, and clears the nested handle after successful teardown.
 Invalid transport fails closed without bus access or lifecycle mutation. Motion accuracy, ODR timing,
 interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
+
+The legacy `sensor_lsm6dsr.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` (and `hal_spi_*` for the SPI path) that duplicated the WHO_AM_I `0x69`
+identity check, the reset/I3C-disable/104 Hz/±2g/±250 dps configuration, and the accelerometer and
+gyroscope XYZ decode that the canonical owner's focused Device test (`test_lsm6dsr_device.c`)
+already asserts. Nothing the canonical owner expresses was lost.
 
 ### LSM9DS1 migration status
 
@@ -589,6 +635,12 @@ The legacy LIS2DH12 API is now backed by the canonical Device owner at
 7-bit address `0x18`, configures 10 Hz/XYZ/±2g high-resolution mode and temperature enable, and
 publishes staged left-aligned 12-bit XYZ samples through the nested I2C lifecycle. Acceleration
 accuracy, low-power behavior, timing and hardware endurance remain `hardware-pending`.
+
+The legacy `sensor_lis2dh12.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` that duplicated the WHO_AM_I `0x33` identity check, the 10 Hz/XYZ/±2g
+high-resolution and temperature-enable configuration, and the left-aligned 12-bit XYZ decode that
+the canonical owner's focused Device test (`test_lis2dh12_device.c`) already asserts. Nothing the
+canonical owner expresses was lost.
 
 ### APDS9960 migration status
 
