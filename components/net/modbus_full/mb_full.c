@@ -850,43 +850,80 @@ static int mb_full_master_request(mb_full_master_t *master, uint8_t slave_id,
     uint8_t tx[MB_FULL_MAX_TCP_ADU_SIZE];
     uint16_t tx_len = 0;
     int ret;
-    
-    /* 构建 TCP 头 (如果是 TCP 模式) */
+
+    /* 请求帧逐字节组装：MBAP 与 RTU CRC 都按线上字节序写，不把结构体盖在缓冲上
+     *（小端机器上事务 ID / 长度会整体翻转，从站因此根本收不到合法帧）。 */
     if (master->mode == MB_MODE_TCP) {
-        mb_tcp_header_t *hdr = (mb_tcp_header_t *)tx;
-        hdr->transaction_id = master->conn.transaction_id++;
-        hdr->protocol_id = 0;
-        hdr->length = req_len + 1;  /* + unit_id */
-        hdr->unit_id = slave_id;
-        
+        uint16_t tid = master->conn.transaction_id++;
+
+        tx[0] = (uint8_t)(tid >> 8);
+        tx[1] = (uint8_t)(tid & 0xFFU);
+        tx[2] = 0x00;
+        tx[3] = 0x00;
+        tx[4] = (uint8_t)((req_len + 1U) >> 8);
+        tx[5] = (uint8_t)((req_len + 1U) & 0xFFU);
+        tx[6] = slave_id;
         memcpy(tx + 7, req, req_len);
-        tx_len = 7 + req_len;
+        tx_len = (uint16_t)(7U + req_len);
     } else {
+        uint16_t crc;
+
         tx[0] = slave_id;
         memcpy(tx + 1, req, req_len);
-        tx_len = 1 + req_len;
-        
-        /* 添加 CRC */
-        uint16_t crc = mb_full_crc16(tx, tx_len);
-        tx[tx_len++] = crc & 0xFF;
-        tx[tx_len++] = (crc >> 8) & 0xFF;
+        tx_len = (uint16_t)(1U + req_len);
+
+        crc = mb_full_crc16(tx, tx_len);
+        tx[tx_len++] = (uint8_t)(crc & 0xFFU);
+        tx[tx_len++] = (uint8_t)(crc >> 8);
     }
-    
+
     /* 发送 */
     ret = mb_full_master_tx(master, tx, tx_len);
     if (ret < 0) {
         master->error_count++;
         return MB_FULL_ERROR;
     }
-    
+
     /* 接收 */
     ret = mb_full_master_rx(master, rsp, MB_FULL_MAX_TCP_ADU_SIZE);
     if (ret < 5) {
         master->error_count++;
         return MB_FULL_TIMEOUT;
     }
-    
-    *rsp_len = ret;
+
+    /* 归一化响应：两种传输都把帧规整成 [单元ID][功能码][数据…]，校验并剥掉
+     * 传输封装，调用方按同一布局读（否则 TCP 响应会按 RTU 布局误读）。 */
+    if (master->mode == MB_MODE_TCP) {
+        uint16_t protocol_id;
+        uint16_t length;
+
+        if (ret < 9) {
+            master->error_count++;
+            return MB_FULL_ERROR;
+        }
+        protocol_id = ((uint16_t)rsp[2] << 8) | rsp[3];
+        length = ((uint16_t)rsp[4] << 8) | rsp[5];
+        if (protocol_id != 0U || length < 2U ||
+            (uint16_t)(length + 6U) != (uint16_t)ret) {
+            master->error_count++;
+            return MB_FULL_ERROR;
+        }
+        /* 单元 ID + PDU 左移到帧头；length 正好是这两段之和。 */
+        memmove(rsp, &rsp[6], length);
+        *rsp_len = length;
+    } else {
+        uint16_t crc_rx;
+        uint16_t crc_calc;
+
+        crc_rx = ((uint16_t)rsp[ret - 1U] << 8) | rsp[ret - 2U];
+        crc_calc = mb_full_crc16(rsp, (uint16_t)(ret - 2U));
+        if (crc_rx != crc_calc) {
+            master->error_count++;
+            return MB_FULL_CRC_ERROR;
+        }
+        *rsp_len = (uint16_t)(ret - 2U);
+    }
+
     master->request_count++;
     return MB_FULL_OK;
 }
@@ -1024,7 +1061,7 @@ int mb_full_master_read_input(mb_full_master_t *master, uint8_t slave_id,
 int mb_full_master_write_coil(mb_full_master_t *master, uint8_t slave_id,
                                uint16_t addr, uint16_t value)
 {
-    uint8_t req[6], rsp[8];
+    uint8_t req[6], rsp[MB_FULL_MAX_TCP_ADU_SIZE];
     uint16_t rsp_len;
     int ret;
     
@@ -1052,7 +1089,7 @@ int mb_full_master_write_coil(mb_full_master_t *master, uint8_t slave_id,
 int mb_full_master_write_register(mb_full_master_t *master, uint8_t slave_id,
                                    uint16_t addr, uint16_t value)
 {
-    uint8_t req[6], rsp[8];
+    uint8_t req[6], rsp[MB_FULL_MAX_TCP_ADU_SIZE];
     uint16_t rsp_len;
     int ret;
     
@@ -1081,7 +1118,7 @@ int mb_full_master_write_coils(mb_full_master_t *master, uint8_t slave_id,
                                 uint16_t addr, uint16_t count, const uint8_t *data)
 {
     uint8_t req[MB_FULL_MAX_TCP_ADU_SIZE];
-    uint8_t rsp[8];
+    uint8_t rsp[MB_FULL_MAX_TCP_ADU_SIZE];
     uint16_t rsp_len;
     uint16_t byte_count = (count + 7) / 8;
     int ret;
@@ -1113,7 +1150,7 @@ int mb_full_master_write_registers(mb_full_master_t *master, uint8_t slave_id,
                                     uint16_t addr, uint16_t count, const uint16_t *data)
 {
     uint8_t req[MB_FULL_MAX_TCP_ADU_SIZE];
-    uint8_t rsp[8];
+    uint8_t rsp[MB_FULL_MAX_TCP_ADU_SIZE];
     uint16_t rsp_len;
     int ret;
     
@@ -1195,7 +1232,7 @@ int mb_full_master_read_write_registers(mb_full_master_t *master, uint8_t slave_
 int mb_full_master_read_device_id(mb_full_master_t *master, uint8_t slave_id,
                                     mb_object_id_t object_id, uint8_t *data)
 {
-    uint8_t req[3], rsp[MB_FULL_MAX_TCP_ADU_SIZE];
+    uint8_t req[4], rsp[MB_FULL_MAX_TCP_ADU_SIZE];
     uint16_t rsp_len;
     int ret;
     
@@ -1203,11 +1240,15 @@ int mb_full_master_read_device_id(mb_full_master_t *master, uint8_t slave_id,
         return MB_FULL_INVALID_PARAM;
     }
     
+    /* 0x2E 读设备标识的请求是 4 字节：MEI(0x0E) + 读取码 + 对象 ID。
+     * 读取码 = object_id + 1（基本=0x01、常规=0x02、扩展=0x03、特定=0x04），
+     * 从站当前只实现基本读取（读取码 0x01、对象 0x00）。 */
     req[0] = MB_FUNC_READ_DEVICE_ID;
-    req[1] = 0x0E;  /* 读设备 ID */
-    req[2] = (uint8_t)object_id;
+    req[1] = 0x0E;                        /* MEI 类型: 读设备标识 */
+    req[2] = (uint8_t)(object_id + 1U);   /* 读取码 */
+    req[3] = (uint8_t)object_id;          /* 对象 ID */
     
-    ret = mb_full_master_request(master, slave_id, req, 3, rsp, &rsp_len);
+    ret = mb_full_master_request(master, slave_id, req, 4, rsp, &rsp_len);
     if (ret != MB_FULL_OK) return ret;
     
     if (rsp[1] & 0x80) {

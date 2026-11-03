@@ -781,6 +781,15 @@ target_include_directories(test_modbus_full_slave PRIVATE
     ${NET}/modbus_full
 )
 
+# --- Test 12d: Modbus Full master RTU/TCP loopback against the slave ---
+xy_add_unit_test(test_modbus_full_master modbus_full_master UNITY
+    ${UNIT_NET}/test_modbus_full_master.c
+    ${NET}/modbus_full/mb_full.c
+)
+target_include_directories(test_modbus_full_master PRIVATE
+    ${NET}/modbus_full
+)
+
 # --- Test 13: ISO7816 public include, lifecycle, and APDU behavior ---
 xy_add_unit_test(test_iso7816 iso7816_component UNITY
     ${UNIT_NET}/test_iso7816.c

@@ -4,11 +4,12 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 214 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
+- Total C files under `tests/unit`: 215 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
   the sensor-sample slice added `test_sensor_demo_backend_stub.c`, the
   `components/sensor/example/` slice added `test_sensor_example_bus_stub.c`, the AT URC slice
-  added `test_at_urc_core.c`, and the Modbus-Full slave slice added `test_modbus_full_slave.c`)
-- Unity-style files: 208 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
+  added `test_at_urc_core.c`, the Modbus-Full slave slice added `test_modbus_full_slave.c`, and
+  the Modbus-Full master slice added `test_modbus_full_master.c`)
+- Unity-style files: 209 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
   not runners)
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
@@ -90,7 +91,15 @@
   buffer, and the MBAP struct was cast straight over the wire buffer so the transaction id flipped on
   a little-endian host). The target uses only in-file capture callbacks — no FFF — and builds every
   request by hand so an external master's contract, not the component's own master path, is what
-  gets asserted.
+  gets asserted. The Modbus-Full master slice took 428 → 429 (`modbus_full_master`, 10 cases): a
+  true loopback that feeds the master's outgoing frame into the slave and hands the slave's response
+  back, which was the master's first real execution — and it exposed the same structural class as
+  the slave (the MBAP request header was a struct cast straight over the buffer, so the transaction
+  id and length were byte-swapped and the slave rejected every TCP frame; TCP responses were parsed
+  with the RTU layout; RTU responses were never CRC-checked; `read_device_id` both sent a malformed
+  3-byte request — missing the read-code byte the slave requires — and copied the trailing CRC into
+  the caller's buffer). The four write functions also received into `rsp[8]`, which a 12-byte TCP
+  write response would overflow.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -288,6 +297,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/net/test_lte_hal_uart_smoke_example.c` | `unity` | 0 | Build-guarded LTE HAL UART smoke skeleton; not a hardware-validation record. |
 | `tests/unit/net/test_modbus_legacy.c` | `unity` | 3 |
 | `tests/unit/net/test_modbus_full_slave.c` | `unity` | 0 | Modbus-Full 从站线上契约（RTU + TCP），只用本文件内的捕获回调，不引 FFF：手工组帧驱动 `mb_full_slave_handle()`/`mb_full_slave_handle_tcp()`，逐字节断言读保持/输入寄存器、读线圈/离散输入、写单/多线圈、写单/多寄存器、0x17 先写后读、0x2E 设备标识、异常帧、CRC 拒绝、从站 ID 过滤、位区打包（区域起始地址 = bit 0）、MBAP 大端与长度校验，以及 CRC16/LRC/ASCII 成帧工具。 |
+| `tests/unit/net/test_modbus_full_master.c` | `unity` | 0 | Modbus-Full 主站 RTU/TCP 环路（以同 TU 的从站为对端）：主站 transport 回调捕获其发出的帧、喂给 `mb_full_slave_handle*()`、回传从站响应。钉住读保持/输入寄存器、写寄存器、0x17 先写后读、0x2E 设备标识（对象值回读且无 CRC 泄漏）、RTU 请求 CRC、RTU 响应 CRC 校验（故障注入）、MBAP 请求逐字节大端与事务 ID 递增、TCP 异常归一化为 `MB_FULL_ERROR`、初始化/NULL 守卫。 |
 | `tests/unit/net/test_mqtt_client_core.c` | `unity` | 4 | MQTT client CONNECT, publish/subscribe/unsubscribe callbacks, SUBACK failure, and keep-alive transport failure contracts |
 | `tests/unit/net/test_nano_modbus.c` | `unity` | 0 |
 | `tests/unit/net/test_net_core.c` | `unity` | 0 |
