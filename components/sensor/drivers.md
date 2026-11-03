@@ -115,7 +115,7 @@
 
 | 型号 | 类型 | 接口 | 测量参数 | 文件 |
 |------|------|------|----------|------|
-| CCS811 | IAQ | I2C | CO2, TVOC | sensor_ccs811.c |
+| CCS811 | IAQ | I2C | CO2, TVOC | drivers/sensor/environment/ccs811/xy_ccs811.c |
 | SGP40 | VOC | I2C | VOC指数 | - |
 | iAQcore | IAQ | I2C | CO2, TVOC | - |
 
@@ -123,7 +123,7 @@
 
 | 型号 | 类型 | 接口 | 量程 | 文件 |
 |------|------|------|------|------|
-| VL53L0X | ToF激光测距 | I2C | 2m | sensor_vl53l0x.c |
+| VL53L0X | ToF激光测距 | I2C | 2m | drivers/sensor/distance/vl53l0x/xy_vl53l0x.c |
 | HC-SR04 | 超声波 | GPIO | 4m | - |
 
 ### 其他传感器

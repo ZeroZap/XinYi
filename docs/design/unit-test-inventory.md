@@ -4,18 +4,18 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 214 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
+- Total C files under `tests/unit`: 212 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
   the sensor-sample slice added `test_sensor_demo_backend_stub.c`, the
   `components/sensor/example/` slice added `test_sensor_example_bus_stub.c`, the AT URC slice
   added `test_at_urc_core.c`, the Modbus-Full slave slice added `test_modbus_full_slave.c`, and
   the Modbus-Full master slice added `test_modbus_full_master.c`)
-- Unity-style files: 208 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
+- Unity-style files: 206 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
   not runners)
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 428 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 428`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 426 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 426`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -112,6 +112,10 @@
   removal, which had not been reflected in these counts): the two legacy compatibility wrappers were
   retired because their canonical Device owners (`xy_sht30.c` / `xy_bh1750.c`) already carry the
   full protocol contract in their focused tests.
+  The sensor-migration Slice B batch 2 took 428 → 426 (removed `sensor_ccs811_sensor` and
+  `sensor_vl53l0x_sensor`): the two legacy duplicate owners were retired because their canonical
+  Device owners (`xy_ccs811.c` / `xy_vl53l0x.c`) already carry the HW_ID/MODEL_ID identity read,
+  start/measure write, settle delay, data-ready gate and result decode in their focused Device tests.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -357,8 +361,6 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_apds9960_sensor.c` | `unity` | 0 | APDS9960 RGB init/read/failure guard contracts |
 | `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_ap3216c_sensor.c` | `unity` | 0 | AP3216C light/proximity/IR init/read/failure guard contracts |
-| `tests/unit/sensor/test_ccs811_sensor.c` | `unity` | 0 | CCS811 eCO2/TVOC init/read/failure guard contracts |
-| `tests/unit/sensor/test_vl53l0x_sensor.c` | `unity` | 0 | VL53L0X legacy ToF identity/init/read/failure contracts |
 | `tests/unit/sensor/test_vl53l0x_device.c` | `unity` | 0 | VL53L0X canonical Device identity/read/lifecycle/failure contracts |
 | `tests/unit/sensor/test_analog_misc_sensors.c` | `unity` | 0 | ACS712/FSR/MG811 legacy ADC analog conversion and guard contracts |
 

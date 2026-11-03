@@ -29,7 +29,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 35 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 36 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 33 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 34 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 6 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 47 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
@@ -555,11 +555,27 @@ I2C lifecycle. Optical response, gesture classification, timing and hardware end
 
 ### CCS811 migration status
 
-The legacy CCS811 API is now backed by the canonical Device owner at
+The legacy CCS811 API is backed by the canonical Device owner at
 `components/drivers/sensor/environment/ccs811`. The owner verifies HW_ID `0x81` at 7-bit address
 `0x5A`, starts the application, configures one-second measurement mode, gates reads on DATA_READY,
-and stages eCO2/TVOC results behind the nested I2C lifecycle. Gas response, baseline behavior,
-accuracy, warm-up and hardware endurance remain `hardware-pending`.
+and stages eCO2/TVOC results behind the nested I2C lifecycle. The legacy `sensor_ccs811.c`
+co2/tvoc factories are retired: they duplicated the HW_ID check, APP_START write, 100 ms settle,
+one-second measurement-mode write, STATUS data-ready gate, and 8-byte ALG_RESULT decode that the
+canonical owner's focused Device test already asserts (init sequence, eCO2/TVOC decode, output
+preservation on failure). Gas response, baseline behavior, accuracy, warm-up and hardware endurance
+remain `hardware-pending`.
+
+### VL53L0X migration status
+
+The legacy VL53L0X API is backed by the canonical Device owner at
+`components/drivers/sensor/distance/vl53l0x`. The owner verifies MODEL_ID `0xEE`, starts a range
+measurement through SYSRANGE_START, applies the 50 ms settle, reads the 12-byte RESULT_RANGE_STATUS
+block, and decodes the distance word from bytes 10/11 behind the nested I2C lifecycle. The legacy
+`sensor_vl53l0x.c` factory is retired: it duplicated the MODEL_ID identity check, start-write,
+50 ms delay, and `(buf[10]<<8)|buf[11]` distance decode that the canonical owner's focused Device
+test already asserts (identity read, start/range transactions, 500 mm decode, output preservation
+on failure). Ranging accuracy, optical calibration, timing, recovery and hardware endurance remain
+`hardware-pending`.
 
 ### AS5600 migration status
 

@@ -46,6 +46,7 @@
 - **Slice A**：删 as5048（重复、canonical as5048b 已测）——最小的端到端验证样板。
 - **Slice B（进行中）**：删其余 26 个重复，分批（按 test 覆盖逐一核对）。
   - 批 1（2026-11-03）：删 `sht30`、`bh1750` 两个重复（canonical `xy_sht30.c` / `xy_bh1750.c` 的 focused Device 测试已覆盖 reset/measure 命令、CRC8、双地址、raw→lux 换算、输出保持与生命周期委托；旧 wrapper 仅是 `sensor_device_t` 兼容壳）。剩余 24 个。
+  - 批 2（2026-11-03）：删 `ccs811`、`vl53l0x` 两个重复（canonical `xy_ccs811.c` / `xy_vl53l0x.c` 的 focused Device 测试已覆盖 HW_ID/MODEL_ID 身份读、APP_START/SYSRANGE_START 启动写、100/50 ms settle、STATUS data-ready 门、ALG_RESULT/RANGE_STATUS 解码与输出保持；旧 wrapper 是独立重复实现，非委托壳，但协议逐条等价）。剩余 22 个。
 - **Slice C**：搬 7 个模拟量独有驱动（acs712 起，建立"模拟量驱动"canonical 模板）。
 - **Slice D**：搬 gps（UART/NMEA）、sc7a20（加速度）、cmm905。
 - **Slice E**：删旧框架层，收尾 `check_legacy_sensor_includes` 与碰撞 pin 全清。
