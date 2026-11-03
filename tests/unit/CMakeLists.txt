@@ -772,6 +772,15 @@ xy_add_unit_test(test_modbus_legacy modbus_legacy UNITY
     ${NET}/modbus/mb_slave.c
 )
 
+# --- Test 12c: Modbus Full slave RTU/TCP wire contract ---
+xy_add_unit_test(test_modbus_full_slave modbus_full_slave UNITY
+    ${UNIT_NET}/test_modbus_full_slave.c
+    ${NET}/modbus_full/mb_full.c
+)
+target_include_directories(test_modbus_full_slave PRIVATE
+    ${NET}/modbus_full
+)
+
 # --- Test 13: ISO7816 public include, lifecycle, and APDU behavior ---
 xy_add_unit_test(test_iso7816 iso7816_component UNITY
     ${UNIT_NET}/test_iso7816.c

@@ -4,17 +4,17 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 213 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
+- Total C files under `tests/unit`: 214 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
   the sensor-sample slice added `test_sensor_demo_backend_stub.c`, the
-  `components/sensor/example/` slice added `test_sensor_example_bus_stub.c`, and the AT URC slice
-  added `test_at_urc_core.c`)
-- Unity-style files: 207 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
+  `components/sensor/example/` slice added `test_sensor_example_bus_stub.c`, the AT URC slice
+  added `test_at_urc_core.c`, and the Modbus-Full slave slice added `test_modbus_full_slave.c`)
+- Unity-style files: 208 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
   not runners)
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 427 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 427`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 428 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 428`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -82,7 +82,15 @@
   and `hal_umbrella_coverage_unit` (13 cases), plus `hal_header_self_containment`, which compiles
   each header alone with `-Wall -Wextra -Werror` — the completed umbrella immediately exposed five
   headers (`adc`, `can`, `dac`, `i2s`, `sys`) using `size_t` with no `<stddef.h>`, which took
-  seventeen headers down in the first build.
+  seventeen headers down in the first build. The Modbus-Full slave slice took 427 → 428
+  (`modbus_full_slave`, 28 cases): `mb_full.c` is compiled into `xy_net` on every platform but had no
+  test at all, so its first host guard was also its first execution — and it failed 16 of 28 cases
+  on three structural defects (the PDU base passed to the frame parser was one byte past the unit
+  ID, responses were built into `slave->tx_buf` while the caller sent its own uninitialised stack
+  buffer, and the MBAP struct was cast straight over the wire buffer so the transaction id flipped on
+  a little-endian host). The target uses only in-file capture callbacks — no FFF — and builds every
+  request by hand so an external master's contract, not the component's own master path, is what
+  gets asserted.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -279,6 +287,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/net/test_lte_hal_uart_adapter.c` | `unity` | 0 | LTE default-off HAL UART adapter transport seam with host HAL fakes. |
 | `tests/unit/net/test_lte_hal_uart_smoke_example.c` | `unity` | 0 | Build-guarded LTE HAL UART smoke skeleton; not a hardware-validation record. |
 | `tests/unit/net/test_modbus_legacy.c` | `unity` | 3 |
+| `tests/unit/net/test_modbus_full_slave.c` | `unity` | 0 | Modbus-Full 从站线上契约（RTU + TCP），只用本文件内的捕获回调，不引 FFF：手工组帧驱动 `mb_full_slave_handle()`/`mb_full_slave_handle_tcp()`，逐字节断言读保持/输入寄存器、读线圈/离散输入、写单/多线圈、写单/多寄存器、0x17 先写后读、0x2E 设备标识、异常帧、CRC 拒绝、从站 ID 过滤、位区打包（区域起始地址 = bit 0）、MBAP 大端与长度校验，以及 CRC16/LRC/ASCII 成帧工具。 |
 | `tests/unit/net/test_mqtt_client_core.c` | `unity` | 4 | MQTT client CONNECT, publish/subscribe/unsubscribe callbacks, SUBACK failure, and keep-alive transport failure contracts |
 | `tests/unit/net/test_nano_modbus.c` | `unity` | 0 |
 | `tests/unit/net/test_net_core.c` | `unity` | 0 |

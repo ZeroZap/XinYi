@@ -47,10 +47,12 @@ static const uint16_t crc16_table[256] = {
 
 /* ==================== 全局回调 ==================== */
 
+/*
+ * 从站只有发送回调。接收方向由传输层把整帧交给 mb_full_slave_handle*()，
+ * 从站不自己拉取数据——旧版在这里存过一个 recv 回调，但从来没有任何地方读过它。
+ */
 static mb_full_send_cb_t g_slave_send_cb = NULL;
-static mb_full_recv_cb_t g_slave_recv_cb = NULL;
 static mb_full_tcp_send_cb_t g_slave_tcp_send_cb = NULL;
-static mb_full_tcp_recv_cb_t g_slave_tcp_recv_cb = NULL;
 
 static mb_full_connect_cb_t g_master_connect_cb = NULL;
 static mb_full_send_cb_t g_master_send_cb = NULL;
@@ -79,50 +81,74 @@ uint8_t mb_full_lrc(const uint8_t *data, uint16_t len)
     return (uint8_t)(-(int16_t)lrc);
 }
 
+static int mb_hex_nibble(uint8_t c)
+{
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    return -1;
+}
+
+/**
+ * @brief ASCII 帧解码
+ *
+ * 与 mb_full_ascii_encode() 对称：跳过起始符 ':'，遇到 CR/LF 或非十六进制字符
+ * 即结束。LRC 属于被解码的内容（接收方要靠它校验），因此一并返回。
+ *
+ * @return 解码后的字节数；参数为空时返回 MB_FULL_INVALID_PARAM
+ */
 int mb_full_ascii_decode(const uint8_t *src, uint16_t src_len, uint8_t *dst)
 {
+    uint16_t i = 0;
     uint16_t j = 0;
-    for (uint16_t i = 0; i + 1 < src_len; i += 2) {
-        uint8_t hi = src[i];
-        uint8_t lo = src[i + 1];
-        
-        /* 转换 Hex 字符 */
-        if (hi >= '0' && hi <= '9') hi -= '0';
-        else if (hi >= 'A' && hi <= 'F') hi -= 'A' - 10;
-        else if (hi >= 'a' && hi <= 'f') hi -= 'a' - 10;
-        else continue;
-        
-        if (lo >= '0' && lo <= '9') lo -= '0';
-        else if (lo >= 'A' && lo <= 'F') lo -= 'A' - 10;
-        else if (lo >= 'a' && lo <= 'f') lo -= 'a' - 10;
-        else continue;
-        
-        dst[j++] = (hi << 4) | lo;
+
+    if (!src || !dst) {
+        return MB_FULL_INVALID_PARAM;
     }
-    return j;
+
+    if (src_len > 0U && src[0] == ':') {
+        i = 1;
+    }
+
+    while (i + 1U < src_len) {
+        int hi = mb_hex_nibble(src[i]);
+        int lo = mb_hex_nibble(src[i + 1U]);
+        if (hi < 0 || lo < 0) {
+            break;
+        }
+        dst[j++] = (uint8_t)((hi << 4) | lo);
+        i = (uint16_t)(i + 2U);
+    }
+
+    return (int)j;
 }
 
 int mb_full_ascii_encode(const uint8_t *src, uint16_t src_len, uint8_t *dst)
 {
     static const char hex[] = "0123456789ABCDEF";
     uint16_t j = 0;
-    dst[j++] = ':';  /* 起始符 */
-    
-    for (uint16_t i = 0; i < src_len; i++) {
-        dst[j++] = hex[(src[i] >> 4) & 0x0F];
-        dst[j++] = hex[src[i] & 0x0F];
+
+    if (!src || !dst) {
+        return MB_FULL_INVALID_PARAM;
     }
-    
+
+    dst[j++] = ':';  /* 起始符 */
+
+    for (uint16_t i = 0; i < src_len; i++) {
+        dst[j++] = (uint8_t)hex[(src[i] >> 4) & 0x0F];
+        dst[j++] = (uint8_t)hex[src[i] & 0x0F];
+    }
+
     /* LRC */
     uint8_t lrc = mb_full_lrc(src, src_len);
-    dst[j++] = hex[(lrc >> 4) & 0x0F];
-    dst[j++] = hex[lrc & 0x0F];
-    
+    dst[j++] = (uint8_t)hex[(lrc >> 4) & 0x0F];
+    dst[j++] = (uint8_t)hex[lrc & 0x0F];
+
     /* 结束符 */
     dst[j++] = '\r';
     dst[j++] = '\n';
-    
-    return j;
+
+    return (int)j;
 }
 
 const char* mb_full_version(void)
@@ -147,20 +173,77 @@ const char* mb_full_error_string(int error)
 
 /* ==================== 地址检查 ==================== */
 
-static int mb_check_bit_addr(uint16_t addr, uint16_t start, uint16_t count)
+/*
+ * 位区（线圈/离散输入）按位打包：区域起始地址对应 bit 0，存 count 位需要
+ * (count + 7) / 8 字节。读写与响应帧的字节数规则因此是同一套。
+ */
+static bool mb_bit_area_get(const mb_bit_area_t *area, uint16_t addr)
 {
-    if (addr < start || addr >= start + count) {
-        return MB_ERR_ILLEGAL_DATA_ADDRESS;
-    }
-    return 0;
+    uint16_t offset = (uint16_t)(addr - area->start_addr);
+
+    return (area->data[offset / 8U] & (uint8_t)(1U << (offset % 8U))) != 0;
 }
 
-static int mb_check_reg_addr(uint16_t addr, uint16_t start, uint16_t count)
+static void mb_bit_area_set(const mb_bit_area_t *area, uint16_t addr, bool level)
 {
-    if (addr < start || addr >= start + count) {
-        return MB_ERR_ILLEGAL_DATA_ADDRESS;
+    uint16_t offset = (uint16_t)(addr - area->start_addr);
+    uint8_t mask = (uint8_t)(1U << (offset % 8U));
+
+    if (level) {
+        area->data[offset / 8U] |= mask;
+    } else {
+        area->data[offset / 8U] &= (uint8_t)~mask;
     }
-    return 0;
+}
+
+/* 请求是否完整落在已配置区域内；未配置的区域（count == 0）一律不覆盖。 */
+static bool mb_area_covers(uint16_t start, uint16_t count, uint16_t addr, uint16_t n)
+{
+    if (count == 0U) {
+        return false;
+    }
+    if (addr < start) {
+        return false;
+    }
+    return (uint32_t)addr + n <= (uint32_t)start + count;
+}
+
+/* 把寄存器区的一段按大端写入响应，返回写入的字节数。 */
+static uint16_t mb_put_regs(uint8_t *dst, const mb_reg_area_t *area,
+                            uint16_t addr, uint16_t count)
+{
+    const uint16_t *reg = &area->data[addr - area->start_addr];
+
+    for (uint16_t i = 0; i < count; i++) {
+        dst[i * 2U] = (uint8_t)(reg[i] >> 8);
+        dst[i * 2U + 1U] = (uint8_t)(reg[i] & 0xFFU);
+    }
+    return (uint16_t)(count * 2U);
+}
+
+/* 把位区的一段按 Modbus 位序（请求首地址落到 bit 0）写入响应，返回字节数。 */
+static uint16_t mb_put_bits(uint8_t *dst, const mb_bit_area_t *area,
+                            uint16_t addr, uint16_t count)
+{
+    uint16_t byte_count = (uint16_t)((count + 7U) / 8U);
+
+    memset(dst, 0, byte_count);
+    for (uint16_t i = 0; i < count; i++) {
+        if (mb_bit_area_get(area, (uint16_t)(addr + i))) {
+            dst[i / 8U] |= (uint8_t)(1U << (i % 8U));
+        }
+    }
+    return byte_count;
+}
+
+/* 追加 RTU CRC 并返回整帧长度（含 CRC）。 */
+static uint16_t mb_rtu_finish(uint8_t *tx, uint16_t len)
+{
+    uint16_t crc = mb_full_crc16(tx, len);
+
+    tx[len] = (uint8_t)(crc & 0xFFU);
+    tx[len + 1U] = (uint8_t)(crc >> 8);
+    return (uint16_t)(len + 2U);
 }
 
 /* ==================== 从站实现 ==================== */
@@ -233,12 +316,10 @@ void mb_full_slave_set_uart(mb_full_slave_t *slave, mb_full_send_cb_t send_cb)
     g_slave_send_cb = send_cb;
 }
 
-void mb_full_slave_set_tcp(mb_full_slave_t *slave, mb_full_tcp_send_cb_t send_cb,
-                            mb_full_tcp_recv_cb_t recv_cb)
+void mb_full_slave_set_tcp(mb_full_slave_t *slave, mb_full_tcp_send_cb_t send_cb)
 {
     (void)slave;
     g_slave_tcp_send_cb = send_cb;
-    g_slave_tcp_recv_cb = recv_cb;
 }
 
 static void mb_full_slave_send(mb_full_slave_t *slave, const uint8_t *data, uint16_t len)
@@ -248,482 +329,424 @@ static void mb_full_slave_send(mb_full_slave_t *slave, const uint8_t *data, uint
     } else {
         if (g_slave_send_cb) g_slave_send_cb(data, len);
     }
-    (void)slave;
-}
-
-static void mb_full_slave_send_error(mb_full_slave_t *slave, uint8_t func, uint8_t err)
-{
-    uint8_t tx[5];
-    tx[0] = slave->slave_id;
-    tx[1] = func | 0x80;
-    tx[2] = err;
-    uint16_t crc = mb_full_crc16(tx, 3);
-    tx[3] = crc & 0xFF;
-    tx[4] = (crc >> 8) & 0xFF;
-    mb_full_slave_send(slave, tx, 5);
 }
 
 /**
- * @brief 从站处理帧
+ * @brief 处理一帧请求的 PDU
+ *
+ * @param func   功能码（等于 req[1]）
+ * @param req    指向单元 ID 的第一个字节；req[2..] 是 PDU 数据
+ * @param req_len req 中不含 RTU CRC 的字节数
+ * @param rsp_len 成功时写入整帧长度（含 RTU CRC）
+ *
+ * @return 0 成功；否则返回 Modbus 异常码（MB_ERR_*）
  */
 static int mb_full_slave_process(mb_full_slave_t *slave, uint8_t func,
                                   const uint8_t *req, uint16_t req_len,
-                                  uint8_t *rsp, uint16_t *rsp_len)
+                                  uint16_t *rsp_len)
 {
-    int error = 0;
     uint8_t *tx = slave->tx_buf;
-    
+    uint16_t addr;
+    uint16_t count;
+    int error = 0;
+
+    /* 位区响应靠逐位 |= 组装，必须从干净缓冲区开始，否则上一帧的位会留下来。 */
+    memset(tx, 0, sizeof(slave->tx_buf));
+
     switch (func) {
-        /* 0x01: 读线圈 */
-        case MB_FUNC_READ_COILS: {
-            uint16_t addr = ((uint16_t)req[2] << 8) | req[3];
-            uint16_t count = ((uint16_t)req[4] << 8) | req[5];
-            
-            if (count == 0 || count > 2000) {
-                error = MB_ERR_ILLEGAL_DATA_VALUE;
-                break;
-            }
-            
-            error = mb_check_bit_addr(addr, slave->coils.start_addr, slave->coils.count);
-            if (error != 0) break;
-            if (addr + count > slave->coils.start_addr + slave->coils.count) {
-                error = MB_ERR_ILLEGAL_DATA_ADDRESS;
-                break;
-            }
-            
-            tx[0] = slave->slave_id;
-            tx[1] = func;
-            tx[2] = (count + 7) / 8;
-            
-            uint8_t *coil = &slave->coils.data[addr - slave->coils.start_addr];
-            for (uint16_t i = 0; i < count; i++) {
-                if (coil[i / 8] & (1 << (i % 8))) {
-                    tx[3 + i / 8] |= (1 << (i % 8));
-                }
-            }
-            
-            uint16_t len = 3 + tx[2];
-            uint16_t crc = mb_full_crc16(tx, len);
-            tx[len] = crc & 0xFF;
-            tx[len + 1] = (crc >> 8) & 0xFF;
-            *rsp_len = len + 2;
-            return 0;
-        }
-        
-        /* 0x02: 读离散输入 */
+        /* 0x01: 读线圈 / 0x02: 读离散输入 */
+        case MB_FUNC_READ_COILS:
         case MB_FUNC_READ_DISCRETE_INPUTS: {
-            uint16_t addr = ((uint16_t)req[2] << 8) | req[3];
-            uint16_t count = ((uint16_t)req[4] << 8) | req[5];
-            
-            if (count == 0 || count > 2000) {
+            const mb_bit_area_t *area;
+
+            if (req_len < 6U) {
                 error = MB_ERR_ILLEGAL_DATA_VALUE;
                 break;
             }
-            
-            error = mb_check_bit_addr(addr, slave->discrete.start_addr, slave->discrete.count);
-            if (error != 0) break;
-            
-            tx[0] = slave->slave_id;
-            tx[1] = func;
-            tx[2] = (count + 7) / 8;
-            
-            uint8_t *disc = &slave->discrete.data[addr - slave->discrete.start_addr];
-            for (uint16_t i = 0; i < count; i++) {
-                if (disc[i / 8] & (1 << (i % 8))) {
-                    tx[3 + i / 8] |= (1 << (i % 8));
-                }
-            }
-            
-            uint16_t len = 3 + tx[2];
-            uint16_t crc = mb_full_crc16(tx, len);
-            tx[len] = crc & 0xFF;
-            tx[len + 1] = (crc >> 8) & 0xFF;
-            *rsp_len = len + 2;
-            return 0;
-        }
-        
-        /* 0x03: 读保持寄存器 */
-        case MB_FUNC_READ_HOLDING_REGISTERS: {
-            uint16_t addr = ((uint16_t)req[2] << 8) | req[3];
-            uint16_t count = ((uint16_t)req[4] << 8) | req[5];
-            
-            if (count == 0 || count > 125) {
+
+            addr = ((uint16_t)req[2] << 8) | req[3];
+            count = ((uint16_t)req[4] << 8) | req[5];
+            if (count == 0U || count > 2000U) {
                 error = MB_ERR_ILLEGAL_DATA_VALUE;
                 break;
             }
-            
-            error = mb_check_reg_addr(addr, slave->holding.start_addr, slave->holding.count);
-            if (error != 0) break;
-            if (addr + count > slave->holding.start_addr + slave->holding.count) {
+
+            area = (func == MB_FUNC_READ_COILS) ? &slave->coils : &slave->discrete;
+            if (!mb_area_covers(area->start_addr, area->count, addr, count)) {
                 error = MB_ERR_ILLEGAL_DATA_ADDRESS;
                 break;
             }
-            
+
             tx[0] = slave->slave_id;
             tx[1] = func;
-            tx[2] = count * 2;
-            
-            uint16_t *reg = &slave->holding.data[addr - slave->holding.start_addr];
-            for (uint16_t i = 0; i < count; i++) {
-                tx[3 + i * 2] = (reg[i] >> 8) & 0xFF;
-                tx[4 + i * 2] = reg[i] & 0xFF;
-            }
-            
-            uint16_t len = 3 + count * 2;
-            uint16_t crc = mb_full_crc16(tx, len);
-            tx[len] = crc & 0xFF;
-            tx[len + 1] = (crc >> 8) & 0xFF;
-            *rsp_len = len + 2;
+            tx[2] = (uint8_t)mb_put_bits(&tx[3], area, addr, count);
+            *rsp_len = mb_rtu_finish(tx, (uint16_t)(3U + tx[2]));
             return 0;
         }
-        
-        /* 0x04: 读输入寄存器 */
+
+        /* 0x03: 读保持寄存器 / 0x04: 读输入寄存器 */
+        case MB_FUNC_READ_HOLDING_REGISTERS:
         case MB_FUNC_READ_INPUT_REGISTERS: {
-            uint16_t addr = ((uint16_t)req[2] << 8) | req[3];
-            uint16_t count = ((uint16_t)req[4] << 8) | req[5];
-            
-            if (count == 0 || count > 125) {
+            const mb_reg_area_t *area;
+
+            if (req_len < 6U) {
                 error = MB_ERR_ILLEGAL_DATA_VALUE;
                 break;
             }
-            
-            error = mb_check_reg_addr(addr, slave->input.start_addr, slave->input.count);
-            if (error != 0) break;
-            
+
+            addr = ((uint16_t)req[2] << 8) | req[3];
+            count = ((uint16_t)req[4] << 8) | req[5];
+            if (count == 0U || count > 125U) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+
+            area = (func == MB_FUNC_READ_HOLDING_REGISTERS) ? &slave->holding : &slave->input;
+            if (!mb_area_covers(area->start_addr, area->count, addr, count)) {
+                error = MB_ERR_ILLEGAL_DATA_ADDRESS;
+                break;
+            }
+
             tx[0] = slave->slave_id;
             tx[1] = func;
-            tx[2] = count * 2;
-            
-            uint16_t *reg = &slave->input.data[addr - slave->input.start_addr];
-            for (uint16_t i = 0; i < count; i++) {
-                tx[3 + i * 2] = (reg[i] >> 8) & 0xFF;
-                tx[4 + i * 2] = reg[i] & 0xFF;
-            }
-            
-            uint16_t len = 3 + count * 2;
-            uint16_t crc = mb_full_crc16(tx, len);
-            tx[len] = crc & 0xFF;
-            tx[len + 1] = (crc >> 8) & 0xFF;
-            *rsp_len = len + 2;
+            tx[2] = (uint8_t)mb_put_regs(&tx[3], area, addr, count);
+            *rsp_len = mb_rtu_finish(tx, (uint16_t)(3U + tx[2]));
             return 0;
         }
-        
+
         /* 0x05: 写单个线圈 */
         case MB_FUNC_WRITE_SINGLE_COIL: {
-            uint16_t addr = ((uint16_t)req[2] << 8) | req[3];
-            uint16_t value = ((uint16_t)req[4] << 8) | req[5];
-            
-            error = mb_check_bit_addr(addr, slave->coils.start_addr, slave->coils.count);
-            if (error != 0) break;
-            
-            uint8_t *coil = &slave->coils.data[addr - slave->coils.start_addr];
-            if (value == 0xFF00) {
-                *coil |= (1 << (addr % 8));
-            } else if (value == 0x0000) {
-                *coil &= ~(1 << (addr % 8));
-            } else {
+            uint16_t value;
+
+            if (req_len < 6U) {
                 error = MB_ERR_ILLEGAL_DATA_VALUE;
                 break;
             }
-            
-            /* 响应 (回显) */
-            memcpy(tx, req, 6);
-            uint16_t crc = mb_full_crc16(tx, 6);
-            tx[6] = crc & 0xFF;
-            tx[7] = (crc >> 8) & 0xFF;
-            *rsp_len = 8;
-            return 0;
-        }
-        
-        /* 0x06: 写单个寄存器 */
-        case MB_FUNC_WRITE_SINGLE_REGISTER: {
-            uint16_t addr = ((uint16_t)req[2] << 8) | req[3];
-            uint16_t value = ((uint16_t)req[4] << 8) | req[5];
-            
-            error = mb_check_reg_addr(addr, slave->holding.start_addr, slave->holding.count);
-            if (error != 0) break;
-            
-            slave->holding.data[addr - slave->holding.start_addr] = value;
-            
-            /* 响应 (回显) */
-            memcpy(tx, req, 6);
-            uint16_t crc = mb_full_crc16(tx, 6);
-            tx[6] = crc & 0xFF;
-            tx[7] = (crc >> 8) & 0xFF;
-            *rsp_len = 8;
-            return 0;
-        }
-        
-        /* 0x0F: 写多个线圈 */
-        case MB_FUNC_WRITE_MULTIPLE_COILS: {
-            uint16_t addr = ((uint16_t)req[2] << 8) | req[3];
-            uint16_t count = ((uint16_t)req[4] << 8) | req[5];
-            uint8_t byte_count = req[6];
-            
-            if (byte_count != (count + 7) / 8) {
+
+            addr = ((uint16_t)req[2] << 8) | req[3];
+            value = ((uint16_t)req[4] << 8) | req[5];
+            if (value != 0xFF00U && value != 0x0000U) {
                 error = MB_ERR_ILLEGAL_DATA_VALUE;
                 break;
             }
-            
-            error = mb_check_bit_addr(addr, slave->coils.start_addr, slave->coils.count);
-            if (error != 0) break;
-            
-            uint8_t *coil = &slave->coils.data[addr - slave->coils.start_addr];
-            for (uint16_t i = 0; i < count; i++) {
-                if (req[7 + i / 8] & (1 << (i % 8))) {
-                    coil[i / 8] |= (1 << (i % 8));
-                } else {
-                    coil[i / 8] &= ~(1 << (i % 8));
-                }
-            }
-            
-            /* 响应 */
-            tx[0] = slave->slave_id;
-            tx[1] = func;
-            tx[2] = req[2];
-            tx[3] = req[3];
-            tx[4] = req[4];
-            tx[5] = req[5];
-            
-            uint16_t crc = mb_full_crc16(tx, 6);
-            tx[6] = crc & 0xFF;
-            tx[7] = (crc >> 8) & 0xFF;
-            *rsp_len = 8;
-            return 0;
-        }
-        
-        /* 0x10: 写多个寄存器 */
-        case MB_FUNC_WRITE_MULTIPLE_REGISTERS: {
-            uint16_t addr = ((uint16_t)req[2] << 8) | req[3];
-            uint16_t count = ((uint16_t)req[4] << 8) | req[5];
-            uint8_t byte_count = req[6];
-            
-            if (byte_count != count * 2) {
-                error = MB_ERR_ILLEGAL_DATA_VALUE;
-                break;
-            }
-            
-            error = mb_check_reg_addr(addr, slave->holding.start_addr, slave->holding.count);
-            if (error != 0) break;
-            if (addr + count > slave->holding.start_addr + slave->holding.count) {
+            if (!mb_area_covers(slave->coils.start_addr, slave->coils.count, addr, 1U)) {
                 error = MB_ERR_ILLEGAL_DATA_ADDRESS;
                 break;
             }
-            
-            uint16_t *reg = &slave->holding.data[addr - slave->holding.start_addr];
-            for (uint16_t i = 0; i < count; i++) {
-                reg[i] = ((uint16_t)req[7 + i * 2] << 8) | req[8 + i * 2];
-            }
-            
-            /* 响应 */
-            tx[0] = slave->slave_id;
-            tx[1] = func;
-            tx[2] = req[2];
-            tx[3] = req[3];
-            tx[4] = req[4];
-            tx[5] = req[5];
-            
-            uint16_t crc = mb_full_crc16(tx, 6);
-            tx[6] = crc & 0xFF;
-            tx[7] = (crc >> 8) & 0xFF;
-            *rsp_len = 8;
+
+            mb_bit_area_set(&slave->coils, addr, value == 0xFF00U);
+
+            /* 响应 (回显请求前 6 字节) */
+            memcpy(tx, req, 6);
+            *rsp_len = mb_rtu_finish(tx, 6);
             return 0;
         }
-        
-        /* 0x17: 读写多个寄存器 */
-        case MB_FUNC_READ_WRITE_MULTIPLE: {
-            uint16_t read_addr = ((uint16_t)req[2] << 8) | req[3];
-            uint16_t read_count = ((uint16_t)req[4] << 8) | req[5];
-            uint16_t write_addr = ((uint16_t)req[6] << 8) | req[7];
-            uint16_t write_count = ((uint16_t)req[8] << 8) | req[9];
-            uint8_t write_byte_count = req[10];
-            
-            if (write_byte_count != write_count * 2) {
+
+        /* 0x06: 写单个寄存器 */
+        case MB_FUNC_WRITE_SINGLE_REGISTER: {
+            uint16_t value;
+
+            if (req_len < 6U) {
                 error = MB_ERR_ILLEGAL_DATA_VALUE;
                 break;
             }
-            
-            /* 读 */
-            error = mb_check_reg_addr(read_addr, slave->holding.start_addr, slave->holding.count);
-            if (error != 0) break;
-            
-            /* 写 */
-            error = mb_check_reg_addr(write_addr, slave->holding.start_addr, slave->holding.count);
-            if (error != 0) break;
-            
-            /* 读响应 */
-            tx[0] = slave->slave_id;
-            tx[1] = func;
-            tx[2] = read_count * 2;
-            
-            uint16_t *read_reg = &slave->holding.data[read_addr - slave->holding.start_addr];
-            for (uint16_t i = 0; i < read_count; i++) {
-                tx[3 + i * 2] = (read_reg[i] >> 8) & 0xFF;
-                tx[4 + i * 2] = read_reg[i] & 0xFF;
+
+            addr = ((uint16_t)req[2] << 8) | req[3];
+            value = ((uint16_t)req[4] << 8) | req[5];
+            if (!mb_area_covers(slave->holding.start_addr, slave->holding.count, addr, 1U)) {
+                error = MB_ERR_ILLEGAL_DATA_ADDRESS;
+                break;
             }
-            
-            /* 写入数据 */
-            uint16_t *write_reg = &slave->holding.data[write_addr - slave->holding.start_addr];
-            for (uint16_t i = 0; i < write_count; i++) {
-                write_reg[i] = ((uint16_t)req[11 + i * 2] << 8) | req[12 + i * 2];
-            }
-            
-            uint16_t len = 3 + read_count * 2;
-            uint16_t crc = mb_full_crc16(tx, len);
-            tx[len] = crc & 0xFF;
-            tx[len + 1] = (crc >> 8) & 0xFF;
-            *rsp_len = len + 2;
+
+            slave->holding.data[addr - slave->holding.start_addr] = value;
+
+            memcpy(tx, req, 6);
+            *rsp_len = mb_rtu_finish(tx, 6);
             return 0;
         }
-        
-        /* 0x2E: 读设备 ID */
-        case MB_FUNC_READ_DEVICE_ID: {
-            uint8_t object_id = req[2];
-            
+
+        /* 0x0F: 写多个线圈 */
+        case MB_FUNC_WRITE_MULTIPLE_COILS: {
+            uint8_t byte_count;
+
+            if (req_len < 7U) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+
+            addr = ((uint16_t)req[2] << 8) | req[3];
+            count = ((uint16_t)req[4] << 8) | req[5];
+            byte_count = req[6];
+            if (count == 0U || count > 1968U) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+            if (byte_count != (uint8_t)((count + 7U) / 8U)) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+            if ((uint32_t)7U + byte_count > req_len) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+            if (!mb_area_covers(slave->coils.start_addr, slave->coils.count, addr, count)) {
+                error = MB_ERR_ILLEGAL_DATA_ADDRESS;
+                break;
+            }
+
+            for (uint16_t i = 0; i < count; i++) {
+                bool level = (req[7U + i / 8U] & (uint8_t)(1U << (i % 8U))) != 0;
+                mb_bit_area_set(&slave->coils, (uint16_t)(addr + i), level);
+            }
+
+            /* 响应: 单元 ID、功能码、起始地址、数量 */
             tx[0] = slave->slave_id;
             tx[1] = func;
-            tx[2] = 0x01;  /* 符合性级别 */
-            tx[3] = 0x00;  /* 后续对象数 */
-            tx[4] = object_id;
-            
-            switch (object_id) {
-                case MB_OBJ_BASIC:
-                    tx[5] = 0x00;  /* 对象 ID */
-                    tx[6] = 0x01;  /* 长度 */
-                    tx[7] = slave->device_id.device_id;
-                    break;
-                default:
-                    error = MB_ERR_ILLEGAL_DATA_VALUE;
-                    break;
-            }
-            
-            if (error == 0) {
-                uint16_t len = 8;
-                uint16_t crc = mb_full_crc16(tx, len);
-                tx[len] = crc & 0xFF;
-                tx[len + 1] = (crc >> 8) & 0xFF;
-                *rsp_len = len + 2;
-            }
-            break;
+            memcpy(&tx[2], &req[2], 4);
+            *rsp_len = mb_rtu_finish(tx, 6);
+            return 0;
         }
-        
+
+        /* 0x10: 写多个寄存器 */
+        case MB_FUNC_WRITE_MULTIPLE_REGISTERS: {
+            uint8_t byte_count;
+
+            if (req_len < 7U) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+
+            addr = ((uint16_t)req[2] << 8) | req[3];
+            count = ((uint16_t)req[4] << 8) | req[5];
+            byte_count = req[6];
+            if (count == 0U || count > 123U) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+            if (byte_count != (uint8_t)(count * 2U)) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+            if ((uint32_t)7U + byte_count > req_len) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+            if (!mb_area_covers(slave->holding.start_addr, slave->holding.count, addr, count)) {
+                error = MB_ERR_ILLEGAL_DATA_ADDRESS;
+                break;
+            }
+
+            for (uint16_t i = 0; i < count; i++) {
+                slave->holding.data[addr - slave->holding.start_addr + i] =
+                    ((uint16_t)req[7U + i * 2U] << 8) | req[8U + i * 2U];
+            }
+
+            tx[0] = slave->slave_id;
+            tx[1] = func;
+            memcpy(&tx[2], &req[2], 4);
+            *rsp_len = mb_rtu_finish(tx, 6);
+            return 0;
+        }
+
+        /* 0x17: 读写多个寄存器 */
+        case MB_FUNC_READ_WRITE_MULTIPLE: {
+            uint16_t read_addr;
+            uint16_t read_count;
+            uint16_t write_addr;
+            uint16_t write_count;
+            uint8_t write_byte_count;
+
+            if (req_len < 11U) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+
+            read_addr = ((uint16_t)req[2] << 8) | req[3];
+            read_count = ((uint16_t)req[4] << 8) | req[5];
+            write_addr = ((uint16_t)req[6] << 8) | req[7];
+            write_count = ((uint16_t)req[8] << 8) | req[9];
+            write_byte_count = req[10];
+            if (read_count == 0U || read_count > 125U ||
+                write_count == 0U || write_count > 121U) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+            if (write_byte_count != (uint8_t)(write_count * 2U)) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+            if ((uint32_t)11U + write_byte_count > req_len) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+            if (!mb_area_covers(slave->holding.start_addr, slave->holding.count,
+                                read_addr, read_count) ||
+                !mb_area_covers(slave->holding.start_addr, slave->holding.count,
+                                write_addr, write_count)) {
+                error = MB_ERR_ILLEGAL_DATA_ADDRESS;
+                break;
+            }
+
+            /* 规范要求先执行写、再执行读，因此响应里能看到刚写入的值。 */
+            for (uint16_t i = 0; i < write_count; i++) {
+                slave->holding.data[write_addr - slave->holding.start_addr + i] =
+                    ((uint16_t)req[11U + i * 2U] << 8) | req[12U + i * 2U];
+            }
+
+            tx[0] = slave->slave_id;
+            tx[1] = func;
+            tx[2] = (uint8_t)mb_put_regs(&tx[3], &slave->holding, read_addr, read_count);
+            *rsp_len = mb_rtu_finish(tx, (uint16_t)(3U + tx[2]));
+            return 0;
+        }
+
+        /* 0x2E: 读设备标识（MEI 类型 0x0E，仅支持"基本"读取码） */
+        case MB_FUNC_READ_DEVICE_ID: {
+            if (req_len < 5U) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+            if (req[2] != 0x0E || req[3] != 0x01U) {
+                error = MB_ERR_ILLEGAL_DATA_VALUE;
+                break;
+            }
+            if (req[4] != (uint8_t)MB_OBJ_BASIC) {
+                error = MB_ERR_ILLEGAL_DATA_ADDRESS;
+                break;
+            }
+
+            tx[0] = slave->slave_id;
+            tx[1] = func;
+            tx[2] = 0x0E;   /* MEI 类型 */
+            tx[3] = 0x01;   /* 基本读取码 */
+            tx[4] = 0x01;   /* 一致性级别: 基本 */
+            tx[5] = 0x00;   /* 后续对象: 无 */
+            tx[6] = 0x00;   /* 下一个对象 ID */
+            tx[7] = 0x01;   /* 对象数量 */
+            tx[8] = 0x00;   /* 对象 ID: 基本 */
+            tx[9] = 0x01;   /* 对象长度 */
+            tx[10] = slave->device_id.device_id;
+            *rsp_len = mb_rtu_finish(tx, 11);
+            return 0;
+        }
+
         default:
             error = MB_ERR_ILLEGAL_FUNCTION;
             break;
     }
-    
+
     return error;
 }
 
+/**
+ * @brief 从站处理 RTU 帧
+ */
 int mb_full_slave_handle(mb_full_slave_t *slave, const uint8_t *data, uint16_t len)
 {
-    uint8_t slave_id, func;
-    uint16_t crc_rx, crc_calc;
-    uint8_t rsp[MB_FULL_MAX_ADU_SIZE];
+    uint16_t crc_rx;
+    uint16_t crc_calc;
     uint16_t rsp_len = 0;
     int error;
-    
-    if (!slave || !data || len < 5) {
+
+    if (!slave || !data || len < 4U) {
         return MB_FULL_INVALID_PARAM;
     }
-    
+
     /* RTU: 验证 CRC */
-    crc_rx = ((uint16_t)data[len - 1] << 8) | data[len - 2];
-    crc_calc = mb_full_crc16(data, len - 2);
+    crc_rx = ((uint16_t)data[len - 1U] << 8) | data[len - 2U];
+    crc_calc = mb_full_crc16(data, (uint16_t)(len - 2U));
     if (crc_rx != crc_calc) {
         slave->crc_error_count++;
         slave->error_count++;
         return MB_FULL_CRC_ERROR;
     }
-    
-    slave_id = data[0];
-    func = data[1];
-    
-    /* 检查从站 ID */
-    if (slave_id != slave->slave_id) {
+
+    /* 检查从站 ID；不是发给自己的帧既不应答也不计数 */
+    if (data[0] != slave->slave_id) {
         return MB_FULL_OK;
     }
-    
-    /* 处理请求 */
-    error = mb_full_slave_process(slave, func, data + 1, len - 3, rsp, &rsp_len);
-    
+
+    error = mb_full_slave_process(slave, data[1], data, (uint16_t)(len - 2U), &rsp_len);
     if (error != 0) {
-        /* 发送错误响应 */
-        rsp[0] = slave->slave_id;
-        rsp[1] = func | 0x80;
-        rsp[2] = (uint8_t)error;
-        crc_calc = mb_full_crc16(rsp, 3);
-        rsp[3] = crc_calc & 0xFF;
-        rsp[4] = (crc_calc >> 8) & 0xFF;
-        rsp_len = 5;
+        /* 异常响应: 单元 ID、功能码 | 0x80、异常码、CRC */
+        slave->tx_buf[0] = slave->slave_id;
+        slave->tx_buf[1] = (uint8_t)(data[1] | 0x80U);
+        slave->tx_buf[2] = (uint8_t)error;
+        rsp_len = mb_rtu_finish(slave->tx_buf, 3);
         slave->error_count++;
     } else {
         slave->request_count++;
     }
-    
-    mb_full_slave_send(slave, rsp, rsp_len);
+
+    slave->tx_len = rsp_len;
+    mb_full_slave_send(slave, slave->tx_buf, rsp_len);
     return MB_FULL_OK;
 }
 
+/**
+ * @brief 从站处理 Modbus TCP 帧
+ *
+ * MBAP 头（事务 ID、协议 ID、长度）在线上是大端，这里逐字节解析/组装，
+ * 不把结构体直接盖在缓冲区上——那样在小端机器上事务 ID 会整体翻转。
+ */
 int mb_full_slave_handle_tcp(mb_full_slave_t *slave, const uint8_t *data, uint16_t len)
 {
-    mb_tcp_header_t *hdr = (mb_tcp_header_t *)data;
-    uint8_t slave_id, func;
-    uint16_t crc_calc;
     uint8_t rsp[MB_FULL_MAX_TCP_ADU_SIZE];
+    uint16_t transaction_id;
+    uint16_t protocol_id;
+    uint16_t length;
     uint16_t rsp_len = 0;
+    uint16_t pdu_len;
     int error;
-    
-    if (!slave || !data || len < 9) {
+
+    if (!slave || !data || len < 9U) {
         return MB_FULL_INVALID_PARAM;
     }
-    
-    /* 检查协议 ID */
-    if (hdr->protocol_id != 0) {
+
+    transaction_id = ((uint16_t)data[0] << 8) | data[1];
+    protocol_id = ((uint16_t)data[2] << 8) | data[3];
+    length = ((uint16_t)data[4] << 8) | data[5];
+
+    if (protocol_id != 0U) {
         return MB_FULL_INVALID_PARAM;
     }
-    
-    slave_id = hdr->unit_id;
-    func = data[7];
-    
-    /* 检查从站 ID */
-    if (slave_id != slave->slave_id) {
+    /* 长度覆盖单元 ID + PDU，必须与实际到达的字节数一致 */
+    if (length < 3U || (uint16_t)(length + 6U) != len) {
+        return MB_FULL_INVALID_PARAM;
+    }
+
+    /* 检查从站 ID；不是发给自己的帧既不应答也不计数 */
+    if (data[6] != slave->slave_id) {
         return MB_FULL_OK;
     }
-    
-    /* 处理请求 */
-    error = mb_full_slave_process(slave, func, data + 7, len - 9, rsp + 7, &rsp_len);
-    
-    /* 构建 TCP 响应 */
+
+    error = mb_full_slave_process(slave, data[7], data + 6, length, &rsp_len);
+
+    rsp[0] = (uint8_t)(transaction_id >> 8);
+    rsp[1] = (uint8_t)(transaction_id & 0xFFU);
+    rsp[2] = 0x00;
+    rsp[3] = 0x00;
+    rsp[6] = slave->slave_id;
+
     if (error != 0) {
-        rsp[0] = (hdr->transaction_id >> 8) & 0xFF;
-        rsp[1] = hdr->transaction_id & 0xFF;
-        rsp[2] = 0x00;
-        rsp[3] = 0x00;
         rsp[4] = 0x00;
-        rsp[5] = 3;  /* 长度 */
-        rsp[6] = slave->slave_id;
-        rsp[7] = func | 0x80;
+        rsp[5] = 0x03;  /* 异常响应固定 3 字节: 单元 ID + 功能码 + 异常码 */
+        rsp[7] = (uint8_t)(data[7] | 0x80U);
         rsp[8] = (uint8_t)error;
-        
         rsp_len = 9;
         slave->error_count++;
     } else {
-        /* 添加 TCP 头 */
-        rsp[0] = (hdr->transaction_id >> 8) & 0xFF;
-        rsp[1] = hdr->transaction_id & 0xFF;
-        rsp[2] = 0x00;
-        rsp[3] = 0x00;
-        
-        uint16_t payload_len = rsp_len - 2;  /* 去掉 CRC */
-        rsp[4] = (payload_len >> 8) & 0xFF;
-        rsp[5] = payload_len & 0xFF;
-        rsp[6] = slave->slave_id;
-        
-        rsp_len += 7;  /* 加上 TCP 头 */
+        /* tx_buf 是整条 RTU 帧（单元 ID + PDU + CRC）。TCP 载荷 = PDU（去掉单元 ID 与 CRC），
+           长度字段再算上 MBAP 尾部的单元 ID。 */
+        pdu_len = (uint16_t)(rsp_len - 3U);
+        rsp[4] = (uint8_t)((pdu_len + 1U) >> 8);
+        rsp[5] = (uint8_t)((pdu_len + 1U) & 0xFFU);
+        memcpy(&rsp[7], &slave->tx_buf[1], pdu_len);
+        rsp_len = (uint16_t)(7U + pdu_len);
         slave->request_count++;
     }
-    
+
+    slave->tx_len = rsp_len;
     mb_full_slave_send(slave, rsp, rsp_len);
     return MB_FULL_OK;
 }
