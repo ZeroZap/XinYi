@@ -1454,14 +1454,11 @@ target_include_directories(test_ap3216c_device BEFORE PRIVATE
     ${DRV}/sensor/light/ap3216c
 )
 
-xy_add_unit_test(test_icm20608_sensor sensor_icm20608 UNITY
-    ${UNIT_SENSOR}/test_icm20608_sensor.c
-    ${SENSOR}/sensors/sensor_icm20608.c
+xy_add_unit_test(test_icm20608_device sensor_icm20608_device UNITY
+    ${UNIT_SENSOR}/test_icm20608_device.c
     ${DRV}/sensor/motion/icm20608/xy_icm20608.c
 )
-target_include_directories(test_icm20608_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
+target_include_directories(test_icm20608_device BEFORE PRIVATE
     ${DRV}/sensor/motion/icm20608
 )
 

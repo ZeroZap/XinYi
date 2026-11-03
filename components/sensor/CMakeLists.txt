@@ -27,13 +27,11 @@ set(SENSOR_SOURCES
     sensor_adt7420.c
 )
 
-# Add driver sources from sensors/ directory
+# Add driver sources from sensors/ directory. Every legacy compatibility owner
+# has been migrated to a canonical Device-model driver under components/drivers,
+# so this glob currently matches nothing; it is kept so the source-ownership
+# guard and any future re-addition continue to be inventoried.
 file(GLOB SENSOR_DRIVERS "${CMAKE_CURRENT_LIST_DIR}/sensors/sensor_*.c")
-# The canonical Device-model driver these compatibility paths use (ICM20608) is
-# owned by components/drivers and compiled by `xy_sensor_drivers_core`.
-# It is linked below, not compiled here: a second copy would put the same
-# globals in two archives, and archive order - not the build - would decide
-# which implementation runs.
 list(APPEND SENSOR_SOURCES ${SENSOR_DRIVERS})
 
 add_library(sensor_component STATIC ${SENSOR_SOURCES})
@@ -41,7 +39,6 @@ target_include_directories(sensor_component PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc
 target_include_directories(sensor_component PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 target_include_directories(sensor_component PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/../device/inc
-    ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/motion/icm20608
     ${CMAKE_CURRENT_LIST_DIR}/../hal/inc
     ${CMAKE_CURRENT_LIST_DIR}/../kernel/osal
     ${CMAKE_CURRENT_LIST_DIR}/../trace/xy_log/inc

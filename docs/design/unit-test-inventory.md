@@ -381,7 +381,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_fsr_device.c` | `unity` | 0 | FSR canonical Device: raw ADC read, guards, failure atomicity |
 | `tests/unit/sensor/test_mg811_device.c` | `unity` | 0 | MG811 canonical Device: raw ADC read, guards, failure atomicity |
 
-| `tests/unit/sensor/test_icm20608_sensor.c` | `unity` | 0 | ICM20608 legacy IMU I2C/SPI identity/init/read/failure contracts |
+| `tests/unit/sensor/test_icm20608_device.c` | `unity` | 0 | ICM20608 canonical Device IMU I2C/SPI identity/reset/config/decode/verify contracts |
 | `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS NMEA parser GGA/RMC/GSV/checksum/registry contracts; `gps_parse_nmea`/`gps_parse_byte` come from `xy_gps.h`. Also pins that `gps_sleep(NULL)`/`gps_wakeup(NULL)` are rejected instead of dereferencing. |
 | `tests/unit/sensor/test_gps_example_tick_stub.c` | `plain/helper` | 0 | Frozen `xy_hal_sys_get_tick_count()` for the `sensor_gps_example` target; not a standalone CTest source. |
 | `tests/unit/sensor/test_sensor_demo_backend_stub.c` | `plain/helper` | 0 | SPI/UART/GPIO/mem-I2C/registry stubs for the `sensor_device_example` target. `components/sensor/examples/sensor_demo.c` supplies the three HAL entry points it asserts on; this file stubs the rest of `xy_device_bus_helpers.c`'s backend so the sample does not have to carry harness code. Returns `NOT_SUPPORTED`, so a driver that switched to one of these paths fails instead of passing against a rubber stamp. |

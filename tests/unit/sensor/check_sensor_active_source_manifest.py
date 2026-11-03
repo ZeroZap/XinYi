@@ -71,6 +71,7 @@ STALE_AHT20_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_aht20.c"
 STALE_AHT20_HEADER = ROOT / "components" / "sensor" / "inc" / "xy_aht20.h"
 STALE_MPU6050_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_mpu6050.c"
 STALE_AHT20_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_aht20.c"
+STALE_ICM20608_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_icm20608.c"
 STALE_SHT40_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_sht40.c"
 STALE_SHT40_HEADER = ROOT / "components" / "sensor" / "inc" / "xy_sht40.h"
 STALE_MLX90614_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_mlx90614.c"
@@ -151,7 +152,7 @@ def main() -> int:
     prototype_names = {path.stem.removeprefix("xy_sensor_") for path in prototype}
     top_level_names = {path.stem.removeprefix("sensor_") for path in top_level_owners}
 
-    require(len(legacy) == 1, f"expected 1 legacy active source, found {len(legacy)}", errors)
+    require(len(legacy) == 0, f"expected 0 legacy active sources, found {len(legacy)}", errors)
     require([path.name for path in top_level_owners] == ["sensor_adt7420.c"],
             "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
     require(len(experimental) == 5,
@@ -160,9 +161,8 @@ def main() -> int:
     false_owners = false_owner_candidates(legacy)
     require(not false_owners,
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
-    require(canonical_names & legacy_names ==
-            {"icm20608"},
-            "canonical/legacy overlap must contain only approved compatibility wrappers", errors)
+    require(canonical_names & legacy_names == set(),
+            "canonical/legacy overlap must be empty (all compatibility wrappers retired)", errors)
     require(not (canonical_names & experimental_names),
             "canonical Device owners must not reappear in experimental src/xy_*", errors)
     require(not (canonical_names & prototype_names),
@@ -320,6 +320,8 @@ def main() -> int:
             "retired sensor_mpu6050 wrapper must not reappear", errors)
     require(not STALE_AHT20_LEGACY.exists(),
             "retired sensor_aht20 wrapper must not reappear", errors)
+    require(not STALE_ICM20608_LEGACY.exists(),
+            "retired sensor_icm20608 wrapper must not reappear", errors)
     require(not STALE_QMC5883L_LEGACY.exists(),
             "retired sensor_qmc5883l duplicate must not reappear", errors)
     require(not STALE_IST8310_LEGACY.exists(),
@@ -372,9 +374,9 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("sensor_active_source_manifest_ok legacy_active=1 legacy_subdir=1 "
+    print("sensor_active_source_manifest_ok legacy_active=0 legacy_subdir=0 "
           "legacy_top_level=1 experimental_test_only=5 device_active=61 "
-          "approved_wrappers=1 overlap_duplicates=0 false_owners=0 "
+          "approved_wrappers=0 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0
 

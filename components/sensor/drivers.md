@@ -70,7 +70,7 @@
 |------|------|------|------|------|
 | MPU6050 | 6轴IMU | I2C | FIFO, 中断 | drivers/sensor/motion/mpu6050/xy_mpu6050.c |
 | SC7A20 | 3轴加速度计 | I2C | 低功耗 | sensor_sc7a20.c |
-| ICM20608 | 6轴IMU | I2C/SPI | FIFO, 高精度 | sensor_icm20608.c |
+| ICM20608 | 6轴IMU | I2C/SPI | FIFO, 高精度 | drivers/sensor/motion/icm20608/xy_icm20608.c |
 | BMG160 | 陀螺仪 | I2C/SPI | 16位 | - |
 | BMI270 | 6轴IMU | I2C/SPI | 智能传感器 | - |
 

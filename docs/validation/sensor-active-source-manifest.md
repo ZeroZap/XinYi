@@ -10,11 +10,11 @@
 
 ## Policy
 
-- `legacy-active-root`: `components/sensor/sensors/sensor_*.c` plus the explicitly inventoried
-  top-level `sensor_adt7420.c` are the current `sensor_component` compatibility source set. New
-  chips must not be added to this lifecycle;
-  migration of these owners to the Device model is now the next major Sensor workstream after the
-  current Pandora I2C2 Device owners are completed and stabilized.
+- `legacy-active-root`: the `components/sensor/sensors/sensor_*.c` glob plus the explicitly
+  inventoried top-level `sensor_adt7420.c` are the remaining `sensor_component` compatibility
+  source set. New chips must not be added to this lifecycle; every former `sensors/` compatibility
+  owner has now been migrated to the Device model, leaving only the top-level `sensor_adt7420.c`
+  as the last legacy owner.
 - `experimental-test-only`: `components/sensor/src/xy_*.c` is compiled directly by focused
   Host tests where wired, but is not linked into the root `sensor_component`. **Host 测试不等于根产品链接**.
 - `device-active-root`: `components/drivers/sensor/**/xy_*.c` is collected by the root
@@ -29,7 +29,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 1 `sensors/sensor_*.c` file (`sensor_icm20608.c`) and explicitly lists top-level `sensor_adt7420.c` | 1 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 0 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 1 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 5 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 61 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
@@ -339,11 +339,18 @@ bounded; this migration adds no accuracy, threshold, NACK-recovery or long-run c
 
 `components/drivers/sensor/motion/icm20608` now owns identity, reset,
 default range/filter configuration, I2C/SPI transport dispatch and converted acceleration,
-gyroscope and temperature outputs. Root-linked `sensor_icm20608.c` retains the three legacy
-factories as compatibility wrappers only. Existing Pandora ICM20608 static/basic-chain evidence
-remains bounded; migration does not establish dynamic response, accuracy, calibration or recovery.
-Internal writes now enforce the same I2C/SPI transport validity as reads. Successful deinit clears
-the active I2C handle or SPI callback/context set, preventing stale transport reuse.
+gyroscope and temperature outputs. The legacy `sensor_icm20608.c` compatibility wrapper is retired:
+it delegated init/deinit/read/range/odr/dlpf/bias/configuration/interrupt behavior to this owner,
+mapped the owner errors onto the legacy `sensor_err_t` codes, and converted mdps to dps plus
+centi-C to float at the wrapper boundary. Those contracts are now asserted on the canonical API by
+the focused Device test `test_icm20608_device.c`: I2C and SPI identity/reset/configuration,
+14-byte sample and accel/gyro/temperature decode, range/odr/dlpf read-modify-write and rollback,
+bias bounds and application, sleep with wake delay, the data-ready interrupt, configuration
+readback/verification drift detection, and atomic failure on transport error or value mismatch.
+Existing Pandora ICM20608 static/basic-chain evidence remains bounded; migration does not establish
+dynamic response, accuracy, calibration or recovery. Internal writes now enforce the same
+I2C/SPI transport validity as reads. Successful deinit clears the active I2C handle or SPI
+callback/context set, preventing stale transport reuse.
 
 ### HDC1080 migration status
 
@@ -752,11 +759,11 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 61 canonical names have exactly ten approved legacy filename overlaps:
-`icm20608`, `max44009`, `bma400`, `kx023`, `adxl362`, `lsm6dso`, `lsm6dsl`, `lsm6dsr`, `lis2dh12`,
-and `lis2dw12`. Each
-overlap is a compatibility wrapper documented above, not an implementation owner. The other
-fifty-one canonical owners have no legacy-root counterpart. No canonical name overlaps
+The current 61 canonical names have no approved legacy filename overlap: the ten former overlaps
+(`icm20608`, `max44009`, `bma400`, `kx023`, `adxl362`, `lsm6dso`, `lsm6dsl`, `lsm6dsr`, `lis2dh12`,
+and `lis2dw12`) were each either a compatibility wrapper documented above or an independent duplicate
+implementation, and all ten have now been retired in favor of their canonical Device owners. The
+remaining sixty-one canonical owners have no legacy-root counterpart. No canonical name overlaps
 the 5 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was
