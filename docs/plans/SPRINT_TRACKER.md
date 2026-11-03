@@ -3474,3 +3474,12 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - **边界**：纯 Host/config 层，无实板运行时。同一形态在 `libxy_sensor_drivers_core.a` 上仍有 6 个
   `xy_i2c_device_*` 未定义符号，要的是"canonical driver owners 是否硬依赖 Device"的产品决定，
   未擅自照抄 `select`。
+
+### 2026-11-03 元守卫补一条规则：每个 checker 必须有自测，一跑就揪出 51 个
+
+- 起因：评估 deepseek-flash 时期的提交，发现两个"没有自测"的守卫。**这个结论本身是错的**——`check_guards_read_code.py` 和 `check_single_comment_stripper.py` 早就有自测（`test_guards_read_code.py` 20 例、`test_single_comment_stripper.py` 9 例，全绿），只是用了 `test_<topic>` 命名，而我按 support 惯例的 `test_check_<topic>` 去对，没对上。错的不是我看到的文件，是我对名字的假设。
+- 但这暴露了真问题：**命名有两套**。`tests/unit/support/` 用 `check_<topic>` ↔ `test_check_<topic>`，而 `hal_component/`、`kernel/` 用 `check_<topic>` ↔ `test_<topic>`（不带 check_）。任何只认一套的配对规则都会误报另一套。
+- 新增 `self_test_pairing_findings()`：每个 `check_*.py` 必须有自测，**两套命名都算**（`_paired_self_test` 先试 `test_check_<topic>` 再试 `test_<topic>`）。这是元守卫此前缺的一环：`guard_registration_findings()` 只保证 checker 会**跑**，不保证它能**失败**——而一个从来没红过的守卫，和什么都不检查只打印 ok 的守卫不可区分。
+- **一跑就抓出 51 个真没自测的 checker**（hal_component 17、kernel 15、crypto 5、release/evidence 9、pm 2、sensor/net/display 3）。这 51 个 `check_*.py` 既没有 `test_check_<topic>` 也没有 `test_<topic>`，是 deepseek-flash 时代写守卫没配自测留下的欠账。逐个写自测是后续多个 slice 的活，本切片先用 `SELF_TEST_EXEMPT` 以逐条理由登记（表本身就是审计：漏一个就红、理由空就红、配上了自测则条目过期报红——与 `GUARD_EXEMPT`/`CI_EXEMPT` 同款口径）。
+- 自证：新规则的自测 6 例（无自测报红 / 两套命名各算配对 / 豁免有理由通过 / 豁免无理由报红 / 空走查报红），元守卫自测 **32 → 38**；变异验证：把 `_paired_self_test` 改成恒返回有自测 → 2 例失败被拦。
+- 边界：`_paired_self_test` 只认这两个候选名。如果哪个 checker 的自测起了第三个名字，会被误报为缺自测——这是规则的名字边界，和它要抓的"命名有两套"是同一性质的问题，先如实记录。

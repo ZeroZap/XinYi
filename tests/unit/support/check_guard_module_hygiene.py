@@ -25,6 +25,114 @@ CMAKE_DIRS = ("tests",)  # every CMakeLists.txt under these, plus the Makefile, 
 #: purpose: a checker either runs in the gate or it does not, and only the first kind is a guard.
 GUARD_EXEMPT: dict[str, str] = {}
 
+#: Support checkers whose self-test is not the paired test_check_<topic>.py beside it, each with the
+#: reason. The pairing is required, not conventional: a checker with no self-test is a guard nobody has
+#: ever seen fail, and a guard that has never failed is indistinguishable from one that inspects nothing.
+SELF_TEST_EXEMPT: dict[str, str] = {
+    "tests/unit/check_canonical_host_clean_checkout.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/check_pandora_artifact_reproducibility.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/check_pandora_release_sbom.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/check_pc_artifact_reproducibility.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/check_public_component_evidence.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/check_release_input_clean_checkout.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/check_release_input_inventory.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/check_release_readiness.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/check_supply_chain_inventory.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/crypto/check_crypto_benchmark_manifest.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/crypto/check_crypto_curve25519_root_policy.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/crypto/check_crypto_mcu_cycle_record_template.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/crypto/check_crypto_review_manifest.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/crypto/check_photon_warning_clean.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/display/check_pandora_st7789_board.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_error_code_alignment.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_hal_header_self_containment.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_hal_platform_build_contract.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_hal_platform_evidence_matrix.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_opench_osal_hal_usage.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_osal_backend_paths.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_pandora_stm32l475_board.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_stm32_hal_timebase_hook.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_stm32_uart_rx_irq_contract.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_stm32f4_dma_wrapper_contract.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_stm32f4_i2c_wrapper_contract.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_stm32f4_spi_wrapper_contract.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_stm32f4_uart_wrapper_contract.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_stm32u5_hal_hardware_record.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_wch_hal_tick_timebase.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_wch_i2c_lifecycle.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/hal_component/check_wch_spi_lifecycle.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_freertos_hal_timebase_binding.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_freertos_osal_thread_flags.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_pandora_freertos_runtime.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_reference_rtos_decision.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_rtthread_osal_context_atomicity.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_rtthread_osal_event_flags.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_rtthread_osal_kernel_lock.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_rtthread_osal_mempool.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_rtthread_osal_msgqueue.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_rtthread_osal_priority.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_rtthread_osal_sync_lifecycle.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_rtthread_osal_thread_flags.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_rtthread_osal_thread_lifecycle.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_rtthread_osal_timeout.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/kernel/check_rtthread_osal_timer.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/net/check_net_product_selection.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/pm/check_charger_ownership.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/pm/check_pm_charger_ownership.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+    "tests/unit/sensor/check_sensor_active_source_manifest.py":
+        "no self-test beside it (neither test_<topic>.py nor test_check_<topic>.py): it has never been proven able to fail, so writing one is backlogged",
+}
+
 
 def names_file(name: str, blob: str) -> bool:
     """Whether ``blob`` names the file ``name`` as a whole token.
@@ -222,6 +330,55 @@ def guard_registration_findings(root: Path = GUARDS, text: str | None = None,
     return problems
 
 
+def _paired_self_test(path: Path) -> Path | None:
+    """The self-test beside a checker, under either naming this repository uses.
+
+    ``support/`` pairs ``check_<topic>.py`` with ``test_check_<topic>.py``; the component trees
+    (hal_component, kernel, ...) pair ``check_<topic>.py`` with ``test_<topic>.py``. Both are a
+    self-test for the checker, so both count.
+    """
+    topic = path.name[len("check_"):]
+    for candidate in (path.with_name("test_check_" + topic), path.with_name("test_" + topic)):
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def self_test_pairing_findings(root: Path = GUARDS, files: list[Path] | None = None,
+                               exempt: dict[str, str] | None = None) -> list[str]:
+    """A checker with no self-test is a guard whose only proof is that it prints ok today.
+
+    ``guard_registration_findings()`` proves a checker runs; nothing proved it can fail. A checker
+    that inspects nothing and prints ok passes the registration rule and the whole gate, which is the
+    same shape as any other empty result. The self-test beside it is what a mutation can break, so it
+    is required rather than conventional.
+    """
+    exempt = SELF_TEST_EXEMPT if exempt is None else exempt
+    problems: list[str] = []
+    inspected = 0
+    for path in files if files is not None else sorted(root.rglob("check_*.py")):
+        inspected += 1
+        if _paired_self_test(path) is not None:
+            continue
+        try:
+            relative = path.resolve().relative_to(ROOT).as_posix()
+        except ValueError:
+            relative = path.as_posix()
+        reason = next((exempt[key] for key in (relative, path.name) if key in exempt), None)
+        if reason is not None:
+            if not reason.strip():
+                problems.append(
+                    f"{shown(path, root)}: exempted from the self-test rule without a stated reason - "
+                    f"an exemption nobody can audit is a silent skip")
+            continue
+        problems.append(
+            f"{shown(path, root)}: no self-test beside it - a guard whose only proof of correctness is "
+            f"that it prints ok today has never been seen failing, and cannot")
+    if inspected == 0:
+        problems.append("no checkers were inspected - the walk is broken")
+    return problems
+
+
 def shown(path: Path, root: Path) -> str:
     """A path fit for a message, whether or not it lives under the tree being inspected."""
     try:
@@ -287,7 +444,7 @@ def main() -> int:
     # Three independent questions, so each has its own function and its own tests: names bound once, test
     # files that actually run something, and checkers a gate target actually names.
     problems = (findings() + entry_point_findings() + registration_findings() + ci_coverage_findings()
-                + guard_registration_findings())
+                + guard_registration_findings() + self_test_pairing_findings())
     if problems:
         print("guard_module_hygiene failed:")
         for problem in problems:

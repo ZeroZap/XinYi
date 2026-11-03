@@ -280,5 +280,54 @@ class GuardRegistrationTests(unittest.TestCase):
         self.assertEqual([], guard.guard_registration_findings())
 
 
+class SelfTestPairingTests(unittest.TestCase):
+    """A checker with no self-test is a guard nobody has ever seen fail."""
+
+    def run_pairing(self, checker_name: str = "check_x.py", test_names=()):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "tests").mkdir()
+            (root / "tests" / checker_name).write_text("print('ok')\n", encoding="utf-8")
+            for tname in test_names:
+                (root / "tests" / tname).write_text("assert True\n", encoding="utf-8")
+            return guard.self_test_pairing_findings(Path(tmp))
+
+    def test_a_checker_without_a_self_test_is_named(self):
+        problems = self.run_pairing()
+        self.assertEqual(1, len(problems))
+        self.assertIn("no self-test beside it", problems[0])
+
+    def test_a_checker_with_a_test_check_self_test_passes(self):
+        self.assertEqual([], self.run_pairing("check_x.py", ["test_check_x.py"]))
+
+    def test_a_checker_with_a_component_naming_self_test_passes(self):
+        # hal_component pairs check_<topic>.py with test_<topic>.py, without the check_ prefix.
+        self.assertEqual([], self.run_pairing("check_x.py", ["test_x.py"]))
+
+    def test_an_exemption_with_a_reason_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "tests").mkdir()
+            (root / "tests" / "check_x.py").write_text("print('ok')\n", encoding="utf-8")
+            with mock.patch.dict(guard.SELF_TEST_EXEMPT, {"check_x.py": "backlogged"}, clear=True):
+                self.assertEqual([], guard.self_test_pairing_findings(Path(tmp)))
+
+    def test_an_exemption_without_a_reason_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "tests").mkdir()
+            (root / "tests" / "check_x.py").write_text("print('ok')\n", encoding="utf-8")
+            with mock.patch.dict(guard.SELF_TEST_EXEMPT, {"check_x.py": "   "}, clear=True):
+                problems = guard.self_test_pairing_findings(Path(tmp))
+            self.assertEqual(1, len(problems), problems)
+            self.assertIn("without a stated reason", problems[0])
+
+    def test_an_empty_walk_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            problems = guard.self_test_pairing_findings(Path(tmp), [])
+            self.assertEqual(1, len(problems))
+            self.assertIn("walk is broken", problems[0])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
