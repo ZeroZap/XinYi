@@ -3500,3 +3500,12 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   元守卫自测里"组件命名通过"的用例**反转为"组件命名现在被判红"**——统一之后旧拼写不再算自测。
 - 迁移后的自测抽验通过（`test_check_hal_i2c_contract` 26 例、`test_check_guards_read_code` 20 例）。
 - 这一刀只动命名，**没动那 51 个仍缺自测的 checker**——它们照旧在 `SELF_TEST_EXEMPT` 里排队。
+
+### 2026-11-03 Slice A：退役 legacy AS5048/AS5600 驱动
+
+- sensor 迁移计划（`docs/plans/2026-11-03-sensor-framework-migration-plan.md`）的第一个样板 slice。
+- 删 `sensor_as5048.{c,h}` + `sensor_as5600.{c,h}` + `tests/unit/sensor/test_angle_encoders.c`（共享测试）。
+- **先验证后删**：逐条对照旧测试断言与 canonical 测试——解码公式逐字节一致（AS5048B `((b0<<6)|(b1&0x3F))&0x3FFF`、AS5600 `((b0<<8)|b1)&0x0FFF`），NULL/bus/lifecycle/I2C 失败守卫 canonical 全覆盖（还多测原子性、fail-closed re-init）。两处差异是**有意设计**（canonical 输出 raw 不输出度、无 name 注册表），非丢失。
+- 确认零平台调用方（`as5048_create`/`as5600_create` 全仓无调用），旧驱动只经 glob 编进 `sensor_component` + 被共享测试测。
+- 同步 4 处：`sensor_active_source_manifest` 进度追踪器（39→37、overlap 去 as5600）、权威清单 `sensor-active-source-manifest.md`（38→37 子目录）、`unit-test-inventory.md`（删 test_angle_encoders 条目）、CMakeLists（删 test_angle_encoders 目标）。
+- 门禁 430/430 全绿。碰撞 pin 无变化（as5048/as5600 本就不在 collision pins，那是 `xy_sensor_*` 类型）。
