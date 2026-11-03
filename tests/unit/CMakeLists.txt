@@ -1570,17 +1570,6 @@ target_compile_options(test_sensor_device_example PRIVATE
 # that the canonical Device model replaces, and were the last non-test consumers of the legacy
 # `sensor_mpu6050`/`sensor_aht20`/`sensor_bmp280`/`sensor_ap3216c`/`sensor_qmc5883l` wrappers.
 # The canonical path is demonstrated by `sensor_device_example` (`components/sensor/examples/sensor_demo.c`).
-xy_add_unit_test(test_magnetic_i2c_sensors sensor_magnetic_i2c_sensors UNITY
-    ${UNIT_SENSOR}/test_magnetic_i2c_sensors.c
-    ${SENSOR}/sensors/sensor_qmc5883l.c
-    ${SENSOR}/sensors/sensor_ist8310.c
-    ${SENSOR}/sensors/sensor_ak09918.c
-)
-target_include_directories(test_magnetic_i2c_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
 xy_add_unit_test(test_qmc5883l_device sensor_qmc5883l_device UNITY
     ${UNIT_SENSOR}/test_qmc5883l_device.c
     ${DRV}/sensor/magnetic/qmc5883l/xy_qmc5883l.c

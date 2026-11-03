@@ -4,18 +4,19 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 212 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
+- Total C files under `tests/unit`: 208 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
   the sensor-sample slice added `test_sensor_demo_backend_stub.c`, the
   legacy `sensor_example_*` slice added `test_sensor_example_bus_stub.c`, the AT URC slice
   added `test_at_urc_core.c`, the Modbus-Full slave slice added `test_modbus_full_slave.c`, and
-  the Modbus-Full master slice added `test_modbus_full_master.c`)
-- Unity-style files: 206 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
+  the Modbus-Full master slice added `test_modbus_full_master.c`; the sensor-migration Slice B
+  batches retired one legacy test C file per retired driver, folded into the re-measured total)
+- Unity-style files: 203 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
   not runners)
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 421 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 421`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 420 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 420`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -122,6 +123,10 @@
   carries the full protocol contract. Batch 5 removed `sensor_mpu6050_legacy` and
   `sensor_aht20_legacy` (the two MPU6050/AHT20 `sensor_device_t` compatibility wrappers, whose
   identity/config/decode/output-preservation contracts live in `test_mpu6050.c` / `test_aht20.c`).
+  Batch 6 removed `sensor_magnetic_i2c_sensors` (the QMC5883L/IST8310/AK09918 legacy magnetic
+  duplicate-owner CTest), taking 421 → 420; its identity/reset/config/DRDY-gated XYZ decode and
+  failure-preservation contracts live in `test_qmc5883l_device.c` / `test_ist8310_device.c` /
+  `test_ak09918_device.c`.
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
@@ -355,7 +360,6 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_lsm9ds1_device.c` | `unity` | 0 | LSM9DS1 Device-model fixed-address dual-I2C lifecycle, identity, staged 9-axis sample and failure-preservation contracts |
 | `tests/unit/sensor/test_vcnl4040_device.c` | `unity` | 0 | VCNL4040 Device-model fixed-address, nested lifecycle, little-endian sample and failure-preservation contracts |
 
-| `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 + AK09918 legacy magnetic I2C contracts |
 | `tests/unit/sensor/test_ak09918_device.c` | `unity` | 0 | AK09918 canonical Device identity, reset/config, sample, failure-preservation and lifecycle contracts |
 
 | `tests/unit/sensor/test_as5600_device.c` | `unity` | 0 | AS5600 canonical Device lifecycle, angle decoding, transport guards and failed re-init atomicity |

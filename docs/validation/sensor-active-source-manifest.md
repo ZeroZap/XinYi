@@ -29,7 +29,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 13 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 13 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 10 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 10 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 5 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 61 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
@@ -467,6 +467,12 @@ lifecycle and handle state. Missing transport fails closed without bus access or
 and successful teardown clears the nested handle. Magnetic calibration, accuracy,
 interrupt behavior and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_qmc5883l.c` duplicate is retired. It was an independent implementation of the same
+protocol over `hal_i2c_mem_read/write`: it duplicated the chip-ID `0xFF` check, the
+reset/period/continuous-mode sequence, the DRDY-gated little-endian XYZ decode and the
+NULL/private/bus fail-closed guards that the canonical owner's focused Device test
+(`test_qmc5883l_device.c`) already asserts. Nothing the canonical owner expresses was lost.
+
 ### AK09918 migration status
 
 The legacy AK09918 API is now backed by the canonical Device owner at
@@ -477,6 +483,12 @@ nested I2C lifecycle and handle state. Missing transport fails closed without bu
 mutation, and successful teardown clears the nested handle. Magnetic calibration,
 accuracy and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_ak09918.c` duplicate is retired. It was an independent implementation of the same
+protocol over `hal_i2c_mem_read/write`: it duplicated the AKM WIA1/WIA2 (`0x48/0x09`) identity check,
+the CNTL3 reset / CNTL2 continuous-100 Hz sequence, the ST1-DRDY-gated little-endian XYZ decode and the
+NULL/private/bus fail-closed guards that the canonical owner's focused Device test
+(`test_ak09918_device.c`) already asserts. Nothing the canonical owner expresses was lost.
+
 ### IST8310 migration status
 
 The legacy IST8310 API is now backed by the canonical Device owner at
@@ -485,6 +497,12 @@ continuous 100 Hz operation, reads little-endian XYZ data, and stages sample/tim
 through register helpers that independently validate nested I2C lifecycle and handle state. Missing
 transport fails closed without bus access or state mutation, and successful teardown clears the
 nested handle. Magnetic calibration, accuracy and hardware endurance remain `hardware-pending`.
+
+The legacy `sensor_ist8310.c` duplicate is retired. It was an independent implementation of the same
+protocol over `hal_i2c_mem_read/write`: it duplicated the WHO_AM_I `0x10` identity check, the
+continuous-100 Hz configuration, the little-endian XYZ decode and the NULL/private/bus fail-closed
+guards that the canonical owner's focused Device test (`test_ist8310_device.c`) already asserts.
+Nothing the canonical owner expresses was lost.
 
 ### BMA400 migration status
 
@@ -682,11 +700,11 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 61 canonical names have exactly thirteen approved legacy filename overlaps:
-`icm20608`, `max44009`, `qmc5883l`, `ak09918`, `ist8310`,
-`bma400`, `kx023`, `adxl362`, `lsm6dso`, `lsm6dsl`, `lsm6dsr`, `lis2dh12`, and `lis2dw12`. Each
+The current 61 canonical names have exactly ten approved legacy filename overlaps:
+`icm20608`, `max44009`, `bma400`, `kx023`, `adxl362`, `lsm6dso`, `lsm6dsl`, `lsm6dsr`, `lis2dh12`,
+and `lis2dw12`. Each
 overlap is a compatibility wrapper documented above, not an implementation owner. The other
-forty-eight canonical owners have no legacy-root counterpart. No canonical name overlaps
+fifty-one canonical owners have no legacy-root counterpart. No canonical name overlaps
 the 5 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was
