@@ -4,19 +4,21 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 208 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
+- Total C files under `tests/unit`: 203 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
   the sensor-sample slice added `test_sensor_demo_backend_stub.c`, the
   legacy `sensor_example_*` slice added `test_sensor_example_bus_stub.c`, the AT URC slice
   added `test_at_urc_core.c`, the Modbus-Full slave slice added `test_modbus_full_slave.c`, and
   the Modbus-Full master slice added `test_modbus_full_master.c`; the sensor-migration Slice B
-  batches retired one legacy test C file per retired driver, folded into the re-measured total)
-- Unity-style files: 199 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
+  batches retired one legacy test C file per retired driver, and the Slice E framework teardown
+  removed the two framework contract tests (`test_sensor_framework.c`, `test_sensor_bus.c`), all
+  folded into the re-measured total)
+- Unity-style files: 198 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
   not runners)
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
-- Plain/support helper C files without obvious Unity/assert markers: 6
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 417 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 417`. The C targets are registered through
+- Plain/support helper C files without obvious Unity/assert markers: 5
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 415 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 415`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -139,6 +141,11 @@
   migrated to the canonical Device owner `xy_adt7420.c`, whose focused test asserts `0xCB` identity
   read, default/alternate addresses, 16-bit-resolution config, `raw*100/128` centi-C decode, and
   output/cache preservation on failure.
+  The Slice E framework teardown took 417 → 415: deleting the `sensor_device_t` framework layer
+  removed the two framework contract tests `test_sensor_framework.c` (19 cases) and
+  `test_sensor_bus.c` (20 cases), whose contracts are superseded by the canonical Device owners
+  and the deleted legacy bus/framework sources. The ICM20608 wrapper retirement (batch 8) was
+  count-neutral for CTests (`test_icm20608_sensor.c` → `test_icm20608_device.c`).
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
