@@ -1,0 +1,10 @@
+{
+  "status": "CONTENT_MISMATCH",
+  "device": "/dev/ttyACM0",
+  "firmware_commit": "23e544b2daa07e3805e51363d803048240c911ed",
+  "bytes_captured": 77,
+  "capture_sha256": "86f4860fb9f4b5be0eeb612b8c53068301c39d591eb5f84c12cb2c3a1399c54b",
+  "required_markers": [
+    "OPENCH_DMA1_SYSTICK8_MEMCPY_128X_OK_A"
+  ]
+}

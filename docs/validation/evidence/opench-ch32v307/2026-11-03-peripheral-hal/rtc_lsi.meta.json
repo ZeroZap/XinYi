@@ -1,0 +1,10 @@
+{
+  "status": "CONTENT_MISMATCH",
+  "device": "/dev/ttyACM0",
+  "firmware_commit": "23e544b2daa07e3805e51363d803048240c911ed",
+  "bytes_captured": 67,
+  "capture_sha256": "12ebdf5e060194c8f82e8f6436730eede2136b2ee194bf33327efbd7ceac170c",
+  "required_markers": [
+    "OPENCH_RTC_LSI_COUNTER_BACKUP_OK"
+  ]
+}

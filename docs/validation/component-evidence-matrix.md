@@ -2967,6 +2967,20 @@
 - 仍不允许宣称：SPI 电气/时序裕量、QSPI 四线模式（当前单线 SPI）、非 Prescaler_8 的时钟速率、
   耐久/性能/掉电安全。
 
+### 2026-11-03 openCH peripheral HAL: eleven smoke images close the board loop
+
+- 组件：HAL / WCH（openCH CH32V307 外设）
+- 旧等级 -> 新等级：外设 HAL compile baseline -> 板载实板 `B1_REVIEW_CANDIDATE`（11 个镜像）
+- 证据路径/命令：`docs/validation/evidence/opench-ch32v307/2026-11-03-peripheral-hal/`
+  （README.md、result.json、uart-*.txt）；11 个 ELF 经 WCH OpenOCD `program verify reset`
+  （adapter 1000）后，CH549F VCP `/dev/ttyACM0` 采集各自 OK marker。
+- 适用范围：TIM2 计数器运行（`xy_hal_timer_*`）、DMA1 memcpy 128×（`xy_hal_dma_*`）、RTC LSI
+  计数器+backup（`xy_hal_rtc_*`）、SysTick 时间源、ADC1 CH0 PA0 读（`xy_hal_adc_*`）、DAC1 8 位
+  右对齐 + 左对齐拒绝 + DAC→ADC 回环 32×、CAN1 PB8/PB9 内部回环、TIM3 CH1 PA6 PWM 配置、
+  I2S2 TX（init/callback/start）、UART6+UART7 DMA TX、IWDG feed，均经 `xy_hal_*` 在真实板载通过。
+- 仍不允许宣称：ADC 精度/线性（无标定源）、DAC 外部模拟输出、PWM 频率/占空比（需示波器）、
+  CAN 物理总线仲裁/恢复（仅回环）、I2S 音频质量、UART6/7 对端接收、看门狗未喂复位行为。
+
 ## 4. 更新规则
 
 组件发生以下变化时必须同步本台账：

@@ -1,0 +1,21 @@
+{
+  "board": "opench_ch32v307",
+  "chip": "CH32V30x",
+  "firmware_commit": "63d9245d4d2eb6ee372017babf1ddb44dac70e3a",
+  "wch_link": "usb-wch.cn_WCH-Link_BC5C0A1DC679",
+  "capture_port": "/dev/ttyACM0",
+  "method": "WCH OpenOCD program <elf> 0x00000000 verify reset (adapter speed 1000), then CH549F VCP capture with reader opened before reset and port drained first",
+  "images": [
+    {"name": "tim2_counter", "elf_sha256": "99c26d33ce8f067bc17f88bf5b5c91132e4a4066e58c74e1d977b5012b65752d", "marker": "OPENCH_TIM2_COUNTER_RUNNING_OK", "status": "B1_REVIEW_CANDIDATE"},
+    {"name": "dma1_systick8", "elf_sha256": "929161dcb4cc945bd9ad25284806080aad0365340c1ca7d342d59f02eee7a695", "marker": "OPENCH_DMA1_SYSTICK8_MEMCPY_128X_OK_A", "status": "B1_REVIEW_CANDIDATE"},
+    {"name": "rtc_lsi", "elf_sha256": "abd0dbf0a61cbe9b1ebc87a4327fce4f2bfbb001ec5eda8b3d7dabfa949573fb", "marker": "OPENCH_RTC_LSI_COUNTER_BACKUP_OK", "status": "B1_REVIEW_CANDIDATE"},
+    {"name": "system_systick_source", "elf_sha256": "def3472e674bb403ddaac8d487f760244ac049d8206b17159571fef9f21a7936", "marker": "OPENCH_SYS_SYSTICK_HCLK8_TIME_OK_A", "status": "B1_REVIEW_CANDIDATE"},
+    {"name": "adc1_pa0", "elf_sha256": "41e66ed81bd86e38369f3c2d8729f79b083633a5857891eedf29945358e8982e", "marker": "OPENCH_ADC1_CH0_PA0_READ_OK", "status": "B1_REVIEW_CANDIDATE"},
+    {"name": "dac1_8bit_alignment", "elf_sha256": "1cc2b70d8cd3bfd7339b3f04d10de33cc22016f5fef886b8d6e4514db3036a8b", "marker": "OPENCH_DAC1_8BIT_RIGHT_DAC_ADC_32X_OK_A", "status": "B1_REVIEW_CANDIDATE"},
+    {"name": "can1_loopback", "elf_sha256": "b66f01637deb6ee3d6985b48cd76c256e1de1854e01b1378a7bdb8dc96225e1e", "marker": "OPENCH_CAN1_PB8_PB9_LOOPBACK_OK", "status": "B1_REVIEW_CANDIDATE"},
+    {"name": "pwm_tim3_pa6", "elf_sha256": "e00e832ece1955547043925e2e7336083bbef459f23a90f7dd9ae99ed8aa0f6c", "marker": "OPENCH_TIM3_CH1_PA6_PWM_OK", "status": "B1_REVIEW_CANDIDATE"},
+    {"name": "i2s2_tx", "elf_sha256": "4d9edb44f1569bcd52ade5478c987eb7b11173366c18dee140996519652e01ac", "marker": "OPENCH_I2S2_TX_OK_A", "status": "B1_REVIEW_CANDIDATE"},
+    {"name": "uart67_dma", "elf_sha256": "863682e38813633920060099b44d84983b61ed204f6caed7be7f695d781a7d9f", "marker": "OPENCH_UART6_DMA2_CH6_TX_OK + OPENCH_UART7_DMA2_CH8_TX_OK", "status": "B1_REVIEW_CANDIDATE"},
+    {"name": "iwdg", "elf_sha256": "6121b419999f93b6c5fd5786f3dc768e8d7a01a7a04ddcc822b96acfcc3e0ac6", "marker": "OPENCH_IWDG_FEED_OK", "status": "B1_REVIEW_CANDIDATE"}
+  ]
+}
