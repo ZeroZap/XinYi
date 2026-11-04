@@ -2981,6 +2981,18 @@
 - 仍不允许宣称：ADC 精度/线性（无标定源）、DAC 外部模拟输出、PWM 频率/占空比（需示波器）、
   CAN 物理总线仲裁/恢复（仅回环）、I2S 音频质量、UART6/7 对端接收、看门狗未喂复位行为。
 
+### 2026-11-03 openCH internal flash: info + sector boundary + reversible page R/W
+
+- 组件：HAL / WCH / Flash（openCH CH32V307 内部 flash）
+- 旧等级 -> 新等级：内部 flash HAL compile baseline -> 板载实板 `B1_REVIEW_CANDIDATE`
+- 证据路径/命令：`docs/validation/evidence/opench-ch32v307/2026-11-03-flash-info/`；
+  `opench_ch32v307_flash_info_smoke` 经 WCH OpenOCD `program verify reset`（adapter 1000）后，
+  CH549F VCP 采集 `OPENCH_FLASH_PAGE_RW_OK`（×2）。
+- 适用范围：`xy_hal_flash_*` 几何（288 KiB/72 sector/4096 page/4 align）、sector 71 地址
+  `0x08047000`、`is_valid_address` 边界（0x08000000/0x08047FFF 有效、0x08048000 拒绝）、
+  unlock→erase→write→lock→read 读回 memcmp 全等，在真实板载通过。
+- 仍不允许宣称：写耐久、掉电安全、读保护（`set/get_read_protect` 该后端 `NOT_SUPPORTED`）。
+
 ## 4. 更新规则
 
 组件发生以下变化时必须同步本台账：
