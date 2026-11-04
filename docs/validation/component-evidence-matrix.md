@@ -1706,7 +1706,7 @@
 
 | 组件 | Host | Compile/QEMU | Board | Security/Performance | 当前允许声明 | 下一证据 |
 |---|---|---|---|---|---|---|
-| Clib | H1 | PC build | pending | pending | Host 软件可用 | MCU size/heap/性能记录 |
+| Clib | H1 | PC build | 2026-11-04 实板 B1：`xy_frame` 编解码+CRC-8/ATM 检查值 `0xF4`、`xy_civil` 日历算术（epoch=day0、`2000-03-01`=11017 d、`2026-11-03`=20760 d、闰年/月长/逆函数/星期）、`xy_bcd` 8/16 位与 RTC 年份拼写、`xy_rtc_alarm_mask` 逐位取反与往返，全部在 STM32L475VE 上经 `B1_CLIB_BOARD_RUNTIME_PASS` 达成，8 轮重启循环一致；镜像 7948 B SHA-256 `7eee11ac…`，snapshot-gated 写入 `span_identical=true`、写后 4 区 `restore_ok` | pending | 允许声明 clib 纯计算部分（frame/civil/bcd/alarm-mask）在 Cortex-M4 上的运行时正确性；**不**等于 printf sink、分配器容器、string/ctype 的板载证据（那部分仍仅 Host）、非性能、非 fuzz | clib 其余子系统的板载证据；MCU size/heap/性能记录 |
 | Kernel/OSAL | H1（bare-metal） | Q1 部分；[FreeRTOS reference](reference-rtos-decision.md) 已有 project-owned config、pinned V10.4.6 Cortex-M33/CM4F ports；root U5/L4 opt-in 可构建 `freertos_kernel` + `xy_osal` | Pandora STM32L475VE 已取得 scheduler/delay、task-context binary semaphore/message queue/event flags/mutex、SysTick ISR 与 TIM6 peripheral IRQ→OSAL semaphore→task、TIM6 interrupt disable→timeout→restart recovery B2、no-wait memory-pool/queue exhaustion→recovery→delete/recreate、depth-one queue 100-tick blocking timeout、2-producer/2-consumer queue 唯一性及 16 条 payload 的 consumer 归属（9/7）、120 秒 bounded stress，以及逐周期严格覆盖 OSAL→IPC Broker→PM tick→Device registry→CLIB Trace sink→IPC delivery 的跨组件 B1 | pending | bare-metal Host 契约；STM32U5 仍为 compile-only；Pandora 仅证明声明区间内的 task primitives、两个明确 ISR-to-task 路径、受控 TIM6 recovery、资源恢复、blocking-timeout、bounded 2P/2C queue、stress 与跨组件纵切，不是物理故障注入、性能、公平性、多小时耐久或完整产品 RTOS 资格 | 补其他外设 IRQ 负向/恢复、PM sleep/wakeup 与长时间耐久 |
 | HAL / Storage | H1（PC；canonical W25Q128 command/error/page-boundary、FOTA adapter、RTC backup register 与 SYS IRQ control contract） | Q1 部分；通用 QSPI/RTC backup HAL API、STM32L4 QSPI/I2C/UART/internal-Flash/RTC/SYS init/deinit/IRQ backends（QSPI wrapper 自 2026-10-28 起由 root STM32L4 platform gate 编译并导出符号；此前仅 Pandora board target 编译，组件 `stm32l4xx_hal_conf.h` 缺 `HAL_QSPI_MODULE_ENABLED` 曾被误记为 API 漂移）、canonical W25Q128 Device driver 与 FOTA flash-ops adapter；PC/L4/U5 compile；WCH CH32V307 GPIO/UART/SPI/I2C/DMA/ADC/PWM/watchdog current-contract backends 与 board compile smokes；Pandora board entries 的 system init、UART/GPIO、software-I2C 与 hardware-I2C3 transports（Host contract `pandora_i2c_owners` 把两 owner 的 GPIO 事件流解码回 I2C 帧：引脚映射、START/STOP、`dev_addr << 1`、ACK/NACK 传播、mem/reg 访问与 `is_device_ready`、hw I2C3 AF4 配置与 `Instance` 先于 init 赋值）、FOTA internal-Flash、FOTA boot jump SYS deinit、RTOS/FOTA RTC backup 与 RTOS NVIC owners 已通过 canonical HAL policy/clean-build gate；递归 policy 只允许 `pandora_platform_startup.c` 直接持有三个精确 vendor clock calls，其他 board source 必须走 `xy_hal_*` | Pandora U9 W25Q128 的 JEDEC、erase、single/quad program/read、recovery 已迁移为 canonical path；hardware I2C3 transaction owner 已迁移到 STM32L4 backend；SPI1 TX DMA 已取得 completion、re-init 与 active-abort recovery B1/B2。openCH 当前仅 UART1 TX 有 bounded B1，其余新增 WCH HAL 均为 compile baseline。2026-09-06 无 RX source 实板运行按预期停在 `PANDORA_SPI_DMA_RX_ERROR`，未取得 RX/full-duplex 证据 | pending | 允许声明 Pandora canonical storage/I2C3 与 SPI TX DMA B1/B2；WCH watchdog 等新 backend 只允许声明 compile compatibility；`pandora_platform_startup.c` 是唯一 board-local vendor clock owner，精确白名单为 `HAL_PWREx_ControlVoltageScaling`、`HAL_RCC_OscConfig`、`HAL_RCC_ClockConfig`；不得将未接 RX source 的 timeout 升级为 RX/full-duplex、电气或外设响应证据 | openCH 分外设下载/UART/仪器验证；Pandora 使用已确认的物理 loopback/外设补 SPI RX/full-duplex DMA；掉电/NRST恢复 |
 | Device | H1 | PC/L4/U5 build | Pandora software-I2C→HAL→Device→AHT10/AP3216C B1；AP3216C continuous `0x03` 有 244-sample bounded IR response B1。hardware I2C3（PC0/PC1）正常路径 B1 后，clean `b1c2429c` 对无人地址 `0x7F` 得到 HAL I/O failure并恢复访问 `0x1E`，取得配置回读、59 samples/27 unique、error 0 与 Flash byte-identical 回读；registry lifecycle 的 Host 契约另覆盖 open/close 共享引用、PM callback 内注销其他设备时按设备指针重新解析 slot（引用与 PM 状态不错配）、以及 `xy_device_pm_check()` 在 callback 变更注册表后仍遍历全部设备；per-device PM ops 另在空 ops 表与缺失 `set_state`/`set_wakeup` callback 时 fail-closed，不再发布未应用的电源/唤醒状态 | n/a | registry/lifecycle、I2C helper、Pandora hardware-I2C3→Device→AP3216C 正常路径 B1及单次无人地址 NACK→后续设备访问 B2；不等于总线物理故障、stuck-bus recovery、定量 ALS/PS 或完整 I2C HAL 资格 | 如需产品阈值则补受控距离/照度夹具；stuck-low/掉线须人工或安全故障夹具 |
@@ -2992,6 +2992,47 @@
   `0x08047000`、`is_valid_address` 边界（0x08000000/0x08047FFF 有效、0x08048000 拒绝）、
   unlock→erase→write→lock→read 读回 memcmp 全等，在真实板载通过。
 - 仍不允许宣称：写耐久、掉电安全、读保护（`set/get_read_protect` 该后端 `NOT_SUPPORTED`）。
+
+### 2026-11-04 Pandora Clib: first board runtime for the pure-computation parts
+
+- 组件：Clib（Pandora STM32L475VE 实板）
+- 旧等级 -> 新等级：Clib Board 列 `pending` -> 实板 B1（`B1_CLIB_BOARD_RUNTIME_PASS`）
+- 证据路径/命令：`docs/validation/evidence/pandora-stm32l475/2026-11-04-clib-board-runtime/`；
+  新镜像 `boards/pandora_stm32l475/clib_main.c`（7948 B，SHA-256 `7eee11ac…`）经
+  `tools/pandora_hil_program.py run --address 0x08000000` snapshot-gated 写入
+  （`span_identical=true`、`unexpected_changes=0`），`st-flash reset` 后 CP2102 `/dev/ttyUSB0`
+  采集；收尾 `restore` 4 区 `identical`。
+- 适用范围：`xy_frame`（CRC-8/ATM 检查值 `0xF4`、换位可辨、编解码往返、线上校验和独立重算
+  一致、校验和损坏被拒、payload 内 `STX` 不截帧、缓冲不足与超长 payload 均被拒、噪声前导被
+  忽略且下一帧仍解出、非法长度被拒）、`xy_civil`（epoch=day0 且午夜=0 s、`2000-03-01`=11017 d、
+  `2026-11-03`=20760 d、时分秒计入、2 月 28/29 天与 1900/2000 闰年规则、3 月 31 天与 4 月
+  30 天、`from_days` 逆函数对 20760/0/11017 往返、星期 4→2）、`xy_bcd`（8/16 位已知值、非法
+  nibble 被拒、RTC 年份在 BCD 与 binary 两种读法下都解出 2026 且 `0x1A` 按 BCD 读被拒为 −1、
+  编码给出寄存器拼写、超世纪年份被拒而非截断）、`xy_rtc_alarm_mask`（逐位取反、全 0x0F 掩码往返、
+  越界字段被拒）——以上全部在 Cortex-M4 上跑通，且 8 轮重启循环一致。
+- 仍不允许宣称：printf sink、分配器容器、string/ctype 等非纯计算部分的板载证据（仍仅 Host）；
+  非性能测量；非 fuzz（帧解码只跑了列出的具体用例，未做随机输入）。
+- 板载运行暴露的两处新镜像缺陷（均非组件缺陷）：`xy_hal_uart_init` 前必须先给
+  `handle->Instance` 赋 `USART1`，否则 `HAL_UART_Init` 解引用未初始化指针失败、镜像在首次
+  UART 写入前停机（线上 0 字节、无 error marker，表现为"板子死了"）；月长断言写错
+  （`2026-04-01 − 2026-03-01` 是 31 天不是 30），被实板当场拒绝。
+
+### 2026-11-03 openCH OSAL board soak (13 images x 20 restart rounds) + concurrency image
+
+- 组件：Kernel / OSAL / FreeRTOS（openCH CH32V307 实板）
+- 旧等级 -> 新等级：OSAL 镜像单次实板证据 -> 13 镜像 x 20 轮重启长稳 + 多任务竞争实板
+  `B1_REVIEW_CANDIDATE`
+- 证据路径/命令：`docs/validation/evidence/opench-ch32v307/2026-11-03-osal-soak/` 与
+  `docs/validation/evidence/opench-ch32v307/2026-11-03-osal-concurrency/`；
+  `tools/sweep_opench_osal_images.py --rounds 20`（每轮 program/verify/reset，判据读 RAM
+  `xy_image_steps`/`xy_image_failed`/`xy_image_last` + 两次 xTickCount + pc）。
+- 适用范围：13 个 OSAL 镜像共 260 轮重启循环零失败，每镜像 20 轮步数完全一致（如 queue=9/9/…）
+  且落在各自终态 marker；步数与 S6-136 基线吻合。新增并发镜像 `osal_freertos_concurrency_main.c`
+  实板证明 3 个竞争场景：计数信号量 max=2（3 任务抢占，活跃持有数从未超 2、终态计数回到 2）、
+  mutex 原子性（2 任务各 +1000 次带 yield，终值 2000 无丢失）、多生产者队列（2 生产 1 消费
+  20 项，count=20、sum=210）。
+- 仍不允许宣称：小时级连续 soak（本次为重启循环）、长时间 tick 漂移、热效应；优先级反转、
+  ISR 侧 release 竞争；并发工作负载数很小（3/2/3 任务）不构成压力基准。
 
 ## 4. 更新规则
 
