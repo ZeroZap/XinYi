@@ -158,8 +158,8 @@ def main() -> int:
     require([path.name for path in top_level_owners] == [],
             "top-level Sensor implementation inventory must be empty (adt7420 migrated "
             "to the canonical Device owner)", errors)
-    require(len(experimental) == 2,
-            f"expected 2 experimental xy_* sources, found {len(experimental)}", errors)
+    require(len(experimental) == 1,
+            f"expected 1 experimental xy_* sources, found {len(experimental)}", errors)
     require(len(device) == 63, f"expected 63 Device-model sources, found {len(device)}", errors)
     false_owners = false_owner_candidates(legacy)
     require(not false_owners,
@@ -382,7 +382,7 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=0 legacy_subdir=0 "
-          "legacy_top_level=0 experimental_test_only=2 device_active=63 "
+          "legacy_top_level=0 experimental_test_only=1 device_active=63 "
           "approved_wrappers=0 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0

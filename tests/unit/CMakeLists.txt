@@ -715,11 +715,11 @@ xy_add_unit_test(test_spi_device spi_device UNITY
 # --- Test 4b: canonical return contract of the I2C/SPI/UART bus helpers ---
 xy_add_unit_test(test_device_bus_contract device_bus_contract UNITY
     ${UNIT_DEVICE}/test_device_bus_contract.c
-    ${SENSOR}/src/xy_w25qxx.c
+    ${DRV}/storage/flash/w25qxx/xy_w25qxx.c
     ${FRAMEWORK_SOURCES}
 )
 target_include_directories(test_device_bus_contract PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/storage/flash/w25qxx
     ${TRACE}/xy_log/inc
     ${OSAL}
 )
@@ -1727,10 +1727,10 @@ target_link_libraries(test_bmi270 PRIVATE m)
 
 xy_add_unit_test(test_w25qxx sensor_w25qxx UNITY
     ${UNIT_SENSOR}/test_w25qxx.c
-    ${SENSOR}/src/xy_w25qxx.c
+    ${DRV}/storage/flash/w25qxx/xy_w25qxx.c
 )
 target_include_directories(test_w25qxx BEFORE PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/storage/flash/w25qxx
     ${DEVICE}/inc
     ${HAL}/inc
     ${KERNEL}/osal
