@@ -1,0 +1,29 @@
+{
+  "board": "opench_ch32v307",
+  "chip": "CH32V30x",
+  "firmware_commit": "63d9245d4d2eb6ee372017babf1ddb44dac70e3a",
+  "wch_link": "usb-wch.cn_WCH-Link_BC5C0A1DC679",
+  "capture_port": "/dev/ttyACM0",
+  "images": [
+    {
+      "name": "opench_ch32v307_spi3_w25q128_smoke",
+      "elf_sha256": "ea86c59d89170d2e581830aa28aeb980b98bd1edcbfaa91df1d039438cc7eb18",
+      "programmed": true,
+      "verified": true,
+      "resetting_target": true,
+      "expected_marker": "OPENCH_SPI3_W25Q128_JEDEC_OK",
+      "observed": "OPENCH_SPI3_W25Q128_JEDEC_OK EF4018 (repeated)",
+      "status": "B1_REVIEW_CANDIDATE"
+    },
+    {
+      "name": "opench_ch32v307_w25q128_rw_restore_smoke",
+      "elf_sha256": "478207ef30832a7d7e95307460939852c870ccca8e80fa79d93dc3591fca7022",
+      "programmed": true,
+      "verified": true,
+      "resetting_target": true,
+      "expected_marker": "OPENCH_W25Q128_RW_RESTORE_OK_B",
+      "observed": "OPENCH_W25Q128_RW_BOOT_20261012_B -> OPENCH_W25Q128_RW_RESTORE_OK_B",
+      "status": "B1_REVIEW_CANDIDATE"
+    }
+  ]
+}

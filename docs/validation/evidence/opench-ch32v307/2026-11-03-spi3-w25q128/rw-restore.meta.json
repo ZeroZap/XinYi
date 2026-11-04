@@ -1,0 +1,10 @@
+{
+  "status": "B1_REVIEW_CANDIDATE",
+  "device": "/dev/ttyACM0",
+  "firmware_commit": "63d9245d4d2eb6ee372017babf1ddb44dac70e3a",
+  "bytes_captured": 229,
+  "capture_sha256": "5b80f08ed98cb5f506845fabd504c46c3346065f22f8cecf7fe617ec35daa8f6",
+  "required_markers": [
+    "OPENCH_W25Q128_RW_RESTORE_OK_B"
+  ]
+}

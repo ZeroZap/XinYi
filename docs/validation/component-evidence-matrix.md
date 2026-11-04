@@ -2951,6 +2951,22 @@
 
 ---
 
+### 2026-11-03 openCH SPI3 + onboard W25Q128: JEDEC identity and reversible R/W restore
+
+- 组件：HAL / WCH / SPI3（openCH CH32V307 板载 W25Q128）
+- 旧等级 -> 新等级：SPI3 compile baseline -> 板载实板 `B1_REVIEW_CANDIDATE`（身份读 + 可逆读写恢复）
+- 证据路径/命令：`docs/validation/evidence/opench-ch32v307/2026-11-03-spi3-w25q128/`
+  （README.md、result.json、uart-spi3-jedec.txt、uart-rw-restore.txt）；
+  `opench_ch32v307_spi3_w25q128_smoke`（JEDEC `0x9F`→`EF4018`）与
+  `opench_ch32v307_w25q128_rw_restore_smoke`（扇区擦除 `0x20` + 页编程 `0x02` + 读回 + 恢复）两个
+  ELF 经 WCH OpenOCD `program verify reset`（adapter 1000）后，CH549F VCP `/dev/ttyACM0` 采集
+  `OPENCH_SPI3_W25Q128_JEDEC_OK EF4018` 与 `OPENCH_W25Q128_RW_BOOT_20261012_B` →
+  `OPENCH_W25Q128_RW_RESTORE_OK_B`。
+- 适用范围：SPI3 clock/data/CS 到板载 W25Q128 的接线、JEDEC 身份读、单线 SPI 扇区擦除
+  （0x20）+ 页编程（0x02）+ 读回 + 恢复（可逆）全链路，均经 `xy_hal_spi_*` 在真实板载通过。
+- 仍不允许宣称：SPI 电气/时序裕量、QSPI 四线模式（当前单线 SPI）、非 Prescaler_8 的时钟速率、
+  耐久/性能/掉电安全。
+
 ## 4. 更新规则
 
 组件发生以下变化时必须同步本台账：
