@@ -98,20 +98,6 @@ PINS: dict[str, str] = {
         "today, which is the only thing keeping two owners of one clib type harmless",
     "xy_ldiv_t": "same pair as xy_div_t",
     "xy_lldiv_t": "same pair as xy_div_t",
-    # -- two parallel frameworks over one subject ---------------------------------------------------
-    # The owner is decided: components/device is canonical, and the components/sensor copies are the
-    # part of the old framework that has not been migrated yet. They are still on this list because the
-    # migration is not done, not because the answer is open - and the day the last consumer moves, the
-    # stale pin above will report itself and this entry can be deleted.
-    "xy_sensor_type_t":
-        "components/device/inc (TEMP=0, ACCELEROMETER/GYROSCOPE/MAGNETOMETER) is canonical; "
-        "components/sensor/inc (TEMP=1, ACCEL/GYRO/MAGN) is the un-migrated old framework - including "
-        "both is a hard error and including one leaves every sensor type offset by one",
-    "xy_sensor_device_t":
-        "same pair as xy_sensor_type_t - canonical is components/device/inc",
-    "xy_sensor_value_t":
-        "components/device/inc/xy_device.h is canonical; components/sensor/inc/xy_sensor_channel.h is "
-        "part of the un-migrated old framework",
     "xy_fuel_gauge_status_t":
         "components/pm/inc spells the members XY_FUEL_GAUGE_*, components/fuel_gauge/inc spells them "
         "XY_FG_* - one enum name, two vocabularies, and which one a consumer sees depends on include "

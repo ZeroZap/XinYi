@@ -297,12 +297,6 @@ SAMPLES: tuple[Sample, ...] = (
         application=True,
     ),
     Sample(
-        doc="docs/components/sensor/introduction.md",
-        includes=(),
-        roots=SHARED_ROOTS + ("components/sensor/inc", "components/sensor"),
-        per_block=True,
-    ),
-    Sample(
         doc="docs/components/trace/introduction.md",
         includes=(),
         roots=SHARED_ROOTS,

@@ -99,20 +99,6 @@ XinYi 嵌入式框架的 API 文档索引。
 
 ---
 
-### Sensor (传感器)
-
-| 函数 | 说明 | 头文件 |
-|------|------|--------|
-| `xy_sensor_init()` | 初始化传感器 | `xy_sensor.h` |
-| `xy_sensor_sample_fetch()` | 采集一次数据（通道或 `XY_SENSOR_CHAN_ALL`） | `xy_sensor.h` |
-| `xy_sensor_channel_get()` | 读取通道值（`xy_sensor_value_t`） | `xy_sensor.h` |
-
-校准、滤波、FIFO 与中断等扩展契约仍在 legacy `sensor_*()` 家族（`sensor_core.h`，例如 `sensor_calibrate()`），`xy_sensor.h` 是面向应用的统一门面。
-
-[组件文档与证据边界](../components/sensor/introduction.md)
-
----
-
 ### IPC (进程间通信)
 
 | 函数 | 说明 | 头文件 |

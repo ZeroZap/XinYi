@@ -123,27 +123,15 @@ def main() -> int:
     manifest = read_raw(MANIFEST)
     tracker = read_raw(TRACKER)
     audit_plan = read_raw(AUDIT_PLAN)
-    sensor_cmake = read_hash_code(SENSOR_CMAKE)
+    require(not SENSOR_CMAKE.exists(),
+            "legacy sensor_component CMakeLists must be deleted after framework teardown", errors)
     drivers_cmake = read_hash_code(DRIVERS_CMAKE)
     unit_cmake = read_hash_code(UNIT_CMAKE)
     smart_hygrometer_cmake = read_hash_code(SMART_HYGROMETER_CMAKE)
     smart_hygrometer_main = read_code(SMART_HYGROMETER_MAIN)
 
     legacy = sorted((ROOT / "components" / "sensor" / "sensors").glob("sensor_*.c"))
-    framework_sources = {
-        "sensor_bus.c", "sensor_calibration.c", "sensor_core.c", "sensor_dma.c",
-        "sensor_fifo.c", "sensor_filter.c", "sensor_fusion.c", "sensor_interrupt.c",
-        "sensor_mem_pool.c", "sensor_moton.c", "sensor_power.c", "sensor_self_test.c",
-        "sensor_threshold.c",
-    }
-    explicit_top_level_sources = {
-        match.group(1)
-        for match in re.finditer(r"^\s*(sensor_[a-z0-9_]+\.c)\s*$", sensor_cmake, re.MULTILINE)
-    }
-    top_level_owners = sorted(
-        ROOT / "components" / "sensor" / name
-        for name in explicit_top_level_sources - framework_sources
-    )
+    top_level_owners: list = []
     experimental = sorted((ROOT / "components" / "sensor" / "src").glob("xy_*.c"))
     device = sorted((ROOT / "components" / "drivers" / "sensor").glob("**/xy_*.c"))
 
@@ -232,10 +220,6 @@ def main() -> int:
     ):
         require(token in manifest, f"manifest must preserve policy token: {token}", errors)
 
-    require('file(GLOB SENSOR_DRIVERS "${CMAKE_CURRENT_LIST_DIR}/sensors/sensor_*.c")'
-            in sensor_cmake, "legacy root source glob changed without manifest update", errors)
-    require("src/xy_" not in sensor_cmake,
-            "experimental xy_* sources must not silently enter sensor_component", errors)
     require('file(GLOB_RECURSE COMPONENT_SOURCES "*.c")' in drivers_cmake,
             "Device driver root source ownership changed without manifest update", errors)
     require("sensor_active_source_manifest" in unit_cmake,
@@ -244,7 +228,7 @@ def main() -> int:
             "canonical API 已确定为 Device model" in tracker and
             "| CLOSED |" in tracker,
             "D-001 must be closed after the canonical Device-model decision", errors)
-    require("5 个 `src/xy_*.c`" in audit_plan,
+    require("1 个 `src/xy_*.c`" in audit_plan,
             "audit plan must use the current experimental source count", errors)
     require("Device-model canonical owner" in audit_plan,
             "audit plan must record the resolved Sensor ownership direction", errors)

@@ -50,17 +50,7 @@ SENSOR = REPO_ROOT / "components" / "sensor"
 
 #: The legacy framework, by the two places its headers live. Each name must still exist, so this
 #: list cannot rot into a rule about files nobody has any more.
-LEGACY_FRAMEWORK = {
-    "xy_sensor.h": ("inc/xy_sensor.h",),
-    "xy_sensor_device.h": ("inc/xy_sensor_device.h",),
-    "xy_sensor_channel.h": ("inc/xy_sensor_channel.h",),
-    "xy_sensor_attr.h": ("inc/xy_sensor_attr.h",),
-    "xy_sensor_trigger.h": ("inc/xy_sensor_trigger.h",),
-    "sensor_core.h": ("sensor_core.h",),
-    "sensor_type.h": ("sensor_type.h",),
-    "sensor.h": ("sensor.h",),
-    "sensor_config.h": ("sensor_config.h",),
-}
+LEGACY_FRAMEWORK = {}
 
 #: Consumers of the legacy framework that have not been migrated, with the reason. Resolving one
 #: means giving it a canonical equivalent, not renaming an include.

@@ -115,7 +115,6 @@
 - [CLib - 自定义 C 库](clib/introduction.md)
 - [DM - 数据管理](dm/introduction.md)
 - [NET - 网络协议](net/introduction.md)
-- [Sensor - 传感器框架](sensor/introduction.md)
 - [IPC - 进程间通信](ipc/introduction.md)
 - [PM - 电源管理](pm/introduction.md)
 - [PID - 控制算法](pid/introduction.md)

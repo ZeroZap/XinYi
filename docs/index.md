@@ -23,7 +23,7 @@
 | OSAL | [简介](components/osal/introduction.md) | HAL | [简介](components/hal/introduction.md) |
 | Crypto | [简介](components/crypto/introduction.md) | CLib | [简介](components/clib/introduction.md) |
 | DM | [简介](components/dm/introduction.md) | NET | [简介](components/net/introduction.md) |
-| Sensor | [简介](components/sensor/introduction.md) | Device | [简介](components/device/introduction.md) |
+| Device | [简介](components/device/introduction.md) |
 | IPC | [简介](components/ipc/introduction.md) | PM | [简介](components/pm/introduction.md) |
 | PID | [简介](components/pid/introduction.md) | ADDC | [简介](components/addc/introduction.md) |
 | FOTA | [简介](components/fota/introduction.md) | GUI | [简介](components/gui/introduction.md) |

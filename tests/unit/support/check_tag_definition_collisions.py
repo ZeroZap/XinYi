@@ -53,12 +53,7 @@ VENDORED: dict[str, str] = {
 #: Tags carrying two bodies. The owner is decided for this one - components/device is canonical - but
 #: the old framework has not been migrated off yet, so the collision still exists and is recorded
 #: rather than hidden. It reports itself stale the day the migration lands.
-PINS: dict[str, str] = {
-    "struct xy_sensor_device":
-        "components/device/inc/xy_device.h is canonical (a Device base plus a sensor api pointer); "
-        "components/sensor/inc/xy_sensor_device.h is the un-migrated old framework and holds the "
-        "fields itself - both are reachable and neither can be included in one translation unit",
-}
+PINS: dict[str, str] = {}
 
 #: Build output, vendored code and host tests. `tests/` is skipped: a fake vendor header is meant to
 #: differ from the real one and the two never meet.

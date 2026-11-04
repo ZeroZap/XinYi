@@ -63,7 +63,6 @@ nav:
     - CLib: components/clib/introduction.md
     - DM: components/dm/introduction.md
     - NET: components/net/introduction.md
-    - Sensor: components/sensor/introduction.md
     - Device: components/device/introduction.md
     - IPC: components/ipc/introduction.md
     - PM: components/pm/introduction.md

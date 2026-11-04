@@ -584,7 +584,6 @@ class DocApiSymbolsTest(unittest.TestCase):
         # index defers to. If the root leaves DOC_ROOTS this goes red.
         walked = [p.relative_to(guard.ROOT).as_posix() for p in guard.documents()]
         self.assertIn("docs/components/osal/introduction.md", walked, walked)
-        self.assertIn("docs/components/sensor/introduction.md", walked, walked)
 
     def test_main_reports_a_prose_claim_on_a_synthetic_tree(self) -> None:
         # The wiring case, and the lesson the previous slice learned the hard way: a rule `main()`
