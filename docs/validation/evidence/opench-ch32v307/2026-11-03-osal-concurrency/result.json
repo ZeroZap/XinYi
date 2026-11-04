@@ -1,0 +1,30 @@
+{
+  "board": "opench_ch32v307",
+  "chip": "CH32V30x",
+  "firmware_commit": "8bdbe734",
+  "elf_sha256": "9c1baa868e974a737b18bfbf2e44879267f998e7d3af50bedbb988b4eb3b6e45",
+  "ram_judgement_globals": {
+    "xy_image_steps": "0x2000004c",
+    "xy_image_failed": "0x20000048",
+    "xy_image_last": "0x20000044"
+  },
+  "single_run": {
+    "steps": 6,
+    "failed": 0,
+    "ticks": "1467->4704",
+    "pc": "prvIdleTask",
+    "last_marker": "OPENCH_OSAL_CONCURRENCY_PASS_20261103_A"
+  },
+  "soak": {
+    "rounds": 20,
+    "steps_per_round": [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+    "failed_per_round": 0,
+    "last_marker": "OPENCH_OSAL_CONCURRENCY_PASS_20261103_A"
+  },
+  "scenarios": [
+    {"name": "counting_semaphore_max2", "verdict": "ok", "detail": "3 workers contend for a max-count-2 semaphore; observed active holders never exceeded 2 and final count returned to 2"},
+    {"name": "mutex_atomicity", "verdict": "ok", "detail": "2 workers each increment a shared counter 1000 times under the mutex with yields between; final counter == 2000"},
+    {"name": "multi_producer_queue", "verdict": "ok", "detail": "2 producers push 10 uint32 each, 1 consumer drains 20; count == 20 and sum == 210"}
+  ],
+  "status": "B1_REVIEW_CANDIDATE"
+}

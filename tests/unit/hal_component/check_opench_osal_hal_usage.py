@@ -36,6 +36,7 @@ MIGRATED = {
     "osal_freertos_thread_lifecycle_main.c",
     "osal_freertos_primitives_main.c",
     "osal_freertos_stall_probe_main.c",
+    "osal_freertos_concurrency_main.c",
 }
 
 # The backlog is empty: every OSAL board image drives USART1 through the HAL now.
