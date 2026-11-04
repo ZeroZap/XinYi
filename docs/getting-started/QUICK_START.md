@@ -362,7 +362,7 @@ cmake -B build/stm32u5 -S . -DHAL_PLATFORM=STM32U5 -DCMAKE_BUILD_TYPE=Release
 | 示例 | 路径 | 说明 |
 |------|------|------|
 | Blinky | `examples/stm32u5_demo/` | LED 闪烁 |
-| Sensor | `components/sensor/examples/sensor_demo.c` | 传感器读取（canonical Device 样张，由 CTest `sensor_device_example` 编译并运行） |
+| Sensor | `components/drivers/sensor/examples/sensor_demo.c` | 传感器读取（canonical Device 样张，由 CTest `sensor_device_example` 编译并运行） |
 | Network | `examples/net_mqtt_example/` | MQTT 通信 |
 | FOTA | `examples/fota_example/` | 固件升级 |
 

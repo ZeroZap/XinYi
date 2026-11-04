@@ -1337,7 +1337,6 @@ xy_add_unit_test(test_lps22hb sensor_lps22hb UNITY
 )
 target_include_directories(test_lps22hb BEFORE PRIVATE
     ${DRV}/sensor/pressure/lps22hb
-    ${SENSOR}/inc
 )
 target_link_libraries(test_lps22hb PRIVATE m)
 
@@ -1484,7 +1483,7 @@ target_link_libraries(test_gps_example m)
 # contract, and the sample supplies only the three HAL entry points it asserts on
 # (`test_sensor_demo_backend_stub.c` stubs the rest of the bus-helper backend).
 xy_add_unit_test(test_sensor_device_example sensor_device_example
-    ${SENSOR}/examples/sensor_demo.c
+    ${DRV}/sensor/examples/sensor_demo.c
     ${DRV}/sensor/temperature/sht30/xy_sht30.c
     ${DEV}/src/xy_device_bus_helpers.c
     ${UNIT_SENSOR}/test_sensor_demo_backend_stub.c
@@ -1693,7 +1692,7 @@ xy_add_unit_test(test_bmi088 sensor_bmi088 UNITY
 )
 target_include_directories(test_bmi088 BEFORE PRIVATE
     ${DRV}/sensor/motion/bmi088
-    ${SENSOR}/inc
+    ${DEV}/inc
 )
 
 xy_add_unit_test(test_bmi270 sensor_bmi270 UNITY
@@ -1702,7 +1701,7 @@ xy_add_unit_test(test_bmi270 sensor_bmi270 UNITY
 )
 target_include_directories(test_bmi270 BEFORE PRIVATE
     ${DRV}/sensor/motion/bmi270
-    ${SENSOR}/inc
+    ${DEV}/inc
 )
 target_link_libraries(test_bmi270 PRIVATE m)
 
@@ -1767,7 +1766,7 @@ xy_add_unit_test(test_bno055 sensor_bno055 UNITY
 )
 target_include_directories(test_bno055 BEFORE PRIVATE
     ${DRV}/sensor/motion/bno055
-    ${SENSOR}/inc
+    ${DEV}/inc
 )
 target_link_libraries(test_bno055 PRIVATE m)
 
@@ -3035,7 +3034,6 @@ xy_add_unit_test(test_fg_bq27z746 fg_bq27z746 UNITY
 target_include_directories(test_fg_bq27z746 PRIVATE
     ${ROOT}/components/fuel_gauge/drivers
     ${ROOT}/components/fuel_gauge/inc
-    ${SENSOR}/inc
 )
 
 # --- Test 45: BQ40Z50 fuel gauge driver host guard ---
@@ -3051,7 +3049,6 @@ xy_add_unit_test(test_fg_bq40z50 fg_bq40z50 UNITY
 target_include_directories(test_fg_bq40z50 PRIVATE
     ${ROOT}/components/fuel_gauge/drivers
     ${ROOT}/components/fuel_gauge/inc
-    ${SENSOR}/inc
 )
 
 # --- Test 46: MAX17043 fuel gauge driver host guard ---
@@ -3068,7 +3065,6 @@ target_include_directories(test_fg_max17043 PRIVATE
     ${ROOT}/components/fuel_gauge/drivers
     ${ROOT}/components/fuel_gauge/inc
     ${DEV}/inc
-    ${SENSOR}/inc
 )
 
 # --- Test 47: BQ27Z561 fuel gauge driver host guard ---
@@ -3084,7 +3080,6 @@ xy_add_unit_test(test_fg_bq27z561 fg_bq27z561 UNITY
 target_include_directories(test_fg_bq27z561 PRIVATE
     ${ROOT}/components/fuel_gauge/drivers
     ${ROOT}/components/fuel_gauge/inc
-    ${SENSOR}/inc
 )
 
 # --- Test 48: Fuel Gauge SMBus board-validation smoke skeleton ---
@@ -3101,7 +3096,6 @@ xy_add_unit_test(test_fuel_gauge_smbus_hardware_smoke_example fuel_gauge_smbus_h
 target_include_directories(test_fuel_gauge_smbus_hardware_smoke_example PRIVATE
     ${ROOT}/components/fuel_gauge/drivers
     ${ROOT}/components/fuel_gauge/inc
-    ${SENSOR}/inc
 )
 
 # --- Test 49: Unity + FFF framework smoke guard ---

@@ -22,7 +22,7 @@
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
   + `_unit`); the Device-dependency slice took 409 → 411 (`device_bus_dependency` +
   `device_bus_dependency_unit`); the sensor-sample slice took 411 → 412
-  (`sensor_device_example`, which compiles and runs `components/sensor/examples/sensor_demo.c`);
+  (`sensor_device_example`, which compiles and runs `components/drivers/sensor/examples/sensor_demo.c`);
   the legacy `sensor_example_*` slice took 412 → 415 (`sensor_example_basic`,
   `sensor_example_advanced`, `sensor_example_multi`, each compiling and running one of
   `basic.c` / `advanced.c` / `example_multi_sensors.c`); the AT URC slice took 415 → 416 (`at_urc`,
@@ -384,7 +384,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_icm20608_device.c` | `unity` | 0 | ICM20608 canonical Device IMU I2C/SPI identity/reset/config/decode/verify contracts |
 | `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS NMEA parser GGA/RMC/GSV/checksum/registry contracts; `gps_parse_nmea`/`gps_parse_byte` come from `xy_gps.h`. Also pins that `gps_sleep(NULL)`/`gps_wakeup(NULL)` are rejected instead of dereferencing. |
 | `tests/unit/sensor/test_gps_example_tick_stub.c` | `plain/helper` | 0 | Frozen `xy_hal_sys_get_tick_count()` for the `sensor_gps_example` target; not a standalone CTest source. |
-| `tests/unit/sensor/test_sensor_demo_backend_stub.c` | `plain/helper` | 0 | SPI/UART/GPIO/mem-I2C/registry stubs for the `sensor_device_example` target. `components/sensor/examples/sensor_demo.c` supplies the three HAL entry points it asserts on; this file stubs the rest of `xy_device_bus_helpers.c`'s backend so the sample does not have to carry harness code. Returns `NOT_SUPPORTED`, so a driver that switched to one of these paths fails instead of passing against a rubber stamp. |
+| `tests/unit/sensor/test_sensor_demo_backend_stub.c` | `plain/helper` | 0 | SPI/UART/GPIO/mem-I2C/registry stubs for the `sensor_device_example` target. `components/drivers/sensor/examples/sensor_demo.c` supplies the three HAL entry points it asserts on; this file stubs the rest of `xy_device_bus_helpers.c`'s backend so the sample does not have to carry harness code. Returns `NOT_SUPPORTED`, so a driver that switched to one of these paths fails instead of passing against a rubber stamp. |
 | `tests/unit/sensor/test_cmm905_device.c` | `unity` | 0 | CMM905 canonical Device: identity/init/read (6 single-byte registers)/deinit, raw readings, failure preservation and fail-closed contracts |
 | `tests/unit/sensor/test_sc7a20_device.c` | `unity` | 0 | SC7A20 canonical Device: identity/WHO_AM_I, 12-bit left-aligned decode, mg conversion with range scaling, range/ODR configuration, failure preservation and fail-closed contracts |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
