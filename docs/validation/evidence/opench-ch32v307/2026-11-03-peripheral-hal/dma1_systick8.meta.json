@@ -3,7 +3,7 @@
   "device": "/dev/ttyACM0",
   "firmware_commit": "23e544b2daa07e3805e51363d803048240c911ed",
   "bytes_captured": 77,
-  "capture_sha256": "86f4860fb9f4b5be0eeb612b8c53068301c39d591eb5f84c12cb2c3a1399c54b",
+  "capture_sha256": "c47c8188c5b275d969a810a597236b6075802e76f907b7f68cb4a045db2606b5",
   "required_markers": [
     "OPENCH_DMA1_SYSTICK8_MEMCPY_128X_OK_A"
   ]
