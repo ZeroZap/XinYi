@@ -1721,7 +1721,7 @@
 | Charger | H1（standalone BQ25620 fake-I2C transaction/status contract；公开 full config 与 direct setters 在首个 I2C 写前拒绝越界或无法按寄存器步长精确表示的 input/charge/precharge/termination current、charge voltage 与 recharge threshold；16-bit little-endian setpoint paths 使用 read-modify-write 保留非目标位并传播 read failure；status/fault 依据 ZHCSMZ9C Rev. C `0x1D/0x1E/0x1F` staged decode，safety-timer expiry 映射公开 charge-timeout fault，top-off timer 编码保持 active charging 而不误报 charge done，歧义 `TS_STAT=001` fail-closed 为 unknown，ICHG/VREG/IINDPM decoded setpoints 同时拒绝低于 datasheet 最小值或高于最大值的编码；public register read 仅允许 datasheet `0x02..0x38` address range） | PC/L4/U5 build | pending | safety pending | `components/drivers/power/charger/xy_bq25620.c` 为 canonical owner；公开 API 与 focused contract 迁移后旧 `components/charger/` compatibility component 及 ownerless Device dispatch 已移除；固定 7-bit 地址 `0x6B`，ICHG/VREG/IINDPM/IPRECHG/ITERM/VRECHG 地址、位域、步长与范围已按 TI ZHCSMZ9C Rev. C 重建，fake transport 对每次 TX/RX 校验目标地址；lifecycle 仅由 canonical `xy_device_t.initialized` 与 owner cookie 持有，live-transport fail-closed、完整 status staged commit、所有 init 失败保持 caller storage、live owner re-init 失败保持原 transport/lifecycle；teardown 的 stop-charge read/write 失败传播且保留完整 live owner供重试，成功后才清理 context | 充电/热故障 B1/B2；Pandora 无 charger IC |
 | Analog Devices | H1 | PC build | pending | calibration pending | active 3-source Host 契约 | MCP3008/HX711 实测与标定 |
 | MUX | H1 | PC build | pending | protocol security pending | Host typed ops 可用 | Device adapter/真实跨接口验证 |
-| PID | H1 | PC build | pending | performance pending | Host 算法可用 | plant simulation/HIL、抖动和饱和恢复 |
+| PID | H1 | PC build | 2026-11-05 实板 B1：控制器在**真实 FreeRTOS tick** 上跑闭环（首帧建基线不计数、20 次步进各自计数、误差=设定-测量、输出离开 0 并守住限幅、比例项=kp*误差、积分累积并被钳位、恒定误差下导数为 0）、抗饱和把积分钳在输出边界、非法设定/输入/测量值被拒且保留旧值、manual 模式透传上次输出、reset 清零计数与三项状态，四项检查全过并由 `B1_PID_BOARD_RUNTIME_PASS` 终结；镜像 20576 B SHA-256 `63cb0332…`，snapshot-gated 写入 `span_identical=true`；validator fail-closed 且绑定固件身份（8 例 CTest） | performance pending | 允许声明 PID 的算法与契约在 Cortex-M4 上的运行时正确性，且 dt 来自真实内核 tick；**不**等于性能、plant simulation/HIL、抖动或饱和恢复证据，也不覆盖 `xy_pid_auto` 自动整定器 | plant simulation/HIL；抖动与饱和恢复；性能测量 |
 | Trace | H1 | PC build | Pandora CLIB printf sink 已在 IPC consumer task 中完成 17 次有序输出 B1 | throughput pending | Host weak sink/format contract；Pandora 仅证明 bounded UART sink 跨组件正常路径 | RTT/ITM、并发丢日志与吞吐策略 |
 || IPC | H1（MQ bounded waits 在 elapsed tick 达到 timeout 时精确返回，不额外等待一个 tick；Observer notification 使用固定 membership snapshot，callback 内 attach 延后、detach 抑制本轮后续 callback，并拒绝同一 subject 的 nested notify 以避免递归失控；Broker direct queue 按最高 priority 优先、同 priority 保持 FIFO；handler 内注销/重注册当前 server 时，本轮 processing 绑定原 owner generation 并停止，replacement owner 的新消息留待后续调用；request response 必须匹配 sequence 与 source/destination generation；OSAL delay timeout 保留 Broker timeout 语义，其他 delay failure fail-closed；server 注销或显式 clear queue 会丢弃 queued messages、按 pending count 计入 dropped，复用同一 ID 不会接收 stale payload；direct/request/ISR route IDs、pub/sub publisher 与 subscriber ID 均拒绝零值；pub/sub 要求 publisher 与 subscriber 都是当前注册 owner，未注册 publisher 在 callback/stats 变化前 fail-closed；publish 以调用开始时的 subscription 快照为成员边界，callback 内替换的 subscription 不会收到触发替换的同一条消息；callback 内 deinit/init Broker 时当前 publish 立即 fail-closed，不继续调用旧 snapshot 或把旧统计写入新 lifecycle；ISR ingress payload 绑定 Broker lifecycle 及 source/destination owner generations，replacement owner 不接收旧 ring payload） | Q1 间接/部分 | Pandora Broker producer→consumer dispatch、单调 payload、Device lookup 与 Trace sink 已完成 bounded B1；depth-2 server queue 已取得 fill→`QUEUE_FULL`→clear→后续 pipeline 恢复 B2；handler rejection 现会向调用者传播并计入 dropped，随后消息可恢复处理；TIM6 single-producer ISR ingress 已取得 12 分钟内 12 次 queue-full→192 条严格单调 delivery→recovery、task producer 非饥饿及 1387 个 IPC→PM→Device→Trace→IPC 完整周期 B2 | concurrency pending | Host 契约 + Pandora bounded task-context、queue saturation、handler rejection、generation-stamped response correlation 与 single-TIM6 ISR ingress 12-cycle stress/recovery；priority dispatch、request/response 与 owner-reuse hardening 仅为 Host/compile contract；不等于实时性、性能吞吐、多 ISR producer、任意 ISR source 或多小时资格 | 多 ISR producer/多小时 endurance stress |
 | SYS | H1（timer/SM；默认系统 API fail-closed；RTC backup bounds/read-write） | PC/L4/U5 build；dedicated STM32L4 `xy_hal_sys`/`xy_hal_rtc`/`xy_hal_wdg` backends 与 Pandora board policy 已守护 reset-reason/UID/software-reset/backup-register/IWDG owner 边界 | Pandora strong backend 已取得稳定 96-bit UID B1；自动 software reset、IWDG timeout 与 ST-Link reset command 均取得 reason/recovery B2，且有 Flash write/verify/read-back 与 UART 证据 | n/a | timer/state-machine Host 契约；无 board backend 时 fail-closed；Pandora application/FOTA reset flow 使用 canonical `xy_hal_sys_*`、`xy_hal_rtc_backup_*` 与 `xy_hal_iwdg_*`，vendor RCC/UID/CMSIS reset/RTC backup/IWDG 调用仅位于 STM32L4 backend；既有 chip identity、软件复位、看门狗复位与 ST-Link external-pin reset reason 已实证 | power-loss/brownout 区分与 watchdog refresh policy 仍 pending；U5 仅补充 compile |
@@ -3016,6 +3016,42 @@
   `handle->Instance` 赋 `USART1`，否则 `HAL_UART_Init` 解引用未初始化指针失败、镜像在首次
   UART 写入前停机（线上 0 字节、无 error marker，表现为"板子死了"）；月长断言写错
   （`2026-04-01 − 2026-03-01` 是 31 天不是 30），被实板当场拒绝。
+
+### 2026-11-05 Pandora PID: the controller on the real kernel tick
+
+- 组件：PID（Pandora STM32L475VE 实板）
+- 旧等级 -> 新等级：PID Board 列 `pending` -> 实板 B1（`B1_PID_BOARD_RUNTIME_PASS`）
+- 证据路径：`docs/validation/evidence/pandora-stm32l475/2026-11-05-pid-board-runtime/`；
+  镜像 `boards/pandora_stm32l475/pid_main.c`（20576 B，SHA-256 `63cb0332…`）经
+  `tools/pandora_hil_program.py run --address 0x08000000` snapshot-gated 写入
+  （`span_identical=true`、`unexpected_changes=0`），`st-flash reset` 后 CP2102 `/dev/ttyUSB0`
+  采集，由 `boards/pandora_stm32l475/validate_pid_capture.py` 判定（`checks_passed=4`、
+  `failures=[]`、`error_steps=[]`）。
+- 为什么值得上板（两个具体理由，不是泛泛的"实机验证"）：
+  ① **两边的舍入不同**。`xy_pid.c` 全 `float` 无 `double`；STM32L475VE 有单精度硬件 FPU，
+     目标把输出和里的乘加合并成一条 `vfma.f32`（**一次**舍入），而 x86-64 Host 发的是分离的
+     `mulss` + `addss`（**两次**舍入）。同一表达式末位可以不同，任何 Host 测试都看不到。
+     镜像实测含 3 条 `vfma.f32`，ELF 属性 `Tag_FP_arch: VFPv4-D16`、
+     `Tag_ABI_VFP_args: VFP registers`。
+  ② **dt 从来不是真的**。控制器的 `dt` 来自 `xy_os_tick_get()`，而 Host 测试把它 stub 成一个
+     变量——驱动积分与微分的那个数从来是写死的。
+- 适用范围：闭环在真实 FreeRTOS tick 上运行（首帧建基线且不计数、20 次步进各自计数、误差=
+  设定-测量、输出离开 0 并守住限幅、比例项=kp*误差、积分累积并被钳位、恒定误差下导数为 0）；
+  抗饱和把积分钳在输出边界（不是放任其跑飞）且输出本身钳在配置上限；非有限的设定/输入/测量值
+  各自被拒且保留旧值，manual 模式透传上次输出；reset 把计数与误差/积分/导数清回初值。
+- 镜像自带 tick 源与专用等待（两处 Host 看不到的坑）：OSAL 默认的 `xy_os_tick_get()` 读的是
+  misc 计数器，kernel 接管 SysTick 后没人递增它，会恒为 0 → dt 恒为 0 → 控制器永不更新，
+  表现得像"控制器不动"；镜像改为返回 `xy_os_kernel_get_tick_count()`（与 OSAL runtime 镜像
+  同法）。等待用 `xy_os_delay()`（让出调度器）而非裸机 `xy_hal_delay_ms()`——后者会重配
+  SysTick 的 CMP/CTLR 并把内核 tick 彻底停掉。
+- 采集判定 fail-closed 且绑定身份：validator 要求线上出现被烧录的确切固件 commit、四个检查
+  marker 按镜像发出的顺序出现、终结 marker 在最后；任何 error marker（含
+  `*_ERROR_STEP_<n>`，会报出失败的是哪一项第几步）都判失败。镜像自己的 fault handler 在自旋
+  前不打印任何东西，所以崩溃是靠**终结 marker 缺失**报告的；板载守卫要求该镜像发布与其他
+  板载镜像相同的三个事后字样，且 stack-overflow hook 必须在自旋前设置它们。validator 8 例注册为
+  CTest `pandora_pid_capture_validator`。
+- 仍不允许宣称：性能测量（矩阵 performance 列仍 pending）、plant simulation/HIL（本镜像用固定
+  设定值驱动，不是真被控对象）、抖动或饱和恢复证据、`xy_pid_auto` 自动整定器未覆盖。
 
 ### 2026-11-03 openCH OSAL board soak (13 images x 20 restart rounds) + concurrency image
 

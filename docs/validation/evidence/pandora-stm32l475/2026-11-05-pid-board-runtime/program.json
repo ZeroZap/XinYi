@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "tool": "tools/pandora_hil_program.py",
+  "board": "pandora_stm32l475",
+  "created_utc": "2026-11-05T02:37:50+00:00",
+  "image": {
+    "path": "build/pandora-rtos/boards/pandora_stm32l475/pandora_stm32l475_pid.bin",
+    "size": 20576,
+    "sha256": "63cb0332c6eb031dcaccef4432f915a8278112491e196c18894043564996d064",
+    "address": "0x8000000",
+    "region": "bootloader"
+  },
+  "readback": {
+    "span_identical": true,
+    "first_diff": null,
+    "observed_sha256": "63cb0332c6eb031dcaccef4432f915a8278112491e196c18894043564996d064",
+    "erased_tail": 1952,
+    "unexpected_changes": 0,
+    "unexpected_first": null
+  },
+  "reset": false,
+  "drift": [],
+  "drift_stable": true,
+  "drift_samples": 0,
+  "drift_seconds": 0.0,
+  "drift_window": {
+    "settle": 3.0,
+    "stable_for": 3.0,
+    "poll": 0.5,
+    "max_wait": 20.0
+  },
+  "restore_command": "tools/pandora_hil_state.py restore --snapshot /home/eugene/xinyi-hw-evidence/2026-11-05T102810/pandora-state --yes"
+}
