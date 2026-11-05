@@ -117,8 +117,10 @@ def main() -> None:
         "pandora_stm32l475_icm20608",
         "pandora_stm32l475_aht10",
         "pandora_stm32l475_pid",
+        "pandora_stm32l475_watchdog",
         "pid_main.c",
         "pid_handlers.c",
+        "watchdog_main.c",
         "pandora_aht10_owner.c",
         "pandora_icm20608_owner.c",
         "pandora_ap3216c_owner.c",
@@ -282,6 +284,7 @@ def main() -> None:
         "sensor_ap3216c_main.c",
         "sensor_icm20608_main.c",
         "sensor_aht10_main.c",
+        "watchdog_main.c",
     )
     init_entries = delay_entries + (
         "fota_bootloader_main.c",
@@ -437,6 +440,79 @@ def main() -> None:
             assert required in entry, f"{backup_entry} missing canonical RTC backup call {required}"
         for forbidden in ("HAL_PWR_EnableBkUpAccess", "RTC->BKP"):
             assert forbidden not in entry, f"{backup_entry} bypasses canonical RTC HAL: {forbidden}"
+    # The watchdog refresh-policy image carries the SYS row's remaining pending
+    # item. Its claim is only worth something if it could have failed, so the
+    # guard pins the properties that make it falsifiable rather than decorative.
+    watchdog_entry = read_code(BOARD / "watchdog_main.c")
+    # The refresh has to go through the canonical watchdog HAL. A direct
+    # HAL_IWDG_Refresh() would bypass the project API the claim is about.
+    for required in ("xy_hal_iwdg_init", "xy_hal_iwdg_feed"):
+        assert required in watchdog_entry, f"watchdog_main.c missing canonical HAL call {required}"
+    for forbidden in ("HAL_IWDG_Init(", "HAL_IWDG_Refresh(", "IWDG->KR", "IWDG->SR"):
+        assert forbidden not in watchdog_entry, (
+            f"watchdog_main.c bypasses canonical XinYi HAL: {forbidden}"
+        )
+    # The board SYS owner attributes the reset cause. An inline bit chain in the
+    # entry point is how a brownout boot got reported as POWER_ON, so the image
+    # dispatches on the board's decoded kind instead.
+    assert "pandora_sys_reset_kind()" in watchdog_entry
+    assert "PANDORA_RESET_KIND_WATCHDOG" in watchdog_entry
+    assert "XY_HAL_SYS_RESET_REASON_" not in watchdog_entry, (
+        "watchdog_main.c attributes the reset cause inline; dispatch on pandora_sys_reset_kind()"
+    )
+    # The retained marker has to use the canonical RTC backup HAL, and it has to
+    # be the board's own slot: slot 3 belongs to the reset-request retention.
+    for required in ("xy_hal_rtc_backup_read", "xy_hal_rtc_backup_write"):
+        assert required in watchdog_entry, (
+            f"watchdog_main.c missing canonical RTC backup call {required}"
+        )
+    for forbidden in ("HAL_PWR_EnableBkUpAccess", "RTC->BKP"):
+        assert forbidden not in watchdog_entry, (
+            f"watchdog_main.c bypasses canonical RTC HAL: {forbidden}"
+        )
+    assert "PANDORA_WATCHDOG_BACKUP_SLOT 4U" in watchdog_entry, (
+        "watchdog_main.c must use its own RTC backup slot; slot 3 is the reset-request record"
+    )
+    # The elapsed time the claim rests on has to come from the canonical SYS
+    # tick. The image is what the "watchdog refresh policy" claim is about, so
+    # its own timing has to be the project's timing.
+    assert "xy_hal_sys_get_tick_count" in watchdog_entry
+    assert "HAL_GetTick(" not in watchdog_entry
+    # A halted image must be diagnosable, like every other board image.
+    for declaration in (
+        "volatile uint32_t xy_image_failed;",
+        "volatile const char *xy_image_failed_task;",
+        "volatile const char *xy_image_last_marker;",
+    ):
+        assert declaration in watchdog_entry, f"watchdog_main.c missing halt state {declaration!r}"
+    watchdog_fail_body = function_body(watchdog_entry, "static void fail_at(")
+    assert "xy_image_failed = 2U;" in watchdog_fail_body
+    assert watchdog_fail_body.index("xy_image_failed = 2U;") < watchdog_fail_body.index("for (;;)")
+    watchdog_uart_body = function_body(watchdog_entry, "static void uart_text(")
+    assert "xy_image_last_marker = text;" in watchdog_uart_body
+    # The feed phase has to end, and the report phase has to be the one that
+    # sees the watchdog expiry. Without both, the image proves nothing.
+    for required in (
+        "WATCHDOG_REFRESH_SURVIVED",
+        "WATCHDOG_MARKER_SET",
+        "WATCHDOG_FEED_STOPPED",
+        "WATCHDOG_EXPIRY_RESET_OK",
+        "WATCHDOG_REFRESH_POLICY_PASS",
+    ):
+        assert required in watchdog_entry, f"watchdog_main.c missing marker {required}"
+    require(
+        BOARD / "validate_watchdog_capture.py",
+        "WATCHDOG_REFRESH_POLICY_PASS",
+        "WATCHDOG_PHASE FEED",
+        "WATCHDOG_PHASE REPORT",
+        "EXPECTED_RESET_KIND",
+        "firmware_commit",
+    )
+    require(
+        ROOT / "tests" / "unit" / "hal_component" / "test_pandora_watchdog_capture.py",
+        "analyze_capture",
+        "WATCHDOG_REFRESH_POLICY_PASS",
+    )
     require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_rtc.c",
         "xy_hal_rtc_backup_read",

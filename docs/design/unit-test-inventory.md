@@ -17,8 +17,8 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 5
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 415 (measured: `ctest -N` on the
-  `tests/unit` build tree reports `Total Tests: 415`. The C targets are registered through
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 417 (measured: `ctest -N` on the
+  `tests/unit` build tree reports `Total Tests: 417`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
   entries. The `version_api` slice took 405 → 407 (C target `test_version_api` + Python
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
@@ -146,6 +146,12 @@
   `test_sensor_bus.c` (20 cases), whose contracts are superseded by the canonical Device owners
   and the deleted legacy bus/framework sources. The ICM20608 wrapper retirement (batch 8) was
   count-neutral for CTests (`test_icm20608_sensor.c` → `test_icm20608_device.c`).
+  The PID board-runtime slice took 415 → 416 (`pandora_pid_capture_validator`, which judges the
+  identity-bound marker stream of the PID board image against the exact firmware commit that was
+  flashed). The watchdog refresh-policy slice took 416 → 417 (`pandora_watchdog_capture_validator`,
+  which judges the two-phase marker stream of the watchdog board image: the feed phase that has to
+  survive many multiples of the armed window, and the report phase that has to name the watchdog as
+  the cause of the reset that followed).
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
   include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which

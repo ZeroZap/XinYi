@@ -370,6 +370,10 @@ add_test(NAME pandora_pid_capture_validator
     COMMAND python3 ${UNIT_PID}/test_pandora_pid_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_watchdog_capture_validator
+    COMMAND python3 ${UNIT_HAL}/test_pandora_watchdog_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME freertos_osal_thread_flags
     COMMAND python3 ${UNIT_KERNEL}/check_freertos_osal_thread_flags.py
     WORKING_DIRECTORY ${ROOT}
