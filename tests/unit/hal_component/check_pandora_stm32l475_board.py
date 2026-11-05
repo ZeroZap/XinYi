@@ -116,6 +116,9 @@ def main() -> None:
         "pandora_stm32l475_smoke",
         "pandora_stm32l475_icm20608",
         "pandora_stm32l475_aht10",
+        "pandora_stm32l475_pid",
+        "pid_main.c",
+        "pid_handlers.c",
         "pandora_aht10_owner.c",
         "pandora_icm20608_owner.c",
         "pandora_ap3216c_owner.c",
@@ -284,6 +287,7 @@ def main() -> None:
         "fota_bootloader_main.c",
         "fota_candidate_programmer_main.c",
         "rtos_main.c",
+        "pid_main.c",
     )
     for board_entry in init_entries:
         entry = read_code(BOARD / board_entry)
@@ -314,6 +318,7 @@ def main() -> None:
         "fota_bootloader_main.c",
         "fota_candidate_programmer_main.c",
         "rtos_handlers.c",
+        "pid_handlers.c",
     )
     for board_entry in tick_entries:
         entry = read_code(BOARD / board_entry)
@@ -393,6 +398,39 @@ def main() -> None:
     assert fail_body.index("xy_image_failed = 2U;") < fail_body.index("for (;;)")
     uart_body = function_body(rtos_entry, "static void uart_text(")
     assert "xy_image_last_marker = text;" in uart_body
+    # The PID board image runs the same shape: a FreeRTOS task, the same three
+    # post-mortem words, and the same fail_at() indirection. The PID image owns
+    # its own handlers file, so the stack-overflow hook lives there rather than
+    # in pid_main.c -- the guard has to look in the file that actually holds it.
+    pid_entry = read_code(BOARD / "pid_main.c")
+    for declaration in (
+        "volatile uint32_t xy_image_failed;",
+        "volatile const char *xy_image_failed_task;",
+        "volatile const char *xy_image_last_marker;",
+    ):
+        assert declaration in pid_entry, f"pid_main.c missing halt state {declaration!r}"
+    pid_fail_body = function_body(pid_entry, "static void fail_at(")
+    assert "xy_image_failed = 2U;" in pid_fail_body
+    assert pid_fail_body.index("xy_image_failed = 2U;") < pid_fail_body.index("for (;;)")
+    pid_uart_body = function_body(pid_entry, "static void uart_text(")
+    assert "xy_image_last_marker = text;" in pid_uart_body
+    pid_handlers = read_code(BOARD / "pid_handlers.c")
+    pid_overflow = function_body(pid_handlers, "void vApplicationStackOverflowHook(")
+    assert "xy_image_failed_task = task_name;" in pid_overflow
+    assert "xy_image_failed = 1U;" in pid_overflow
+    assert pid_overflow.index("xy_image_failed = 1U;") < pid_overflow.index("for (;;)")
+    # The image steps the controller against the real FreeRTOS tick, so the OSAL
+    # tick source has to be the kernel's. The OSAL's default xy_os_tick_get()
+    # reads the misc tick counter, which nothing increments once the kernel owns
+    # SysTick -- it would read 0 forever and every elapsed interval would be
+    # zero, so the "dt" the controller integrates would never be a real one.
+    assert "uint32_t xy_os_tick_get(void)" in pid_entry
+    assert "xy_os_kernel_get_tick_count()" in pid_entry
+    # A kernel-owned SysTick means the bare-metal delay would stop the
+    # scheduler outright rather than delay the task, so this image must wait
+    # through the OSAL.
+    assert "xy_os_delay(" in pid_entry
+    assert "xy_hal_delay_ms(" not in pid_entry
     for backup_entry in ("rtos_main.c", "fota_bootloader_main.c"):
         entry = read_code(BOARD / backup_entry)
         for required in ("xy_hal_rtc_backup_read", "xy_hal_rtc_backup_write"):
