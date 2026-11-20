@@ -6,7 +6,7 @@
 # until they gain implementation and focused tests.
 
 set(ANALOG_DEVICES_SOURCES
-    ${CMAKE_CURRENT_LIST_DIR}/xy_adc.c
+    ${CMAKE_CURRENT_LIST_DIR}/xy_analog_adc.c
     ${CMAKE_CURRENT_LIST_DIR}/src/xy_mcp3008.c
     ${CMAKE_CURRENT_LIST_DIR}/src/xy_hx711.c
 )

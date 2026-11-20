@@ -7,7 +7,7 @@
 
 `components/analog_devices/` 当前不是完整外设生态包，而是一组低层模拟器件 helper/driver：
 
-- `xy_adc.{h,c}`：host-safe ADC/DAC helper，提供通道配置、模拟采样、raw/voltage 转换和 DAC 设置 API。
+- `xy_analog_adc.{h,c}`：host-safe ADC/DAC helper，提供通道配置、模拟采样、raw/voltage 转换和 DAC 设置 API。
 - `inc/xy_adc_ext.h`：外部 ADC driver umbrella，当前 active host coverage 只覆盖 MCP3008 与 HX711；其它声明（ADS1015/ADS1118/ADS1248/MAX11100/MCP3208 等）仍是历史/待实现 API 形状。
 - `src/xy_mcp3008.c`：MCP3008 SPI command/result contract，依赖 mockable `xy_hal_spi_transmit_receive()` 与 GPIO CS seam。
 - `src/xy_hx711.c`：HX711 GPIO bitbang/read/tare/calibrate helper，当前只证明 host fake GPIO/timing contract。
@@ -32,7 +32,7 @@ make HAL_PLATFORM=STM32U5 -j$(nproc)                # MCU compile probe；仍非
 
 ## 构建/配置边界
 
-- `components/analog_devices/CMakeLists.txt` 现在只把当前已有实现且已有 host CTest 的源文件纳入 root build：`xy_adc.c`、`src/xy_mcp3008.c`、`src/xy_hx711.c`。
+- `components/analog_devices/CMakeLists.txt` 现在只把当前已有实现且已有 host CTest 的源文件纳入 root build：`xy_analog_adc.c`、`src/xy_mcp3008.c`、`src/xy_hx711.c`。
 - root target include roots 同步到这些源码实际使用的 HAL/Trace/CLIB/Device/Sensor public headers；`inc/xy_adc_ext.h` 仍会经历史 ADS1115 umbrella 间接需要 `components/device/inc`。
 - root auto-discovery 会生成 `xy_adc` 静态库；同时提供 `analog_devices_component` CMake ALIAS，方便未来 component-style consumer 迁移，但当前安装/runtime target 名仍保持 `xy_adc`。
 - `components/analog_devices/Kconfig` 仍只提供 nested `COMPONENT_ADDC` 历史开关；当前 root `Kconfig` 不导出专门的 analog devices component enablement。
@@ -50,10 +50,12 @@ make HAL_PLATFORM=STM32U5 -j$(nproc)                # MCU compile probe；仍非
 
 这些结果不能替代真实 SPI ADC、电桥传感器、GPIO 时序、噪声/校准、参考电压误差或板级电气验证。真实硬件结论必须来自 board/project validation record。
 
-## 回滚
+## 头文件与类型迁移
 
-本轮 root-build 集成只改动 CMake 与 README。未提交前可回滚：
+辅助库使用 `#include "xy_analog_adc.h"`；`#include "xy_adc.h"` 仅属于 Device 兼容接口。
+原先直接引用辅助库 `xy_adc_resolution_t` 的代码改用 `xy_analog_adc_resolution_t`，其枚举值仍是
+`ADC_RESOLUTION_*` 位数；Device 的 `xy_adc_resolution_t` 仍是 HAL 选项枚举，两者不能混用。
 
-```bash
-git checkout -- components/analog_devices/CMakeLists.txt components/analog_devices/README.md
-```
+已有 `xy_adc_*` / `xy_dac_*` 函数名、其余类型和 `xy_adc` CMake 目标保持不变。
+不提供旧辅助库头文件名或冲突类型的别名，避免再次依赖 include 路径或包含顺序。
+单元测试构建会以两种包含顺序和搜索路径顺序编译 `test_adc_headers.c`，验证两层接口可以同时可见。

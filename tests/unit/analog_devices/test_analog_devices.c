@@ -2,23 +2,23 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "../../components/analog_devices/xy_adc.h"
+#include "fff.h"
 #include "unity.h"
 #include "xy_adc_ext.h"
+#include "xy_analog_adc.h"
 #include "xy_hal_error.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_spi.h"
-#include "fff.h"
 
 DEFINE_FFF_GLOBALS;
 
 FAKE_VOID_FUNC(xy_os_delay, uint32_t)
 FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_gpio_init, xy_hal_gpio_port_t, uint8_t,
-                const xy_hal_gpio_config_t *)
+                const xy_hal_gpio_config_t*)
 FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_gpio_write, xy_hal_gpio_port_t, uint8_t, uint8_t)
 FAKE_VALUE_FUNC(int32_t, xy_hal_gpio_read, xy_hal_gpio_port_t, uint8_t)
-FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit_receive, void *, const uint8_t *,
-                uint8_t *, size_t, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit_receive, void*, const uint8_t*, uint8_t*,
+                size_t, uint32_t)
 
 static uint8_t g_last_gpio_pin;
 static uint8_t g_last_gpio_value;
@@ -28,55 +28,45 @@ static int32_t g_gpio_read_value;
 
 static void reset_fakes(void);
 static xy_hal_error_t fake_gpio_init(xy_hal_gpio_port_t port, uint8_t pin,
-                                     const xy_hal_gpio_config_t *config);
+                                     const xy_hal_gpio_config_t* config);
 static xy_hal_error_t fake_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t value);
 static int32_t fake_gpio_read(xy_hal_gpio_port_t port, uint8_t pin);
-static xy_hal_error_t fake_spi_transmit_receive(void *spi, const uint8_t *tx_data,
-                                                uint8_t *rx_data, size_t len,
-                                                uint32_t timeout);
+static xy_hal_error_t fake_spi_transmit_receive(void* spi, const uint8_t* tx_data, uint8_t* rx_data,
+                                                size_t len, uint32_t timeout);
 
-void xy_log_char(char ch)
-{
+void xy_log_char(char ch) {
     (void)ch;
 }
 
-void setUp(void)
-{
+void setUp(void) {
     reset_fakes();
 }
 
-void tearDown(void)
-{
-}
+void tearDown(void) {}
 
 static xy_hal_error_t fake_gpio_init(xy_hal_gpio_port_t port, uint8_t pin,
-                                     const xy_hal_gpio_config_t *config)
-{
+                                     const xy_hal_gpio_config_t* config) {
     (void)port;
     TEST_ASSERT_NOT_NULL(config);
     g_last_gpio_pin = pin;
     return XY_HAL_OK;
 }
 
-static xy_hal_error_t fake_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t value)
-{
+static xy_hal_error_t fake_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t value) {
     (void)port;
     g_last_gpio_pin = pin;
     g_last_gpio_value = value;
     return XY_HAL_OK;
 }
 
-static int32_t fake_gpio_read(xy_hal_gpio_port_t port, uint8_t pin)
-{
+static int32_t fake_gpio_read(xy_hal_gpio_port_t port, uint8_t pin) {
     (void)port;
     (void)pin;
     return g_gpio_read_value;
 }
 
-static xy_hal_error_t fake_spi_transmit_receive(void *spi, const uint8_t *tx_data,
-                                                uint8_t *rx_data, size_t len,
-                                                uint32_t timeout)
-{
+static xy_hal_error_t fake_spi_transmit_receive(void* spi, const uint8_t* tx_data, uint8_t* rx_data,
+                                                size_t len, uint32_t timeout) {
     (void)spi;
     (void)timeout;
     TEST_ASSERT_NOT_NULL(tx_data);
@@ -87,8 +77,7 @@ static xy_hal_error_t fake_spi_transmit_receive(void *spi, const uint8_t *tx_dat
     return XY_HAL_OK;
 }
 
-static void reset_fakes(void)
-{
+static void reset_fakes(void) {
     RESET_FAKE(xy_os_delay);
     RESET_FAKE(xy_hal_gpio_init);
     RESET_FAKE(xy_hal_gpio_write);
@@ -108,8 +97,7 @@ static void reset_fakes(void)
     g_gpio_read_value = 0;
 }
 
-static void test_adc_dac_core_contracts(void)
-{
+static void test_adc_dac_core_contracts(void) {
     xy_adc_t adc;
     xy_adc_sample_t samples[ADC_MAX_CHANNELS];
 
@@ -120,7 +108,8 @@ static void test_adc_dac_core_contracts(void)
     TEST_ASSERT_EQUAL_INT(ADC_RESOLUTION_12BIT, adc.res);
 
     TEST_ASSERT_EQUAL_INT(XY_ADC_INVALID_PARAM, xy_adc_config_channel(NULL, 0, true));
-    TEST_ASSERT_EQUAL_INT(XY_ADC_INVALID_PARAM, xy_adc_config_channel(&adc, ADC_MAX_CHANNELS, true));
+    TEST_ASSERT_EQUAL_INT(XY_ADC_INVALID_PARAM,
+                          xy_adc_config_channel(&adc, ADC_MAX_CHANNELS, true));
     TEST_ASSERT_EQUAL_INT(XY_ADC_OK, xy_adc_config_channel(&adc, 3, true));
     TEST_ASSERT_EQUAL_INT(XY_ADC_OK, xy_adc_config_channel(&adc, 5, true));
     TEST_ASSERT_EQUAL_UINT8(2, adc.channel_count);
@@ -143,15 +132,15 @@ static void test_adc_dac_core_contracts(void)
     TEST_ASSERT_EQUAL_INT(XY_ADC_INVALID_PARAM, xy_dac_init(NULL, 3300, DAC_RESOLUTION_12BIT));
     TEST_ASSERT_EQUAL_INT(XY_ADC_OK, xy_dac_init(&dac, 3300, DAC_RESOLUTION_12BIT));
     TEST_ASSERT_EQUAL_INT(XY_ADC_OK, xy_dac_config_channel(&dac, 0, true));
-    TEST_ASSERT_EQUAL_INT(XY_ADC_INVALID_PARAM, xy_dac_config_channel(&dac, DAC_MAX_CHANNELS, true));
+    TEST_ASSERT_EQUAL_INT(XY_ADC_INVALID_PARAM,
+                          xy_dac_config_channel(&dac, DAC_MAX_CHANNELS, true));
     TEST_ASSERT_EQUAL_INT(XY_ADC_OK, xy_dac_set_voltage(&dac, 0, 1650));
     TEST_ASSERT_EQUAL_INT(XY_ADC_OK, xy_dac_set_raw(&dac, 0, 2048));
     TEST_ASSERT_EQUAL_UINT16(1650, xy_dac_get_voltage(&dac, 0));
     TEST_ASSERT_EQUAL_INT(XY_ADC_OK, xy_dac_deinit(&dac));
 }
 
-static void test_mcp3008_spi_command_and_result(void)
-{
+static void test_mcp3008_spi_command_and_result(void) {
     reset_fakes();
     xy_mcp3008_t mcp;
     int fake_spi;
@@ -186,8 +175,7 @@ static void test_mcp3008_spi_command_and_result(void)
     TEST_ASSERT_EQUAL_INT(-1, xy_mcp3008_read(&mcp, 0, NULL));
 }
 
-static void test_hx711_lifecycle_timeout_and_read(void)
-{
+static void test_hx711_lifecycle_timeout_and_read(void) {
     reset_fakes();
     xy_hx711_t hx;
     TEST_ASSERT_EQUAL_INT(-1, xy_hx711_init(NULL, 4, 5));
@@ -209,8 +197,7 @@ static void test_hx711_lifecycle_timeout_and_read(void)
     TEST_ASSERT_EQUAL_UINT8(0U, xy_hal_gpio_write_fake.arg2_val);
 }
 
-int main(void)
-{
+int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_adc_dac_core_contracts);
     RUN_TEST(test_mcp3008_spi_command_and_result);

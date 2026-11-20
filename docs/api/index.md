@@ -142,10 +142,10 @@ XinYi 嵌入式框架的 API 文档索引。
 
 | 函数 | 说明 | 头文件 |
 |------|------|--------|
-| `xy_adc_init()` | 初始化 ADC | `xy_adc.h` |
-| `xy_adc_sample()` | ADC 采样 | `xy_adc.h` |
-| `xy_dac_init()` | 初始化 DAC | `xy_adc.h` |
-| `xy_dac_set_voltage()` | 设置 DAC 电压 | `xy_adc.h` |
+| `xy_adc_init()` | 初始化 ADC | `xy_analog_adc.h` |
+| `xy_adc_sample()` | ADC 采样 | `xy_analog_adc.h` |
+| `xy_dac_init()` | 初始化 DAC | `xy_analog_adc.h` |
+| `xy_dac_set_voltage()` | 设置 DAC 电压 | `xy_analog_adc.h` |
 
 [组件文档与证据边界](../components/addc/introduction.md)
 

@@ -71,10 +71,6 @@ PINS: dict[str, tuple[tuple[str, ...], str]] = {
          "components/kernel/osal/portable/freertos/GCC/ARM_CM33_NTZ/non_secure/portmacro.h"),
         "two upstream FreeRTOS CPU ports; the guard name is the port's own convention and the "
         "two files are compiled into different targets, never into one translation unit"),
-    "XY_ADC_H": (
-        ("components/analog_devices/xy_adc.h", "components/device/inc/xy_adc.h"),
-        "a legacy AD/DAC helper and the Device-framework ADC driver publish different APIs "
-        "under one guard; which one owns the name is an owner decision, not a rename"),
     "XY_FUEL_GAUGE_H": (
         ("components/fuel_gauge/inc/xy_fuel_gauge.h", "components/pm/fuel-gauge/xy_fuel_gauge.h"),
         "`pm/fuel-gauge/` is the 131-line PM-local gauge header the standalone component "

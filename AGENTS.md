@@ -30,6 +30,9 @@
 - C is C99 in CMake, while `.clang-format` uses LLVM style with 4-space indentation, K&R braces, 100-column limit, left-aligned pointers, and sorted includes.
 - Format touched C/H files with `clang-format -i <file>`; CI-style formatting excludes `third_party` and build directories.
 - Naming conventions that matter here: `xy_` for framework utilities/components, `hal_` for HAL APIs, and `osal_` for OS abstraction APIs.
+- Name new first-party framework C/H files `xy_<component>[_<function>].c/.h`; keep corresponding source/header basenames aligned. Preserve existing names unless a concrete collision or module change warrants migration; do not bulk-rename legacy files just to add a prefix.
+- Public functions/types/macros and include guards need component-specific names when a project prefix alone is ambiguous. Keep the established `xy_hal_*` / `xy_os_*` interfaces; do not rename them to enforce a different spelling of the layer prefixes above.
+- Examples, board entry points, vendor/third-party files, and private helpers may follow their existing local conventions. A filename prefix does not isolate linker symbols; prefer `static` for file-local helpers and review exported names separately.
 - `.clang-tidy` is present but tuned loosely for `src/`/`include/`; for repo-wide embedded C changes, build verification is usually more reliable than assuming tidy coverage.
 
 ## Documentation Notes

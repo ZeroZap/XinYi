@@ -1,17 +1,16 @@
 /**
- * @file xy_adc.c
+ * @file xy_analog_adc.c
  * @brief ADC/DAC Helper Library Implementation
  * @version 1.0.0
  * @date 2026-02-28
  */
 
-#include "xy_adc.h"
+#include "xy_analog_adc.h"
 #include <string.h>
 
 /* ==================== ADC Implementation ==================== */
 
-int xy_adc_init(xy_adc_t *adc, uint32_t ref_voltage_mv, xy_adc_resolution_t resolution)
-{
+int xy_adc_init(xy_adc_t* adc, uint32_t ref_voltage_mv, xy_analog_adc_resolution_t resolution) {
     if (!adc) {
         return XY_ADC_INVALID_PARAM;
     }
@@ -27,8 +26,7 @@ int xy_adc_init(xy_adc_t *adc, uint32_t ref_voltage_mv, xy_adc_resolution_t reso
     return XY_ADC_OK;
 }
 
-int xy_adc_deinit(xy_adc_t *adc)
-{
+int xy_adc_deinit(xy_adc_t* adc) {
     if (!adc) {
         return XY_ADC_INVALID_PARAM;
     }
@@ -37,8 +35,7 @@ int xy_adc_deinit(xy_adc_t *adc)
     return XY_ADC_OK;
 }
 
-int xy_adc_config_channel(xy_adc_t *adc, uint8_t channel, bool enabled)
-{
+int xy_adc_config_channel(xy_adc_t* adc, uint8_t channel, bool enabled) {
     if (!adc) {
         return XY_ADC_INVALID_PARAM;
     }
@@ -76,8 +73,7 @@ int xy_adc_config_channel(xy_adc_t *adc, uint8_t channel, bool enabled)
     return XY_ADC_OK;
 }
 
-int xy_adc_sample(xy_adc_t *adc, uint8_t channel, xy_adc_sample_t *sample)
-{
+int xy_adc_sample(xy_adc_t* adc, uint8_t channel, xy_adc_sample_t* sample) {
     if (!adc || !sample) {
         return XY_ADC_INVALID_PARAM;
     }
@@ -97,8 +93,7 @@ int xy_adc_sample(xy_adc_t *adc, uint8_t channel, xy_adc_sample_t *sample)
     return XY_ADC_OK;
 }
 
-int xy_adc_sample_multi(xy_adc_t *adc, xy_adc_sample_t *samples, uint8_t count)
-{
+int xy_adc_sample_multi(xy_adc_t* adc, xy_adc_sample_t* samples, uint8_t count) {
     if (!adc || !samples) {
         return XY_ADC_INVALID_PARAM;
     }
@@ -115,8 +110,7 @@ int xy_adc_sample_multi(xy_adc_t *adc, xy_adc_sample_t *samples, uint8_t count)
     return sampled;
 }
 
-uint32_t xy_adc_raw_to_voltage(xy_adc_t *adc, uint32_t raw_value)
-{
+uint32_t xy_adc_raw_to_voltage(xy_adc_t* adc, uint32_t raw_value) {
     if (!adc || adc->res == 0) {
         return 0;
     }
@@ -125,8 +119,7 @@ uint32_t xy_adc_raw_to_voltage(xy_adc_t *adc, uint32_t raw_value)
     return (raw_value * adc->ref_voltage_mv) / max_value;
 }
 
-uint32_t xy_adc_voltage_to_raw(xy_adc_t *adc, uint32_t voltage_mv)
-{
+uint32_t xy_adc_voltage_to_raw(xy_adc_t* adc, uint32_t voltage_mv) {
     if (!adc || adc->res == 0) {
         return 0;
     }
@@ -137,8 +130,7 @@ uint32_t xy_adc_voltage_to_raw(xy_adc_t *adc, uint32_t voltage_mv)
 
 /* ==================== DAC Implementation ==================== */
 
-int xy_dac_init(xy_dac_t *dac, uint32_t ref_voltage_mv, xy_dac_resolution_t resolution)
-{
+int xy_dac_init(xy_dac_t* dac, uint32_t ref_voltage_mv, xy_dac_resolution_t resolution) {
     if (!dac) {
         return XY_ADC_INVALID_PARAM;
     }
@@ -153,8 +145,7 @@ int xy_dac_init(xy_dac_t *dac, uint32_t ref_voltage_mv, xy_dac_resolution_t reso
     return XY_ADC_OK;
 }
 
-int xy_dac_deinit(xy_dac_t *dac)
-{
+int xy_dac_deinit(xy_dac_t* dac) {
     if (!dac) {
         return XY_ADC_INVALID_PARAM;
     }
@@ -163,8 +154,7 @@ int xy_dac_deinit(xy_dac_t *dac)
     return XY_ADC_OK;
 }
 
-int xy_dac_config_channel(xy_dac_t *dac, uint8_t channel, bool enabled)
-{
+int xy_dac_config_channel(xy_dac_t* dac, uint8_t channel, bool enabled) {
     if (!dac) {
         return XY_ADC_INVALID_PARAM;
     }
@@ -192,18 +182,16 @@ int xy_dac_config_channel(xy_dac_t *dac, uint8_t channel, bool enabled)
     return XY_ADC_OK;
 }
 
-int xy_dac_set_voltage(xy_dac_t *dac, uint8_t channel, uint32_t voltage_mv)
-{
+int xy_dac_set_voltage(xy_dac_t* dac, uint8_t channel, uint32_t voltage_mv) {
     if (!dac) {
         return XY_ADC_INVALID_PARAM;
     }
 
-    uint32_t raw_value = xy_adc_voltage_to_raw((xy_adc_t *)dac, voltage_mv);
+    uint32_t raw_value = xy_adc_voltage_to_raw((xy_adc_t*)dac, voltage_mv);
     return xy_dac_set_raw(dac, channel, raw_value);
 }
 
-int xy_dac_set_raw(xy_dac_t *dac, uint8_t channel, uint32_t raw_value)
-{
+int xy_dac_set_raw(xy_dac_t* dac, uint8_t channel, uint32_t raw_value) {
     if (!dac) {
         return XY_ADC_INVALID_PARAM;
     }
@@ -215,8 +203,7 @@ int xy_dac_set_raw(xy_dac_t *dac, uint8_t channel, uint32_t raw_value)
     return XY_ADC_OK;
 }
 
-uint32_t xy_dac_get_voltage(xy_dac_t *dac, uint8_t channel)
-{
+uint32_t xy_dac_get_voltage(xy_dac_t* dac, uint8_t channel) {
     if (!dac) {
         return 0;
     }

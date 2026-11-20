@@ -308,17 +308,12 @@ SAMPLES: tuple[Sample, ...] = (
     # `xy_fuel_gauge_config_t` / `xy_fuel_gauge_update()` on the other. Both were rewrites rather
     # than include lines, and both are now judged.
     #
-    # `addc` teaches `components/analog_devices/xy_adc.h` - the ADC/DAC bookkeeping and conversion
-    # helper - and the HAL beneath it. The root order is the point, not decoration: `xy_adc.h` exists
-    # twice in this tree, and the two copies share the include guard `XY_ADC_H`, so whichever root
-    # comes first is the header the page means. The `xy_adc` CMake target puts
-    # `components/analog_devices` ahead of `components/device/inc`; this sample has to reproduce that
-    # order or it judges the device-side header instead - which is exactly how the page spent a
-    # release being called "teaches an API no header declares" while its calls were right.
+    # `addc` teaches the ADC/DAC helper and the HAL beneath it. The component-qualified helper
+    # header is distinct from Device's `xy_adc.h`; no special include-root ordering is needed.
     Sample(
         doc="docs/components/addc/introduction.md",
         includes=(),
-        roots=("components/analog_devices",) + SHARED_ROOTS,
+        roots=SHARED_ROOTS + ("components/analog_devices",),
         per_block=True,
     ),
     # `pm` mixes three headers that do not include each other: the charger, the PM core, and the

@@ -6,19 +6,18 @@
 
 ## 📖 简介
 
-`components/analog_devices/xy_adc.h`（CMake 目标 `xy_adc`，别名 `analog_devices_component`）提供
+`components/analog_devices/xy_analog_adc.h`（CMake 目标 `xy_adc`，别名 `analog_devices_component`）提供
 `xy_adc_t` / `xy_dac_t`：分辨率、通道使能、原始值 ↔ 电压换算。它**不是驱动**，两条边界必须先说清：
 
 1. **它不碰硬件。** `xy_adc_sample()` 填的是满量程的 50%（源码注释原文「模拟采样值 (实际应用中需要
    读取硬件)」），`xy_dac_set_raw()` 丢掉 raw 值直接返回 `XY_ADC_OK`，`xy_dac_get_voltage()` 无论之前
    设过什么都返回 `ref_voltage_mv / 2`。要真的采到电压、真的把电平推出去，走 HAL 的
    `xy_hal_adc_*` / `xy_hal_dac_*`。
-2. **同名头文件陷阱。** `components/device/inc/xy_adc.h` 与本页这个头**同名且共用 include guard
-   `XY_ADC_H`**：两支里先被包含的那支生效，另一支静默失效。device 那支声明的是 `xy_adc_dev_*`
-   设备封装，**全仓没有任何实现**——照它写调用编译能过、链接一定失败。链 `xy_adc` 目标时
-   PUBLIC include 顺序把 `components/analog_devices` 排在 `components/device/inc` 之前，所以
-   `#include "xy_adc.h"` 才解析到本页这一支；如果你的 include 路径反过来，拿到的是那支空头。
-   这个碰撞由 `check_include_guard_collisions.py` 钉住并写明理由（「谁拥有这个名字是 owner 决策」）。
+2. **辅助库与设备层接口分开命名。** 本页使用 `#include "xy_analog_adc.h"`，分辨率类型为
+   `xy_analog_adc_resolution_t`，枚举值表示实际位数。`components/device/inc/xy_adc.h` 属于 Device
+   兼容接口，它的 `xy_adc_resolution_t` 是 HAL 选项枚举，两者不能混用。两支头文件现在使用不同的
+   文件名、保护宏和分辨率类型，可以按任意顺序同时包含。Device 那支声明的 `xy_adc_dev_*`
+   设备封装仍然**全仓没有任何实现**；重命名辅助库没有补齐这些函数。
 
 ## 📊 平台可用性（实测）
 
@@ -56,7 +55,7 @@
 这一层能放心用的就是换算与台账（它在 Host 上可测，CTest `analog_devices`）：
 
 ```c
-#include "xy_adc.h"
+#include "xy_analog_adc.h"
 #include <stdio.h>
 
 static void report_reading(uint32_t raw)
@@ -151,7 +150,7 @@ static void dac_half_scale(void *dac)
 
 ## 📋 API 参考
 
-### 辅助库 ADC（`components/analog_devices/xy_adc.h`）
+### 辅助库 ADC（`components/analog_devices/xy_analog_adc.h`）
 
 | 函数 | 说明 |
 |------|------|
@@ -195,4 +194,4 @@ ADC 的覆盖见上面的矩阵。这两支头文件都由 `xy_hal.h` 伞头导�
 
 ---
 
-*最后更新：2026-11-03 | 维护者：XinYi Team*
+*最后更新：2026-11-20 | 维护者：XinYi Team*

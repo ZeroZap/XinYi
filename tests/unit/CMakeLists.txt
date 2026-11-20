@@ -541,7 +541,7 @@ include_directories(
     ${FOTA}                         # xy_fota.h
     ${GUI}                          # xy_gui.h
     ${GUI}/inc                      # GUI widget headers
-    ${ANALOG}                       # xy_adc.h
+    ${ANALOG}                       # xy_analog_adc.h
     ${ANALOG}/inc                   # xy_adc_ext.h
     ${SYS}/xy_timer                 # xy_timer.h
     ${SYS}/xy_state_machine         # xy_st.h
@@ -2915,10 +2915,24 @@ target_include_directories(test_gui_font_snapshot PRIVATE
     ${GUI}/inc
 )
 
+# Compile both ADC APIs together in both header and search-path orders. These object
+# targets deliberately do not link the declaration-only legacy Device ADC functions.
+foreach(_adc_order analog_first device_first)
+    add_library(test_adc_headers_${_adc_order} OBJECT ${UNIT_ANALOG}/test_adc_headers.c)
+    if(_adc_order STREQUAL "device_first")
+        target_compile_definitions(test_adc_headers_${_adc_order} PRIVATE XY_TEST_ADC_DEVICE_FIRST)
+        target_include_directories(test_adc_headers_${_adc_order} BEFORE PRIVATE
+            ${DEV}/inc ${ANALOG})
+    else()
+        target_include_directories(test_adc_headers_${_adc_order} BEFORE PRIVATE
+            ${ANALOG} ${DEV}/inc)
+    endif()
+endforeach()
+
 # --- Test 38: Analog ADC/DAC, MCP3008, and HX711 host contracts ---
 xy_add_unit_test(test_analog_devices analog_devices UNITY
     ${UNIT_ANALOG}/test_analog_devices.c
-    ${ANALOG}/xy_adc.c
+    ${ANALOG}/xy_analog_adc.c
     ${ANALOG}/src/xy_mcp3008.c
     ${ANALOG}/src/xy_hx711.c
     ${TRACE}/xy_log/src/xy_log.c
@@ -2927,6 +2941,7 @@ xy_add_unit_test(test_analog_devices analog_devices UNITY
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
+add_dependencies(test_analog_devices test_adc_headers_analog_first test_adc_headers_device_first)
 
 # --- Test 39: SYS timer, state-machine, and fail-closed core host contracts ---
 xy_add_unit_test(test_sys_timer_sm sys_timer_sm UNITY
