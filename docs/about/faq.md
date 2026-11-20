@@ -210,15 +210,7 @@ gdb ./build/your_target
 
 ### 代码风格检查失败？
 
-```bash
-# 格式化代码
-./tools/scripts/format_code.sh
-
-# 检查风格
-./tools/scripts/check_style.sh
-```
-
----
+按 [code_style.md](../../code_style.md) 第 8 节的设置和检查原则处理，检查范围限定为本次自有代码。
 
 ## 贡献相关
 
@@ -253,15 +245,7 @@ Type 类型：
 
 ### 代码风格要求？
 
-参考 [代码风格规范](../contribute/code-style.md)。
-
-主要要求：
-- C99 标准
-- 4 空格缩进
-- 小写命名 + 下划线
-- Doxygen 注释
-
----
+统一参考 [code_style.md](../../code_style.md)，此处不重复维护规则。
 
 ## 📞 还需要帮助？
 

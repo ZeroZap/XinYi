@@ -44,7 +44,7 @@ git checkout -b feature/your-feature-name
 
 ### 4. 进行修改
 
-- 遵循 [代码风格](code-style.md)
+- 遵循 [代码风格](../../code_style.md)
 - 添加必要的测试
 - 更新相关文档
 
@@ -134,7 +134,7 @@ Fixes #123
 ## 📚 相关文档
 
 - [贡献指南](index.md)
-- [代码风格](code-style.md)
+- [代码风格](../../code_style.md)
 - [编码规范](../rules/RULEBOOK.md)
 
 ---

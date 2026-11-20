@@ -179,11 +179,7 @@ mkdocs serve
 
 **Q: 代码风格要求？**
 
-A: 参考 [代码风格规范](../contribute/code-style.md)。主要要求：
-- C99 标准
-- 4 空格缩进
-- 小写命名 + 下划线
-- Doxygen 注释
+A: 统一参考 [code_style.md](../../code_style.md)，此处不重复维护规则。
 
 **Q: 如何贡献代码？**
 
@@ -239,7 +235,7 @@ gdb ./build/your_target
 - [组件文档](../components/index.md)
 - [API 参考](../api/index.md)
 - [贡献指南](../contribute/index.md)
-- [代码风格](../contribute/code-style.md)
+- [代码风格](../../code_style.md)
 
 ---
 

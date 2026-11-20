@@ -139,26 +139,7 @@ XinYi 使用 GitHub Actions 进行持续集成和部署。
 
 ## 代码风格
 
-### 规范
-
-参考 [代码风格规范](../contribute/code-style.md)。
-
-### 工具
-
-```bash
-# 格式化代码
-./tools/scripts/format_code.sh
-
-# 检查风格
-./tools/scripts/check_style.sh
-```
-
-### 配置
-
-- `.clang-format` - Clang 格式化配置
-- `.editorconfig` - 编辑器配置
-
----
+规则、示例和格式化／分析设置统一见 [code_style.md](../../code_style.md)。
 
 ## 实用工具
 

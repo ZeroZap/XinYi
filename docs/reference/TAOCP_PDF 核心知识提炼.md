@@ -515,7 +515,7 @@
 ## 🔗 相关文档
 
 - [命名规范](../rules/002-naming-conventoon/naming.md)
-- [代码风格指南](../design/Code_Style_Design_Guide.md)
+- [代码风格指南](../../code_style.md)
 - [TAOCP 编程生涯学习笔记](TAOCP_编程生涯学习笔记.md)
 
 ---

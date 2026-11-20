@@ -441,59 +441,8 @@ xy_log_e("错误：操作失败\n");
 
 ## 开发标准
 
-### 强制编码标准
-
-所有代码**必须**遵循:
-
-1. **[xy_code_style.md](docs/rules/100-code_style/xy_code_style.md)** - 详细的 C 编码约定
-2. **[RULEBOOK.md](docs/rules/RULEBOOK.md)** - 开发规则和指南
-3. **[.clang-format](.clang-format)** - 自动化代码格式化
-
-### 快速参考
-
-| 标准 | 要求 |
-|------|------|
-| **语言** | C99 |
-| **缩进** | 4 空格 (无制表符) |
-| **命名** | 下划线小写 (`my_function`, `my_var`) |
-| **括号** | 与关键字同行 (`if {`, `for {`) |
-| **日志** | 使用 `xy_log_*()`, 禁止 `printf()` |
-| **文档** | 所有公共函数使用 Doxygen 注释 |
-| **格式化** | 提交前应用 clang-format |
-
-### 文件结构
-
-```c
-/**
- * @file module_name.c
- * @brief 简要描述
- * @version X.Y.Z
- * @date YYYY-MM-DD
- */
-
-#define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
-#include "xy_log.h"
-#include "module_name.h"
-
-/**
- * @brief 函数描述
- * @param param1 描述
- * @return 返回值描述
- */
-int my_function(int param1) {
-    xy_log_d("进入函数\n");
-    return 0;
-}
-```
-
-### 错误处理约定
-
-- **返回 0 或正值** 表示成功
-- **返回负值** 表示错误 (标准化错误码)
-- **使用 `xy_log_e()`** 记录错误日志
-- **在函数注释中记录错误码**
-
----
+代码风格、注释、错误处理与工具设置统一见 [code_style.md](../../code_style.md)。
+工程流程与组件集成要求见 [开发规则手册](../rules/RULEBOOK.md)。
 
 ## 入门指南
 
@@ -650,7 +599,7 @@ make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON;FOTA_ENABLED=ON"
 
 1. **阅读文档**
    - [RULEBOOK.md](docs/rules/RULEBOOK.md) - 开发规则
-   - [xy_code_style.md](docs/rules/100-code_style/xy_code_style.md) - 编码标准
+   - [code_style.md](../../code_style.md) - 编码标准
 
 2. **格式化代码**
    ```bash
@@ -676,7 +625,7 @@ make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON;FOTA_ENABLED=ON"
 
 ### 代码审查清单
 
-- [ ] 遵循编码标准 (xy_code_style.md)
+- [ ] 遵循编码标准 (code_style.md)
 - [ ] 使用 clang-format 格式化
 - [ ] 所有函数都有 Doxygen 文档
 - [ ] 使用 `xy_log_*()` 进行日志记录
@@ -758,7 +707,7 @@ Fixes: #issue_number
 - **主 README**: [ReadMe.md](ReadMe.md)
 - **中文 README**: [ReadMe-cn.md](ReadMe-cn.md)
 - **开发规则**: [RULEBOOK.md](docs/rules/RULEBOOK.md)
-- **编码标准**: [xy_code_style.md](docs/rules/100-code_style/xy_code_style.md)
+- **编码标准**: [code_style.md](../../code_style.md)
 - **组件文档**: 各组件目录中的 README.md
 
 ### 获取帮助
@@ -808,9 +757,6 @@ Fixes: #issue_number
 ### 有用的命令
 
 ```bash
-# 格式化所有 C 文件
-find . -name "*.c" -o -name "*.h" | xargs clang-format -i
-
 # 运行所有测试
 make test
 

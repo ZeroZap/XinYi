@@ -25,7 +25,7 @@
 ### 🏗️ 设计文档 (design/)
 
 - [项目概述](design/XinYi_Project_Overview.md) - 项目愿景、架构、核心组件
-- [代码风格指南](design/Code_Style_Design_Guide.md) - 编码规范、命名约定
+- [代码风格指南](../code_style.md) - 编码规范、命名约定
 - [HAL 设计概览](design/HAL_Component_Design_Overview.md) - 硬件抽象层设计
 - [OSAL 布局优化](design/osal_layout_optimization.md) - OS 抽象层重构方案
 - [测试布局分析](design/test_layout_analysis.md) - 测试目录规范
@@ -63,12 +63,12 @@
 ### 🤝 贡献指南 (contribute/)
 
 - [贡献指南](contribute/index.md) - 如何贡献代码
-- [代码风格](contribute/code-style.md) - 编码规范检查清单
+- [代码风格](../code_style.md) - 编码规范检查清单
 
 ### 📋 编码规范 (rules/)
 
 - [RULEBOOK](rules/RULEBOOK.md) - 开发规则
-- [代码风格](rules/100-code_style/xy_code_style.md) - 详细编码规范
+- [代码风格](../code_style.md) - 详细编码规范
 
 ### 🗂️ 杂项文档 (misc/)
 
@@ -109,7 +109,7 @@
 3. [示例代码](samples/index.md)
 
 ### 开发者
-1. [代码风格指南](design/Code_Style_Design_Guide.md)
+1. [代码风格指南](../code_style.md)
 2. [组件文档](components/index.md)
 3. [API 参考](api/index.md)
 4. [贡献指南](contribute/index.md)

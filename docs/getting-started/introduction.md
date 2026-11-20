@@ -163,7 +163,7 @@ make test
 | 快速开始 | [快速入门](quickstart.md) |
 | 组件文档 | [组件总览](../components/index.md) |
 | API 参考 | [API 索引](../api/index.md) |
-| 编码规范 | [代码风格指南](../design/Code_Style_Design_Guide.md) |
+| 编码规范 | [代码风格指南](../../code_style.md) |
 | 贡献指南 | [如何贡献](../contribute/index.md) |
 
 ---

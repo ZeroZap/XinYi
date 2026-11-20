@@ -69,7 +69,7 @@
 - [**编码规范**](coding-standards/README.md)
   - [C 语言规范](coding-standards/c_coding_standard.md)
   - [命名约定](coding-standards/naming_convention.md)
-  - [代码风格](coding-standards/code_style.md)
+  - [代码风格](../code_style.md)
 
 ### 🏗️ 架构文档
 
@@ -128,7 +128,7 @@
 ### 编写规范
 
 1. 使用标准 Markdown 格式
-2. 遵循 [编码规范](coding-standards/code_style.md)
+2. 遵循 [编码规范](../code_style.md)
 3. 提供实际代码示例
 4. 保持文档与代码同步
 

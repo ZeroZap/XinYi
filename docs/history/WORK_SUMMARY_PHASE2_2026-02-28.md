@@ -361,7 +361,7 @@ ctest -R test_pm --output-on-failure
 ### 代码风格
 
 所有新增代码遵循:
-- [xy_code_style.md](docs/rules/100-code_style/xy_code_style.md)
+- [xy_code_style.md](../../code_style.md)
 - 使用 clang-format 格式化
 - Doxygen 文档注释
 - 统一的错误处理

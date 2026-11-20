@@ -595,7 +595,7 @@ SEI CERT 规则分为两类：
 ## 🔗 相关文档
 
 - [内存安全指南](../200-memory-safety/memory_safety.md)
-- [代码风格指南](../design/Code_Style_Design_Guide.md)
+- [代码风格指南](../../code_style.md)
 - [TAOCP PDF 核心知识提炼](../reference/TAOCP_PDF 核心知识提炼.md)
 
 ---

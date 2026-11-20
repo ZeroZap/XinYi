@@ -630,7 +630,7 @@ typedef struct {
 
 ## 🔗 相关文档
 
-- [代码风格指南](../design/Code_Style_Design_Guide.md)
+- [代码风格指南](../../code_style.md)
 - [TAOCP PDF 核心知识提炼](../reference/TAOCP_PDF 核心知识提炼.md)
 - [C 语言编程技巧](../rules/misc/c_programming_tips.md)
 

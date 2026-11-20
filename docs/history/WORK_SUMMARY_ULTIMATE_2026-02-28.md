@@ -405,7 +405,7 @@ utils\script\test.bat
 - **主文档**: [ReadMe.md](ReadMe.md)
 - **快速入门**: [QUICKSTART.md](QUICKSTART.md)
 - **组件状态**: [COMPONENTS_STATUS.md](COMPONENTS_STATUS.md)
-- **代码风格**: [xy_code_style.md](docs/rules/100-code_style/xy_code_style.md)
+- **代码风格**: [xy_code_style.md](../../code_style.md)
 - **CI/CD**: [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)
 
 ---

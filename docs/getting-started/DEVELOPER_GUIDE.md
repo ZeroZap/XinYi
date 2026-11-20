@@ -267,7 +267,7 @@ make
 #### 第 1 周：基础了解
 
 - [ ] 阅读 [项目概述](docs/getting-started/introduction.md)
-- [ ] 学习 [代码风格规范](docs/rules/C_Coding_Standard_Full.md)
+- [ ] 学习 [代码风格规范](../../code_style.md)
 - [ ] 运行示例项目
 - [ ] 理解项目结构
 
@@ -423,7 +423,7 @@ int process_data(uint8_t *data, size_t len) {
 |------|------|
 | [项目概述](docs/getting-started/introduction.md) | 项目愿景和架构 |
 | [快速入门](docs/getting-started/quickstart.md) | 5 分钟上手 |
-| [代码风格](docs/rules/C_Coding_Standard_Full.md) | 完整编码规范 |
+| [代码风格](../../code_style.md) | 完整编码规范 |
 | [组件文档](docs/components/index.md) | 各组件详细说明 |
 | [API 参考](docs/api/index.md) | API 文档 |
 

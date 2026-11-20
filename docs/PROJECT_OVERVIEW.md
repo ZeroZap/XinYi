@@ -117,7 +117,7 @@
 - ✅ [使用指南](USAGE_GUIDE.md)
 - ✅ [API 参考](docs/api/API_REFERENCE.md)
 - ✅ [Wiki 文档](docs/wiki/xy_wiki.h)
-- ✅ [编码规范](docs/rules/C_Coding_Standard_Full.md)
+- ✅ [编码规范](../code_style.md)
 - ✅ [组件状态](COMPONENTS_STATUS.md)
 
 ### 示例项目
@@ -178,7 +178,7 @@ int main(void) {
 
 ### 代码规范
 
-- 遵循 [xy_code_style.md](docs/rules/100-code_style/xy_code_style.md)
+- 遵循 [code_style.md](../code_style.md)
 - 使用 clang-format 格式化
 - 所有公共函数添加 Doxygen 注释
 

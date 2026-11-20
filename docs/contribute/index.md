@@ -25,7 +25,7 @@ git checkout -b feature/your-feature-name
 
 ### 4. 进行修改
 
-- 遵循 [代码风格](code-style.md)
+- 遵循 [代码风格](../../code_style.md)
 - 添加必要的测试
 - 更新相关文档
 
@@ -115,46 +115,13 @@ ctest --test-dir build/tests/unit -R '^crypto_' --output-on-failure
 
 ## 💻 代码风格
 
-### 基本要求
-
-- 使用 C99 标准
-- 4 空格缩进（禁用制表符）
-- 小写命名 + 下划线分隔
-- 所有函数必须有 Doxygen 注释
-
-### 示例
-
-```c
-/**
- * @brief 函数简要描述
- * @param param1 参数 1 描述
- * @return 返回值描述
- */
-int my_function(int param1) {
-    xy_log_d("调试信息\n");
-    return 0;
-}
-```
-
-### 格式化代码
-
-```bash
-# 格式化所有代码
-./tools/scripts/format_code.sh
-
-# 检查代码风格
-./tools/scripts/check_style.sh
-```
-
----
+统一遵循 [code_style.md](../../code_style.md) 中的要求、示例和工具设置。
 
 ## 📖 文档要求
 
 ### 代码注释
 
-- 所有公共函数必须有 Doxygen 注释
-- 复杂逻辑需要添加行内注释
-- 使用英文或中文均可
+函数与成员注释要求统一见 [code_style.md](../../code_style.md)。
 
 ### 文档更新
 

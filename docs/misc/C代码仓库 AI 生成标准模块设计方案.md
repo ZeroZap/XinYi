@@ -72,68 +72,10 @@ review:
 
 ------
 
-### 2. `.ai/rules/coding_style.md` - 代码风格规则
+### 2. 统一代码风格入口
 
-~~~markdown
-# C 代码风格规则
-
-## 1. 文件结构
-每个 .c 文件必须包含以下结构：
-```c
-/**
- * @file    filename.c
- * @brief   简要描述
- * @author  作者 (AI-assisted)
- * @date    创建日期
- * @version 版本号
- */
-
-/* 包含头文件 */
-#include <标准库>
-#include "项目头文件"
-
-/* 宏定义 */
-#define MACRO_NAME value
-
-/* 类型定义 */
-typedef struct { } TypeName;
-
-/* 静态变量 */
-static int s_variable;
-
-/* 静态函数声明 */
-static void internal_function(void);
-
-/* 公共函数实现 */
-/* 静态函数实现 */
-~~~
-
-## 2. 命名规范
-
-|   类型   |     规范      |       示例        |
-| :------: | :-----------: | :---------------: |
-|   函数   |  小写+下划线  | `get_user_name()` |
-|    宏    | 全大写+下划线 | `MAX_BUFFER_SIZE` |
-|   类型   |   大驼峰+_t   |   `UserInfo_t`    |
-| 全局变量 |    g_前缀     |    `g_config`     |
-| 静态变量 |    s_前缀     |    `s_counter`    |
-|   指针   |    p_前缀     |    `p_buffer`     |
-
-## 3. 函数规范
-
-- 单个函数不超过 50 行
-- 参数不超过 5 个
-- 必须有返回值检查
-- 必须有错误处理
-
-## 4. 注释要求
-
-- 所有公共函数必须有 Doxygen 注释
-- 复杂逻辑必须有行内注释
-- TODO/FIXME 必须标注负责人和日期
-
-~~~text
----
+生成器应直接采用 [code_style.md](../../code_style.md) 的约定，
+不再生成或维护另一份代码风格规则。本文其余内容仅描述模块生成方案。
 
 ### 3. `.ai/rules/security_rules.md` - 安全规则
 
