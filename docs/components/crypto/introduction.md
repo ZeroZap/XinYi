@@ -35,9 +35,7 @@ XinYi Crypto 是一个轻量级的 C 语言加密算法库，提供常用的加�
 
 ### 1. 包含头文件
 
-```c
-#include "xy_tiny_crypto.h"
-```
+所有接口由 `xy_tiny_crypto.h` 一处声明；下面的示例都已包含它。
 
 ### 2. AES 加密示例
 
@@ -78,6 +76,7 @@ int main(void) {
 ```c
 #include "xy_tiny_crypto.h"
 #include <stdio.h>
+#include <string.h>
 
 int main(void) {
     const char *data = "Hello, World!";
@@ -102,6 +101,7 @@ int main(void) {
 ```c
 #include "xy_tiny_crypto.h"
 #include <stdio.h>
+#include <string.h>
 
 int main(void) {
     const char *data = "Hello, Base64!";
@@ -276,17 +276,16 @@ ctest --test-dir build/tests/unit -R '^crypto_(crc|random|encode|hash|cipher_hma
 
 ## 📚 相关文档
 
-- [算法详情](algorithms.md)
-- [API 参考](api-reference.md)
-- [使用示例](examples.md)
-- [平台选择指南](platform-guide.md)
+- [Crypto 组件源码约定](../../../components/crypto/README.md)
+- [Crypto API 参考](../../api/API_REFERENCE.md)
+- [HAL 统一 API](../../hal/HAL_UNIFIED_API.md)
 
 ---
 
 ## 📞 获取帮助
 
-- 📚 [API 文档](api-reference.md)
-- ❓ [常见问题](../about/faq.md)
+- 📚 [API 文档](../../api/API_REFERENCE.md)
+- ❓ [常见问题](../../about/faq.md)
 - 🐛 [报告问题](https://github.com/ZeroZap/XinYi/issues)
 
 ---

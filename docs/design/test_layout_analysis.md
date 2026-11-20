@@ -336,5 +336,5 @@ add_test(NAME <component>_test COMMAND test_<component>)
 **当前维护重点**:
 1. 保持 `tests/unit` 源码测试全部接入 Unity + CTest 主入口
 2. 使用 `tests/unity/` 作为统一 Unity 框架位置
-3. 维护 `tests/CMakeLists.txt` 和 `tests/unit/CMakeLists.txt` 统一入口
+3. 维护 `tests/unit/CMakeLists.txt` 这一个入口——本仓没有根 `tests/CMakeLists.txt`，`make test-unit` 直接配置 `build/tests/unit`
 4. 对 `tests/unit` 外 first-party-looking 测试文件先分类，再决定是否迁移、保留或删除

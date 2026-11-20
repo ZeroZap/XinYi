@@ -1,5 +1,9 @@
 # XY HAL 集成指南 / Integration Guide
 
+> **已废弃 / Deprecated** —— 本文按从未实现的 `xy_hal_pin_*` / `inc/xy_hal_pin.h` 那一代 API 编写：文中
+> `inc/xy_hal_pin.h`、`stm32/stm32f4/xy_hal_pin.c` 等路径都不存在。真实接口在
+> [`components/hal/inc/`](inc/)，使用说明见 [`components/hal/README.md`](README.md)。
+
 ## 快速开始 / Quick Start
 
 ### 重要说明 / Important Notes

@@ -103,11 +103,14 @@ typedef struct {
 
 /**
  * @brief 线圈/离散输入
+ *
+ * 数据按位打包：区域起始地址对应 data 的 bit 0，因此 `count` 个位需要
+ * `(count + 7) / 8` 字节的缓冲区。读写与响应帧使用同一套位序。
  */
 typedef struct {
-    uint8_t *data;             /**< 数据缓冲区 */
+    uint8_t *data;             /**< 数据缓冲区 (按位打包) */
     uint16_t start_addr;       /**< 起始地址 */
-    uint16_t count;            /**< 数量 */
+    uint16_t count;            /**< 数量 (位) */
 } mb_bit_area_t;
 
 /**
@@ -190,6 +193,9 @@ typedef struct {
 
 /**
  * @brief Modbus TCP 帧头 (MBAP)
+ *
+ * 线上字段一律大端。不要把这个结构体直接盖到收发缓冲区上：在主机是小端时
+ * 事务 ID / 长度会被整体翻转，从站实现因此逐字节解析与组装。
  */
 typedef struct {
     uint16_t transaction_id;    /**< 事务 ID */
@@ -274,12 +280,17 @@ void mb_full_slave_set_uart(mb_full_slave_t *slave, mb_full_send_cb_t send_cb);
 
 /**
  * @brief 设置 TCP 发送回调 (TCP)
+ *
+ * 从站是纯推入式：传输层收到帧后调用 mb_full_slave_handle_tcp()，
+ * 从站只需要一个发送回调，不持有接收回调。
  */
-void mb_full_slave_set_tcp(mb_full_slave_t *slave, mb_full_tcp_send_cb_t send_cb,
-                            mb_full_tcp_recv_cb_t recv_cb);
+void mb_full_slave_set_tcp(mb_full_slave_t *slave, mb_full_tcp_send_cb_t send_cb);
 
 /**
- * @brief 处理 RTU/ASCII 帧
+ * @brief 处理 RTU 帧
+ *
+ * 语义对齐当前实现：ASCII 模式(MB_MODE_ASCII)尚未接线，ASCII 帧不会被解码；
+ * mb_full_ascii_encode()/decode() 只是成帧工具，仍可单独使用。
  */
 int mb_full_slave_handle(mb_full_slave_t *slave, const uint8_t *data, uint16_t len);
 

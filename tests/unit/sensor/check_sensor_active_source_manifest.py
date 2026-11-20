@@ -18,6 +18,8 @@ DRIVERS_CMAKE = ROOT / "components" / "drivers" / "CMakeLists.txt"
 UNIT_CMAKE = ROOT / "tests" / "unit" / "CMakeLists.txt"
 STALE_TOP_LEVEL_APDS9960_SOURCE = ROOT / "components" / "sensor" / "sensor_apds9960.c"
 STALE_TOP_LEVEL_APDS9960_HEADER = ROOT / "components" / "sensor" / "sensor_apds9960.h"
+STALE_ADT7420_SOURCE = ROOT / "components" / "sensor" / "sensor_adt7420.c"
+STALE_ADT7420_HEADER = ROOT / "components" / "sensor" / "sensor_adt7420.h"
 STALE_BMP280 = ROOT / "components" / "sensor" / "drivers" / "pressure" / "xy_sensor_bmp280.c"
 STALE_BH1750 = ROOT / "components" / "sensor" / "drivers" / "light" / "xy_sensor_bh1750.c"
 STALE_MPU6050 = ROOT / "components" / "sensor" / "drivers" / "motion" / "xy_sensor_mpu6050.c"
@@ -44,12 +46,34 @@ STALE_DMP6100_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_dmp6
 STALE_CMS_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_cms.c"
 STALE_HS_ADS1100_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_hs_ads1100.c"
 STALE_QMA6100_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_qma6100.c"
+STALE_QMA6100P_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_qma6100p.c"
+STALE_APDS9960_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_apds9960.c"
+STALE_AHT10_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_aht10.c"
+STALE_QMC5883L_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_qmc5883l.c"
+STALE_IST8310_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_ist8310.c"
+STALE_AK09918_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_ak09918.c"
+STALE_ADXL362_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_adxl362.c"
+STALE_BMA400_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_bma400.c"
+STALE_KX023_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_kx023.c"
+STALE_LIS2DH12_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lis2dh12.c"
+STALE_LIS2DW12_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lis2dw12.c"
+STALE_LSM6DSL_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lsm6dsl.c"
+STALE_LSM6DSO_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lsm6dso.c"
+STALE_LSM6DSR_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lsm6dsr.c"
+STALE_MAX44009_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_max44009.c"
+STALE_VCNL4040_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_vcnl4040.c"
+STALE_LSM9DS1_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_lsm9ds1.c"
+STALE_BMP280_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_bmp280.c"
+STALE_AP3216C_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_ap3216c.c"
 STALE_BMP390_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_bmp390.c"
 STALE_INA219_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_ina219.c"
 STALE_GD30DF_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_gd30df.c"
 STALE_VL53L1X_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_vl53l1x.c"
 STALE_AHT20_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_aht20.c"
 STALE_AHT20_HEADER = ROOT / "components" / "sensor" / "inc" / "xy_aht20.h"
+STALE_MPU6050_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_mpu6050.c"
+STALE_AHT20_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_aht20.c"
+STALE_ICM20608_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_icm20608.c"
 STALE_SHT40_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_sht40.c"
 STALE_SHT40_HEADER = ROOT / "components" / "sensor" / "inc" / "xy_sht40.h"
 STALE_MLX90614_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_mlx90614.c"
@@ -99,27 +123,15 @@ def main() -> int:
     manifest = read_raw(MANIFEST)
     tracker = read_raw(TRACKER)
     audit_plan = read_raw(AUDIT_PLAN)
-    sensor_cmake = read_hash_code(SENSOR_CMAKE)
+    require(not SENSOR_CMAKE.exists(),
+            "legacy sensor_component CMakeLists must be deleted after framework teardown", errors)
     drivers_cmake = read_hash_code(DRIVERS_CMAKE)
     unit_cmake = read_hash_code(UNIT_CMAKE)
     smart_hygrometer_cmake = read_hash_code(SMART_HYGROMETER_CMAKE)
     smart_hygrometer_main = read_code(SMART_HYGROMETER_MAIN)
 
     legacy = sorted((ROOT / "components" / "sensor" / "sensors").glob("sensor_*.c"))
-    framework_sources = {
-        "sensor_bus.c", "sensor_calibration.c", "sensor_core.c", "sensor_dma.c",
-        "sensor_fifo.c", "sensor_filter.c", "sensor_fusion.c", "sensor_interrupt.c",
-        "sensor_mem_pool.c", "sensor_moton.c", "sensor_power.c", "sensor_self_test.c",
-        "sensor_threshold.c",
-    }
-    explicit_top_level_sources = {
-        match.group(1)
-        for match in re.finditer(r"^\s*(sensor_[a-z0-9_]+\.c)\s*$", sensor_cmake, re.MULTILINE)
-    }
-    top_level_owners = sorted(
-        ROOT / "components" / "sensor" / name
-        for name in explicit_top_level_sources - framework_sources
-    )
+    top_level_owners: list = []
     experimental = sorted((ROOT / "components" / "sensor" / "src").glob("xy_*.c"))
     device = sorted((ROOT / "components" / "drivers" / "sensor").glob("**/xy_*.c"))
 
@@ -130,19 +142,18 @@ def main() -> int:
     prototype_names = {path.stem.removeprefix("xy_sensor_") for path in prototype}
     top_level_names = {path.stem.removeprefix("sensor_") for path in top_level_owners}
 
-    require(len(legacy) == 39, f"expected 39 legacy active sources, found {len(legacy)}", errors)
-    require([path.name for path in top_level_owners] == ["sensor_adt7420.c"],
-            "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
-    require(len(experimental) == 5,
-            f"expected 5 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 51, f"expected 51 Device-model sources, found {len(device)}", errors)
+    require(len(legacy) == 0, f"expected 0 legacy active sources, found {len(legacy)}", errors)
+    require([path.name for path in top_level_owners] == [],
+            "top-level Sensor implementation inventory must be empty (adt7420 migrated "
+            "to the canonical Device owner)", errors)
+    require(len(experimental) == 1,
+            f"expected 1 experimental xy_* sources, found {len(experimental)}", errors)
+    require(len(device) == 63, f"expected 63 Device-model sources, found {len(device)}", errors)
     false_owners = false_owner_candidates(legacy)
     require(not false_owners,
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
-    require(canonical_names & legacy_names ==
-            {"sht30", "mpu6050", "bmp280", "bh1750", "aht20", "aht10", "ap3216c",
-             "icm20608", "qma6100p", "as5600", "max44009", "vcnl4040", "qmc5883l", "ak09918", "ist8310", "bma400", "kx023", "adxl362", "lsm6dso", "lsm6dsl", "lsm6dsr", "lsm9ds1", "lis2dh12", "apds9960", "ccs811", "vl53l0x", "lis2dw12"},
-            "canonical/legacy overlap must contain only approved compatibility wrappers", errors)
+    require(canonical_names & legacy_names == set(),
+            "canonical/legacy overlap must be empty (all compatibility wrappers retired)", errors)
     require(not (canonical_names & experimental_names),
             "canonical Device owners must not reappear in experimental src/xy_*", errors)
     require(not (canonical_names & prototype_names),
@@ -171,6 +182,7 @@ def main() -> int:
         "INA219",
         "BMP390",
         "AHT10",
+        "ADT7420",
         "AP3216C",
         "ICM20608",
         "QMA6100P",
@@ -208,10 +220,6 @@ def main() -> int:
     ):
         require(token in manifest, f"manifest must preserve policy token: {token}", errors)
 
-    require('file(GLOB SENSOR_DRIVERS "${CMAKE_CURRENT_LIST_DIR}/sensors/sensor_*.c")'
-            in sensor_cmake, "legacy root source glob changed without manifest update", errors)
-    require("src/xy_" not in sensor_cmake,
-            "experimental xy_* sources must not silently enter sensor_component", errors)
     require('file(GLOB_RECURSE COMPONENT_SOURCES "*.c")' in drivers_cmake,
             "Device driver root source ownership changed without manifest update", errors)
     require("sensor_active_source_manifest" in unit_cmake,
@@ -220,7 +228,7 @@ def main() -> int:
             "canonical API 已确定为 Device model" in tracker and
             "| CLOSED |" in tracker,
             "D-001 must be closed after the canonical Device-model decision", errors)
-    require("5 个 `src/xy_*.c`" in audit_plan,
+    require("1 个 `src/xy_*.c`" in audit_plan,
             "audit plan must use the current experimental source count", errors)
     require("Device-model canonical owner" in audit_plan,
             "audit plan must record the resolved Sensor ownership direction", errors)
@@ -272,6 +280,20 @@ def main() -> int:
             "retired template-clone CMS/HS-ADS1100 lifecycles must not reappear", errors)
     require(not STALE_QMA6100_LEGACY.exists(),
             "retired invalid sensor_qma6100 lifecycle must not reappear", errors)
+    require(not STALE_QMA6100P_LEGACY.exists(),
+            "retired sensor_qma6100p wrapper must not reappear", errors)
+    require(not STALE_APDS9960_LEGACY.exists(),
+            "retired sensor_apds9960 duplicate lifecycle must not reappear", errors)
+    require(not STALE_AHT10_LEGACY.exists(),
+            "retired sensor_aht10 wrapper must not reappear", errors)
+    require(not STALE_VCNL4040_LEGACY.exists(),
+            "retired sensor_vcnl4040 duplicate must not reappear", errors)
+    require(not STALE_LSM9DS1_LEGACY.exists(),
+            "retired sensor_lsm9ds1 duplicate must not reappear", errors)
+    require(not STALE_BMP280_LEGACY.exists(),
+            "retired sensor_bmp280 wrapper must not reappear", errors)
+    require(not STALE_AP3216C_LEGACY.exists(),
+            "retired sensor_ap3216c wrapper must not reappear", errors)
     require(not STALE_BMP390_LEGACY.exists(),
             "retired uncompensated sensor_bmp390 lifecycle must not reappear", errors)
     require(not STALE_INA219_LEGACY.exists(),
@@ -282,6 +304,36 @@ def main() -> int:
             "retired legacy sensor_vl53l1x lifecycle must not reappear", errors)
     require(not STALE_AHT20_SOURCE.exists() and not STALE_AHT20_HEADER.exists(),
             "retired experimental AHT20 lifecycle must not reappear", errors)
+    require(not STALE_MPU6050_LEGACY.exists(),
+            "retired sensor_mpu6050 wrapper must not reappear", errors)
+    require(not STALE_AHT20_LEGACY.exists(),
+            "retired sensor_aht20 wrapper must not reappear", errors)
+    require(not STALE_ICM20608_LEGACY.exists(),
+            "retired sensor_icm20608 wrapper must not reappear", errors)
+    require(not STALE_QMC5883L_LEGACY.exists(),
+            "retired sensor_qmc5883l duplicate must not reappear", errors)
+    require(not STALE_IST8310_LEGACY.exists(),
+            "retired sensor_ist8310 duplicate must not reappear", errors)
+    require(not STALE_AK09918_LEGACY.exists(),
+            "retired sensor_ak09918 duplicate must not reappear", errors)
+    require(not STALE_ADXL362_LEGACY.exists(),
+            "retired sensor_adxl362 duplicate must not reappear", errors)
+    require(not STALE_BMA400_LEGACY.exists(),
+            "retired sensor_bma400 duplicate must not reappear", errors)
+    require(not STALE_KX023_LEGACY.exists(),
+            "retired sensor_kx023 duplicate must not reappear", errors)
+    require(not STALE_LIS2DH12_LEGACY.exists(),
+            "retired sensor_lis2dh12 duplicate must not reappear", errors)
+    require(not STALE_LIS2DW12_LEGACY.exists(),
+            "retired sensor_lis2dw12 duplicate must not reappear", errors)
+    require(not STALE_LSM6DSL_LEGACY.exists(),
+            "retired sensor_lsm6dsl duplicate must not reappear", errors)
+    require(not STALE_LSM6DSO_LEGACY.exists(),
+            "retired sensor_lsm6dso duplicate must not reappear", errors)
+    require(not STALE_LSM6DSR_LEGACY.exists(),
+            "retired sensor_lsm6dsr duplicate must not reappear", errors)
+    require(not STALE_MAX44009_LEGACY.exists(),
+            "retired sensor_max44009 duplicate must not reappear", errors)
     require(not STALE_SHT40_SOURCE.exists() and not STALE_SHT40_HEADER.exists(),
             "retired experimental SHT40 lifecycle must not reappear", errors)
     require(not STALE_MLX90614_SOURCE.exists() and not STALE_MLX90614_HEADER.exists(),
@@ -295,6 +347,9 @@ def main() -> int:
     require(not STALE_TOP_LEVEL_APDS9960_SOURCE.exists() and
             not STALE_TOP_LEVEL_APDS9960_HEADER.exists(),
             "retired duplicate top-level APDS9960 owner must not reappear", errors)
+    require(not STALE_ADT7420_SOURCE.exists() and not STALE_ADT7420_HEADER.exists(),
+            "retired top-level ADT7420 owner must not reappear (canonical Device owner is "
+            "components/drivers/sensor/temperature/adt7420)", errors)
     require("components/drivers/sensor/pressure/bmp280" in smart_hygrometer_cmake,
             "smart_hygrometer must include the canonical BMP280 owner", errors)
     require("components/drivers/sensor/pressure/bmp280/xy_bmp280.c" in smart_hygrometer_cmake,
@@ -310,9 +365,9 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("sensor_active_source_manifest_ok legacy_active=39 legacy_subdir=38 "
-          "legacy_top_level=1 experimental_test_only=5 device_active=51 "
-          "approved_wrappers=26 overlap_duplicates=0 false_owners=0 "
+    print("sensor_active_source_manifest_ok legacy_active=0 legacy_subdir=0 "
+          "legacy_top_level=0 experimental_test_only=1 device_active=63 "
+          "approved_wrappers=0 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0
 

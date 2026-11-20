@@ -75,13 +75,13 @@ XY_CLIB 是 XinYi 框架的嵌入式 C 标准库实现，提供了标准 C 库�
 | `xy_atoi` | 字符串转整型 | xy_stdlib.h | `atoi` | stdlib.h | ✅ 已实现 |
 | `xy_atol` | 字符串转长整型 | xy_stdlib.h | `atol` | stdlib.h | ✅ 已实现 |
 | `xy_atoll` | 字符串转长长整型 | xy_stdlib.h | `atoll` | stdlib.h | ✅ 已实现 |
-| `xy_atof` | 字符串转浮点数 | xy_stdlib.h | `atof` | stdlib.h | ✅ 已实现 |
+| `xy_atof` | 字符串转浮点数 | xy_stdlib.h | `atof` | stdlib.h | ⚠️ 不支持 (返回 0) |
 | `xy_strtol` | 字符串转长整型(带进制)| xy_stdlib.h | `strtol` | stdlib.h | ✅ 已实现 |
 | `xy_strtoul` | 字符串转无符号长整型 | xy_stdlib.h | `strtoul` | stdlib.h | ✅ 已实现 |
 | `xy_strtoll` | 字符串转长长整型(带进制)| xy_stdlib.h | `strtoll` | stdlib.h | ✅ 已实现 |
 | `xy_strtoull` | 字符串转无符号长长整型 | xy_stdlib.h | `strtoull` | stdlib.h | ✅ 已实现 |
-| `xy_strtod` | 字符串转双精度浮点数 | xy_stdlib.h | `strtod` | stdlib.h | ✅ 已实现 |
-| `xy_strtof` | 字符串转单精度浮点数 | xy_stdlib.h | `strtof` | stdlib.h | ✅ 已实现 |
+| `xy_strtod` | 字符串转双精度浮点数 | xy_stdlib.h | `strtod` | stdlib.h | ⚠️ 不支持 (返回 0) |
+| `xy_strtof` | 字符串转单精度浮点数 | xy_stdlib.h | `strtof` | stdlib.h | ⚠️ 不支持 (返回 0) |
 
 ### 5️⃣ 数值转字符串 (非标准/扩展)
 
@@ -322,6 +322,7 @@ xy_stdio_printf("Hello\n");
 4. **时间函数** (time.h) 仅提供结构体定义，无实际时间函数
 5. **定点数运算** 使用 Q16.16 格式，适合无浮点运算单元的 MCU
 6. **三角函数** (`xy_sin_fixed`/`xy_cos_fixed`/`xy_tan_fixed`) 使用查表法：角度参数为「度 × 100」，返回值为实际值 **× 10000**（不是 Q0.15），小数度截断，精度为整数度
+7. **浮点字符串转换** (`xy_atof`/`xy_strtod`/`xy_strtof`) 标记为不支持，恒返回 0（设计注记 CLIB-005~007：嵌入式优先使用定点/整数运算）
 
 ---
 

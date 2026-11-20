@@ -1,0 +1,10 @@
+{
+  "status": "B1_REVIEW_CANDIDATE",
+  "device": "/dev/ttyACM0",
+  "firmware_commit": "23e544b2daa07e3805e51363d803048240c911ed",
+  "bytes_captured": 77,
+  "capture_sha256": "9f605f1624c1bde2cb74d8b37037e30904d095d25952f897a37a5a1cfbb4fbe5",
+  "required_markers": [
+    "OPENCH_DMA1_SYSTICK8_MEMCPY_128X_OK_A"
+  ]
+}

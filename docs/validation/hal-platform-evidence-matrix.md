@@ -36,10 +36,18 @@
 | STM32L4 | `PARTIAL_SOURCE`（框架 HAL 复用 F4 wrapper；Pandora board smoke 直接使用 CubeL4 HAL） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；runtime 仍仅 Pandora board-local） | `PARTIAL_SOURCE`（框架 wrapper 复用 F4；Pandora AHT10 probe 为 board-local software I2C） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；SPI/DMA B1 为 board-local image 证据） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译） | `UNSUPPORTED` | `SOURCE_PRESENT`（dedicated L4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | PC/L4/U5 compile；Pandora FreeRTOS image link | `B1_BOARD_SMOKE`；framework DMA1 Channel1、8-word SRAM→SRAM polling B1；SPI/peripheral-DMA/IRQ/callback/recovery pending |
 | WCH CH32V30x | `PARTIAL_SOURCE`（GPIO 基础路径实板跑通；EXTI 的 IRQ 走 HAL NVIC 配置但未单独实板取证） | `PARTIAL_SOURCE`（advanced config unsupported；115200 实板逐字节验证见下） | `PARTIAL_SOURCE`（advanced config unsupported；单点 `mem_read` 实板 4/4） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（`xy_hal_timer_*` 入口齐备，`enable_irq()` 已接管 NVIC；TIM2 更新中断实板跑通，见下） | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING`（OPENCH 上 UART/GPIO/I2C/Timer 有实板 smoke，未覆盖其余外设） |
 | HC32L021 | `PARTIAL_SOURCE`（IRQ paths unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
-| PC simulation | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `UNSUPPORTED`（PC source set 未选 Timer wrapper） | `UNSUPPORTED` | `UNSUPPORTED`（PC source set 未选 DMA wrapper） | `HOST_CONTRACT` | n/a | n/a |
+| PC simulation | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `UNSUPPORTED` | `HOST_CONTRACT` | `HOST_CONTRACT` | n/a | n/a |
 
 > PC 的 SYS 实现位于聚合文件 `xy_hal_pc.c`；矩阵仍以 `components/hal/CMakeLists.txt` 实际
 > source selection 为准，不能把未选入 `xy_hal` 的 helper 文件或通用声明记作 Host contract。
+> Timer 与 DMA 两格此前写 `UNSUPPORTED（PC source set 未选 …）`，实测正是如此：`xy_hal_timer_pc.c`
+> 与 `xy_hal_dma_pc.c` 早就存在、也被 standalone `xy_hal_pc` 与 Host fixture 编译，但不在 root
+> `xy_hal` 的 source set 里，于是主机应用调 `xy_hal_timer_init()` 不链接而 Host 套件全绿。现已选入。
+>
+> ADC 与 DAC 本表没有对应列：两者同样已编进 root `xy_hal`（`PC/xy_hal_adc_pc.c`、
+> `PC/xy_hal_dac_pc.c`，各 40 与 14 个公开入口）。覆盖不靠这张表记，而由
+> `hal_adc_dac_surface`（`pc 40/40`、`pc 14/14`）与 `hal_pc_coverage`（PC 146/322）在每次运行时实测。
+> 这些是 Host 模拟：一次"转换"由注入电压算出，不代表任何芯片的采样、精度或时序。
 
 ## 3. 平台结论
 

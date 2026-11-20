@@ -55,6 +55,10 @@ VENDORED: dict[str, str] = {
         "vendored curve25519 implementation, ships the STM32F0 peripheral headers it was built against",
     "components/net/at/AT-Command-V2":
         "vendored AT command samples, ships both CMSIS and the STM32F4 standard-peripheral driver",
+    "components/net/at/ats/ats-simcom":
+        "SIMCOM A76XX AT command reference: the vendor's own header defines the command-mode enum, and "
+        "its sources are not built (the net CMakeLists lists them commented out) - a vendor header "
+        "against ours is a name clash, not two of our own definitions",
 }
 
 #: Names with more than one definition that this repository has not resolved. The reason is the point:
@@ -94,20 +98,6 @@ PINS: dict[str, str] = {
         "today, which is the only thing keeping two owners of one clib type harmless",
     "xy_ldiv_t": "same pair as xy_div_t",
     "xy_lldiv_t": "same pair as xy_div_t",
-    # -- two parallel frameworks over one subject ---------------------------------------------------
-    # The owner is decided: components/device is canonical, and the components/sensor copies are the
-    # part of the old framework that has not been migrated yet. They are still on this list because the
-    # migration is not done, not because the answer is open - and the day the last consumer moves, the
-    # stale pin above will report itself and this entry can be deleted.
-    "xy_sensor_type_t":
-        "components/device/inc (TEMP=0, ACCELEROMETER/GYROSCOPE/MAGNETOMETER) is canonical; "
-        "components/sensor/inc (TEMP=1, ACCEL/GYRO/MAGN) is the un-migrated old framework - including "
-        "both is a hard error and including one leaves every sensor type offset by one",
-    "xy_sensor_device_t":
-        "same pair as xy_sensor_type_t - canonical is components/device/inc",
-    "xy_sensor_value_t":
-        "components/device/inc/xy_device.h is canonical; components/sensor/inc/xy_sensor_channel.h is "
-        "part of the un-migrated old framework",
     "xy_fuel_gauge_status_t":
         "components/pm/inc spells the members XY_FUEL_GAUGE_*, components/fuel_gauge/inc spells them "
         "XY_FG_* - one enum name, two vocabularies, and which one a consumer sees depends on include "
@@ -131,13 +121,6 @@ PINS: dict[str, str] = {
         "different set starting at bank_chrg_state_reseting",
     "bank_chrg_stop_reason_t":
         "same pair as bank_chrg_state_t",
-    # -- an AT stack vendor header against the general one -----------------------------------------
-    "at_cmd_mode_t":
-        "components/net/at/ats/xy_ats.h against components/net/at/ats/ats-simcom/inc/at.h - the "
-        "simcom header and the general AT header each define the command mode enum",
-    "at_state_t":
-        "components/net/at/atc/core/xy_atc.h against components/net/at/ats/xy_ats.h - identical "
-        "today, and nothing keeps two copies identical",
 }
 
 #: Where a type definition can begin. The body is read by brace matching rather than by a pattern,

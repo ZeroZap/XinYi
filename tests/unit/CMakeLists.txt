@@ -104,55 +104,76 @@ add_test(NAME osal_backend_advertise
     COMMAND python3 ${UNIT_HAL}/check_osal_backend_advertise.py)
 
 add_test(NAME osal_backend_advertise_unit
-    COMMAND python3 ${UNIT_HAL}/test_osal_backend_advertise.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_osal_backend_advertise.py)
 
 add_test(NAME hal_pc_coverage
     COMMAND python3 ${UNIT_HAL}/check_hal_pc_coverage.py)
 
 add_test(NAME hal_pc_coverage_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_pc_coverage.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_pc_coverage.py)
 
 add_test(NAME hal_dma_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_dma_contract.py)
 
 add_test(NAME hal_dma_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_dma_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_dma_contract.py)
 
 add_test(NAME hal_timer_irq_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_timer_irq_contract.py)
 
 add_test(NAME hal_timer_irq_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_timer_irq_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_timer_irq_contract.py)
 
 add_test(NAME hal_stub_returns
     COMMAND python3 ${UNIT_HAL}/check_hal_stub_returns.py)
 
 add_test(NAME hal_stub_returns_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_stub_returns.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_stub_returns.py)
+
+# The ADDC guide quotes a per-backend coverage table; this is the number behind it.
+add_test(NAME hal_adc_dac_surface
+    COMMAND python3 ${UNIT_HAL}/check_hal_adc_dac_surface.py)
+
+add_test(NAME hal_adc_dac_surface_unit
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_adc_dac_surface.py)
+
+# `xy_hal.h` is the HAL's front door; this pins that it actually exports every peripheral header.
+add_test(NAME hal_umbrella_coverage
+    COMMAND python3 ${UNIT_HAL}/check_hal_umbrella_coverage.py)
+
+add_test(NAME hal_umbrella_coverage_unit
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_umbrella_coverage.py)
+
+# Each HAL header has to compile alone; the umbrella hid a missing `<stddef.h>` for as long as nothing
+# compiled `xy_hal_dac.h` on its own.
+add_test(NAME hal_header_self_containment
+    COMMAND python3 ${UNIT_HAL}/check_hal_header_self_containment.py --cc ${CMAKE_C_COMPILER}
+    WORKING_DIRECTORY ${ROOT}
+)
 
 add_test(NAME hal_spi_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_spi_contract.py)
 
 add_test(NAME hal_spi_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_spi_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_spi_contract.py)
 
 add_test(NAME hal_rtc_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_rtc_contract.py)
 
 add_test(NAME hal_rtc_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_rtc_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_rtc_contract.py)
 
 add_test(NAME hal_i2c_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_i2c_contract.py)
 
 add_test(NAME hal_i2c_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_i2c_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_i2c_contract.py)
 
 add_test(NAME hal_uart_blocking_contract
     COMMAND python3 ${UNIT_HAL}/check_hal_uart_blocking_contract.py)
 
 add_test(NAME hal_uart_blocking_contract_unit
-    COMMAND python3 ${UNIT_HAL}/test_hal_uart_blocking_contract.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_hal_uart_blocking_contract.py)
 
 add_test(NAME pandora_board_guard_unit
     COMMAND python3 ${UNIT_HAL}/test_pandora_board_guard.py)
@@ -161,7 +182,7 @@ add_test(NAME board_irq_vectors
     COMMAND python3 ${UNIT_HAL}/check_board_irq_vectors.py)
 
 add_test(NAME board_irq_vectors_unit
-    COMMAND python3 ${UNIT_HAL}/test_board_irq_vectors.py)
+    COMMAND python3 ${UNIT_HAL}/test_check_board_irq_vectors.py)
 
 add_test(NAME stm32f4_uart_wrapper_contract
     COMMAND python3 ${UNIT_HAL}/check_stm32f4_uart_wrapper_contract.py
@@ -345,6 +366,14 @@ add_test(NAME pandora_motor_capture_validator
     COMMAND python3 ${UNIT_ACTUATOR}/test_pandora_motor_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_pid_capture_validator
+    COMMAND python3 ${UNIT_PID}/test_pandora_pid_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
+add_test(NAME pandora_watchdog_capture_validator
+    COMMAND python3 ${UNIT_HAL}/test_pandora_watchdog_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME freertos_osal_thread_flags
     COMMAND python3 ${UNIT_KERNEL}/check_freertos_osal_thread_flags.py
     WORKING_DIRECTORY ${ROOT}
@@ -479,6 +508,7 @@ include_directories(
     ${NET}/src                      # xy_mqtt_client.h
     ${NET}/at/atc/Modules/cellular/common # at_client.h
     ${NET}/at/ats                  # xy_ats.h
+    ${NET}/at                      # at_common.h (client/server shared vocabulary)
     ${NET}/xy_iso7816               # xy_iso7816.h
     ${NET}/smbus                    # xy_smbus.h / xy_pmbus.h
     ${CRYPTO}/xy_crc                # xy_crc.h
@@ -584,15 +614,6 @@ xy_add_unit_test(test_bmp280_device sensor_bmp280_device UNITY
     ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
 )
 
-# --- Sensor bus access layer: the public I2C/SPI helpers the fuel-gauge drivers call ---
-xy_add_unit_test(test_sensor_bus sensor_bus UNITY
-    ${UNIT_SENSOR}/test_sensor_bus.c
-    ${SENSOR}/sensor_bus.c
-)
-target_include_directories(test_sensor_bus PRIVATE
-    ${SENSOR}/inc                    # xy_sensor.h / xy_sensor_device.h
-)
-
 # --- Pandora I2C2 sensor Device-driver contracts ---
 xy_add_unit_test(test_i2c2_sensor_devices sensor_i2c2_devices UNITY
     ${UNIT_SENSOR}/test_i2c2_sensor_devices.c
@@ -628,6 +649,62 @@ target_include_directories(test_ads1115 PRIVATE
     ${DRV}/sensor/adc/ads1115
 )
 
+xy_add_unit_test(test_acs712_device sensor_acs712_device UNITY
+    ${UNIT_SENSOR}/test_acs712_device.c
+    ${DRV}/sensor/adc/acs712/xy_acs712.c
+)
+target_include_directories(test_acs712_device PRIVATE
+    ${DRV}/sensor/adc/acs712
+)
+
+xy_add_unit_test(test_fsr_device sensor_fsr_device UNITY
+    ${UNIT_SENSOR}/test_fsr_device.c
+    ${DRV}/sensor/adc/fsr/xy_fsr.c
+)
+target_include_directories(test_fsr_device PRIVATE
+    ${DRV}/sensor/adc/fsr
+)
+
+xy_add_unit_test(test_mg811_device sensor_mg811_device UNITY
+    ${UNIT_SENSOR}/test_mg811_device.c
+    ${DRV}/sensor/adc/mg811/xy_mg811.c
+)
+target_include_directories(test_mg811_device PRIVATE
+    ${DRV}/sensor/adc/mg811
+)
+
+xy_add_unit_test(test_guvas12sd_device sensor_guvas12sd_device UNITY
+    ${UNIT_SENSOR}/test_guvas12sd_device.c
+    ${DRV}/sensor/adc/guvas12sd/xy_guvas12sd.c
+)
+target_include_directories(test_guvas12sd_device PRIVATE
+    ${DRV}/sensor/adc/guvas12sd
+)
+
+xy_add_unit_test(test_mq135_device sensor_mq135_device UNITY
+    ${UNIT_SENSOR}/test_mq135_device.c
+    ${DRV}/sensor/adc/mq135/xy_mq135.c
+)
+target_include_directories(test_mq135_device PRIVATE
+    ${DRV}/sensor/adc/mq135
+)
+
+xy_add_unit_test(test_mq3_device sensor_mq3_device UNITY
+    ${UNIT_SENSOR}/test_mq3_device.c
+    ${DRV}/sensor/adc/mq3/xy_mq3.c
+)
+target_include_directories(test_mq3_device PRIVATE
+    ${DRV}/sensor/adc/mq3
+)
+
+xy_add_unit_test(test_mq7_device sensor_mq7_device UNITY
+    ${UNIT_SENSOR}/test_mq7_device.c
+    ${DRV}/sensor/adc/mq7/xy_mq7.c
+)
+target_include_directories(test_mq7_device PRIVATE
+    ${DRV}/sensor/adc/mq7
+)
+
 # --- Test 4: SPI device helper + mixed-bus registry ---
 xy_add_unit_test(test_spi_device spi_device UNITY
     ${UNIT_DEVICE}/test_spi_device.c
@@ -637,11 +714,11 @@ xy_add_unit_test(test_spi_device spi_device UNITY
 # --- Test 4b: canonical return contract of the I2C/SPI/UART bus helpers ---
 xy_add_unit_test(test_device_bus_contract device_bus_contract UNITY
     ${UNIT_DEVICE}/test_device_bus_contract.c
-    ${SENSOR}/src/xy_w25qxx.c
+    ${DRV}/storage/flash/w25qxx/xy_w25qxx.c
     ${FRAMEWORK_SOURCES}
 )
 target_include_directories(test_device_bus_contract PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/storage/flash/w25qxx
     ${TRACE}/xy_log/inc
     ${OSAL}
 )
@@ -745,10 +822,42 @@ xy_add_unit_test(test_nano_modbus nano_modbus_compat UNITY
     ${NET}/modbus_tiny/mb_tiny.c
 )
 
+# --- Test 12a: nano_modbus compatibility API over mb_full (NANO_MB_USE_TINY=0) ---
+# The unified API has two backends. Only the Tiny one had a host guard, so the
+# Full branch of the umbrella header could rot (it once used a type before it
+# was defined) without any target noticing. This target builds the same public
+# umbrella with NANO_MB_USE_TINY=0 and links mb_full.c.
+xy_add_unit_test(test_nano_modbus_full nano_modbus_full_compat UNITY
+    ${UNIT_NET}/test_nano_modbus_full.c
+    ${NET}/modbus_full/mb_full.c
+)
+target_compile_definitions(test_nano_modbus_full PRIVATE NANO_MB_USE_TINY=0)
+target_include_directories(test_nano_modbus_full PRIVATE
+    ${NET}/modbus_full
+)
+
 # --- Test 12b: legacy Modbus RTU slave host guard ---
 xy_add_unit_test(test_modbus_legacy modbus_legacy UNITY
     ${UNIT_NET}/test_modbus_legacy.c
     ${NET}/modbus/mb_slave.c
+)
+
+# --- Test 12c: Modbus Full slave RTU/TCP wire contract ---
+xy_add_unit_test(test_modbus_full_slave modbus_full_slave UNITY
+    ${UNIT_NET}/test_modbus_full_slave.c
+    ${NET}/modbus_full/mb_full.c
+)
+target_include_directories(test_modbus_full_slave PRIVATE
+    ${NET}/modbus_full
+)
+
+# --- Test 12d: Modbus Full master RTU/TCP loopback against the slave ---
+xy_add_unit_test(test_modbus_full_master modbus_full_master UNITY
+    ${UNIT_NET}/test_modbus_full_master.c
+    ${NET}/modbus_full/mb_full.c
+)
+target_include_directories(test_modbus_full_master PRIVATE
+    ${NET}/modbus_full
 )
 
 # --- Test 13: ISO7816 public include, lifecycle, and APDU behavior ---
@@ -1131,16 +1240,6 @@ target_include_directories(test_25519_m0 PRIVATE
 )
 
 # --- Test 21: Sensor framework lifecycle, registry, FIFO, calibration, filters ---
-xy_add_unit_test(test_sensor_framework sensor_framework UNITY
-    ${UNIT_SENSOR}/test_sensor_framework.c
-    ${SENSOR}/sensor_core.c
-    ${SENSOR}/sensor_fifo.c
-    ${SENSOR}/sensor_calibration.c
-    ${SENSOR}/sensor_filter.c
-    ${SENSOR}/sensor_threshold.c
-    ${SENSOR}/sensor_self_test.c
-)
-
 xy_add_unit_test(test_mlx90614 sensor_mlx90614 UNITY
     ${UNIT_SENSOR}/test_mlx90614.c
     ${DRV}/sensor/temperature/mlx90614/xy_mlx90614.c
@@ -1246,20 +1345,19 @@ xy_add_unit_test(test_lps22hb sensor_lps22hb UNITY
 )
 target_include_directories(test_lps22hb BEFORE PRIVATE
     ${DRV}/sensor/pressure/lps22hb
-    ${SENSOR}/inc
 )
 target_link_libraries(test_lps22hb PRIVATE m)
 
 xy_add_unit_test(test_power_monitors sensor_power_monitors UNITY
     ${UNIT_SENSOR}/test_power_monitors.c
-    ${SENSOR}/src/xy_max17043.c
+    ${DRV}/power/max17043/xy_max17043.c
     ${DRV}/sensor/adc/ina226/xy_ina226.c
     ${DRV}/sensor/adc/ina219/xy_ina219.c
 )
 target_include_directories(test_power_monitors PRIVATE
     ${DRV}/sensor/adc/ina226
     ${DRV}/sensor/adc/ina219
-    ${SENSOR}/inc
+    ${DRV}/power/max17043
     ${HAL}/inc
     ${KERNEL}/osal
 )
@@ -1296,16 +1394,6 @@ target_include_directories(test_ina229_device PRIVATE
 )
 
 
-xy_add_unit_test(test_angle_encoders sensor_angle_encoders UNITY
-    ${UNIT_SENSOR}/test_angle_encoders.c
-    ${SENSOR}/sensors/sensor_as5600.c
-    ${SENSOR}/sensors/sensor_as5048.c
-)
-target_include_directories(test_angle_encoders BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
 xy_add_unit_test(test_as5048b_device sensor_as5048b_device UNITY
     ${UNIT_SENSOR}/test_as5048b_device.c
     ${DRV}/sensor/angle/as5048b/xy_as5048b.c
@@ -1322,89 +1410,12 @@ target_include_directories(test_as5600_device BEFORE PRIVATE
     ${DRV}/sensor/angle/as5600
 )
 
-xy_add_unit_test(test_light_uv_sensors sensor_light_uv_sensors UNITY
-    ${UNIT_SENSOR}/test_light_uv_sensors.c
-    ${SENSOR}/sensors/sensor_max44009.c
-    ${SENSOR}/sensors/sensor_guvas12sd.c
-)
-target_include_directories(test_light_uv_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-target_link_libraries(test_light_uv_sensors PRIVATE m)
-
 xy_add_unit_test(test_max44009_device sensor_max44009_device UNITY
     ${UNIT_SENSOR}/test_max44009_device.c
     ${DRV}/sensor/light/max44009/xy_max44009.c
 )
 target_include_directories(test_max44009_device BEFORE PRIVATE
     ${DRV}/sensor/light/max44009
-)
-
-xy_add_unit_test(test_bh1750_legacy_sensor sensor_bh1750_legacy UNITY
-    ${UNIT_SENSOR}/test_bh1750_legacy_sensor.c
-    ${SENSOR}/sensors/sensor_bh1750.c
-    ${DRV}/sensor/light/bh1750/xy_bh1750.c
-)
-target_include_directories(test_bh1750_legacy_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/light/bh1750
-)
-
-xy_add_unit_test(test_mpu6050_legacy_sensor sensor_mpu6050_legacy UNITY
-    ${UNIT_SENSOR}/test_mpu6050_legacy_sensor.c
-    ${SENSOR}/sensors/sensor_mpu6050.c
-    ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
-)
-target_include_directories(test_mpu6050_legacy_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/motion/mpu6050
-)
-
-xy_add_unit_test(test_aht20_legacy_sensor sensor_aht20_legacy UNITY
-    ${UNIT_SENSOR}/test_aht20_legacy_sensor.c
-    ${SENSOR}/sensors/sensor_aht20.c
-    ${DRV}/sensor/temperature/aht20/xy_aht20.c
-)
-target_include_directories(test_aht20_legacy_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/temperature/aht20
-    ${DEVICE}/inc
-)
-
-xy_add_unit_test(test_sht30_legacy_sensor sensor_sht30_legacy UNITY
-    ${UNIT_SENSOR}/test_sht30_legacy_sensor.c
-    ${SENSOR}/sensors/sensor_sht30.c
-    ${DRV}/sensor/temperature/sht30/xy_sht30.c
-)
-target_include_directories(test_sht30_legacy_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/temperature/sht30
-)
-
-xy_add_unit_test(test_mq_gas_sensors sensor_mq_gas_sensors UNITY
-    ${UNIT_SENSOR}/test_mq_gas_sensors.c
-    ${SENSOR}/sensors/sensor_mq3.c
-    ${SENSOR}/sensors/sensor_mq7.c
-    ${SENSOR}/sensors/sensor_mq135.c
-)
-target_include_directories(test_mq_gas_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
-
-xy_add_unit_test(test_proximity_sensors sensor_proximity_sensors UNITY
-    ${UNIT_SENSOR}/test_proximity_sensors.c
-    ${SENSOR}/sensors/sensor_vcnl4040.c
-)
-target_include_directories(test_proximity_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
 )
 
 xy_add_unit_test(test_vcnl4040_device sensor_vcnl4040_device UNITY
@@ -1423,35 +1434,6 @@ target_include_directories(test_vl53l0x_device BEFORE PRIVATE
     ${DRV}/sensor/distance/vl53l0x
 )
 
-xy_add_unit_test(test_ccs811_sensor sensor_ccs811_sensor UNITY
-    ${UNIT_SENSOR}/test_ccs811_sensor.c
-    ${SENSOR}/sensors/sensor_ccs811.c
-)
-target_include_directories(test_ccs811_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
-xy_add_unit_test(test_vl53l0x_sensor sensor_vl53l0x_sensor UNITY
-    ${UNIT_SENSOR}/test_vl53l0x_sensor.c
-    ${SENSOR}/sensors/sensor_vl53l0x.c
-)
-target_include_directories(test_vl53l0x_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
-xy_add_unit_test(test_ap3216c_sensor sensor_ap3216c_sensor UNITY
-    ${UNIT_SENSOR}/test_ap3216c_sensor.c
-    ${SENSOR}/sensors/sensor_ap3216c.c
-    ${DRV}/sensor/light/ap3216c/xy_ap3216c.c
-)
-target_include_directories(test_ap3216c_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/light/ap3216c
-)
-
 xy_add_unit_test(test_ap3216c_device sensor_ap3216c_device UNITY
     ${UNIT_SENSOR}/test_ap3216c_device.c
     ${DRV}/sensor/light/ap3216c/xy_ap3216c.c
@@ -1460,122 +1442,20 @@ target_include_directories(test_ap3216c_device BEFORE PRIVATE
     ${DRV}/sensor/light/ap3216c
 )
 
-xy_add_unit_test(test_apds9960_sensor sensor_apds9960_sensor UNITY
-    ${UNIT_SENSOR}/test_apds9960_sensor.c
-    ${SENSOR}/sensors/sensor_apds9960.c
-)
-target_include_directories(test_apds9960_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
-xy_add_unit_test(test_analog_misc_sensors sensor_analog_misc_sensors UNITY
-    ${UNIT_SENSOR}/test_analog_misc_sensors.c
-    ${SENSOR}/sensors/sensor_acs712.c
-    ${SENSOR}/sensors/sensor_fsr.c
-    ${SENSOR}/sensors/sensor_mg811.c
-)
-target_include_directories(test_analog_misc_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
-xy_add_unit_test(test_env_i2c_sensors sensor_env_i2c_sensors UNITY
-    ${UNIT_SENSOR}/test_env_i2c_sensors.c
-    ${SENSOR}/sensors/sensor_aht10.c
-    ${DRV}/sensor/temperature/aht10/xy_aht10.c
-)
-target_include_directories(test_env_i2c_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/temperature/aht10
-)
-
-xy_add_unit_test(test_bmp280_sensor sensor_bmp280 UNITY
-    ${UNIT_SENSOR}/test_bmp280_sensor.c
-    ${SENSOR}/sensors/sensor_bmp280.c
-    ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
-)
-target_include_directories(test_bmp280_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/pressure/bmp280
-)
-
-xy_add_unit_test(test_icm20608_sensor sensor_icm20608 UNITY
-    ${UNIT_SENSOR}/test_icm20608_sensor.c
-    ${SENSOR}/sensors/sensor_icm20608.c
+xy_add_unit_test(test_icm20608_device sensor_icm20608_device UNITY
+    ${UNIT_SENSOR}/test_icm20608_device.c
     ${DRV}/sensor/motion/icm20608/xy_icm20608.c
 )
-target_include_directories(test_icm20608_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
+target_include_directories(test_icm20608_device BEFORE PRIVATE
     ${DRV}/sensor/motion/icm20608
-)
-
-xy_add_unit_test(test_qma6100p_sensor sensor_qma6100p_wrapper UNITY
-    ${UNIT_SENSOR}/test_qma6100p_sensor.c
-    ${SENSOR}/sensors/sensor_qma6100p.c
-    ${DRV}/sensor/motion/qma6100p/xy_qma6100p.c
-)
-target_include_directories(test_qma6100p_sensor BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DRV}/sensor/motion/qma6100p
-)
-
-xy_add_unit_test(test_low_power_accel_sensors sensor_low_power_accel_sensors UNITY
-    ${UNIT_SENSOR}/test_low_power_accel_sensors.c
-    ${SENSOR}/sensors/sensor_adxl362.c
-    ${SENSOR}/sensors/sensor_bma400.c
-    ${SENSOR}/sensors/sensor_lis2dw12.c
-    ${SENSOR}/sensors/sensor_kx023.c
-)
-target_include_directories(test_low_power_accel_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
-xy_add_unit_test(test_st_silan_accel_sensors sensor_st_silan_accel_sensors UNITY
-    ${UNIT_SENSOR}/test_st_silan_accel_sensors.c
-    ${SENSOR}/sensors/sensor_lis2dh12.c
-    ${SENSOR}/sensors/sensor_lis2dw12.c
-    ${SENSOR}/sensors/sensor_sc7a20.c
-    ${SENSOR}/sensors/sensor_silan_sc7a20.c
-)
-target_include_directories(test_st_silan_accel_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
-xy_add_unit_test(test_lsm6_imu_sensors sensor_lsm6_imu_sensors UNITY
-    ${UNIT_SENSOR}/test_lsm6_imu_sensors.c
-    ${SENSOR}/sensors/sensor_lsm6dsl.c
-    ${SENSOR}/sensors/sensor_lsm6dso.c
-    ${SENSOR}/sensors/sensor_lsm6dsr.c
-)
-target_include_directories(test_lsm6_imu_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
-
-xy_add_unit_test(test_lsm9ds1 sensor_lsm9ds1 UNITY
-    ${UNIT_SENSOR}/test_lsm9ds1.c
-    ${SENSOR}/sensors/sensor_lsm9ds1.c
-)
-target_include_directories(test_lsm9ds1 BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
 )
 
 xy_add_unit_test(test_gps sensor_gps UNITY
     ${UNIT_SENSOR}/test_gps.c
-    ${SENSOR}/sensors/sensor_gps.c
+    ${DRV}/sensor/position/gps/xy_gps.c
 )
 target_include_directories(test_gps BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
+    ${DRV}/sensor/position/gps
 )
 target_link_libraries(test_gps PRIVATE m)
 
@@ -1587,13 +1467,12 @@ target_link_libraries(test_gps PRIVATE m)
 # array). It is compiled and executed here, and implicit declarations are
 # errors, so the sample cannot keep teaching a surface that is not published.
 xy_add_unit_test(test_gps_example sensor_gps_example
-    ${SENSOR}/examples/gps_example.c
-    ${SENSOR}/sensors/sensor_gps.c
+    ${DRV}/sensor/position/gps/gps_example.c
+    ${DRV}/sensor/position/gps/xy_gps.c
     ${UNIT_SENSOR}/test_gps_example_tick_stub.c
 )
 target_include_directories(test_gps_example BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
+    ${DRV}/sensor/position/gps
     ${ROOT}/components/kernel/osal
     ${ROOT}/components/clib/xy_clib
 )
@@ -1612,7 +1491,7 @@ target_link_libraries(test_gps_example m)
 # contract, and the sample supplies only the three HAL entry points it asserts on
 # (`test_sensor_demo_backend_stub.c` stubs the rest of the bus-helper backend).
 xy_add_unit_test(test_sensor_device_example sensor_device_example
-    ${SENSOR}/examples/sensor_demo.c
+    ${DRV}/sensor/examples/sensor_demo.c
     ${DRV}/sensor/temperature/sht30/xy_sht30.c
     ${DEV}/src/xy_device_bus_helpers.c
     ${UNIT_SENSOR}/test_sensor_demo_backend_stub.c
@@ -1627,158 +1506,33 @@ target_compile_options(test_sensor_device_example PRIVATE
     -Wall -Wextra -Werror=implicit-function-declaration
 )
 
-# --- The three `components/sensor/example/` samples as build-and-run guards ---
-# None of them was compiled by any target or makefile in the tree, and the makefile that lived
-# beside them could not have worked either: it named `sensor_core.c`, the seven drivers and
-# `example_basic.c`/`example_advanced.c` as if they sat in that directory (the sources are one and
-# two levels up, and the files are `basic.c`/`advanced.c`), and it declared the `examples:` target
-# twice so the multi-sensor demo was unreachable. Two of the three were also unlinkable - only
-# `basic.c` defined the HAL hooks `sensor_config.h` declares (`delay_ms`, `get_tick_ms`,
-# `hal_i2c_mem_read`, `hal_i2c_mem_write`) - and all three handed `NULL` to `*_create_*()`, which
-# rejects a NULL bus, so every sample died on its first call while `main` still returned 0.
-#
-# They now run against the real legacy core, the legacy wrapper and the canonical driver, with
-# `test_sensor_example_bus_stub.c` modelling the MPU6050 registers (WHO_AM_I + one accel burst at
-# 16384 LSB/g). `sensor_example_basic` therefore asserts the exact mg triple that burst decodes to;
-# changing a register or the scaling breaks the match instead of passing silently.
-xy_add_unit_test(test_sensor_example_basic sensor_example_basic
-    ${SENSOR}/example/basic.c
-    ${SENSOR}/sensor_core.c
-    ${SENSOR}/sensor_calibration.c
-    ${SENSOR}/sensor_filter.c
-    ${SENSOR}/sensor_threshold.c
-    ${SENSOR}/sensors/sensor_mpu6050.c
-    ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
-    ${UNIT_SENSOR}/test_sensor_example_bus_stub.c
-)
-target_include_directories(test_sensor_example_basic BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DEV}/inc
-    ${DRV}/sensor/motion/mpu6050
-    ${ROOT}/components/hal/inc
-    ${ROOT}/components/trace
-    ${ROOT}/components/trace/xy_log/inc
-    ${ROOT}/components/clib/xy_clib
-    ${ROOT}/components/kernel/osal
-)
-target_compile_options(test_sensor_example_basic PRIVATE
-    -Wall -Wextra -Werror=implicit-function-declaration
-)
-target_link_libraries(test_sensor_example_basic m)
-set_tests_properties(sensor_example_basic PROPERTIES
-    PASS_REGULAR_EXPRESSION "Accel: X=1000, Y=-1000, Z=500 mg")
-
-xy_add_unit_test(test_sensor_example_advanced sensor_example_advanced
-    ${SENSOR}/example/advanced.c
-    ${SENSOR}/sensor_core.c
-    ${SENSOR}/sensor_calibration.c
-    ${SENSOR}/sensor_filter.c
-    ${SENSOR}/sensor_threshold.c
-    ${SENSOR}/sensor_fifo.c
-    ${SENSOR}/sensor_interrupt.c
-    ${SENSOR}/sensor_fusion.c
-    ${SENSOR}/sensor_power.c
-    ${SENSOR}/sensor_self_test.c
-    ${SENSOR}/sensor_moton.c
-    ${SENSOR}/sensors/sensor_mpu6050.c
-    ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
-    ${UNIT_SENSOR}/test_sensor_example_bus_stub.c
-)
-target_include_directories(test_sensor_example_advanced BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DEV}/inc
-    ${DRV}/sensor/motion/mpu6050
-    ${ROOT}/components/hal/inc
-    ${ROOT}/components/trace
-    ${ROOT}/components/trace/xy_log/inc
-    ${ROOT}/components/clib/xy_clib
-    ${ROOT}/components/kernel/osal
-)
-target_compile_options(test_sensor_example_advanced PRIVATE
-    -Wall -Wextra -Werror=implicit-function-declaration
-    # This is the only target that compiles `sensor_fusion.c` with warnings enabled, and doing so
-    # is what exposed its `*(long *)&y` fast-inverse-sqrt: on a 64-bit host that reads 8 bytes out
-    # of a 4-byte float (ASan: stack-buffer-overflow) and breaks strict aliasing. Keeping these
-    # three as errors means the same defect cannot come back quietly through this path.
-    -Werror=array-bounds
-    -Werror=uninitialized
-    -Werror=strict-aliasing
-)
-target_link_libraries(test_sensor_example_advanced m)
-# The tour ends with this line only if it walked every enabled feature block; the self-test block
-# is expected to *report* a failure against the synthetic burst, which is the driver's own
-# judgement and stays visible in the output rather than being asserted away here.
-set_tests_properties(sensor_example_advanced PROPERTIES
-    PASS_REGULAR_EXPRESSION "All examples completed!")
-
-xy_add_unit_test(test_sensor_example_multi sensor_example_multi
-    ${SENSOR}/example/example_multi_sensors.c
-    ${SENSOR}/sensor_core.c
-    ${SENSOR}/sensor_calibration.c
-    ${SENSOR}/sensor_filter.c
-    ${SENSOR}/sensor_threshold.c
-    ${SENSOR}/sensor_fifo.c
-    ${SENSOR}/sensor_fusion.c
-    ${SENSOR}/sensors/sensor_mpu6050.c
-    ${SENSOR}/sensors/sensor_aht20.c
-    ${SENSOR}/sensors/sensor_bmp280.c
-    ${SENSOR}/sensors/sensor_ap3216c.c
-    ${SENSOR}/sensors/sensor_qmc5883l.c
-    ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
-    ${DRV}/sensor/temperature/aht20/xy_aht20.c
-    ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
-    ${DRV}/sensor/light/ap3216c/xy_ap3216c.c
-    ${DRV}/sensor/magnetic/qmc5883l/xy_qmc5883l.c
-    ${UNIT_SENSOR}/test_sensor_example_bus_stub.c
-)
-target_include_directories(test_sensor_example_multi BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-    ${DEV}/inc
-    ${DRV}/sensor/motion/mpu6050
-    ${DRV}/sensor/motion/icm20608
-    ${DRV}/sensor/motion/sc7a20
-    ${DRV}/sensor/temperature/aht20
-    ${DRV}/sensor/pressure/bmp280
-    ${DRV}/sensor/light/ap3216c
-    ${DRV}/sensor/magnetic/qmc5883l
-    ${ROOT}/components/hal/inc
-    ${ROOT}/components/trace
-    ${ROOT}/components/trace/xy_log/inc
-    ${ROOT}/components/clib/xy_clib
-    ${ROOT}/components/kernel/osal
-)
-target_compile_options(test_sensor_example_multi PRIVATE
-    -Wall -Wextra -Werror=implicit-function-declaration
-)
-target_link_libraries(test_sensor_example_multi m)
-# Seven of the eight handles register; BMP280 stays out because the stub publishes no pressure
-# chip ID, and the sample already prints that outcome honestly. The assertion is that the tour
-# reached its end with the framework intact, not that a fake chip answered.
-set_tests_properties(sensor_example_multi PROPERTIES
-    PASS_REGULAR_EXPRESSION "Demo completed!")
-
-
-xy_add_unit_test(test_magnetic_i2c_sensors sensor_magnetic_i2c_sensors UNITY
-    ${UNIT_SENSOR}/test_magnetic_i2c_sensors.c
-    ${SENSOR}/sensors/sensor_qmc5883l.c
-    ${SENSOR}/sensors/sensor_ist8310.c
-    ${SENSOR}/sensors/sensor_ak09918.c
-    ${SENSOR}/sensors/sensor_cmm905.c
-)
-target_include_directories(test_magnetic_i2c_sensors BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
-
+# The three `components/sensor/example/` samples were retired with the legacy framework: they
+# demonstrated the `sensor_device_t` factories (`*_create_*()` / `sensor_register` / `sensor_init`)
+# that the canonical Device model replaces, and were the last non-test consumers of the legacy
+# `sensor_mpu6050`/`sensor_aht20`/`sensor_bmp280`/`sensor_ap3216c`/`sensor_qmc5883l` wrappers.
+# The canonical path is demonstrated by `sensor_device_example` (`components/sensor/examples/sensor_demo.c`).
 xy_add_unit_test(test_qmc5883l_device sensor_qmc5883l_device UNITY
     ${UNIT_SENSOR}/test_qmc5883l_device.c
     ${DRV}/sensor/magnetic/qmc5883l/xy_qmc5883l.c
 )
 target_include_directories(test_qmc5883l_device BEFORE PRIVATE
     ${DRV}/sensor/magnetic/qmc5883l
+)
+
+xy_add_unit_test(test_cmm905_device sensor_cmm905_device UNITY
+    ${UNIT_SENSOR}/test_cmm905_device.c
+    ${DRV}/sensor/magnetic/cmm905/xy_cmm905.c
+)
+target_include_directories(test_cmm905_device BEFORE PRIVATE
+    ${DRV}/sensor/magnetic/cmm905
+)
+
+xy_add_unit_test(test_sc7a20_device sensor_sc7a20_device UNITY
+    ${UNIT_SENSOR}/test_sc7a20_device.c
+    ${DRV}/sensor/motion/sc7a20/xy_sc7a20.c
+)
+target_include_directories(test_sc7a20_device BEFORE PRIVATE
+    ${DRV}/sensor/motion/sc7a20
 )
 
 xy_add_unit_test(test_ist8310_device sensor_ist8310_device UNITY
@@ -1885,6 +1639,14 @@ target_include_directories(test_ak09918_device BEFORE PRIVATE
     ${DRV}/sensor/magnetic/ak09918
 )
 
+xy_add_unit_test(test_adt7420_device sensor_adt7420_device UNITY
+    ${UNIT_SENSOR}/test_adt7420_device.c
+    ${DRV}/sensor/temperature/adt7420/xy_adt7420.c
+)
+target_include_directories(test_adt7420_device BEFORE PRIVATE
+    ${DRV}/sensor/temperature/adt7420
+)
+
 xy_add_unit_test(test_adc_power_monitors sensor_adc_power_monitors UNITY
     ${UNIT_SENSOR}/test_adc_power_monitors.c
     ${DRV}/sensor/adc/ltc2945/xy_ltc2945.c
@@ -1895,7 +1657,7 @@ target_include_directories(test_adc_power_monitors BEFORE PRIVATE
     ${DRV}/sensor/adc/ltc2945
     ${DRV}/sensor/adc/ads1115
     ${DRV}/sensor/adc/ina219
-    ${SENSOR}/inc
+    ${DRV}/power/max17043
     ${HAL}/inc
     ${KERNEL}/osal
 )
@@ -1913,10 +1675,10 @@ target_include_directories(test_bmp390_device BEFORE PRIVATE
 
 xy_add_unit_test(test_coulomb sensor_coulomb UNITY
     ${UNIT_SENSOR}/test_coulomb.c
-    ${SENSOR}/src/xy_coulomb.c
+    ${DRV}/power/coulomb/xy_coulomb.c
 )
 target_include_directories(test_coulomb BEFORE PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/power/coulomb
     ${HAL}/inc
     ${KERNEL}/osal
 )
@@ -1938,7 +1700,7 @@ xy_add_unit_test(test_bmi088 sensor_bmi088 UNITY
 )
 target_include_directories(test_bmi088 BEFORE PRIVATE
     ${DRV}/sensor/motion/bmi088
-    ${SENSOR}/inc
+    ${DEV}/inc
 )
 
 xy_add_unit_test(test_bmi270 sensor_bmi270 UNITY
@@ -1947,16 +1709,16 @@ xy_add_unit_test(test_bmi270 sensor_bmi270 UNITY
 )
 target_include_directories(test_bmi270 BEFORE PRIVATE
     ${DRV}/sensor/motion/bmi270
-    ${SENSOR}/inc
+    ${DEV}/inc
 )
 target_link_libraries(test_bmi270 PRIVATE m)
 
 xy_add_unit_test(test_w25qxx sensor_w25qxx UNITY
     ${UNIT_SENSOR}/test_w25qxx.c
-    ${SENSOR}/src/xy_w25qxx.c
+    ${DRV}/storage/flash/w25qxx/xy_w25qxx.c
 )
 target_include_directories(test_w25qxx BEFORE PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/storage/flash/w25qxx
     ${DEVICE}/inc
     ${HAL}/inc
     ${KERNEL}/osal
@@ -2012,16 +1774,17 @@ xy_add_unit_test(test_bno055 sensor_bno055 UNITY
 )
 target_include_directories(test_bno055 BEFORE PRIVATE
     ${DRV}/sensor/motion/bno055
-    ${SENSOR}/inc
+    ${DEV}/inc
 )
 target_link_libraries(test_bno055 PRIVATE m)
 
 xy_add_unit_test(test_dmp sensor_dmp UNITY
     ${UNIT_SENSOR}/test_dmp.c
-    ${SENSOR}/src/xy_dmp.c
+    ${DRV}/sensor/motion/dmp/xy_dmp.c
 )
 target_include_directories(test_dmp BEFORE PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/sensor/motion/dmp
+    ${DRV}/sensor/motion/mpu6050
     ${HAL}/inc
     ${KERNEL}/osal/inc
 )
@@ -2039,11 +1802,32 @@ xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${HAL}/PC/xy_hal_dma_pc.c
     ${HAL}/PC/xy_hal_timer_pc.c
     ${HAL}/PC/xy_hal_irq_pc.c
+    ${HAL}/PC/xy_hal_adc_pc.c
+    ${HAL}/PC/xy_hal_dac_pc.c
 )
 target_include_directories(test_hal_pc PRIVATE
     ${HAL}/inc
     ${HAL}/PC
 )
+
+# --- The HAL quick start the HAL documentation teaches, compiled and run ---
+# `components/hal/README.md` and `docs/hal/HAL_UNIFIED_API.md` show this file's code. Keeping the
+# sample inside the suite means a documented HAL call that stops existing fails a test instead of
+# ageing in a markdown block; `-Werror=implicit-function-declaration` makes a renamed entry point a
+# build failure rather than a C89 implicit declaration.
+xy_add_unit_test(test_hal_quickstart hal_quickstart
+    ${ROOT}/components/hal/examples/hal_quickstart.c
+    ${HAL}/PC/xy_hal_pc.c
+    ${HAL}/PC/xy_hal_gpio_pc.c
+    ${HAL}/PC/xy_hal_i2c_pc.c
+    ${HAL}/PC/xy_hal_spi_pc.c
+    ${HAL}/PC/xy_hal_uart_pc.c
+)
+target_include_directories(test_hal_quickstart PRIVATE
+    ${HAL}/inc
+    ${HAL}/PC
+)
+target_compile_options(test_hal_quickstart PRIVATE -Werror=implicit-function-declaration)
 
 # --- Test 23: PM lifecycle, charger, fuel gauge, and PC platform contracts ---
 xy_add_unit_test(test_pm pm_component UNITY
@@ -2150,7 +1934,7 @@ add_test(NAME single_comment_stripper
     COMMAND python3 ${UNIT_SUPPORT}/check_single_comment_stripper.py)
 
 add_test(NAME single_comment_stripper_unit
-    COMMAND python3 ${UNIT_SUPPORT}/test_single_comment_stripper.py)
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_single_comment_stripper.py)
 
 add_test(NAME support_source_scan
     COMMAND python3 ${UNIT_SUPPORT}/test_source_scan.py)
@@ -2197,13 +1981,31 @@ add_test(NAME guards_read_code
     COMMAND python3 ${UNIT_SUPPORT}/check_guards_read_code.py)
 
 add_test(NAME guards_read_code_unit
-    COMMAND python3 ${UNIT_SUPPORT}/test_guards_read_code.py)
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_guards_read_code.py)
 
 add_test(NAME doc_api_symbols
     COMMAND python3 ${UNIT_SUPPORT}/check_doc_api_symbols.py)
 
 add_test(NAME doc_api_symbols_unit
     COMMAND python3 ${UNIT_SUPPORT}/test_check_doc_api_symbols.py)
+
+# The other half of the same claim: `doc_api_symbols` judges names, this compiles signatures. A page
+# can pass the symbol index and still teach a `xy_sht30_init()` with three parameters.
+add_test(NAME doc_samples_compile
+    COMMAND python3 ${UNIT_SUPPORT}/check_doc_samples_compile.py --cc ${CMAKE_C_COMPILER})
+
+add_test(NAME doc_samples_compile_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_doc_samples_compile.py)
+
+# A third claim about the same pages: `doc_api_symbols` judges the names in a snippet,
+# `doc_samples_compile` its signatures, and this one whether a reader can follow any of it. The
+# front door navigated to a planned tree (`build-system/`, `testing/`, one page per HAL peripheral)
+# that was never written, and the site config navigated to the same one.
+add_test(NAME doc_relative_links
+    COMMAND python3 ${UNIT_SUPPORT}/check_doc_relative_links.py)
+
+add_test(NAME doc_relative_links_unit
+    COMMAND python3 ${UNIT_SUPPORT}/test_check_doc_relative_links.py)
 
 add_test(NAME include_guard_collisions
     COMMAND python3 ${UNIT_SUPPORT}/check_include_guard_collisions.py)
@@ -2710,6 +2512,19 @@ xy_add_unit_test(test_at_server at_server UNITY
     ${NET}/at/ats/xy_ats_hash.c
 )
 target_include_directories(test_at_server PRIVATE ${TRACE}/xy_log/inc)
+
+# --- Test 32a: the client and the server speak one vocabulary ---
+# Includes both headers in one translation unit on purpose: that is the case that used to define
+# struct at_dev_ops twice. Only the headers are needed - the assertions are about the types.
+xy_add_unit_test(test_at_common at_common UNITY
+    ${UNIT_NET}/test_at_common_contract.c
+)
+target_include_directories(test_at_common PRIVATE
+    ${NET}/at
+    ${NET}/at/atc/core
+    ${NET}/at/ats
+    ${TRACE}/xy_log/inc
+)
 
 # --- Test 32b: AT URC dispatcher (handler lifecycle, match modes, poll path) ---
 xy_add_unit_test(test_at_urc at_urc UNITY
@@ -3227,7 +3042,6 @@ xy_add_unit_test(test_fg_bq27z746 fg_bq27z746 UNITY
 target_include_directories(test_fg_bq27z746 PRIVATE
     ${ROOT}/components/fuel_gauge/drivers
     ${ROOT}/components/fuel_gauge/inc
-    ${SENSOR}/inc
 )
 
 # --- Test 45: BQ40Z50 fuel gauge driver host guard ---
@@ -3243,7 +3057,6 @@ xy_add_unit_test(test_fg_bq40z50 fg_bq40z50 UNITY
 target_include_directories(test_fg_bq40z50 PRIVATE
     ${ROOT}/components/fuel_gauge/drivers
     ${ROOT}/components/fuel_gauge/inc
-    ${SENSOR}/inc
 )
 
 # --- Test 46: MAX17043 fuel gauge driver host guard ---
@@ -3260,7 +3073,6 @@ target_include_directories(test_fg_max17043 PRIVATE
     ${ROOT}/components/fuel_gauge/drivers
     ${ROOT}/components/fuel_gauge/inc
     ${DEV}/inc
-    ${SENSOR}/inc
 )
 
 # --- Test 47: BQ27Z561 fuel gauge driver host guard ---
@@ -3276,7 +3088,6 @@ xy_add_unit_test(test_fg_bq27z561 fg_bq27z561 UNITY
 target_include_directories(test_fg_bq27z561 PRIVATE
     ${ROOT}/components/fuel_gauge/drivers
     ${ROOT}/components/fuel_gauge/inc
-    ${SENSOR}/inc
 )
 
 # --- Test 48: Fuel Gauge SMBus board-validation smoke skeleton ---
@@ -3293,7 +3104,6 @@ xy_add_unit_test(test_fuel_gauge_smbus_hardware_smoke_example fuel_gauge_smbus_h
 target_include_directories(test_fuel_gauge_smbus_hardware_smoke_example PRIVATE
     ${ROOT}/components/fuel_gauge/drivers
     ${ROOT}/components/fuel_gauge/inc
-    ${SENSOR}/inc
 )
 
 # --- Test 49: Unity + FFF framework smoke guard ---

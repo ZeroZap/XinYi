@@ -59,8 +59,8 @@ static int sensor_handler(const xy_broker_msg_t *msg, void *user_data)
 void broker_example(void)
 {
     xy_broker_init();
-    xy_broker_register_server(XY_BROKER_SERVER_SENSOR, "sensor", sensor_handler, NULL);
-    xy_broker_subscribe(XY_BROKER_SERVER_SENSOR, XY_BROKER_TOPIC_SENSOR_DATA,
+    xy_broker_register_server(XY_BROKER_SERVER_SENSOR, sensor_handler, NULL);
+    xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA, XY_BROKER_SERVER_SENSOR,
                         sensor_handler, NULL);
 
     xy_broker_msg_t msg = {
@@ -69,7 +69,8 @@ void broker_example(void)
         .topic_id = XY_BROKER_TOPIC_SENSOR_DATA,
         .payload_len = 0U,
     };
-    (void)xy_broker_publish(&msg);
+    (void)xy_broker_publish(msg.src_server, msg.topic_id, msg.msg_id,
+                            NULL, msg.payload_len, 0U);
 
     xy_broker_deinit();
 }
@@ -142,6 +143,7 @@ void observer_example(void)
 
 ```c
 #include "xy_event_group.h"
+#include <stddef.h>
 
 void event_group_example(void)
 {

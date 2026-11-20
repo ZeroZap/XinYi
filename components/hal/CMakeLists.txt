@@ -12,6 +12,16 @@ if(HAL_PLATFORM STREQUAL "PC")
         PC/xy_hal_rtc_pc.c
         PC/xy_hal_spi_pc.c
         PC/xy_hal_uart_pc.c
+        # ADC and DAC are simulated too, so a host consumer of either family links against the same
+        # `xy_hal` target the MCU builds produce instead of only against the unit-test fixture.
+        PC/xy_hal_adc_pc.c
+        PC/xy_hal_dac_pc.c
+        # The same rule caught two older omissions: the DMA and timer backends were compiled by the
+        # standalone `xy_hal_pc` library and by the unit fixture but never by this target, so a host
+        # application that called xy_hal_timer_init() or xy_hal_dma_init() did not link while the
+        # host suite was green.
+        PC/xy_hal_dma_pc.c
+        PC/xy_hal_timer_pc.c
     )
     set(HAL_DEFINES
         HAL_PLATFORM_PC
@@ -208,5 +218,26 @@ target_compile_definitions(xy_hal PRIVATE ${HAL_DEFINES})
 # Add STM32U5 HAL include directory if path is provided
 if(DEFINED STM32U5_HAL_PATH)
     target_include_directories(xy_hal PRIVATE ${STM32U5_HAL_PATH}/Inc)
+endif()
+
+# =============================================================================
+# Board-side reading sample
+# =============================================================================
+# `stm32/example_usage.c` was a "sample" that no target compiled: its only build
+# reference was `stm32/CMakeLists.txt`, a standalone 2025-10 project that nothing
+# add_subdirectory()s (verified against a `--trace-expand` configure: only
+# `components/hal` is entered, never `components/hal/stm32`). Nothing read the file,
+# so it drifted until its own body no longer compiled: it used `UART_HandleTypeDef`
+# and the RTC API without including either header, and the template project that
+# referenced it listed `../inc/xy_hal_pin.h`, a header that no longer exists.
+#
+# Compiling it in every STM32 build is what makes the sample a claim instead of
+# prose. `STM32_HAL_ENABLED` gates the body, and it is a HAL_DEFINES entry for F4/L4
+# but not for U5, so it is added here explicitly - an empty translation unit would
+# pass this target while checking nothing.
+if(HAL_PLATFORM MATCHES "^STM32")
+    add_library(xy_hal_stm32_example OBJECT "${CMAKE_CURRENT_SOURCE_DIR}/stm32/example_usage.c")
+    target_link_libraries(xy_hal_stm32_example PRIVATE xy_hal)
+    target_compile_definitions(xy_hal_stm32_example PRIVATE ${HAL_DEFINES} STM32_HAL_ENABLED)
 endif()
 

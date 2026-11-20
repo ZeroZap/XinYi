@@ -123,9 +123,26 @@
 ```c
 #include "xy_hal_uart.h"
 
-void *uart = xy_hal_uart_open(UART_PORT_1, 115200);
-xy_hal_uart_send(uart, data, len, 1000);
-xy_hal_uart_close(uart);
+/* 句柄由平台给出（板上是 &huart2），HAL 只使用它，不分配它 */
+void uart_demo(void *uart)
+{
+    xy_hal_uart_config_t config = {
+        .baudrate = 115200,
+        .wordlen  = XY_HAL_UART_WORDLEN_8B,
+        .stopbits = XY_HAL_UART_STOPBITS_1,
+        .parity   = XY_HAL_UART_PARITY_NONE,
+        .flowctrl = XY_HAL_UART_FLOWCTRL_NONE,
+        .mode     = XY_HAL_UART_MODE_TX_RX,
+    };
+    uint8_t buffer[16];
+
+    if (xy_hal_uart_init(uart, &config) != XY_HAL_OK) {
+        return;
+    }
+    xy_hal_uart_send(uart, (const uint8_t *)"Hello, XinYi!\n", 14, 100);
+    xy_hal_uart_recv(uart, buffer, sizeof(buffer), 100);
+    xy_hal_uart_deinit(uart);
+}
 ```
 
 ---
@@ -296,7 +313,7 @@ xy_log_e("错误：操作失败\n");
 
 | 组件 | 位置 | 用途 |
 |------|------|------|
-| **电池管理** | `components/Bank/` | 电源银行、电池充电、电量计 |
+| **电池管理** | 独立产品线（本仓尚无组件目录） | 电源银行、电池充电、电量计 |
 | **状态机** | `components/sys/` | 分层状态机框架 |
 | **定时器系统** | `components/sys/xy_timer/` | 软件定时器、调度 |
 | **IPC** | `components/ipc/` | 进程间通信 |
@@ -598,7 +615,7 @@ make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON;FOTA_ENABLED=ON"
 ### 提交代码前
 
 1. **阅读文档**
-   - [RULEBOOK.md](docs/rules/RULEBOOK.md) - 开发规则
+   - [RULEBOOK.md](../rules/RULEBOOK.md) - 开发规则
    - [code_style.md](../../code_style.md) - 编码标准
 
 2. **格式化代码**
@@ -625,7 +642,7 @@ make configure KCONFIG_OVERRIDES="COMPONENT_CRYPTO=ON;FOTA_ENABLED=ON"
 
 ### 代码审查清单
 
-- [ ] 遵循编码标准 (code_style.md)
+- [ ] 遵循编码标准 (xy_code_style.md)
 - [ ] 使用 clang-format 格式化
 - [ ] 所有函数都有 Doxygen 文档
 - [ ] 使用 `xy_log_*()` 进行日志记录
@@ -704,9 +721,9 @@ Fixes: #issue_number
 
 ### 文档
 
-- **主 README**: [ReadMe.md](ReadMe.md)
-- **中文 README**: [ReadMe-cn.md](ReadMe-cn.md)
-- **开发规则**: [RULEBOOK.md](docs/rules/RULEBOOK.md)
+- **主 README**: [README.md](../../README.md)
+- **中文规则**: [RULEBOOK.zh-CN.md](../rules/RULEBOOK.zh-CN.md)
+- **开发规则**: [RULEBOOK.md](../rules/RULEBOOK.md)
 - **编码标准**: [code_style.md](../../code_style.md)
 - **组件文档**: 各组件目录中的 README.md
 
@@ -757,6 +774,9 @@ Fixes: #issue_number
 ### 有用的命令
 
 ```bash
+# 格式化所有 C 文件
+find . -name "*.c" -o -name "*.h" | xargs clang-format -i
+
 # 运行所有测试
 make test
 

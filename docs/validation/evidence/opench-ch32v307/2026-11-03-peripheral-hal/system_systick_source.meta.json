@@ -1,0 +1,10 @@
+{
+  "status": "B1_REVIEW_CANDIDATE",
+  "device": "/dev/ttyACM0",
+  "firmware_commit": "23e544b2daa07e3805e51363d803048240c911ed",
+  "bytes_captured": 114,
+  "capture_sha256": "0cc927f7976ac28b76162c033304b717fedca3aeb6079250d951b0b4efc7d5b8",
+  "required_markers": [
+    "OPENCH_SYS_SYSTICK_HCLK8_TIME_OK_A"
+  ]
+}

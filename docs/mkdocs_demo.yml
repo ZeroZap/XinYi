@@ -103,7 +103,7 @@ nav:
   
   - Contributing:
     - 'Guide': 'contribute/guide.md'
-    - 'Code Style': 'contribute/code-style.md'
+    - 'Code Style': 'https://github.com/ZeroZap/XinYi/blob/main/code_style.md'
     - 'Pull Requests': 'contribute/pull-requests.md'
 
 plugins:

@@ -35,9 +35,10 @@ PC = ROOT / "components" / "hal" / "PC"
 
 FAMILIES = {
     "gpio": "xy_hal_gpio", "uart": "xy_hal_uart", "i2c": "xy_hal_i2c",
-    "spi": "xy_hal_spi", "adc": "xy_hal_adc", "rtc": "xy_hal_rtc",
-    "dma": "xy_hal_dma", "timer": "xy_hal_timer", "pwm": "xy_hal_pwm",
-    "flash": "xy_hal_flash", "exti": "xy_hal_exti", "sys": "xy_hal_sys",
+    "spi": "xy_hal_spi", "adc": "xy_hal_adc", "dac": "xy_hal_dac",
+    "rtc": "xy_hal_rtc", "dma": "xy_hal_dma", "timer": "xy_hal_timer",
+    "pwm": "xy_hal_pwm", "flash": "xy_hal_flash", "exti": "xy_hal_exti",
+    "sys": "xy_hal_sys",
 }
 
 PREFIXES = "|".join(sorted({prefix.split("_")[2] for prefix in FAMILIES.values()}))
@@ -47,22 +48,12 @@ DEFINITION = re.compile(
     rf"\b(xy_hal_(?:{PREFIXES})_\w+)\s*\([^;{{]*?\)\s*\{{", re.S)
 
 PC_MISSING = {
-    "adc": {
-        "xy_hal_adc_calibrate", "xy_hal_adc_config_channels", "xy_hal_adc_control",
-        "xy_hal_adc_deinit", "xy_hal_adc_disable_temp_sensor", "xy_hal_adc_disable_vbat",
-        "xy_hal_adc_disable_vrefint", "xy_hal_adc_disable_window_watchdog", "xy_hal_adc_enable_temp_sensor",
-        "xy_hal_adc_enable_vbat", "xy_hal_adc_enable_vrefint", "xy_hal_adc_enable_window_watchdog",
-        "xy_hal_adc_event_handler", "xy_hal_adc_get_continuous", "xy_hal_adc_get_max_value",
-        "xy_hal_adc_get_oversampling", "xy_hal_adc_get_prescaler", "xy_hal_adc_get_resolution",
-        "xy_hal_adc_get_sampling_time", "xy_hal_adc_get_state", "xy_hal_adc_get_temp_value",
-        "xy_hal_adc_get_trigger", "xy_hal_adc_get_vbat_value", "xy_hal_adc_get_vrefint_value",
-        "xy_hal_adc_get_window_threshold", "xy_hal_adc_init", "xy_hal_adc_read",
-        "xy_hal_adc_read_dma", "xy_hal_adc_read_multi", "xy_hal_adc_read_nb",
-        "xy_hal_adc_register_callback", "xy_hal_adc_set_continuous", "xy_hal_adc_set_oversampling",
-        "xy_hal_adc_set_prescaler", "xy_hal_adc_set_sampling_time", "xy_hal_adc_set_trigger",
-        "xy_hal_adc_set_window_threshold", "xy_hal_adc_start", "xy_hal_adc_stop",
-        "xy_hal_adc_value_to_mv",
-    },
+    # The ADC and DAC families are claims, not omissions: the PC backend implements the whole header
+    # for both, which is what makes an ADC/DAC consumer host-testable instead of silently missing
+    # sixty-four entries the rest of the tree builds against. An empty set here means "everything",
+    # and the guard reports a family that stops being complete.
+    "adc": set(),
+    "dac": set(),
     "exti": {
         "xy_hal_exti_clear_pending", "xy_hal_exti_configure", "xy_hal_exti_deinit",
         "xy_hal_exti_disable", "xy_hal_exti_enable", "xy_hal_exti_generate_software_interrupt",

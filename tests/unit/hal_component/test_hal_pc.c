@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include "xy_hal_error.h"
+#include "xy_hal_adc.h"
+#include "xy_hal_dac.h"
 #include "xy_hal_dma.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_i2c.h"
@@ -637,6 +639,419 @@ static void test_rtc_pc_refuses_a_format_it_cannot_produce(void)
     (void)xy_hal_rtc_deinit((void *)31);
 }
 
+static int g_adc_event_count;
+static xy_hal_adc_evt_t g_adc_last_event;
+
+static void adc_event_callback(void *adc, xy_hal_adc_evt_t event, void *arg)
+{
+    (void)adc;
+    (void)arg;
+    g_adc_event_count++;
+    g_adc_last_event = event;
+}
+
+/*
+ * The ADC contract a host can actually check: the full scale follows the configured resolution, the
+ * raw value follows the voltage a test applied, a second read without a new conversion reports busy,
+ * a rejected channel batch leaves the previous sampling times alone, and the window watchdog is only
+ * raised for the watched channel outside its thresholds.
+ */
+static void test_adc_pc_conversion_and_channel_batch(void)
+{
+    static const xy_hal_adc_config_t config = {
+        .resolution = XY_HAL_ADC_RESOLUTION_12B,
+        .align = XY_HAL_ADC_DATAALIGN_RIGHT,
+        .scan_mode = XY_HAL_ADC_SCAN_DISABLE,
+        .continuous = XY_HAL_ADC_CONTINUOUS_DISABLE,
+        .trigger_src = XY_HAL_ADC_TRIGGER_SOFTWARE,
+        .clock_div = 4U,
+        .sampling_time = 3U,
+    };
+    static const xy_hal_adc_channel_config_t accepted[2] = {
+        { .channel = 1U, .rank = 1U, .sampling_time = 7U, .enabled = 1U },
+        { .channel = 2U, .rank = 2U, .sampling_time = 9U, .enabled = 1U },
+    };
+    /* The second entry is refused, so *neither* may be applied. */
+    static const xy_hal_adc_channel_config_t rejected[2] = {
+        { .channel = 3U, .rank = 1U, .sampling_time = 11U, .enabled = 1U },
+        { .channel = 200U, .rank = 2U, .sampling_time = 13U, .enabled = 1U },
+    };
+    xy_hal_adc_config_t bad = config;
+    uint8_t multi_channels[2] = { 0U, 1U };
+    uint32_t multi_values[2] = { 0U, 0U };
+    uint32_t dma_values[3] = { 0U, 0U, 0U };
+    int32_t multi_ret = 0;
+
+    g_adc_event_count = 0;
+
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_adc_init(NULL, &config));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_adc_init((void *)40, NULL));
+    /* A handle this backend never saw is not a silent zero. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_adc_read((void *)40, 0U, 10U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_adc_get_resolution((void *)40));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_hal_adc_get_max_value((void *)40));
+
+    bad.resolution = (xy_hal_adc_resolution_t)7;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_adc_init((void *)40, &bad));
+    bad = config;
+    bad.align = (xy_hal_adc_align_t)2;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_adc_init((void *)40, &bad));
+    bad = config;
+    bad.trigger_src = (xy_hal_adc_trigger_src_t)9;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_adc_init((void *)40, &bad));
+    bad = config;
+    bad.enable_vbat = 2U;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_adc_init((void *)40, &bad));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_init((void *)40, &config));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_ALREADY_INIT, xy_hal_adc_init((void *)40, &config));
+    TEST_ASSERT_EQUAL(XY_HAL_OK,
+                      xy_hal_adc_register_callback((void *)40, adc_event_callback, NULL));
+    TEST_ASSERT_EQUAL_INT(12, xy_hal_adc_get_resolution((void *)40));
+    TEST_ASSERT_EQUAL_UINT32(4095U, xy_hal_adc_get_max_value((void *)40));
+    /* An unset input reads 0 V, which is what an unconnected pin converts. */
+    TEST_ASSERT_EQUAL_INT(0, xy_hal_adc_read((void *)40, 0U, 10U));
+    TEST_ASSERT_EQUAL(1, g_adc_event_count);
+    TEST_ASSERT_EQUAL(XY_HAL_ADC_EVENT_EOC, g_adc_last_event);
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_pc_set_input((void *)40, 0U, 1650U));
+    TEST_ASSERT_EQUAL_UINT32(2047U, (uint32_t)xy_hal_adc_read((void *)40, 0U, 10U));
+    /* The conversion flag is consumed by the non-blocking read and not re-converted. */
+    TEST_ASSERT_EQUAL_INT(2047, xy_hal_adc_read_nb((void *)40, 0U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_BUSY, xy_hal_adc_read_nb((void *)40, 0U));
+    /* Calibration aborts the pending conversion, so the flag is gone again. */
+    TEST_ASSERT_EQUAL_INT(2047, xy_hal_adc_read((void *)40, 0U, 10U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_calibrate((void *)40));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_BUSY, xy_hal_adc_read_nb((void *)40, 0U));
+
+    TEST_ASSERT_EQUAL_UINT32(1649U, xy_hal_adc_value_to_mv((void *)40, 2047U, 3300U));
+    /* Full scale is the configured resolution, so the same voltage is not the same count twice. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_pc_set_vref((void *)40, 3300U));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_hal_adc_value_to_mv((void *)40, 4096U, 3300U));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_hal_adc_value_to_mv((void *)40, 2047U, 0U));
+
+    /* Sampling time starts from the config-wide value on every channel. */
+    TEST_ASSERT_EQUAL_INT(3, xy_hal_adc_get_sampling_time((void *)40, 1U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_adc_config_channels((void *)40, rejected, 2U));
+    TEST_ASSERT_EQUAL_INT(3, xy_hal_adc_get_sampling_time((void *)40, 3U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_config_channels((void *)40, accepted, 2U));
+    TEST_ASSERT_EQUAL_INT(7, xy_hal_adc_get_sampling_time((void *)40, 1U));
+    TEST_ASSERT_EQUAL_INT(9, xy_hal_adc_get_sampling_time((void *)40, 2U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_adc_config_channels((void *)40, NULL, 1U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_adc_config_channels((void *)40, accepted, 0U));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_set_trigger((void *)40, XY_HAL_ADC_TRIGGER_TIM2_CC2));
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ADC_TRIGGER_TIM2_CC2, xy_hal_adc_get_trigger((void *)40));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_adc_set_trigger((void *)40, (xy_hal_adc_trigger_src_t)9));
+    TEST_ASSERT_EQUAL(XY_HAL_OK,
+                      xy_hal_adc_set_continuous((void *)40, XY_HAL_ADC_CONTINUOUS_ENABLE));
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ADC_CONTINUOUS_ENABLE, xy_hal_adc_get_continuous((void *)40));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_set_prescaler((void *)40, 6U));
+    TEST_ASSERT_EQUAL_INT(6, xy_hal_adc_get_prescaler((void *)40));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_adc_set_prescaler((void *)40, 0U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_set_oversampling((void *)40, 4U));
+    TEST_ASSERT_EQUAL_INT(4, xy_hal_adc_get_oversampling((void *)40));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_set_sampling_time((void *)40, 2U, 15U));
+    TEST_ASSERT_EQUAL_INT(15, xy_hal_adc_get_sampling_time((void *)40, 2U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_adc_set_sampling_time((void *)40, 32U, 15U));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_start((void *)40));
+    TEST_ASSERT_EQUAL_INT(1, xy_hal_adc_get_state((void *)40));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_stop((void *)40));
+    TEST_ASSERT_EQUAL_INT(0, xy_hal_adc_get_state((void *)40));
+
+    multi_ret = xy_hal_adc_read_multi((void *)40, multi_channels, multi_values, 2U, 10U);
+    TEST_ASSERT_EQUAL_INT(2, multi_ret);
+    TEST_ASSERT_EQUAL_UINT32(2047U, multi_values[0]);
+    TEST_ASSERT_EQUAL_UINT32(0U, multi_values[1]);
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_adc_read_multi((void *)40, multi_channels, NULL, 2U, 10U));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_read_dma((void *)40, dma_values, 3U));
+    TEST_ASSERT_EQUAL_UINT32(2047U, dma_values[0]);
+    TEST_ASSERT_EQUAL_UINT32(0U, dma_values[2]);
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_adc_read_dma((void *)40, dma_values, 0U));
+
+    /* A second instance has its own full scale: 8-bit is 255, not the 12-bit 4095. */
+    bad = config;
+    bad.resolution = XY_HAL_ADC_RESOLUTION_8B;
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_init((void *)41, &bad));
+    TEST_ASSERT_EQUAL_UINT32(255U, xy_hal_adc_get_max_value((void *)41));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_pc_set_input((void *)41, 0U, 1650U));
+    TEST_ASSERT_EQUAL_UINT32(127U, (uint32_t)xy_hal_adc_read((void *)41, 0U, 10U));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_deinit((void *)41));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_adc_deinit((void *)41));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_deinit((void *)40));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT, xy_hal_adc_read((void *)40, 0U, 10U));
+}
+
+/*
+ * The window watchdog, the internal-sensor sources and event dispatch. The point of the sensor
+ * sources is that they refuse when the source was never enabled: a plausible constant is what a
+ * disconnected channel looks like on a real part, and it is unreadable as evidence.
+ */
+static void test_adc_pc_watchdog_and_internal_sources(void)
+{
+    static const xy_hal_adc_config_t config = {
+        .resolution = XY_HAL_ADC_RESOLUTION_12B,
+        .align = XY_HAL_ADC_DATAALIGN_RIGHT,
+        .scan_mode = XY_HAL_ADC_SCAN_DISABLE,
+        .continuous = XY_HAL_ADC_CONTINUOUS_DISABLE,
+        .trigger_src = XY_HAL_ADC_TRIGGER_SOFTWARE,
+        .sampling_time = 3U,
+    };
+    uint32_t low = 0U;
+    uint32_t high = 0U;
+
+    g_adc_event_count = 0;
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_init((void *)42, &config));
+    TEST_ASSERT_EQUAL(XY_HAL_OK,
+                      xy_hal_adc_register_callback((void *)42, adc_event_callback, NULL));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_set_window_threshold((void *)42, 1000U, 2000U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_get_window_threshold((void *)42, &low, &high));
+    TEST_ASSERT_EQUAL_UINT32(1000U, low);
+    TEST_ASSERT_EQUAL_UINT32(2000U, high);
+    /* A threshold above full scale describes a window the part cannot watch. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_adc_set_window_threshold((void *)42, 1000U, 4096U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_adc_set_window_threshold((void *)42, 2000U, 1000U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_adc_get_window_threshold((void *)42, NULL, &high));
+
+    /* Inside the window, on the watched channel: EOC only. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_enable_window_watchdog((void *)42, 1U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_pc_set_input((void *)42, 1U, 1500U));
+    (void)xy_hal_adc_read((void *)42, 1U, 10U);
+    TEST_ASSERT_EQUAL(1, g_adc_event_count);
+    TEST_ASSERT_EQUAL(XY_HAL_ADC_EVENT_EOC, g_adc_last_event);
+
+    /* Outside it: the watchdog is what distinguishes the sample from a normal conversion. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_pc_set_input((void *)42, 1U, 3000U));
+    TEST_ASSERT_EQUAL_UINT32(3722U, (uint32_t)xy_hal_adc_read((void *)42, 1U, 10U));
+    TEST_ASSERT_EQUAL(3, g_adc_event_count);
+    TEST_ASSERT_EQUAL(XY_HAL_ADC_EVENT_AWD, g_adc_last_event);
+
+    /* The same out-of-window voltage on an unwatched channel raises nothing. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_pc_set_input((void *)42, 2U, 3000U));
+    (void)xy_hal_adc_read((void *)42, 2U, 10U);
+    TEST_ASSERT_EQUAL(4, g_adc_event_count);
+    TEST_ASSERT_EQUAL(XY_HAL_ADC_EVENT_EOC, g_adc_last_event);
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_disable_window_watchdog((void *)42, 1U));
+    (void)xy_hal_adc_read((void *)42, 1U, 10U);
+    TEST_ASSERT_EQUAL(5, g_adc_event_count);
+    TEST_ASSERT_EQUAL(XY_HAL_ADC_EVENT_EOC, g_adc_last_event);
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_adc_enable_window_watchdog((void *)42, 32U));
+
+    /* None of the three internal sources was enabled, so none may report a reading. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED, xy_hal_adc_get_temp_value());
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED, xy_hal_adc_get_vrefint_value());
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED, xy_hal_adc_get_vbat_value());
+
+    xy_hal_adc_pc_set_temperature(3125);
+    xy_hal_adc_pc_set_vrefint(1200U);
+    xy_hal_adc_pc_set_vbat(3000U);
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_enable_temp_sensor());
+    TEST_ASSERT_EQUAL_INT(3125, xy_hal_adc_get_temp_value());
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_enable_vrefint());
+    TEST_ASSERT_EQUAL_INT(1489, xy_hal_adc_get_vrefint_value());
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_enable_vbat());
+    TEST_ASSERT_EQUAL_INT(3722, xy_hal_adc_get_vbat_value());
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_disable_temp_sensor());
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_disable_vrefint());
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_disable_vbat());
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED, xy_hal_adc_get_temp_value());
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED, xy_hal_adc_get_vrefint_value());
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED, xy_hal_adc_get_vbat_value());
+
+    /* An event the backend is handed from outside reaches the registered callback. */
+    xy_hal_adc_event_handler((void *)42, XY_HAL_ADC_EVENT_OVR, NULL);
+    TEST_ASSERT_EQUAL(6, g_adc_event_count);
+    TEST_ASSERT_EQUAL(XY_HAL_ADC_EVENT_OVR, g_adc_last_event);
+    /* ... and a handle this backend never saw delivers nothing rather than crashing. */
+    xy_hal_adc_event_handler((void *)99, XY_HAL_ADC_EVENT_OVR, NULL);
+    TEST_ASSERT_EQUAL(6, g_adc_event_count);
+
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED, xy_hal_adc_control((void *)42, 1U, NULL));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_adc_deinit((void *)42));
+}
+
+static int g_dac_ready_events;
+static xy_hal_dac_channel_t g_dac_last_channel;
+
+static void dac_ready_callback(void *dac, xy_hal_dac_channel_t channel, xy_hal_dac_event_t event,
+                               void *arg)
+{
+    (void)dac;
+    (void)arg;
+    TEST_ASSERT_EQUAL(XY_HAL_DAC_EVENT_READY, event);
+    g_dac_ready_events++;
+    g_dac_last_channel = channel;
+}
+
+/*
+ * The DAC contract: a value outside the configured resolution is refused rather than truncated, the
+ * alignment must match the one the channel was configured with, a software trigger is refused on a
+ * part configured for a timer trigger, and the waveform generators advance the latched value.
+ */
+static void test_dac_pc_output_contract(void)
+{
+    static const xy_hal_dac_config_t config = {
+        .resolution = XY_HAL_DAC_RESOLUTION_12B,
+        .align = XY_HAL_DAC_DATAALIGN_RIGHT,
+        .trigger_src = XY_HAL_DAC_TRIGGER_SOFTWARE,
+        .wave = XY_HAL_DAC_WAVE_NONE,
+        .buffer_enable = 1U,
+    };
+    static const uint32_t dma_samples[3] = { 100U, 200U, 300U };
+    static const uint32_t dma_bad[2] = { 100U, 5000U };
+    xy_hal_dac_config_t bad = config;
+    uint32_t seen = 0U;
+    uint32_t distinct = 0U;
+    uint32_t previous = 0xFFFFFFFFU;
+    int index;
+
+    g_dac_ready_events = 0;
+
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_dac_init(NULL, &config));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_dac_init((void *)60, NULL));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT,
+                      xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT,
+                      xy_hal_dac_set_value((void *)60, XY_HAL_DAC_CHANNEL_1, 1U,
+                                           XY_HAL_DAC_DATAALIGN_RIGHT));
+
+    bad.resolution = (xy_hal_dac_resolution_t)2;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_dac_init((void *)60, &bad));
+    bad = config;
+    bad.align = (xy_hal_dac_align_t)2;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_dac_init((void *)60, &bad));
+    bad = config;
+    bad.trigger_src = (xy_hal_dac_trigger_src_t)3;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_dac_init((void *)60, &bad));
+    bad = config;
+    bad.wave = (xy_hal_dac_wave_t)3;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_dac_init((void *)60, &bad));
+    bad = config;
+    bad.buffer_enable = 2U;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_dac_init((void *)60, &bad));
+    bad = config;
+    bad.resolution = XY_HAL_DAC_RESOLUTION_8B;
+    bad.align = XY_HAL_DAC_DATAALIGN_LEFT;
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_dac_init((void *)60, &bad));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_init((void *)60, &config));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_ALREADY_INIT, xy_hal_dac_init((void *)60, &config));
+    TEST_ASSERT_EQUAL_INT(0, xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1));
+
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_dac_set_value((void *)60, XY_HAL_DAC_CHANNEL_1, 4096U,
+                                           XY_HAL_DAC_DATAALIGN_RIGHT));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_dac_set_value((void *)60, XY_HAL_DAC_CHANNEL_1, 1U,
+                                           XY_HAL_DAC_DATAALIGN_LEFT));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_dac_set_value((void *)60, (xy_hal_dac_channel_t)2, 1U,
+                                           XY_HAL_DAC_DATAALIGN_RIGHT));
+    TEST_ASSERT_EQUAL(XY_HAL_OK,
+                      xy_hal_dac_set_value((void *)60, XY_HAL_DAC_CHANNEL_1, 4095U,
+                                           XY_HAL_DAC_DATAALIGN_RIGHT));
+    TEST_ASSERT_EQUAL_INT(4095, xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_register_callback((void *)60, XY_HAL_DAC_CHANNEL_2,
+                                                              dac_ready_callback, NULL));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_start_output((void *)60, XY_HAL_DAC_CHANNEL_2));
+    TEST_ASSERT_EQUAL(1, g_dac_ready_events);
+    TEST_ASSERT_EQUAL(XY_HAL_DAC_CHANNEL_2, g_dac_last_channel);
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_stop_output((void *)60, XY_HAL_DAC_CHANNEL_2));
+
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_dac_software_trigger((void *)60, XY_HAL_DAC_CHANNEL_1));
+
+    /* Triangle: from 0 it climbs to the programmed amplitude, then turns around. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_set_value((void *)60, XY_HAL_DAC_CHANNEL_1, 0U,
+                                                      XY_HAL_DAC_DATAALIGN_RIGHT));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_dac_generate_triangle((void *)60, XY_HAL_DAC_CHANNEL_1, 0U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_dac_generate_triangle((void *)60, XY_HAL_DAC_CHANNEL_1, 4096U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK,
+                      xy_hal_dac_generate_triangle((void *)60, XY_HAL_DAC_CHANNEL_1, 7U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_start_output((void *)60, XY_HAL_DAC_CHANNEL_1));
+    for (index = 0; index < 3; index++) {
+        TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_software_trigger((void *)60, XY_HAL_DAC_CHANNEL_1));
+    }
+    TEST_ASSERT_EQUAL_INT(3, xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1));
+    for (index = 0; index < 4; index++) {
+        (void)xy_hal_dac_software_trigger((void *)60, XY_HAL_DAC_CHANNEL_1);
+    }
+    TEST_ASSERT_EQUAL_INT(7, xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_software_trigger((void *)60, XY_HAL_DAC_CHANNEL_1));
+    TEST_ASSERT_EQUAL_INT(6, xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1));
+    for (index = 0; index < 6; index++) {
+        (void)xy_hal_dac_software_trigger((void *)60, XY_HAL_DAC_CHANNEL_1);
+    }
+    TEST_ASSERT_EQUAL_INT(0, xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_software_trigger((void *)60, XY_HAL_DAC_CHANNEL_1));
+    TEST_ASSERT_EQUAL_INT(1, xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1));
+
+    /* Noise: bounded by the programmed mask, and not a constant. */
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_dac_generate_noise((void *)60, XY_HAL_DAC_CHANNEL_1, 12U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_generate_noise((void *)60, XY_HAL_DAC_CHANNEL_1, 5U));
+    for (index = 0; index < 8; index++) {
+        (void)xy_hal_dac_software_trigger((void *)60, XY_HAL_DAC_CHANNEL_1);
+        seen = (uint32_t)xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1);
+        TEST_ASSERT_LESS_OR_EQUAL_UINT32(63U, seen);
+        if (seen != previous) {
+            distinct++;
+            previous = seen;
+        }
+    }
+    TEST_ASSERT_GREATER_THAN_UINT32(1U, distinct);
+
+    /* A trigger configured for a timer is not a software trigger. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_deinit((void *)60));
+    bad = config;
+    bad.trigger_src = XY_HAL_DAC_TRIGGER_TIMER;
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_init((void *)60, &bad));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_start_output((void *)60, XY_HAL_DAC_CHANNEL_1));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_SUPPORTED,
+                      xy_hal_dac_software_trigger((void *)60, XY_HAL_DAC_CHANNEL_1));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_stop_output((void *)60, XY_HAL_DAC_CHANNEL_1));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_dac_software_trigger((void *)60, XY_HAL_DAC_CHANNEL_1));
+
+    /* DMA: the host completes the transfer synchronously, and refuses a sample set it cannot honour
+     * instead of writing the part of it that happens to fit. */
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_output_dma((void *)60, XY_HAL_DAC_CHANNEL_1,
+                                                       dma_samples, 3U));
+    TEST_ASSERT_EQUAL_INT(300, xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_dac_output_dma((void *)60, XY_HAL_DAC_CHANNEL_1, dma_bad, 2U));
+    TEST_ASSERT_EQUAL_INT(300, xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_dac_output_dma((void *)60, XY_HAL_DAC_CHANNEL_1, dma_samples, 0U));
+
+    TEST_ASSERT_EQUAL_UINT32(1650U, xy_hal_dac_value_to_mv((void *)60, 2048U, 3300U));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_hal_dac_value_to_mv((void *)60, 4096U, 3300U));
+
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_dac_deinit((void *)60));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_NOT_INIT,
+                      xy_hal_dac_get_value((void *)60, XY_HAL_DAC_CHANNEL_1));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -652,5 +1067,8 @@ int main(void)
     RUN_TEST(test_rtc_pc_refuses_a_format_it_cannot_produce);
     RUN_TEST(test_rtc_backup_register_pc_contract);
     RUN_TEST(test_sys_irq_control_pc_contract);
+    RUN_TEST(test_adc_pc_conversion_and_channel_batch);
+    RUN_TEST(test_adc_pc_watchdog_and_internal_sources);
+    RUN_TEST(test_dac_pc_output_contract);
     return UNITY_END();
 }

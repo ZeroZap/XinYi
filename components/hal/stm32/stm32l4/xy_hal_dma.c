@@ -238,7 +238,7 @@ xy_hal_error_t xy_hal_dma_stop(void *dma)
     if (find_context(dma) == NULL) {
         return XY_HAL_ERROR_NOT_INIT;
     }
-    return HAL_DMA_Abort((DMA_HandleTypeDef *)dma) == XY_HAL_OK ? XY_HAL_OK : XY_HAL_ERROR_FAIL;
+    return HAL_DMA_Abort((DMA_HandleTypeDef *)dma) == HAL_OK ? XY_HAL_OK : XY_HAL_ERROR_FAIL;
 }
 
 xy_hal_error_t xy_hal_dma_register_callback(void *dma, xy_hal_dma_event_t event,

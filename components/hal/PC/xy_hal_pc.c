@@ -36,6 +36,19 @@ void xy_hal_delay_ms(uint32_t ms)
 }
 
 /**
+ * @brief Delay in microseconds (PC simulation)
+ *
+ * The companion of xy_hal_delay_ms(): xy_hal_delay.h declares both, and the
+ * STM32L4 and WCH backends implement both, but this file only carried the
+ * millisecond half. A host consumer that called xy_hal_delay_us() - the LCD
+ * pulse-width paths do - therefore failed to link against the PC backend.
+ */
+void xy_hal_delay_us(uint32_t us)
+{
+    usleep(us);
+}
+
+/**
  * @brief Get system tick count (PC simulation)
  */
 uint32_t xy_hal_sys_get_tick_count(void)

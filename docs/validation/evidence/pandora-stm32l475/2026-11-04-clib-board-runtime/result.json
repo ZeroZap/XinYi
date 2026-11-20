@@ -1,0 +1,36 @@
+{
+  "board": "pandora_stm32l475",
+  "chip": "STM32L475VE",
+  "component": "Clib",
+  "source_commit": "da9175f1ec1f97e48349a538776262becc4989d9",
+  "image": "pandora_stm32l475_clib.bin",
+  "image_sha256": "7eee11ac63a99f9a73f4b01c241584536ef5373b5bbad41d256d72e1275b6fc8",
+  "image_size_bytes": 7948,
+  "program_address": "0x08000000",
+  "program_log": "program.json",
+  "uart_capture": "uart.txt",
+  "uart_port": "/dev/ttyUSB0 (CP2102, 115200 8N1)",
+  "stlink": "V2J24S11 / 066AFF313933554D43244015, chipid 0x415",
+  "checks": [
+    {"name": "frame", "marker": "PANDORA_CLIB_FRAME_OK_A", "verdict": "ok",
+     "detail": "CRC-8/ATM check value 0xF4 over \"123456789\"; a transposition changes the checksum; encode/decode round-trip with type+payload intact; the wire checksum is recomputed independently over type+payload and matches; a corrupted checksum is rejected; a start byte inside the payload does not split the frame; an undersized buffer and an over-long payload are both refused; noise before a frame is ignored and the next frame still decodes; an impossible length is rejected"},
+    {"name": "civil", "marker": "PANDORA_CLIB_CIVIL_OK_A", "verdict": "ok",
+     "detail": "the epoch is day zero and seconds_from_epoch at midnight is 0; 2000-03-01 is day 11017 and 2026-11-03 is day 20760; the time of day is included in the seconds; February has 28 days in 2026, 29 in 2024 and 1900 has 28 while 2000 has 29; March has 31 days and April 30; the inverse from_days round-trips for 20760, 0 and 11017; the weekday is 4 (Thursday) at the epoch and 2 (Tuesday) on 2026-11-03"},
+    {"name": "bcd", "marker": "PANDORA_CLIB_BCD_OK_A", "verdict": "ok",
+     "detail": "8-bit BCD known values 0/9/10/99; decode 0x42 to 42; a nibble above nine is refused; 16-bit BCD 1234 and decode 0x5678; an invalid 16-bit nibble is refused; the RTC year is a full year (0x26 BCD and 0x1A binary both decode to 2026, 0x1A read as BCD is refused as -1); encode produces the register spelling (0x26 BCD, 26 binary); a year outside the register's century is refused rather than truncated"},
+    {"name": "mask", "marker": "PANDORA_CLIB_MASK_OK_A", "verdict": "ok",
+     "detail": "requiring every field skips nothing and requiring none skips everything; the inversion is per field; every representable mask round-trips through skip and back; a mask asking for a field the backend cannot compare is refused"}
+  ],
+  "terminal_marker": "B1_CLIB_BOARD_RUNTIME_PASS",
+  "restart_cycles": {
+    "rounds": 8,
+    "pass_each_round": true,
+    "checks_per_round": 4
+  },
+  "board_restored": {
+    "snapshot": "/tmp/clib_hil/state-s0.json",
+    "result": "restore_ok regions=4",
+    "regions_identical": ["bootloader", "application", "fota_metadata", "board_reserved"]
+  },
+  "status": "B1_REVIEW_CANDIDATE"
+}

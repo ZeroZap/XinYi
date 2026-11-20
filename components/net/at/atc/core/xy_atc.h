@@ -17,64 +17,11 @@
 #define AT_VERSION_MINOR 0
 #define AT_VERSION_PATCH 0
 
-/* ==================== Response End Markers ==================== */
-
-/**
- * @brief OK response string
- */
-#ifndef AT_RESP_OK_STR
-#define AT_RESP_OK_STR "OK"
-#endif
-
-/**
- * @brief ERROR response string
- */
-#ifndef AT_RESP_ERROR_STR
-#define AT_RESP_ERROR_STR "ERROR"
-#endif
-
-/**
- * @brief Line ending for commands
- */
-#ifndef AT_CMD_LINE_END
-#define AT_CMD_LINE_END "\r\n"
-#endif
-
-/**
- * @brief Command prefix
- */
-#ifndef AT_CMD_PREFIX
-#define AT_CMD_PREFIX "AT"
-#endif
-
-
-typedef enum {
-    at_state_init,
-    at_state_idle,
-    at_state_sending,
-    at_state_receiving,
-    at_state_error,
-    at_state_data_mode,
-} at_state_t;
-
-struct at_dev_attr {
-    uint16_t recv_size;
-    uint16_t send_size;
-    void *user_data;
-};
-typedef struct at_dev_attr *at_dev_attr_t;
-
-struct at_dev_ops {
-    /** read from device ring buffer. */
-    int (*read)(void *buffer, int len);
-    /** write to device */
-    int (*write)(const void *buffer, int len);
-    /** cmd: power on, power off, enter sleep. */
-    int (*control)(int cmd, void *args);
-    /** dev ops attr */
-    at_dev_attr_t attr;
-};
-typedef struct at_dev_ops *at_dev_ops_t;
+/* The vocabulary this side shares with the AT server: response strings, the line ending, the command
+ * prefix, and the transport description. Defined once, in at_common.h, because the server needs the
+ * same words and two identical copies of a definition are not a redundancy but a second thing to keep
+ * in step. */
+#include "at_common.h"
 
 struct atc_client;
 
@@ -93,12 +40,15 @@ enum atc_status {
 };
 typedef enum atc_status atc_status_t;
 
-enum {
+/* The enum needs a tag: `typedef enum atc_resp_status ...` names a type that does not exist, because
+ * an untagged enum has no name to refer to. The member below then fails with "incomplete type", which
+ * is how this header turned out to be uncompilable on its own. */
+enum atc_resp_status {
     atc_resp_status_ok        = 0,
     atc_resp_status_error     = -1,
     atc_resp_status_timeout   = -2,
     atc_resp_status_buff_full = -3,
-} atc_resp_status;
+};
 typedef enum atc_resp_status atc_resp_status_t;
 
 struct atc_response {

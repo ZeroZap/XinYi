@@ -561,7 +561,7 @@ fee_status_t fee_get_info(fee_handle_t *handle,
  * @brief Flash EEPROM Emulation 实现
  */
 
-#include "fee.h"
+#include "xy_fee.h"
 #include <string.h>
 
 /* ============ 全局变量 ============ */
@@ -1117,7 +1117,7 @@ fee_status_t fee_get_info(fee_handle_t *handle,
  * @brief FEE完整测试套件
  */
 
-#include "fee.h"
+#include "xy_fee.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -1953,8 +1953,11 @@ int main(void) {
 
 #### 1. 定义虚拟EEPROM
 
+> 本树中的 FEE 头文件是 `components/dm/fee/inc/xy_fee.h`（不是 `fee.h`），下文所有
+> `fee_*` 入口都由它声明。
+
 ```c
-#include "fee.h"
+#include "xy_fee.h"
 
 // 定义256字节的虚拟EEPROM
 uint8_t virtual_eeprom[256];
@@ -2133,8 +2136,9 @@ fee_config_t config = {
 
 ```c
 // Flash: 4KB/sector, 写入颗粒4字节
-#include "esp_partition.h"
-
+// 下面两个入口是 ESP-IDF 自带的（本仓库不含 esp_partition.h），这里只说明
+// flash_ops 的对应关系：erase 映射到 esp_partition_erase_range，write 映射到
+// esp_partition_write。
 const esp_partition_t *partition;
 
 int esp32_erase(uint32_t addr) {

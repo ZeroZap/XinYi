@@ -1,0 +1,11 @@
+{
+  "board": "opench_ch32v307",
+  "chip": "CH32V30x",
+  "firmware_commit": "03798d98",
+  "elf_sha256": "1ab7b608d7fb35b74b251c744353ba6e255ee07869fd76a9ba5a41870878ac84",
+  "programmed_verified_reset": true,
+  "capture_port": "/dev/ttyACM0",
+  "marker": "OPENCH_FLASH_PAGE_RW_OK",
+  "marker_count": 2,
+  "status": "B1_REVIEW_CANDIDATE"
+}

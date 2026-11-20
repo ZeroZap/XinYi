@@ -128,7 +128,7 @@ EXEMPTIONS = {
     "tests/unit/hal_component/check_osal_backend_advertise.py":
         "lists which backend directories contain .c files; no C source content is parsed - the "
         "judgement is about CMake branches and directory names",
-    "tests/unit/hal_component/test_osal_backend_advertise.py":
+    "tests/unit/hal_component/test_check_osal_backend_advertise.py":
         "writes throwaway CMake fixtures that happen to name a .c source, then asserts on which target "
         "names the guard collects; no C source is read or parsed",
     "tests/unit/check_pc_artifact_reproducibility.py":

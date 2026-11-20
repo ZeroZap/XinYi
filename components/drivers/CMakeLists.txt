@@ -33,6 +33,7 @@ include_directories(
     sensor/adc/ina22x
     sensor/adc/ina228
     sensor/adc/ina229
+    sensor/motion/mpu6050
 )
 
 # ---------------------------------------------------------------------------

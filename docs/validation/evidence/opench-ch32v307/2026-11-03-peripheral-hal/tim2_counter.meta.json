@@ -1,0 +1,10 @@
+{
+  "status": "B1_REVIEW_CANDIDATE",
+  "device": "/dev/ttyACM0",
+  "firmware_commit": "23e544b2daa07e3805e51363d803048240c911ed",
+  "bytes_captured": 352,
+  "capture_sha256": "dac4a2f3590f9676258c4f65b6132faf87b1a042ee2f2be096a70a0522609a0c",
+  "required_markers": [
+    "OPENCH_TIM2_COUNTER_RUNNING_OK"
+  ]
+}

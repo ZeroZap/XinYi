@@ -634,9 +634,11 @@ Application Projects
 
 All code **MUST** follow:
 
-1. **[xy_code_style.md](xy_code_style.md)** - Detailed C coding conventions
-2. **[RULEBOOK.md](RULEBOOK.md)** - Development rules and guidelines
-3. **[.clang-format](.clang-format)** - Automated code formatting
+1. **[code_style.md](code_style.md)** - Detailed C coding conventions
+2. **[docs/rules/RULEBOOK.md](docs/rules/RULEBOOK.md)** - Development rules and guidelines
+3. **`.clang-format`** (repository root) - Automated code formatting. Not linked on purpose:
+   `.gitattributes` marks the file `export-ignore`, so the release archive (`git archive`) does not
+   carry it and a link to it is a dead end for anyone working from a release tarball.
 
 ### Quick Reference
 
@@ -838,8 +840,8 @@ Each component includes:
 ### Before Submitting Code
 
 1. **Read Documentation**
-   - [RULEBOOK.md](RULEBOOK.md) - Development rules
-   - [xy_code_style.md](xy_code_style.md) - Coding standards
+   - [docs/rules/RULEBOOK.md](docs/rules/RULEBOOK.md) - Development rules
+   - [code_style.md](code_style.md) - Coding standards
 
 2. **Format Code**
    ```bash
@@ -865,7 +867,7 @@ Each component includes:
 
 ### Code Review Checklist
 
-- [ ] Follows coding standards (xy_code_style.md)
+- [ ] Follows coding standards (code_style.md)
 - [ ] Formatted with clang-format
 - [ ] All functions documented with Doxygen
 - [ ] Uses `xy_log_*()` for logging
@@ -944,10 +946,10 @@ Fixes: #issue_number
 
 ### Documentation
 
-- **Main README**: [ReadMe.md](ReadMe.md)
-- **Chinese README**: [ReadMe-cn.md](ReadMe-cn.md)
-- **Development Rules**: [RULEBOOK.md](RULEBOOK.md)
-- **Coding Standards**: [xy_code_style.md](xy_code_style.md)
+- **Documentation Centre**: [docs/README.md](docs/README.md)
+- **Chinese Rules**: [docs/rules/RULEBOOK.zh-CN.md](docs/rules/RULEBOOK.zh-CN.md)
+- **Development Rules**: [docs/rules/RULEBOOK.md](docs/rules/RULEBOOK.md)
+- **Coding Standards**: [code_style.md](code_style.md)
 - **Component Docs**: Individual README.md in each component
 
 ### Getting Help

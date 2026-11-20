@@ -28,6 +28,8 @@ set(SOURCES
     xy_hal_rtc_pc.c
     xy_hal_irq_pc.c
     xy_hal_gpio_pc.c
+    xy_hal_adc_pc.c
+    xy_hal_dac_pc.c
 )
 
 # Create library

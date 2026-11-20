@@ -4,15 +4,19 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 213 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
+- Total C files under `tests/unit`: 203 (measured `find tests/unit -name '*.c' -not -path 'tests/unit/build/*'`;
   the sensor-sample slice added `test_sensor_demo_backend_stub.c`, the
-  `components/sensor/example/` slice added `test_sensor_example_bus_stub.c`, and the AT URC slice
-  added `test_at_urc_core.c`)
-- Unity-style files: 207 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
+  legacy `sensor_example_*` slice added `test_sensor_example_bus_stub.c`, the AT URC slice
+  added `test_at_urc_core.c`, the Modbus-Full slave slice added `test_modbus_full_slave.c`, and
+  the Modbus-Full master slice added `test_modbus_full_master.c`; the sensor-migration Slice B
+  batches retired one legacy test C file per retired driver, and the Slice E framework teardown
+  removed the two framework contract tests (`test_sensor_framework.c`, `test_sensor_bus.c`), all
+  folded into the re-measured total)
+- Unity-style files: 198 (measured `grep -l unity.h` over those files; the sensor stubs are helpers,
   not runners)
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
-- Plain/support helper C files without obvious Unity/assert markers: 6
+- Plain/support helper C files without obvious Unity/assert markers: 5
 - Registered CTest entries in `tests/unit/CMakeLists.txt`: 417 (measured: `ctest -N` on the
   `tests/unit` build tree reports `Total Tests: 417`. The C targets are registered through
   `xy_add_unit_test(...)`, so `add_test` calls in this file are only the explicit Python/board
@@ -20,17 +24,137 @@
   `release_facts` gate); the fuel-gauge Kconfig slice took 407 → 409 (`kconfig_fragment_agreement`
   + `_unit`); the Device-dependency slice took 409 → 411 (`device_bus_dependency` +
   `device_bus_dependency_unit`); the sensor-sample slice took 411 → 412
-  (`sensor_device_example`, which compiles and runs `components/sensor/examples/sensor_demo.c`);
-  the `components/sensor/example/` slice took 412 → 415 (`sensor_example_basic`,
+  (`sensor_device_example`, which compiles and runs `components/drivers/sensor/examples/sensor_demo.c`);
+  the legacy `sensor_example_*` slice took 412 → 415 (`sensor_example_basic`,
   `sensor_example_advanced`, `sensor_example_multi`, each compiling and running one of
   `basic.c` / `advanced.c` / `example_multi_sensors.c`); the AT URC slice took 415 → 416 (`at_urc`,
   which compiles `at_urc.c` — previously referenced by no build at all — and runs it against the
   `at_client.c` `at_readline()` implementation); the AT quick-start slice took 416 → 417
   (`net_at_quickstart`, which compiles and runs `components/net/examples/at_client_quickstart.c` —
-  the sample `components/net/README.md` teaches — against the real `at_client.c`).
+  the sample `components/net/README.md` teaches — against the real `at_client.c`); the HAL
+  documentation slice took 417 → 418 (`hal_quickstart`, which compiles and runs
+  `components/hal/examples/hal_quickstart.c` — the sample `components/hal/README.md` and
+  `docs/hal/HAL_UNIFIED_API.md` teach — against the real PC HAL backend); the API-reference slice
+  took 418 → 420 (`doc_samples_compile`, which compiles `docs/api/API_REFERENCE.md`'s 13 fenced C
+  blocks against the headers the page documents, and `doc_samples_compile_unit`, its 12-case
+  self-test). The design-docs slice added no CTest entry but widened both documentation guards:
+  `doc_api_symbols` now sweeps `docs/design`'s thirteen undated pages and skips the thirty-two dated
+  decisions by filename (48 → 61 documents), with six new self-test cases (31 → 37), and
+  `doc_samples_compile` gained a content-anchored block selector so the project overview's corrected
+  `xy_hal_uart_*` sample is compiled instead of the module preamble and new-file template beside it
+  (1 → 2 documents, 12 → 16 blocks, self-test 12 → 16). The hardware-guide slice added no CTest
+  entry either, and again widened both guards: `doc_api_symbols` now sweeps `docs/hardware`'s five
+  pages (61 → 66 documents) and reads a `❌ 错误` block as a counter-example rather than a claim, so
+  the porting guide's "do not add a platform suffix" paragraph stops being reported as the defect it
+  documents (self-test 37 → 41); `doc_samples_compile` now requires **every** marker to still select
+  a block (an OR selector with one stale marker silently compiled a smaller set) and compiles
+  `docs/hardware/porting.md`'s naming contract and functional demo (2 → 3 documents, 16 → 19 blocks,
+  self-test 16 → 18). The relative-link slice took 420 → 422 (`doc_relative_links`, which judges
+  whether a reader can open what a page links to, and `doc_relative_links_unit`, its 30-case
+  self-test): the front door `docs/index.md` navigated a planned tree that was never written (66 of
+  its links dead), 21 entries in `docs/components/index.md` were written from the repository root
+  while the page sits one level down, and `docs/mkdocs.yml` offered 39 of 58 navigation entries for
+  pages that do not exist. The sweep covers 85 documents and 231 relative links; `docs/history`,
+  `docs/plans`, dated `docs/design` records and imported vendor READMEs are skipped with reasons.
+  The prose-claim slice added no CTest entry (still 422) and widened `doc_api_symbols` instead:
+  `docs/components`' seventeen introduction pages are now swept (66 → 83 documents) because every
+  API table in `docs/api/index.md` ends by pointing the reader at one, and the symbol rule no longer
+  only reads fenced blocks - a backticked `xy_*()` call in prose is judged too, against headers plus
+  the names this tree implements weakly or defines as CMake functions (`provided_symbols()`). The
+  self-test went 41 → 53 cases: the eleven new ones cover a prose claim, a parameter sketch, a bare
+  target name, an absence sentence, a table row whose 说明 says 删除任务, a placeholder, a weak seam,
+  a stale strong definition, the footprint of the new root, and a `main()` red/green pair.
+  The component-guide slice added no CTest entry either (still 422) and widened
+  `doc_samples_compile` from three documents and nineteen blocks to seventeen documents and
+  forty-eight blocks: `Sample` gained `per_block` (a guide teaches several complete programs, each
+  with its own `main()`), `fragments` (blocks that are templates, configuration preambles or half of
+  a two-block example, declared by content so an unlisted block is reported instead of silently
+  unread), `as_body` (a statement fragment wrapped in a function, with its `#include` hoisted and
+  blanked in place so diagnostics keep the page's line numbers) and `application` (the page may call
+  the reader's own functions, but an implicitly declared `xy_*` call is read back out of the compiler
+  warnings and reported). Two component pages remain deferred with their reasons printed on every
+  run, and `unlisted_pages()` reports a C-bearing component guide that is in neither list. The
+  self-test went 18 → 33 cases. The ADDC/PM page slice took 422 → 424 (`hal_adc_dac_surface`, which
+  measures how much of `xy_hal_adc.h` (40 declarations) and `xy_hal_dac.h` (14) each backend
+  actually defines — 28/12/40 for ADC on stm32f4/stm32u5/wch, 14/14/14 for DAC — and pins every
+  (backend, function) gap with a reason so both a regression and a stale pin are reported, plus
+  `hal_adc_dac_surface_unit`, its 11-case self-test); the same slice moved the last two deferred
+  component pages into `SAMPLES` (17 → 19 documents, 48 → 52 blocks, `DEFERRED` now empty with the
+  rules kept), so every C-bearing page under `docs/components` is compiled. The HAL umbrella slice
+  took 424 → 427: `hal_umbrella_coverage` (pins that `xy_hal.h` exports all 22 headers of
+  `components/hal/inc`, with an empty-but-kept exemption table so an omission has to carry a reason)
+  and `hal_umbrella_coverage_unit` (13 cases), plus `hal_header_self_containment`, which compiles
+  each header alone with `-Wall -Wextra -Werror` — the completed umbrella immediately exposed five
+  headers (`adc`, `can`, `dac`, `i2s`, `sys`) using `size_t` with no `<stddef.h>`, which took
+  seventeen headers down in the first build. The Modbus-Full slave slice took 427 → 428
+  (`modbus_full_slave`, 28 cases): `mb_full.c` is compiled into `xy_net` on every platform but had no
+  test at all, so its first host guard was also its first execution — and it failed 16 of 28 cases
+  on three structural defects (the PDU base passed to the frame parser was one byte past the unit
+  ID, responses were built into `slave->tx_buf` while the caller sent its own uninitialised stack
+  buffer, and the MBAP struct was cast straight over the wire buffer so the transaction id flipped on
+  a little-endian host). The target uses only in-file capture callbacks — no FFF — and builds every
+  request by hand so an external master's contract, not the component's own master path, is what
+  gets asserted. The Modbus-Full master slice took 428 → 429 (`modbus_full_master`, 10 cases): a
+  true loopback that feeds the master's outgoing frame into the slave and hands the slave's response
+  back, which was the master's first real execution — and it exposed the same structural class as
+  the slave (the MBAP request header was a struct cast straight over the buffer, so the transaction
+  id and length were byte-swapped and the slave rejected every TCP frame; TCP responses were parsed
+  with the RTU layout; RTU responses were never CRC-checked; `read_device_id` both sent a malformed
+  3-byte request — missing the read-code byte the slave requires — and copied the trailing CRC into
+  the caller's buffer). The four write functions also received into `rsp[8]`, which a 12-byte TCP
+  write response would overflow. The AT-vocabulary slice took 429 → 430 (`at_common_contract`), one
+  contract file for the vocabulary the AT client and AT server now share. The nano_modbus Full-branch
+  slice took 430 → 431 (`nano_modbus_full_compat`, 7 cases): the unified umbrella's
+  `NANO_MB_USE_TINY=0` branch had never compiled — `mb_slave_config_t` was used before it was
+  defined and `MB_FUNC_READ_COILS` was redefined as itself — so the Full branch is guarded by
+  building the umbrella with `-DNANO_MB_USE_TINY=0` and linking `mb_full.c`, then driving the compat
+  API (`nano_mb_slave_init`/`poll`, master read-holding/write-reg/write-multi-regs/read-coils) and
+  asserting CRC/error-string parity with the Tiny branch through a true master↔slave loopback.
+  The sensor-migration Slice B batch took 431 → 428 (removed `sensor_sht30_legacy` and
+  `sensor_bh1750_legacy`; the re-measured total also folds in Slice A's earlier `test_angle_encoders`
+  removal, which had not been reflected in these counts): the two legacy compatibility wrappers were
+  retired because their canonical Device owners (`xy_sht30.c` / `xy_bh1750.c`) already carry the
+  full protocol contract in their focused tests.
+  The sensor-migration Slice B batch 2 took 428 → 426 (removed `sensor_ccs811_sensor` and
+  `sensor_vl53l0x_sensor`): the two legacy duplicate owners were retired because their canonical
+  Device owners (`xy_ccs811.c` / `xy_vl53l0x.c`) already carry the HW_ID/MODEL_ID identity read,
+  start/measure write, settle delay, data-ready gate and result decode in their focused Device tests.
+  The sensor-migration Slice B batches 3–5, the GPS migration, and the Slice C analog-driver ports
+  are folded into the re-measured total above (426 → 421, net −5): each legacy delegating-shell or
+  duplicate-owner CTest target was retired because its canonical Device-owner focused test already
+  carries the full protocol contract. Batch 5 removed `sensor_mpu6050_legacy` and
+  `sensor_aht20_legacy` (the two MPU6050/AHT20 `sensor_device_t` compatibility wrappers, whose
+  identity/config/decode/output-preservation contracts live in `test_mpu6050.c` / `test_aht20.c`).
+  Batch 6 removed `sensor_magnetic_i2c_sensors` (the QMC5883L/IST8310/AK09918 legacy magnetic
+  duplicate-owner CTest), taking 421 → 420; its identity/reset/config/DRDY-gated XYZ decode and
+  failure-preservation contracts live in `test_qmc5883l_device.c` / `test_ist8310_device.c` /
+  `test_ak09918_device.c`.
+  Batch 7 removed `sensor_light_uv_sensors`, `sensor_low_power_accel_sensors`,
+  `sensor_st_silan_accel_sensors` and `sensor_lsm6_imu_sensors` (the MAX44009; ADXL362/BMA400/
+  KX023/LIS2DW12; LIS2DH12/LIS2DW12; LSM6DSL/LSM6DSO/LSM6DSR legacy duplicate-owner CTests),
+  taking 420 → 416; each group's identity/config/XYZ-decode/failure-preservation contracts live in
+  the canonical `test_max44009_device.c` / `test_adxl362_device.c` / `test_bma400_device.c` /
+  `test_kx023_device.c` / `test_lis2dh12_device.c` / `test_lis2dw12_device.c` /
+  `test_lsm6dsl_device.c` / `test_lsm6dso_device.c` / `test_lsm6dsr_device.c`.
+  The sensor-migration ADT7420 slice took 416 → 417 (`sensor_adt7420_device`): the last top-level
+  legacy owner `sensor_adt7420.c` (a `sensor_device_t` factory with no canonical counterpart) was
+  migrated to the canonical Device owner `xy_adt7420.c`, whose focused test asserts `0xCB` identity
+  read, default/alternate addresses, 16-bit-resolution config, `raw*100/128` centi-C decode, and
+  output/cache preservation on failure.
+  The Slice E framework teardown took 417 → 415: deleting the `sensor_device_t` framework layer
+  removed the two framework contract tests `test_sensor_framework.c` (19 cases) and
+  `test_sensor_bus.c` (20 cases), whose contracts are superseded by the canonical Device owners
+  and the deleted legacy bus/framework sources. The ICM20608 wrapper retirement (batch 8) was
+  count-neutral for CTests (`test_icm20608_sensor.c` → `test_icm20608_device.c`).
+  The PID board-runtime slice took 415 → 416 (`pandora_pid_capture_validator`, which judges the
+  identity-bound marker stream of the PID board image against the exact firmware commit that was
+  flashed). The watchdog refresh-policy slice took 416 → 417 (`pandora_watchdog_capture_validator`,
+  which judges the two-phase marker stream of the watchdog board image: the feed phase that has to
+  survive many multiples of the armed window, and the report phase that has to name the watchdog as
+  the cause of the reset that followed).
 - Unwired source `.c` files under `tests/unit`: 0
-- Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
-  is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
+- Python-only CTests are counted in the CTest total but not in the C-file counts above; entries
+  include `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
   fixes the semantics of `boards/pandora_stm32l475/validate_runtime_timeline.py`: host-arrival
   timestamps are turned into per-cycle wall time, the largest marker-to-marker gaps, and the excess
   wall time inside windows whose only firmware work is a known `xy_os_delay()`, and proves the
@@ -61,10 +185,10 @@
 | Path | Classification | Action |
 | --- | --- | --- |
 | `components/crypto/curve25519-cortexm0-20150813/test/*.c` | Upstream/vendor Curve25519 Cortex-M0 test helpers | Keep in place; excluded from the project Unity/CTest unit inventory. |
-| `components/sensor/sensor_self_test.c` | Production Sensor self-test implementation | Keep in component source; covered through `tests/unit/sensor/test_sensor_framework.c`. |
 | `projects/Bank/ontroller-charger-test.c` | Imported project-local patch transcript, not an active CTest source | Leave out of unit conversion; treat as project-specific legacy material unless the Bank project is intentionally rehabilitated. |
 | `tools/tests/*.py` | Host-side Python tool tests (z-serial + HIL harnesses), run by `make test-tools` | Keep separate from the C Unity/CTest inventory; the C counts above stay authoritative for firmware code. |
 | `components/clib/xy_clib/xy_math_example.c` | Public-API sample, excluded from `libxy_xy_clib` by the `_example\.c$` glob filter | Compiled and run by CTest `clib_math_example`; self-checking `main` (73 checks) instead of `assert()`, because Release defines `NDEBUG`. |
+| `components/hal/examples/hal_quickstart.c` | Public-API sample outside `tests/unit`, like the net/sensor samples | Compiled and run by CTest `hal_quickstart` (37 checks) with `-Werror=implicit-function-declaration`; it is the code `components/hal/README.md` and `docs/hal/HAL_UNIFIED_API.md` show, so a documented HAL entry that disappears fails a test. |
 | `components/clib/xy_clib/examples/clib_example.c` | Public-API sample, same glob exclusion | Compiled and run twice: CTest `clib_example` (hardware-division path) and `clib_example_softdiv` (`-DXY_USE_SOFT_DIV=1`); the pair is what proves the two division paths agree. |
 
 ## Component Breakdown
@@ -89,7 +213,7 @@
 | `net` | 17 | 17 | 0 | 0 | 0 | 5 |
 | `pid` | 3 | 2 | 0 | 0 | 1 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
-| `sensor` | 49 | 49 | 0 | 0 | 0 | 49 |
+| `sensor` | 47 | 47 | 0 | 0 | 0 | 47 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `support` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -103,9 +227,7 @@
 > `test_pandora_i2c_owners`, `test_pandora_platform_startup`, `test_pandora_device_stack`,
 > `test_pandora_hw_i2c_stack` and `test_pandora_sensor_owners`.
 > The summary counts above were re-measured from the tree in the `test_pandora_sensor_owners`
-> slice. They were re-measured again in the sensor-bus slice, which added `sensor_bus`
-> (`tests/unit/sensor/test_sensor_bus.c`, 20 cases) for the public I2C/SPI bus helpers the
-> fuel-gauge drivers call, and that slice is where 208 / 202 / 383 were counted.
+> slice.
 > A full breakdown regeneration remains a separate docs-sync slice.
 
 ## Migration Priority
@@ -223,8 +345,11 @@ guard API drift in those examples/skeletons.
 | `tests/unit/net/test_lte_hal_uart_adapter.c` | `unity` | 0 | LTE default-off HAL UART adapter transport seam with host HAL fakes. |
 | `tests/unit/net/test_lte_hal_uart_smoke_example.c` | `unity` | 0 | Build-guarded LTE HAL UART smoke skeleton; not a hardware-validation record. |
 | `tests/unit/net/test_modbus_legacy.c` | `unity` | 3 |
+| `tests/unit/net/test_modbus_full_slave.c` | `unity` | 0 | Modbus-Full 从站线上契约（RTU + TCP），只用本文件内的捕获回调，不引 FFF：手工组帧驱动 `mb_full_slave_handle()`/`mb_full_slave_handle_tcp()`，逐字节断言读保持/输入寄存器、读线圈/离散输入、写单/多线圈、写单/多寄存器、0x17 先写后读、0x2E 设备标识、异常帧、CRC 拒绝、从站 ID 过滤、位区打包（区域起始地址 = bit 0）、MBAP 大端与长度校验，以及 CRC16/LRC/ASCII 成帧工具。 |
+| `tests/unit/net/test_modbus_full_master.c` | `unity` | 0 | Modbus-Full 主站 RTU/TCP 环路（以同 TU 的从站为对端）：主站 transport 回调捕获其发出的帧、喂给 `mb_full_slave_handle*()`、回传从站响应。钉住读保持/输入寄存器、写寄存器、0x17 先写后读、0x2E 设备标识（对象值回读且无 CRC 泄漏）、RTU 请求 CRC、RTU 响应 CRC 校验（故障注入）、MBAP 请求逐字节大端与事务 ID 递增、TCP 异常归一化为 `MB_FULL_ERROR`、初始化/NULL 守卫。 |
 | `tests/unit/net/test_mqtt_client_core.c` | `unity` | 4 | MQTT client CONNECT, publish/subscribe/unsubscribe callbacks, SUBACK failure, and keep-alive transport failure contracts |
 | `tests/unit/net/test_nano_modbus.c` | `unity` | 0 |
+| `tests/unit/net/test_nano_modbus_full.c` | `unity` | 0 | nano_modbus unified-umbrella `NANO_MB_USE_TINY=0` (Full) branch host guard: builds the same public umbrella with `-DNANO_MB_USE_TINY=0` and links `mb_full.c`, then drives the compat API through a master↔slave loopback (read-holding, write-reg, write-multi-regs, read-coils) and asserts CRC/error-string parity with the Tiny branch. |
 | `tests/unit/net/test_net_core.c` | `unity` | 0 |
 | `tests/unit/net/test_net_smbus_pmbus.c` | `unity` | 34 |
 | `tests/unit/pid/test_pid_auto.c` | `unity` | 12 |
@@ -233,15 +358,11 @@ guard API drift in those examples/skeletons.
 | `tests/unit/pm/test_charger_bq25620.c` | `unity` | 10 |
 | `tests/unit/pm/test_pm_core.c` | `unity` | 0 |
 | `tests/unit/pm/test_pm_platform_fallback.c` | `unity` | 0 |
-| `tests/unit/sensor/test_sensor_bus.c` | `unity` | 20 | The public `xy_sensor_i2c_*` / `xy_sensor_spi_*` / `xy_sensor_check_device_id` / `xy_sensor_bus_config_*` helpers the fuel-gauge drivers call: every rejection (NULL bus, unconfigured type, missing handle, address 0, shifted address, zero length) is asserted to return `-1` with **zero HAL calls**, every HAL failure maps to `-1`, the 100 ms whole-call timeout is forwarded, and `read_reg16`/`write_reg16` are pinned to SMBus little-endian word order. Host contract only; no bus timing, clock-stretching or device evidence. |
-| `tests/unit/sensor/test_sensor_framework.c` | `unity` | 19 |
 | `tests/unit/sensor/test_mlx90614.c` | `unity` | 0 |
 | `tests/unit/sensor/test_aht20.c` | `unity` | 0 |
 | `tests/unit/sensor/test_sht40.c` | `unity` | 0 |
 | `tests/unit/sensor/test_oled_ssd1306.c` | `unity` | 0 |
 | `tests/unit/sensor/test_bh1750.c` | `unity` | 0 |
-| `tests/unit/sensor/test_bh1750_legacy_sensor.c` | `unity` | 0 | BH1750 legacy light sensor init/read/failure contracts |
-| `tests/unit/sensor/test_sht30_legacy_sensor.c` | `unity` | 0 | SHT30 legacy compatibility wrapper delegates to canonical Device owner; dual-address/error/output-preservation contracts |
 | `tests/unit/sensor/test_hdc1080.c` | `unity` | 0 |
 | `tests/unit/sensor/test_tsl2561.c` | `unity` | 0 |
 | `tests/unit/sensor/test_sgp40.c` | `unity` | 0 |
@@ -256,37 +377,29 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_vl53l1x.c` | `unity` | 0 |
 | `tests/unit/sensor/test_bno055.c` | `unity` | 0 |
 | `tests/unit/sensor/test_dmp.c` | `unity` | 0 |
-| `tests/unit/sensor/test_lsm9ds1.c` | `unity` | 0 |
 | `tests/unit/sensor/test_lsm9ds1_device.c` | `unity` | 0 | LSM9DS1 Device-model fixed-address dual-I2C lifecycle, identity, staged 9-axis sample and failure-preservation contracts |
-| `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_vcnl4040_device.c` | `unity` | 0 | VCNL4040 Device-model fixed-address, nested lifecycle, little-endian sample and failure-preservation contracts |
 
-| `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 + AK09918 + CMM905 legacy magnetic I2C contracts |
 | `tests/unit/sensor/test_ak09918_device.c` | `unity` | 0 | AK09918 canonical Device identity, reset/config, sample, failure-preservation and lifecycle contracts |
 
-| `tests/unit/sensor/test_angle_encoders.c` | `unity` | 0 | AS5600/AS5048 legacy angle encoder create/read/guard/failure contracts |
 | `tests/unit/sensor/test_as5600_device.c` | `unity` | 0 | AS5600 canonical Device lifecycle, angle decoding, transport guards and failed re-init atomicity |
 | `tests/unit/sensor/test_as5048b_device.c` | `unity` | 0 | AS5048B canonical Device lifecycle, angle decoding, transport guards and failed re-init atomicity |
-| `tests/unit/sensor/test_light_uv_sensors.c` | `unity` | 0 | MAX44009/GUVA-S12SD legacy light/UV read/failure/boundary contracts |
-| `tests/unit/sensor/test_mq_gas_sensors.c` | `unity` | 0 | MQ3/MQ7/MQ135 ADC gas conversion and guard contracts |
-| `tests/unit/sensor/test_apds9960_sensor.c` | `unity` | 0 | APDS9960 RGB init/read/failure guard contracts |
-| `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
-| `tests/unit/sensor/test_ap3216c_sensor.c` | `unity` | 0 | AP3216C light/proximity/IR init/read/failure guard contracts |
-| `tests/unit/sensor/test_ccs811_sensor.c` | `unity` | 0 | CCS811 eCO2/TVOC init/read/failure guard contracts |
-| `tests/unit/sensor/test_vl53l0x_sensor.c` | `unity` | 0 | VL53L0X legacy ToF identity/init/read/failure contracts |
+| `tests/unit/sensor/test_guvas12sd_device.c` | `unity` | 0 | GUVA-S12SD canonical Device: raw ADC read, guards, failure atomicity |
+| `tests/unit/sensor/test_mq135_device.c` | `unity` | 0 | MQ-135 canonical Device: raw ADC read, guards, failure atomicity |
+| `tests/unit/sensor/test_mq3_device.c` | `unity` | 0 | MQ-3 canonical Device: raw ADC read, guards, failure atomicity |
+| `tests/unit/sensor/test_mq7_device.c` | `unity` | 0 | MQ-7 canonical Device: raw ADC read, guards, failure atomicity |
+| `tests/unit/sensor/test_apds9960_device.c` | `unity` | 0 | APDS9960 canonical Device identity (`0xAB`/`0x9C`), enable/disable profile, RGB decode, gesture-FIFO level/payload ordering and failure-preservation contracts |
 | `tests/unit/sensor/test_vl53l0x_device.c` | `unity` | 0 | VL53L0X canonical Device identity/read/lifecycle/failure contracts |
-| `tests/unit/sensor/test_analog_misc_sensors.c` | `unity` | 0 | ACS712/FSR/MG811 legacy ADC analog conversion and guard contracts |
+| `tests/unit/sensor/test_acs712_device.c` | `unity` | 0 | ACS712 canonical Device: ADC read to signed current (30A/3.3V datasheet conversion), guards, failure atomicity |
+| `tests/unit/sensor/test_fsr_device.c` | `unity` | 0 | FSR canonical Device: raw ADC read, guards, failure atomicity |
+| `tests/unit/sensor/test_mg811_device.c` | `unity` | 0 | MG811 canonical Device: raw ADC read, guards, failure atomicity |
 
-| `tests/unit/sensor/test_env_i2c_sensors.c` | `unity` | 0 | AHT10 legacy env I2C init/read/failure contracts |
-| `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy `sensor_bmp280.c` pressure/temperature calibration/read/failure contracts |
-| `tests/unit/sensor/test_icm20608_sensor.c` | `unity` | 0 | ICM20608 legacy IMU I2C/SPI identity/init/read/failure contracts |
-| `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS legacy parser GGA/RMC/GSV/checksum/registry contracts; `gps_parse_nmea`/`gps_parse_byte` come from `sensor_gps.h` (they used to be re-declared locally, which is what a header omitting its own driver's API forces), and only the deliberately unpublished legacy `gps_sensor_read()` bridge is still hand-declared. Also pins that `gps_sleep(NULL)`/`gps_wakeup(NULL)` are rejected instead of dereferencing. |
-| `tests/unit/sensor/test_gps_example_tick_stub.c` | `plain/helper` | 0 | Frozen `xy_os_tick_get()` for the `sensor_gps_example` target; not a standalone CTest source. |
-| `tests/unit/sensor/test_sensor_demo_backend_stub.c` | `plain/helper` | 0 | SPI/UART/GPIO/mem-I2C/registry stubs for the `sensor_device_example` target. `components/sensor/examples/sensor_demo.c` supplies the three HAL entry points it asserts on; this file stubs the rest of `xy_device_bus_helpers.c`'s backend so the sample does not have to carry harness code. Returns `NOT_SUPPORTED`, so a driver that switched to one of these paths fails instead of passing against a rubber stamp. |
-| `tests/unit/sensor/test_sensor_example_bus_stub.c` | `plain/helper` | 0 | Backend for the three `sensor_example_*` targets, which build and run `components/sensor/example/{basic,advanced,example_multi_sensors}.c`. Answers `xy_i2c_device_init/read_reg/write_reg/read/write`, `xy_hal_delay_ms`, `xy_hal_sys_get_tick_count` and `xy_os_tick_get/delay`; models one chip (MPU6050 WHO_AM_I + one accel burst at 16384 LSB/g) so `sensor_example_basic` can assert the exact decoded mg triple. The tick only advances on delay calls, so a stuck sample loop is visible instead of masquerading as a zero clock. |
-| `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12 legacy low-power accel init/read/config failure contracts |
-| `tests/unit/sensor/test_st_silan_accel_sensors.c` | `unity` | 0 | LIS2DH12/LIS2DW12/SC7A20/Silan SC7A20 accel init/read/config failure contracts |
-| `tests/unit/sensor/test_lsm6_imu_sensors.c` | `unity` | 0 | LSM6DSL/LSM6DSO/LSM6DSR legacy IMU I2C/SPI config/read/failure contracts |
+| `tests/unit/sensor/test_icm20608_device.c` | `unity` | 0 | ICM20608 canonical Device IMU I2C/SPI identity/reset/config/decode/verify contracts |
+| `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS NMEA parser GGA/RMC/GSV/checksum/registry contracts; `gps_parse_nmea`/`gps_parse_byte` come from `xy_gps.h`. Also pins that `gps_sleep(NULL)`/`gps_wakeup(NULL)` are rejected instead of dereferencing. |
+| `tests/unit/sensor/test_gps_example_tick_stub.c` | `plain/helper` | 0 | Frozen `xy_hal_sys_get_tick_count()` for the `sensor_gps_example` target; not a standalone CTest source. |
+| `tests/unit/sensor/test_sensor_demo_backend_stub.c` | `plain/helper` | 0 | SPI/UART/GPIO/mem-I2C/registry stubs for the `sensor_device_example` target. `components/drivers/sensor/examples/sensor_demo.c` supplies the three HAL entry points it asserts on; this file stubs the rest of `xy_device_bus_helpers.c`'s backend so the sample does not have to carry harness code. Returns `NOT_SUPPORTED`, so a driver that switched to one of these paths fails instead of passing against a rubber stamp. |
+| `tests/unit/sensor/test_cmm905_device.c` | `unity` | 0 | CMM905 canonical Device: identity/init/read (6 single-byte registers)/deinit, raw readings, failure preservation and fail-closed contracts |
+| `tests/unit/sensor/test_sc7a20_device.c` | `unity` | 0 | SC7A20 canonical Device: identity/WHO_AM_I, 12-bit left-aligned decode, mg conversion with range scaling, range/ODR configuration, failure preservation and fail-closed contracts |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
 | `tests/unit/sensor/test_i2c2_sensor_devices.c` | `unity` | 0 | AHT30/L3G4200D/BME680/SC7A22H Device initialization and sample contracts |
 | `tests/unit/sensor/test_sht30_integration.c` | `unity` | 11 |

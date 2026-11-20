@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "board": "pandora_stm32l475",
+  "chip": "STM32L475VE",
+  "component": "PID",
+  "source_commit": "1187e9a4bf407ab7738a45b6c986d3be218b1b25",
+  "image": "pandora_stm32l475_pid.bin",
+  "image_sha256": "63cb0332c6eb031dcaccef4432f915a8278112491e196c18894043564996d064",
+  "image_size_bytes": 20576,
+  "program_address": "0x08000000",
+  "program_log": "program.json",
+  "uart_capture": "uart.txt",
+  "capture_metadata": "capture.json",
+  "uart_port": "/dev/ttyUSB0 (CP2102, 115200 8N1)",
+  "validator": "boards/pandora_stm32l475/validate_pid_capture.py",
+  "validator_verdict": {
+    "status": "B1_PID_BOARD_RUNTIME_PASS",
+    "checks_passed": 4,
+    "failures": [],
+    "error_steps": []
+  },
+  "checks": [
+    {
+      "name": "loop",
+      "marker": "PANDORA_PID_LOOP_OK_A",
+      "verdict": "ok",
+      "detail": "the closed loop runs against the real FreeRTOS tick: the first compute establishes the baseline without counting as an update, twenty stepped updates each count, the error is the setpoint minus the measurement, the output leaves zero and stays inside the configured limits, the proportional term alone is kp * error, the integral accumulates and is clamped, and the derivative of a constant error stays at zero"
+    },
+    {
+      "name": "windup",
+      "marker": "PANDORA_PID_WINDUP_OK_A",
+      "verdict": "ok",
+      "detail": "anti-windup clamps the integral at the output bound rather than letting it run away, and the output itself is clamped at the configured maximum"
+    },
+    {
+      "name": "contract",
+      "marker": "PANDORA_PID_CONTRACT_OK_A",
+      "verdict": "ok",
+      "detail": "a non-finite setpoint, a non-finite input and a non-finite measurement are each refused with the previous value kept; manual mode passes the previous output through"
+    },
+    {
+      "name": "reset",
+      "marker": "PANDORA_PID_RESET_OK_A",
+      "verdict": "ok",
+      "detail": "reset returns the update count, the error, the integral and the derivative to their initial values"
+    }
+  ],
+  "terminal_marker": "B1_PID_BOARD_RUNTIME_PASS",
+  "float_abi": {
+    "target": "VFPv4-D16, Tag_ABI_VFP_args=VFP registers",
+    "fma_instructions_in_image": 3,
+    "note": "the target contracts the multiply-add in the output sum into one vfma.f32 (one rounding) while the x86-64 Host emits a separate mulss and addss (two roundings); the same expression can differ in its last bit between the two, which no Host test can show"
+  },
+  "tick_source": {
+    "source": "xy_os_kernel_get_tick_count()",
+    "note": "the OSAL's default xy_os_tick_get() reads the misc tick counter, which nothing increments once the kernel owns SysTick, so the image owns its tick source; the image also waits through xy_os_delay() rather than the bare-metal xy_hal_delay_ms(), which would stop the scheduler instead of delaying the task"
+  },
+  "status": "B1_REVIEW_CANDIDATE"
+}

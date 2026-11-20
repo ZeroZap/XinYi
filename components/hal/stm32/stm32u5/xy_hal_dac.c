@@ -24,21 +24,6 @@ typedef struct {
 static dac_ctx_t g_dac_ctx = { 0 };
 
 /**
- * @brief Convert XY DAC resolution to STM32
- */
-static uint32_t xy_to_stm32_resolution(xy_hal_dac_resolution_t resolution)
-{
-    switch (resolution) {
-    case XY_HAL_DAC_RESOLUTION_8B:
-        return DAC_ALIGN_8B_R;
-    case XY_HAL_DAC_RESOLUTION_12B:
-        return DAC_ALIGN_12B_R;
-    default:
-        return DAC_ALIGN_12B_R;
-    }
-}
-
-/**
  * @brief Convert XY channel to STM32
  */
 static uint32_t xy_to_stm32_channel(xy_hal_dac_channel_t channel)
@@ -279,12 +264,11 @@ xy_hal_error_t xy_hal_dac_generate_triangle(void *dac, xy_hal_dac_channel_t chan
         return XY_HAL_ERROR_NOT_INIT;
     }
 
-    uint32_t stm_channel = xy_to_stm32_channel(channel);
-
-    /* Triangle wave generation requires specific configuration */
+    /* Triangle wave generation needs a trigger/timing configuration this backend does not
+     * provide; reporting NOT_SUPPORTED is the honest answer instead of a silent no-op. */
+    XY_UNUSED(channel);
     XY_UNUSED(amplitude);
 
-    /* Not fully implemented - requires hardware-specific setup */
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
@@ -299,10 +283,10 @@ xy_hal_error_t xy_hal_dac_generate_noise(void *dac, xy_hal_dac_channel_t channel
         return XY_HAL_ERROR_NOT_INIT;
     }
 
-    uint32_t stm_channel = xy_to_stm32_channel(channel);
+    /* Noise generation needs a trigger/timing configuration this backend does not provide. */
+    XY_UNUSED(channel);
     XY_UNUSED(mask);
 
-    /* Noise generation requires specific configuration */
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 

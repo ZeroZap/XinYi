@@ -1,0 +1,10 @@
+{
+  "status": "B1_REVIEW_CANDIDATE",
+  "device": "/dev/ttyACM0",
+  "firmware_commit": "23e544b2daa07e3805e51363d803048240c911ed",
+  "bytes_captured": 101,
+  "capture_sha256": "2a3de7f709fec73e637a69edc3f3d0ddd55ff42408dddb0f25311209d61b5c64",
+  "required_markers": [
+    "OPENCH_RTC_LSI_COUNTER_BACKUP_OK"
+  ]
+}

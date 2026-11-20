@@ -59,26 +59,27 @@ XinYi 硬件抽象层（HAL）为常见嵌入式外设提供统一的、平台�
 
 ```c
 #include "xy_hal_gpio.h"
+#include "xy_hal_delay.h"
 
-int main(void) {
-    // 配置 GPIO
+// port / pin 由板级层提供：STM32 上 port 就是 GPIOA，pin 是引脚号；
+// HAL 不认识厂商的 `GPIOA`，它只认这个句柄，这样同一份应用代码可以换平台
+void blink_example(xy_hal_gpio_port_t port, uint8_t pin)
+{
     xy_hal_gpio_config_t config = {
         .mode = XY_HAL_GPIO_MODE_OUTPUT,
         .pull = XY_HAL_GPIO_PULL_NONE,
         .otype = XY_HAL_GPIO_OTYPE_PP,
         .speed = XY_HAL_GPIO_SPEED_LOW,
     };
-    
-    // 初始化 PA5
-    xy_hal_gpio_init(GPIOA, 5, &config);
-    
+
+    if (xy_hal_gpio_init(port, pin, &config) != XY_HAL_OK) {
+        return;
+    }
+
     while (1) {
-        // 切换 LED
-        xy_hal_gpio_toggle(GPIOA, 5);
+        xy_hal_gpio_toggle(port, pin);
         xy_hal_delay_ms(1000);
     }
-    
-    return 0;
 }
 ```
 
@@ -86,9 +87,11 @@ int main(void) {
 
 ```c
 #include "xy_hal_uart.h"
+#include <string.h>
 
-int main(void) {
-    // 配置 UART
+// uart 由板级层提供：STM32 上是一个 `UART_HandleTypeDef *`
+void hello_example(void *uart)
+{
     xy_hal_uart_config_t config = {
         .baudrate = 115200,
         .wordlen = XY_HAL_UART_WORDLEN_8B,
@@ -96,15 +99,13 @@ int main(void) {
         .parity = XY_HAL_UART_PARITY_NONE,
         .flowctrl = XY_HAL_UART_FLOWCTRL_NONE,
     };
-    
-    // 初始化 UART1
-    xy_hal_uart_init(UART1, &config);
-    
-    // 发送数据
+
+    if (xy_hal_uart_init(uart, &config) != XY_HAL_OK) {
+        return;
+    }
+
     const char *msg = "Hello, HAL!\r\n";
-    xy_hal_uart_send(UART1, (const uint8_t *)msg, strlen(msg), 1000);
-    
-    return 0;
+    (void)xy_hal_uart_send(uart, (const uint8_t *)msg, strlen(msg), 1000);
 }
 ```
 
@@ -113,21 +114,22 @@ int main(void) {
 ```c
 #include "xy_hal_i2c.h"
 
-int main(void) {
-    // 配置 I2C
+// i2c 由板级层提供：STM32 上是一个 `I2C_HandleTypeDef *`
+void read_sensor_example(void *i2c)
+{
+    // 时钟频率按 Hz 写进 clock_speed，不是选一个速度枚举
     xy_hal_i2c_config_t config = {
-        .speed = XY_HAL_I2C_SPEED_STANDARD,  // 100kHz
+        .clock_speed = 100000,  // 100 kHz
         .addr_mode = XY_HAL_I2C_ADDR_7BIT,
     };
-    
-    // 初始化 I2C1
-    xy_hal_i2c_init(I2C1, &config);
-    
+
+    if (xy_hal_i2c_init(i2c, &config) != XY_HAL_OK) {
+        return;
+    }
+
     // 读取传感器 (地址 0x68, 寄存器 0x00)
     uint8_t data[2];
-    xy_hal_i2c_mem_read(I2C1, 0x68, 0x00, data, 2, 1000);
-    
-    return 0;
+    (void)xy_hal_i2c_mem_read(i2c, 0x68, 0x00, data, sizeof(data), 1000);
 }
 ```
 
@@ -140,10 +142,10 @@ int main(void) {
 | 函数 | 说明 |
 |------|------|
 | `xy_hal_gpio_init()` | 初始化 GPIO |
-| `xy_hal_gpio_set()` | 设置高电平 |
-| `xy_hal_gpio_clear()` | 设置低电平 |
-| `xy_hal_gpio_toggle()` | 切换电平 |
+| `xy_hal_gpio_write()` | 写电平（高/低） |
+| `xy_hal_gpio_toggle()` | 翻转电平 |
 | `xy_hal_gpio_read()` | 读取电平 |
+| `xy_hal_gpio_write_batch()` | 同端口批量写 |
 
 ### UART
 
@@ -151,16 +153,17 @@ int main(void) {
 |------|------|
 | `xy_hal_uart_init()` | 初始化 UART |
 | `xy_hal_uart_send()` | 发送数据 |
-| `xy_hal_uart_receive()` | 接收数据 |
-| `xy_hal_uart_dma_send()` | DMA 发送 |
+| `xy_hal_uart_recv()` | 接收数据 |
+| `xy_hal_uart_send_dma()` | DMA 发送 |
+| `xy_hal_uart_recv_dma()` | DMA 接收 |
 
 ### SPI
 
 | 函数 | 说明 |
 |------|------|
 | `xy_hal_spi_init()` | 初始化 SPI |
-| `xy_hal_spi_transfer()` | 数据传输 |
-| `xy_hal_spi_send()` | 发送数据 |
+| `xy_hal_spi_transmit_receive()` | 全双工传输 |
+| `xy_hal_spi_transmit()` | 发送数据 |
 | `xy_hal_spi_receive()` | 接收数据 |
 
 ### I2C
@@ -168,10 +171,10 @@ int main(void) {
 | 函数 | 说明 |
 |------|------|
 | `xy_hal_i2c_init()` | 初始化 I2C |
-| `xy_hal_i2c_write()` | 写入数据 |
-| `xy_hal_i2c_read()` | 读取数据 |
-| `xy_hal_i2c_mem_write()` | 内存写入 |
-| `xy_hal_i2c_mem_read()` | 内存读取 |
+| `xy_hal_i2c_master_transmit()` | 主发送 |
+| `xy_hal_i2c_master_receive()` | 主接收 |
+| `xy_hal_i2c_mem_write()` | 寄存器写 |
+| `xy_hal_i2c_mem_read()` | 寄存器读 |
 
 ---
 
@@ -247,17 +250,17 @@ ctest -R test_hal --output-on-failure
 
 ## 📚 相关文档
 
-- [支持平台](platforms.md)
-- [API 参考](api-reference.md)
-- [移植指南](porting.md)
-- [错误码](error-codes.md)
+- [HAL 统一 API](../../hal/HAL_UNIFIED_API.md)
+- [硬件与开发板概览](../../hardware/boards.md)
+- [移植到新平台](../../hardware/porting.md)
+- [HAL 组件源码约定](../../../components/hal/README.md)
 
 ---
 
 ## 📞 获取帮助
 
-- 📚 [API 文档](api-reference.md)
-- ❓ [常见问题](../about/faq.md)
+- 📚 [API 文档](../../hal/HAL_UNIFIED_API.md)
+- ❓ [常见问题](../../about/faq.md)
 - 🐛 [报告问题](https://github.com/ZeroZap/XinYi/issues)
 
 ---

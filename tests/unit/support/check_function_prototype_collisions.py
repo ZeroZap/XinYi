@@ -97,10 +97,6 @@ PINS: dict[str, str] = {
     "xy_oled_ssd1306_draw_pixel": "components/sensor/inc against the canonical ssd1306 driver header",
     "xy_oled_ssd1306_draw_char": "components/sensor/inc against the canonical ssd1306 driver header",
     "xy_oled_ssd1306_draw_string": "components/sensor/inc against the canonical ssd1306 driver header",
-    "xy_sensor_sample_fetch":
-        "components/device/inc is canonical; components/sensor/inc/xy_sensor.h is the un-migrated old "
-        "framework and declares an incompatible signature",
-    "xy_sensor_channel_get": "same pair as xy_sensor_sample_fetch",
     # -- rgb_matrix: the LCD driver tree against the serial-RGB driver tree ----------------------
     "xy_rgb_matrix_init":
         "components/drivers/display/lcd_drivers/xy_rgb_matrix.h against led_drivers/serial_rgb/"

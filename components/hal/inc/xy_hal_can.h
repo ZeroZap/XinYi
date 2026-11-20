@@ -10,6 +10,7 @@
 #include "xy_hal_error.h"
 
 #include "xy_hal.h"
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus

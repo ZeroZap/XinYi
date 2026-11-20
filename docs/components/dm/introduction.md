@@ -44,9 +44,9 @@ int main(void) {
     xy_tlv_buffer_init(&tlv_buf, buffer, sizeof(buffer));
     
     // 编码数据
-    xy_tlv_buffer_append_uint8(&tlv_buf, 0x0001, 42);
-    xy_tlv_buffer_append_uint16(&tlv_buf, 0x0002, 1000);
-    xy_tlv_buffer_append_string(&tlv_buf, 0x0101, "Hello");
+    xy_tlv_encode_uint8(&tlv_buf, 0x0001, 42);
+    xy_tlv_encode_uint16(&tlv_buf, 0x0002, 1000);
+    xy_tlv_encode_string(&tlv_buf, 0x0101, "Hello");
     
     return 0;
 }
@@ -60,6 +60,8 @@ int main(void) {
 int main(void) {
     xy_tlv_iterator_t iter;
     xy_tlv_t tlv;
+    uint8_t buffer[256];          // 收到的报文
+    uint16_t buffer_len = 0;      // 实际长度，由接收路径填写
     
     // 初始化迭代器
     xy_tlv_iterator_init(&iter, buffer, buffer_len);
@@ -113,7 +115,8 @@ int main(void) {
 
 | 函数 | 说明 |
 |------|------|
-| `xy_tlv_find_by_type()` | 按类型查找 |
+| `xy_tlv_find()` | 按类型查找 |
+| `xy_tlv_find_all()` | 按类型查找所有匹配项 |
 
 ---
 

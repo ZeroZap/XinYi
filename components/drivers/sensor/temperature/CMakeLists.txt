@@ -35,6 +35,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mlx90614)
     add_subdirectory(mlx90614)
 endif()
 
+# ADT7420
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/adt7420)
+    add_subdirectory(adt7420)
+endif()
+
 # DHT11
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/dht11)
     add_subdirectory(dht11)

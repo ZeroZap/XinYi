@@ -219,9 +219,9 @@ void save_config(void)
 {
     struct config cfg = { .baudrate = 115200, .timeout = 1000 };
 
-    xy_enter_critical();
+    xy_os_sys_enter_critical();
     fee_write(&net_fee, 0, (uint8_t *)&cfg, sizeof(cfg));
-    xy_exit_critical();
+    xy_os_sys_exit_critical();
 }
 
 /* 读取（已内置保护，上下文灵活） */

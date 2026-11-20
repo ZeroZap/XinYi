@@ -22,6 +22,12 @@ XinYi GUI 组件提供轻量级的嵌入式图形用户界面框架。
 ```c
 #include "xy_gui.h"
 
+/* 显示后端：由具体面板适配层实现（ST7789 / SSD1306 等），签名见 xy_gui_disp_drv_t */
+int display_init(void);
+int display_draw_pixel(int16_t x, int16_t y, uint16_t color);
+int display_draw_line(int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color);
+int display_flush(void);
+
 int main(void) {
     xy_gui_t gui;
     xy_gui_disp_drv_t drv = {

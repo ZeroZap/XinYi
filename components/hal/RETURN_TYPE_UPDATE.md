@@ -1,5 +1,9 @@
 # XY HAL Return Type Standardization - Complete Update
 
+> **已废弃 / Deprecated** —— 2025-10 的返回类型统一记录，按 `bsp/xy_hal` 那一代头文件清单写。返回类型本身
+> （`xy_hal_error_t`）仍然成立，见 [`xy_hal_error.h`](inc/xy_hal_error.h)；当时列出的 9 个文件与路径不再存在。
+> 真实接口见 [`components/hal/inc/`](inc/)。
+
 ## Overview
 
 All XY HAL interface functions have been updated to use `xy_hal_error_t` as the return type instead of generic `int`. This provides type safety, better code clarity, and consistent error handling across the entire HAL API.

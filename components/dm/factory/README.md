@@ -173,11 +173,11 @@ void save_device_id(void)
 {
     uint8_t device_id[16] = {0x01, 0x02, 0x03, /* ... */};
 
-    xy_enter_critical();
+    xy_os_sys_enter_critical();
     factory_status_t status = factory_write(&factory_handle,
                                             FACTORY_TYPE_DEVICE_ID,
                                             device_id, sizeof(device_id));
-    xy_exit_critical();
+    xy_os_sys_exit_critical();
 }
 
 /* RTOS 调用方式 */

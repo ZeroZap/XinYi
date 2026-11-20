@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 #include "xy_hal.h"
+#include <stddef.h>
 #include <stdint.h>
 
 /**

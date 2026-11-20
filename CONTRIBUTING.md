@@ -176,7 +176,7 @@ make coverage
 
 ### README 模板
 
-```markdown
+````markdown
 # 组件名称
 
 **版本**: 1.0.0  
@@ -211,7 +211,7 @@ my_component_read(&handle, &data);
 
 - [相关文档 1](link1.md)
 - [相关文档 2](link2.md)
-```
+````
 
 ---
 

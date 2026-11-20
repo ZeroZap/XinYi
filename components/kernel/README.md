@@ -167,7 +167,7 @@ int main(void) {
 static void blink_entry(void *arg) {
     (void)arg;
     while (1) {
-        xy_gpio_toggle(LED_PIN);
+        xy_hal_gpio_toggle(GPIOA, 5u);   /* 端口即平台外设：板上是 GPIOA/GPIOB… */
         xy_os_delay(100);
     }
 }

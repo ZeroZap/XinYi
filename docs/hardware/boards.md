@@ -236,9 +236,9 @@ make -j$(nproc)
 
 | 文档 | 说明 |
 |------|------|
-| [工具链配置](toolchain.md) | 编译器/构建系统配置 |
-| [快速入门](QUICK_START.md) | 5 分钟上手指南 |
-| [开发者指南](DEVELOPER_GUIDE.md) | 完整开发流程 |
+| [工具链配置](../getting-started/toolchain.md) | 编译器/构建系统配置 |
+| [快速入门](../getting-started/QUICK_START.md) | 5 分钟上手指南 |
+| [开发者指南](../getting-started/DEVELOPER_GUIDE.md) | 完整开发流程 |
 | [移植指南](porting.md) | 移植到新平台 |
 
 ---

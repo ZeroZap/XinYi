@@ -81,6 +81,52 @@ static void test_init_configures_documented_profile(void) {
     TEST_ASSERT_EQUAL_UINT32(2U, delayed);
 }
 
+static void test_init_rejects_unsupported_address(void) {
+    xy_qma6100p_t dev = {0};
+    int bus;
+    reads = writes = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_qma6100p_init(&dev, &bus, 0x14U));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT(0U, reads);
+    TEST_ASSERT_EQUAL_UINT(0U, writes);
+}
+
+static void test_public_operations_reject_lost_nested_transport_without_bus_io(void) {
+    xy_qma6100p_t dev = {0};
+    xy_qma6100p_accel_t accel = {0};
+    xy_qma6100p_raw_t raw = {0};
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    dev.i2c_dev.i2c_handle = NULL;
+    reads = 0U;
+    writes = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_qma6100p_read_raw(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_qma6100p_read_accel(&dev, &accel));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_qma6100p_set_range(&dev, XY_QMA6100P_RANGE_8G));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_qma6100p_set_active(&dev, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_qma6100p_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT(0U, reads);
+    TEST_ASSERT_EQUAL_UINT(0U, writes);
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_RANGE_2G, dev.range);
+}
+
+static void test_active_low_interrupt_profile_maps_both_data_ready_pins(void) {
+    xy_qma6100p_t dev = {0};
+    int bus;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_configure_data_ready_interrupts_ex(&dev, 1U, 1U, 0U));
+    TEST_ASSERT_EQUAL_HEX8(0x00U, regs[XY_QMA6100P_REG_INT_PIN_CONFIG]);
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_ENABLE1]);
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_MAP1]);
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_MAP3]);
+}
+
 static void test_init_rejects_wrong_identity(void) {
     xy_qma6100p_t dev = {0};
     int bus;
@@ -412,6 +458,9 @@ static void test_deinit_failure_preserves_live_owner_for_retry(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_configures_documented_profile);
+    RUN_TEST(test_init_rejects_unsupported_address);
+    RUN_TEST(test_public_operations_reject_lost_nested_transport_without_bus_io);
+    RUN_TEST(test_active_low_interrupt_profile_maps_both_data_ready_pins);
     RUN_TEST(test_init_rejects_wrong_identity);
     RUN_TEST(test_failed_reinit_preserves_live_owner);
     RUN_TEST(test_failed_reinit_preserves_live_owner_after_configuration_failure);

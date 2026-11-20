@@ -44,7 +44,9 @@ int main(void) {
         .slot_size = 128 * 1024,
         .slot_count = 2,
     };
-    
+    uint32_t version = 101;          // 版本号，按整数比较（1.0.1 -> 101）
+    uint32_t size = 96 * 1024;       // 固件长度
+
     xy_fota_init(&fota, &config);
     xy_fota_start_download(&fota, version, size, false);
     // ... 下载数据 ...

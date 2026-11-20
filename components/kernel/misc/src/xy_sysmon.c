@@ -198,11 +198,11 @@ void xy_sysmon_print_status(void)
     xy_log_i("\r\n=== System Status ===\r\n");
     xy_log_i("CPU Usage: %.1f%%\r\n", stats.cpu_usage);
     xy_log_i("Heap: %lu/%lu bytes (%.1f%%)\r\n",
-             stats.heap_used, stats.heap_total, stats.heap_usage);
+             (unsigned long)stats.heap_used, (unsigned long)stats.heap_total, stats.heap_usage);
     xy_log_i("Stack: %lu/%lu bytes (%.1f%%)\r\n",
-             stats.stack_used, stats.stack_total, stats.stack_usage);
-    xy_log_i("Tasks: %lu\r\n", stats.task_count);
-    xy_log_i("Uptime: %lu ms\r\n", stats.uptime);
+             (unsigned long)stats.stack_used, (unsigned long)stats.stack_total, stats.stack_usage);
+    xy_log_i("Tasks: %lu\r\n", (unsigned long)stats.task_count);
+    xy_log_i("Uptime: %lu ms\r\n", (unsigned long)stats.uptime);
     xy_log_i("=====================\r\n\r\n");
     
     /* 打印任务列表 */
@@ -218,7 +218,8 @@ void xy_sysmon_print_tasks(void)
     xy_sysmon_get_stats(&stats);
     
     xy_log_i("\r\n=== Task List ===\r\n");
-    xy_log_i("Total tasks: %lu (max: %lu)\r\n", stats.task_count, stats.task_max);
+    xy_log_i("Total tasks: %lu (max: %lu)\r\n", (unsigned long)stats.task_count,
+             (unsigned long)stats.task_max);
     
     /* 打印详细任务信息 */
     xy_sysmon_print_task_details();

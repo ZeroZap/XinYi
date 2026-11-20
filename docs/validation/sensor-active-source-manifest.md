@@ -10,11 +10,10 @@
 
 ## Policy
 
-- `legacy-active-root`: `components/sensor/sensors/sensor_*.c` plus the explicitly inventoried
-  top-level `sensor_adt7420.c` are the current `sensor_component` compatibility source set. New
-  chips must not be added to this lifecycle;
-  migration of these owners to the Device model is now the next major Sensor workstream after the
-  current Pandora I2C2 Device owners are completed and stabilized.
+- `legacy-active-root`: the `components/sensor/sensors/sensor_*.c` glob is now empty and the
+  explicitly inventoried top-level owners have all been retired; no `sensor_component`
+  compatibility driver source remains. New chips must not be added to this lifecycle; every
+  former `sensors/` and top-level compatibility owner has now been migrated to the Device model.
 - `experimental-test-only`: `components/sensor/src/xy_*.c` is compiled directly by focused
   Host tests where wired, but is not linked into the root `sensor_component`. **Host 测试不等于根产品链接**.
 - `device-active-root`: `components/drivers/sensor/**/xy_*.c` is collected by the root
@@ -29,9 +28,9 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 38 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 39 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 6 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 47 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 0 `sensors/sensor_*.c` files and lists 0 top-level owners | 0 | retired; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 5 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 62 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
 2026-09-27 追加 Host contract：legacy `sensor_device_t` compatibility wrapper 公开 guarded range setter，只有 canonical Device owner 寄存器写成功后才原子更新 `range_min/range_max`，并复用 owner 的 range-aware mg scaling；非法编码或 transport failure 保持 wrapper metadata 与 owner cache。该补充不升级动态响应、精度、校准、恢复或 endurance 证据。
 
@@ -52,6 +51,7 @@ The Device-model root set is currently exactly:
 - INA219: `components/drivers/sensor/adc/ina219/xy_ina219.c`
 - BMP390: `components/drivers/sensor/pressure/bmp390/xy_bmp390.c`
 - AHT10: `components/drivers/sensor/temperature/aht10/xy_aht10.c`
+- ADT7420: `components/drivers/sensor/temperature/adt7420/xy_adt7420.c`
 - AP3216C: `components/drivers/sensor/light/ap3216c/xy_ap3216c.c`
 - ICM20608: `components/drivers/sensor/motion/icm20608/xy_icm20608.c`
 - QMA6100P: `components/drivers/sensor/motion/qma6100p/xy_qma6100p.c`
@@ -139,6 +139,12 @@ read/deinit operations require the outer lifecycle, nested lifecycle and live I2
 or failed operations preserve caller/cache state, and successful teardown clears the transport.
 Acceleration accuracy, low-power current, timing and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_lis2dw12.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` (and `hal_spi_*` for the SPI path) that duplicated the WHO_AM_I `0x44`
+identity check, the soft-reset/address-increment/100 Hz low-power configuration, and the
+left-aligned 14-bit XYZ decode that the canonical owner's focused Device test
+(`test_lis2dw12_device.c`) already asserts. Nothing the canonical owner expresses was lost.
+
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
 keeping that implementation would manufacture a Device owner from an unverified protocol.
@@ -155,6 +161,20 @@ handle state, including initialization before outer lifecycle publication. Inval
 closed without bus access or state mutation, and successful teardown clears the nested handle. This
 ownership and lifecycle correction does not establish optical calibration, gesture classification,
 timing, recovery, or hardware evidence.
+
+### ADT7420 migration status
+
+The last top-level legacy owner `components/sensor/sensor_adt7420.c` is retired. It was the only
+remaining `sensor_device_t` factory with no canonical Device-model counterpart: `init` read the
+ID register without validating its value and wrote the 16-bit-resolution config byte, while `read`
+decoded the two-byte MSB/LSB word as `raw / 128` centi-C. The canonical owner is now
+`components/drivers/sensor/temperature/adt7420`: it verifies the `0xCB` manufacturer ID at the
+documented 7-bit addresses `0x48`-`0x4B` (default `0x48`), configures 16-bit resolution, and stages
+the same `raw * 100 / 128` centi-C conversion behind the nested I2C lifecycle. The focused Device
+test `test_adt7420_device.c` asserts identity/reset-config init, default and alternate addresses,
+identity-mismatch and transport/config failure propagation, atomic read/cache publication, and
+failed re-init owner preservation. Temperature accuracy, timing and hardware recovery remain
+`hardware-pending`.
 
 ### Pandora I2C2 hardware status
 
@@ -205,21 +225,15 @@ rather than merely add a new copy.
 
 ### SHT30 migration status
 
-The Device-model source is the single canonical implementation. The root-linked
-`sensor_sht30.c` is now a compatibility-only legacy lifecycle wrapper: it delegates init/read and
-CRC/error/output-preservation behavior to `components/drivers/sensor/temperature/sht30/xy_sht30.c`,
-and `sensor_component` explicitly links that owner. The canonical driver accepts both documented
-addresses through `xy_sht30_init_addr()`, while the existing two-argument initializer remains the
-0x44 compatibility API. The duplicate test-local `components/sensor/src/xy_sht30.c` implementation,
-header, and CTest were removed; tracked examples select the Device owner. Focused wrapper, Device,
-and integration tests plus the root `sensor_component` build prove one implementation owner with
-one compatibility boundary. No hardware status is upgraded.
-
-The unreferenced `components/sensor/drivers/temperature/xy_sensor_sht30.c` prototype has also been
-removed and is covered by the manifest guard, preventing a fourth SHT30 lifecycle from returning.
-The canonical owner requires both nested `base.initialized` and `i2c_handle` for deinit/read;
-successful deinit clears the complete device state. Existing temperature/humidity accuracy and
-long-run evidence remains bounded.
+The Device-model source under `components/drivers/sensor/temperature/sht30/xy_sht30.c` is the
+single implementation owner. The compatibility-only legacy `sensor_sht30.c` wrapper is retired:
+it delegated init/read and CRC/error/output-preservation behavior to the canonical owner, whose
+focused Device and integration tests already carry the full protocol contract (reset/measure
+commands, CRC8, dual address, output preservation). The canonical driver accepts both documented
+addresses through `xy_sht30_init_addr()`; the two-argument initializer remains the 0x44
+compatibility API. The unreferenced
+`components/sensor/drivers/temperature/xy_sensor_sht30.c` prototype was removed earlier and remains
+guarded by the manifest check. No hardware status is upgraded.
 
 ### ADS1115 migration status
 
@@ -244,55 +258,60 @@ caller/cache state. This adds no acceleration accuracy, power, timing, recovery,
 ### BH1750 migration status
 
 The Device-model source under `components/drivers/sensor/light/bh1750` is now the single active
-implementation owner. Root-linked `sensor_bh1750.c` is a compatibility-only `sensor_device_t`
-wrapper that delegates init/read/deinit to the typed Device owner and preserves the legacy lux
-conversion at the wrapper boundary. The unreferenced prototype
-`components/sensor/drivers/light/xy_sensor_bh1750.c` was removed, preventing a fourth BH1750
-protocol owner. All public operations now require both nested `base.initialized` and `i2c_handle`;
-a stale lifecycle bit cannot authorize bus access. Internal transport helpers independently enforce
-the same nested contract during initialization and measurement, initialization rejects invalid 7-bit
-addresses or incomplete helper state, and successful teardown clears the nested handle. Focused
-wrapper and Device tests plus root builds prove source/lifecycle ownership only; existing Pandora B1
-remains bounded and no B2 recovery claim is added.
+implementation owner. The compatibility-only legacy `sensor_bh1750.c` wrapper is retired: it
+delegated init/read/deinit to the typed Device owner and preserved the legacy lux conversion at
+the wrapper boundary, while the canonical owner's focused test carries the full protocol contract
+(power-on/reset/one-shot commands, delays, raw-to-lux conversion, output preservation). The
+unreferenced prototype `components/sensor/drivers/light/xy_sensor_bh1750.c` was removed earlier,
+preventing a fourth BH1750 protocol owner. Existing Pandora B1 remains bounded and no B2 recovery
+claim is added.
 
 ### MPU6050 migration status
 
-The Device-model source is the single canonical implementation and is explicitly linked into the
-root `sensor_component`. Root-linked `sensor_mpu6050.c` is now a compatibility-only
-`sensor_device_t` wrapper: its accel/gyro factories preserve legacy metadata and units while
-init/read/deinit delegate to the typed Device owner with explicit error mapping and output
-preservation. The Device owner absorbs the richer range, calibration, converted-output and I/O
-failure contracts from the former test-local implementation while preserving the existing
-default-address initializer for Device consumers. The duplicate
-`components/sensor/src/xy_mpu6050.c` implementation/header and the unreferenced
-`components/sensor/drivers/motion/xy_sensor_mpu6050.c` fourth lifecycle have been removed. Focused
-wrapper and Device tests plus root builds prove one implementation owner with one compatibility
-boundary. This is Host/compile ownership evidence only; IMU accuracy, calibration quality, timing
-and board recovery remain pending.
+The Device-model source under `components/drivers/sensor/motion/mpu6050` is the single
+implementation owner. The legacy `sensor_mpu6050.c` compatibility-only `sensor_device_t` wrapper
+is retired: its accel/gyro factories delegated init/read/deinit to the typed Device owner and
+preserved legacy metadata, units, error mapping, and caller output at the wrapper boundary, while
+the canonical owner's focused Device test (`test_mpu6050.c`) already asserts the full protocol
+contract — WHO_AM_I `0x68` identity, the PWR_MGMT_1/SMPLRT_DIV/CONFIG/ACCEL_CONFIG/GYRO_CONFIG
+init writes, raw accel/gyro to g conversion, failure output preservation, NULL guards, and
+range/deinit write-failure state preservation. The duplicate `components/sensor/src/xy_mpu6050.c`
+implementation/header and the unreferenced `components/sensor/drivers/motion/xy_sensor_mpu6050.c`
+fourth lifecycle were removed earlier. Focused Device tests plus root builds prove one
+implementation owner. This is Host/compile ownership evidence only; IMU accuracy, calibration
+quality, timing and board recovery remain pending.
 
 ### BMP280 migration status
 
 The Device-model source is now the single active implementation owner and carries the
 Bosch integer compensation, both documented I2C addresses, init/deinit I/O propagation, cached
-output preservation, and status-returning getter contracts. The root-linked `sensor_bmp280.c` is a
-compatibility-only pressure/temperature wrapper that delegates lifecycle and sampling to this
-owner. The unreferenced fourth-lifecycle prototype
+output preservation, and status-returning getter contracts. The legacy root-linked
+`sensor_bmp280.c` compatibility-only pressure/temperature wrapper is retired: it delegated
+lifecycle and sampling to this owner and preserved legacy metadata/units/error mapping at the
+wrapper boundary, while the canonical owner's focused Device test (`test_bmp280_device.c`:
+both-address init + calibration parse, per-transaction I/O-failure propagation, Bosch compensated
+sample, cached-output preservation, re-init/deinit atomicity, and missing-transport rejection
+without bus I/O) already asserts the full protocol contract. The unreferenced fourth-lifecycle
+prototype
 `components/sensor/drivers/pressure/xy_sensor_bmp280.c` has been retired, and the tracked smart
 hygrometer example now compiles the canonical owner through its explicit-address API instead of a
 missing experimental source. The ownership policy guard prevents both stale paths from returning.
 Public read/getter/deinit paths now require a live nested I2C handle, and successful deinit clears
-that handle so stale lifecycle state cannot authorize access. Focused Device, legacy and heterogeneous registry tests prove Host/source ownership only; accuracy,
+that handle so stale lifecycle state cannot authorize access. Focused Device and heterogeneous
+registry tests prove Host/source ownership only; accuracy,
 timing, recovery and board status remain pending.
 
 ### AHT20 migration status
 
 The former experimental typed implementation is now the canonical Device-model owner under
-`components/drivers/sensor/temperature/aht20`. The root-linked `sensor_aht20.c` temperature and
-humidity factories are compatibility-only wrappers: lifecycle and sampling delegate to the typed
+`components/drivers/sensor/temperature/aht20`. The legacy root-linked `sensor_aht20.c`
+temperature and humidity factories are retired: lifecycle and sampling delegated to the typed
 owner while preserving legacy metadata, units, error mapping, and caller output on failure. The
-experimental source/header pair was moved rather than copied, and both focused targets now compile
-the canonical source. Host/source ownership only; no AHT20 board, accuracy, timing, or recovery
-status is upgraded.
+experimental source/header pair was moved rather than copied, and the canonical owner's focused
+Device test (`test_aht20.c`: init/trigger commands, `0x80000` → 5000 centi-%RH / 5000 centi-C
+and `0x40000` → 2500 centi-%RH conversions, busy-timeout behavior, and failure output
+preservation) already asserts the full protocol contract. Host/source ownership only; no AHT20
+board, accuracy, timing, or recovery status is upgraded.
 
 All AHT20 public bus operations now require the outer lifecycle plus nested `base.initialized` and
 `i2c_handle`; successful deinit clears the nested handle, so stale transport state fails closed.
@@ -308,16 +327,24 @@ protocol implementation owner.
 AHT10 public read and deinit paths also require a live nested `i2c_handle`; successful teardown
 clears the handle so stale transport state cannot authorize bus access. It uses the Device I2C helper for the fixed `0x38` address, stages
 both temperature and humidity before committing output/cache, preserves state on trigger/read/busy
-failures, and requires both outer and nested lifecycle state. Root-linked `sensor_aht10.c` remains a
-compatibility-only humidity wrapper and delegates all transport, conversion and lifecycle work to
-the canonical owner. Existing Pandora AHT10 B1 evidence remains bounded to the previously observed
-board path; this migration adds no new accuracy, timing, NACK-recovery or long-run claim.
+failures, and requires both outer and nested lifecycle state. The legacy `sensor_aht10.c`
+compatibility-only humidity wrapper is retired: it delegated init/read/deinit to the canonical owner,
+mapped the owner errors onto the legacy `sensor_err_t` codes, and preserved the percent-humidity
+conversion; those contracts are asserted by the canonical owner's focused Device test
+(`test_aht10_device.c`: calibration/measurement commands, staged humidity/temperature publication,
+busy/transport failure output preservation, and failed re-init atomicity). Existing Pandora AHT10 B1
+evidence remains bounded to the previously observed board path; this migration adds no new accuracy,
+timing, NACK-recovery or long-run claim.
 
 ### AP3216C migration status
 
 The Device-model source under `components/drivers/sensor/light/ap3216c` now owns reset/mode
-configuration and ALS, proximity and IR register decoding. Root-linked `sensor_ap3216c.c` remains
-only as a compatibility wrapper for the legacy factories and contains no direct I2C protocol.
+configuration and ALS, proximity and IR register decoding. The legacy root-linked
+`sensor_ap3216c.c` compatibility wrapper is retired: it delegated the legacy light/proximity/IR
+factories to this owner and contained no direct I2C protocol, while the canonical owner's focused
+Device test (`test_ap3216c_device.c`: atomic init/deinit, complete-transport requirement with
+re-init owner preservation, per-channel decode and cache commit, failure output/cache preservation
+with stopped I/O, and outer+nested lifecycle rejection) already asserts the full contract.
 The owner also requires both nested `base.initialized` and `i2c_handle` before any public operation;
 stale lifecycle state cannot authorize bus access. Existing Pandora AP3216C B1 evidence remains
 bounded; this migration adds no accuracy, threshold, NACK-recovery or long-run claim.
@@ -326,11 +353,18 @@ bounded; this migration adds no accuracy, threshold, NACK-recovery or long-run c
 
 `components/drivers/sensor/motion/icm20608` now owns identity, reset,
 default range/filter configuration, I2C/SPI transport dispatch and converted acceleration,
-gyroscope and temperature outputs. Root-linked `sensor_icm20608.c` retains the three legacy
-factories as compatibility wrappers only. Existing Pandora ICM20608 static/basic-chain evidence
-remains bounded; migration does not establish dynamic response, accuracy, calibration or recovery.
-Internal writes now enforce the same I2C/SPI transport validity as reads. Successful deinit clears
-the active I2C handle or SPI callback/context set, preventing stale transport reuse.
+gyroscope and temperature outputs. The legacy `sensor_icm20608.c` compatibility wrapper is retired:
+it delegated init/deinit/read/range/odr/dlpf/bias/configuration/interrupt behavior to this owner,
+mapped the owner errors onto the legacy `sensor_err_t` codes, and converted mdps to dps plus
+centi-C to float at the wrapper boundary. Those contracts are now asserted on the canonical API by
+the focused Device test `test_icm20608_device.c`: I2C and SPI identity/reset/configuration,
+14-byte sample and accel/gyro/temperature decode, range/odr/dlpf read-modify-write and rollback,
+bias bounds and application, sleep with wake delay, the data-ready interrupt, configuration
+readback/verification drift detection, and atomic failure on transport error or value mismatch.
+Existing Pandora ICM20608 static/basic-chain evidence remains bounded; migration does not establish
+dynamic response, accuracy, calibration or recovery. Internal writes now enforce the same
+I2C/SPI transport validity as reads. Successful deinit clears the active I2C handle or SPI
+callback/context set, preventing stale transport reuse.
 
 ### HDC1080 migration status
 
@@ -435,6 +469,11 @@ handle state. Missing transport fails closed before either half of the two-regis
 without changing caller output or cache; successful teardown clears the nested handle. Optical
 accuracy and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_max44009.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` that duplicated the `0x03`/`0x04` exponent-mantissa lux decode and the
+NULL/private/bus fail-closed guards that the canonical owner's focused Device test
+(`test_max44009_device.c`) already asserts. Nothing the canonical owner expresses was lost.
+
 ### VCNL4040 migration status
 
 The legacy VCNL4040 owner is now represented by `components/drivers/sensor/proximity/vcnl4040`.
@@ -444,6 +483,11 @@ helper that independently validates nested I2C lifecycle and handle state. Initi
 incomplete helper transport; lost transport fails closed without bus access or state mutation, and
 successful teardown clears the nested handle. Optical response, distance calibration and hardware
 endurance remain `hardware-pending`.
+
+The legacy `sensor_vcnl4040.c` duplicate is retired. It was an independent implementation of the same
+protocol over `hal_i2c_mem_read/write`: it duplicated the little-endian `0x08/0x09` proximity decode
+and the NULL/private/bus fail-closed guards that the canonical owner's focused Device test
+(`test_vcnl4040_device.c`) already asserts. Nothing the canonical owner expresses was lost.
 
 ### QMC5883L migration status
 
@@ -455,6 +499,12 @@ lifecycle and handle state. Missing transport fails closed without bus access or
 and successful teardown clears the nested handle. Magnetic calibration, accuracy,
 interrupt behavior and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_qmc5883l.c` duplicate is retired. It was an independent implementation of the same
+protocol over `hal_i2c_mem_read/write`: it duplicated the chip-ID `0xFF` check, the
+reset/period/continuous-mode sequence, the DRDY-gated little-endian XYZ decode and the
+NULL/private/bus fail-closed guards that the canonical owner's focused Device test
+(`test_qmc5883l_device.c`) already asserts. Nothing the canonical owner expresses was lost.
+
 ### AK09918 migration status
 
 The legacy AK09918 API is now backed by the canonical Device owner at
@@ -465,6 +515,12 @@ nested I2C lifecycle and handle state. Missing transport fails closed without bu
 mutation, and successful teardown clears the nested handle. Magnetic calibration,
 accuracy and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_ak09918.c` duplicate is retired. It was an independent implementation of the same
+protocol over `hal_i2c_mem_read/write`: it duplicated the AKM WIA1/WIA2 (`0x48/0x09`) identity check,
+the CNTL3 reset / CNTL2 continuous-100 Hz sequence, the ST1-DRDY-gated little-endian XYZ decode and the
+NULL/private/bus fail-closed guards that the canonical owner's focused Device test
+(`test_ak09918_device.c`) already asserts. Nothing the canonical owner expresses was lost.
+
 ### IST8310 migration status
 
 The legacy IST8310 API is now backed by the canonical Device owner at
@@ -473,6 +529,12 @@ continuous 100 Hz operation, reads little-endian XYZ data, and stages sample/tim
 through register helpers that independently validate nested I2C lifecycle and handle state. Missing
 transport fails closed without bus access or state mutation, and successful teardown clears the
 nested handle. Magnetic calibration, accuracy and hardware endurance remain `hardware-pending`.
+
+The legacy `sensor_ist8310.c` duplicate is retired. It was an independent implementation of the same
+protocol over `hal_i2c_mem_read/write`: it duplicated the WHO_AM_I `0x10` identity check, the
+continuous-100 Hz configuration, the little-endian XYZ decode and the NULL/private/bus fail-closed
+guards that the canonical owner's focused Device test (`test_ist8310_device.c`) already asserts.
+Nothing the canonical owner expresses was lost.
 
 ### BMA400 migration status
 
@@ -485,6 +547,12 @@ closed without bus access or state mutation, and successful teardown clears the 
 Motion accuracy, power characterization,
 interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_bma400.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` that duplicated the CHIP_ID `0x90` identity check, the soft-reset and
+low-power/±2g/25 Hz configuration, and the little-endian XYZ decode that the canonical owner's
+focused Device test (`test_bma400_device.c`) already asserts. Nothing the canonical owner
+expresses was lost.
+
 ### KX023 migration status
 
 The legacy KX023 API is now backed by the canonical Device owner at
@@ -495,6 +563,12 @@ lifecycle and handle state. Invalid transport fails closed without bus access or
 successful teardown clears the nested handle. Motion accuracy, power, interrupt
 behavior and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_kx023.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` that duplicated the WHO_AM_I `0x15` identity check, the soft-reset and
+standby/12.5 Hz/low-power configuration, and the little-endian XYZ decode that the canonical
+owner's focused Device test (`test_kx023_device.c`) already asserts. Nothing the canonical owner
+expresses was lost.
+
 ### ADXL362 migration status
 
 The legacy ADXL362 API is now backed by the canonical Device owner at
@@ -502,6 +576,11 @@ The legacy ADXL362 API is now backed by the canonical Device owner at
 ID `0xAD`, configures 100 Hz/±2g measurement mode, decodes signed 12-bit XYZ data, and stages
 sample/timestamp publication behind nested SPI lifecycle checks. Motion accuracy, SPI timing,
 interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
+
+The legacy `sensor_adxl362.c` duplicate is retired. It was an independent implementation over
+`hal_spi_transfer` that duplicated the device-ID `0xAD` identity check, the 100 Hz/±2g measurement
+configuration, and the signed 12-bit XYZ decode that the canonical owner's focused Device test
+(`test_adxl362_device.c`) already asserts. Nothing the canonical owner expresses was lost.
 
 ### LSM6DSO migration status
 
@@ -512,6 +591,12 @@ gyroscope XYZ data through register helpers that independently validate the nest
 preserves output/cache on transport failure, and clears the nested handle after successful teardown.
 Invalid transport fails closed without bus access or lifecycle mutation. Motion accuracy, ODR timing,
 interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
+
+The legacy `sensor_lsm6dso.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` (and `hal_spi_*` for the SPI path) that duplicated the WHO_AM_I `0x6C`
+identity check, the reset/I3C-disable/104 Hz/±2g/±250 dps configuration, and the accelerometer and
+gyroscope XYZ decode that the canonical owner's focused Device test (`test_lsm6dso_device.c`)
+already asserts. Nothing the canonical owner expresses was lost.
 
 ### LSM6DSL migration status
 
@@ -524,6 +609,12 @@ Invalid transport fails closed without bus access or lifecycle mutation. Motion 
 interrupt/FIFO behavior and hardware endurance remain
 `hardware-pending`.
 
+The legacy `sensor_lsm6dsl.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` (and `hal_spi_*` for the SPI path) that duplicated the WHO_AM_I `0x6A`
+identity check, the reset/I3C-disable/104 Hz/±2g/±250 dps configuration, and the accelerometer and
+gyroscope XYZ decode that the canonical owner's focused Device test (`test_lsm6dsl_device.c`)
+already asserts. Nothing the canonical owner expresses was lost.
+
 ### LSM6DSR migration status
 
 The legacy LSM6DSR API is now backed by the canonical Device owner at
@@ -533,6 +624,12 @@ gyroscope XYZ data through register helpers that independently validate the nest
 preserves output/cache on transport failure, and clears the nested handle after successful teardown.
 Invalid transport fails closed without bus access or lifecycle mutation. Motion accuracy, ODR timing,
 interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
+
+The legacy `sensor_lsm6dsr.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` (and `hal_spi_*` for the SPI path) that duplicated the WHO_AM_I `0x69`
+identity check, the reset/I3C-disable/104 Hz/±2g/±250 dps configuration, and the accelerometer and
+gyroscope XYZ decode that the canonical owner's focused Device test (`test_lsm6dsr_device.c`)
+already asserts. Nothing the canonical owner expresses was lost.
 
 ### LSM9DS1 migration status
 
@@ -545,6 +642,13 @@ failure. Invalid IMU or magnetometer transport fails closed without bus access o
 successful teardown clears both handles. Motion and magnetic accuracy,
 timing, interrupt behavior and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_lsm9ds1.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` that split the same chip into three `sensor_device_t` factories
+(accel/gyro/mag) with the IMU WHO_AM_I `0x68`/mag `0x3D` identity checks, the reset and
+CTRL3_C/CTRL1_XL/CTRL2_G/CTRL_REG1_M configuration writes, and per-axis little-endian decoding that
+the canonical owner's focused Device test (`test_lsm9ds1_device.c`) already asserts on the single
+merged `xy_lsm9ds1_t` owner. Nothing the canonical owner expresses was lost.
+
 ### LIS2DH12 migration status
 
 The legacy LIS2DH12 API is now backed by the canonical Device owner at
@@ -553,22 +657,74 @@ The legacy LIS2DH12 API is now backed by the canonical Device owner at
 publishes staged left-aligned 12-bit XYZ samples through the nested I2C lifecycle. Acceleration
 accuracy, low-power behavior, timing and hardware endurance remain `hardware-pending`.
 
+The legacy `sensor_lis2dh12.c` duplicate is retired. It was an independent implementation over
+`hal_i2c_mem_read/write` that duplicated the WHO_AM_I `0x33` identity check, the 10 Hz/XYZ/±2g
+high-resolution and temperature-enable configuration, and the left-aligned 12-bit XYZ decode that
+the canonical owner's focused Device test (`test_lis2dh12_device.c`) already asserts. Nothing the
+canonical owner expresses was lost.
+
 ### APDS9960 migration status
 
-The legacy APDS9960 API is now backed by the canonical Device owner at
+The legacy APDS9960 API is backed by the canonical Device owner at
 `components/drivers/sensor/proximity/apds9960`. The owner verifies the documented ID values
 `0xAB`/`0x9C` at 7-bit address `0x39`, enables the requested sensor functions, stages RGBC and
 proximity samples, and bounds gesture FIFO reads to the documented 32-entry limit behind the nested
 I2C lifecycle. Optical response, gesture classification, timing and hardware endurance remain
 `hardware-pending`.
 
+The legacy `sensor_apds9960.c` duplicate is retired. It was an independent implementation of the
+same protocol over `hal_i2c_mem_read/write`, not a delegation shell: it duplicated the ID check
+(`0xAB`/`0x9C`), the `0x4F` PON/AEN/PEN/GEN enable write, the `0x00` disable write on teardown, the
+8-byte CDATAL RGB decode, the single-byte PDATA proximity read, and the GSTATUS/GFLVL/GFIFO
+gesture-FIFO sequence including the 32-entry bound. Every one of those contracts is now asserted by
+the canonical owner's focused Device test (`test_apds9960_device.c`): both accepted ID values,
+unknown-ID rejection with no enable write, the enable/disable register profile, all four RGB
+channels, gesture FIFO level-then-payload ordering, the above-bound level rejection, the FIFO-level
+read-failure propagation, and NULL-argument rejection without bus traffic. The legacy
+`apds9960_gesture_t` direction enum and its `last_gesture` placeholder were a simplified
+always-`NONE` stand-in for real gesture classification, so nothing the canonical owner expresses was
+lost by retiring them.
+
+### QMA6100P migration status
+
+The legacy QMA6100P API is backed by the canonical Device owner at
+`components/drivers/sensor/motion/qma6100p`. The owner verifies CHIP_ID `0x90` at 7-bit addresses
+`0x12`/`0x13`, applies the documented 2G/100 Hz range and bandwidth profile, converts the signed
+14-bit sample into mg, stages the interrupt map, and requires a live nested I2C transport for every
+public operation. Acceleration accuracy, range calibration, timing and hardware endurance remain
+`hardware-pending`.
+
+The legacy `sensor_qma6100p.c` wrapper is retired. It only delegated `init`/`deinit`/`read`/`enable`
+to the canonical owner and mapped the owner errors onto the legacy `sensor_err_t` codes; the
+name registry and the `sensor_data_t` conversion belong to the legacy framework being retired, not
+to the protocol. The wrapper-specific contracts it asserted are now covered by the canonical
+owner's focused Device test (`test_qma6100p.c`): rejection of an unsupported address, rejection of
+every public operation when the nested transport is lost with no bus traffic and the live owner
+preserved, and the active-low interrupt profile mapping both data-ready pins.
+
 ### CCS811 migration status
 
-The legacy CCS811 API is now backed by the canonical Device owner at
+The legacy CCS811 API is backed by the canonical Device owner at
 `components/drivers/sensor/environment/ccs811`. The owner verifies HW_ID `0x81` at 7-bit address
 `0x5A`, starts the application, configures one-second measurement mode, gates reads on DATA_READY,
-and stages eCO2/TVOC results behind the nested I2C lifecycle. Gas response, baseline behavior,
-accuracy, warm-up and hardware endurance remain `hardware-pending`.
+and stages eCO2/TVOC results behind the nested I2C lifecycle. The legacy `sensor_ccs811.c`
+co2/tvoc factories are retired: they duplicated the HW_ID check, APP_START write, 100 ms settle,
+one-second measurement-mode write, STATUS data-ready gate, and 8-byte ALG_RESULT decode that the
+canonical owner's focused Device test already asserts (init sequence, eCO2/TVOC decode, output
+preservation on failure). Gas response, baseline behavior, accuracy, warm-up and hardware endurance
+remain `hardware-pending`.
+
+### VL53L0X migration status
+
+The legacy VL53L0X API is backed by the canonical Device owner at
+`components/drivers/sensor/distance/vl53l0x`. The owner verifies MODEL_ID `0xEE`, starts a range
+measurement through SYSRANGE_START, applies the 50 ms settle, reads the 12-byte RESULT_RANGE_STATUS
+block, and decodes the distance word from bytes 10/11 behind the nested I2C lifecycle. The legacy
+`sensor_vl53l0x.c` factory is retired: it duplicated the MODEL_ID identity check, start-write,
+50 ms delay, and `(buf[10]<<8)|buf[11]` distance decode that the canonical owner's focused Device
+test already asserts (identity read, start/range transactions, 500 mm decode, output preservation
+on failure). Ranging accuracy, optical calibration, timing, recovery and hardware endurance remain
+`hardware-pending`.
 
 ### AS5600 migration status
 
@@ -617,11 +773,12 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 34 canonical names have exactly thirteen approved legacy filename overlaps:
-`sht30`, `mpu6050`, `bmp280`, `bh1750`, `aht20`, `aht10`, `ap3216c`, `icm20608`, `as5600`, `max44009`, `vcnl4040`, `qmc5883l`, and `ak09918`. Each overlap is a compatibility wrapper
-documented above, not an implementation owner. The other twenty-one canonical owners (`ads1115`, `aht30`,
-`bme680`, `hmc5883l`, `l3g4200d`, `sc7a22`, `sht40`, `ina219`, `bmp390`, `hdc1080`, `tsl2561`, `ina226`, `mlx90614`, `vl53l1x`, `lps22hb`, `sgp40`, `ltc2945`, `bmi088`, `bmi270`, `bno055`, and `as5048b`) have no legacy-root counterpart. No canonical name overlaps
-the 6 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
+The current 62 canonical names have no approved legacy filename overlap: the eleven former overlaps
+(`icm20608`, `max44009`, `bma400`, `kx023`, `adxl362`, `lsm6dso`, `lsm6dsl`, `lsm6dsr`, `lis2dh12`,
+`lis2dw12`, and `adt7420`) were each either a compatibility wrapper documented above or an independent
+duplicate implementation, and all eleven have now been retired in favor of their canonical Device
+owners. The remaining sixty-two canonical owners have no legacy-root counterpart. No canonical name
+overlaps the 5 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was
 removed. It has now been promoted to the canonical Device root as documented above; the stale
