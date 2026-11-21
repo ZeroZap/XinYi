@@ -10,3 +10,8 @@
 - Vendor download page: <http://www.openedv.com/docs/boards/iot/zdyz_panduola.html>
 
 The checked-in PDF is a reference copy for Pandora board bring-up and pin/peripheral verification.
+
+## Board validation and wiring
+
+See the [board README](../../../boards/pandora_stm32l475/README.md) for the validated device
+inventory, pinmux, external I2C2 module wiring, onboard sensor buses, and links to runtime evidence.
